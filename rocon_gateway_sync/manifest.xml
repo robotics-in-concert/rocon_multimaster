@@ -1,0 +1,14 @@
+<package>
+  <description brief="rocon_gateway_sync">
+
+     rocon_gateway_sync
+
+  </description>
+  <author>Daniel Stonier</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rocon_gateway_sync</url>
+
+</package>
+
+
