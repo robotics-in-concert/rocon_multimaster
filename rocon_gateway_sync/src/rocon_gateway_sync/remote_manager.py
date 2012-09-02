@@ -30,15 +30,19 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-class RemoteGateway(object):
+import xmlrpclib
+
+class RemoteManager(object):
     '''
     Abstraction layer over the xmlrpc interface to a remote
     gateway's xmlrpc node.
     '''
-    def __init(self):
+    def __init(self, uri):
         '''
         Constructor
         '''
-        
+        self.uri = uri
+        # Validate uri here
+        self.server = xmlrpclib.ServerProxy(self.uri)
         
     

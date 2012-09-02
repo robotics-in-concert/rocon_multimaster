@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Software License Agreement (BSD License)
 #
 # Copyright (c) 2012, Yujin Robot, Daniel Stonier
@@ -30,13 +31,19 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier"
-__copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
-__license__ = "BSD"
-__version__ = '0.1.0'
-__date__ = "2012-08-29"
+import sys
+import time
+import roslib; roslib.load_manifest('rocon_gateway_sync')
+import rospy
+import rocon_gateway_sync
 
-from .gateway_sync import GatewaySync
-from .local_manager import LocalManager
+##############################################################################
+# Launching
+##############################################################################
 
-        
+# Make sure you launch this with test_local.launch which will also launch
+# a roscpp_tutorial talker
+
+if __name__ == '__main__':
+    rospy.init_node('dude')
+    local_manager = rocon_gateway_sync.LocalManager()

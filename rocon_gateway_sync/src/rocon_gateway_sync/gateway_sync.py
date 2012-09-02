@@ -30,6 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import socket
 import time
 import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
@@ -37,7 +38,8 @@ import rosgraph
 from std_msgs.msg import Empty
 
 from .gateway_handler import GatewayHandler
-    
+from .local_manager import LocalManager
+
 class GatewaySync(object):
     '''
     The gateway between ros systems.
@@ -46,24 +48,32 @@ class GatewaySync(object):
         '''
         Creates a new gateway interface
         '''
+        # Parameters
+        self.port = rospy.get_param('~port',0)
+        
         self.whitelist=[]
         self.blacklist=[]
-        #self.ros_master_uri = rosgraph.rosenv.get_master_uri()
-        self._register_subscriber = rospy.Subscriber("register", Empty, self.register_cb)
+        
+        self.local_manager = LocalManager()
         
         self.handler = GatewayHandler()
-        self.node = rosgraph.xmlrpc.XmlRpcNode(rpc_handler=self.handler) # Can also pass port and run_error handlers
+        self.node = rosgraph.xmlrpc.XmlRpcNode(port=self.port,rpc_handler=self.handler,on_run_error=self._xmlrpc_node_error_handler) # Can also pass port and run_error handlers
         self.node.start()
         
         # poll for initialization
-        while not self.node.uri:
-            time.sleep(0.0001)
-
+        timeout = time.time() + 5
+        while time.time() < timeout and self.node.uri is None and not rospy.is_shutdown():
+            time.sleep(0.01)
+        if self.node.uri is None:
+            # Some error handling here
+            return
+            
         # Uri is determined by lockup in order (rosgraph.xmlrpc.XmlRpcNode 
         #   1) ROS_IP/ROS_HOSTNAME 
         #   2) hostname (if not localhost) 
         #   3) rosgraph.network.get_local_address()
         self.uri = self.node.uri
+        # could probably update self.port here if we wanted to (only necessary if we set port = 0 (ANY))
 
         print("Created gateway")
         print("  Node ["+self.uri+"]")
@@ -71,6 +81,15 @@ class GatewaySync(object):
     def shutdown(self):
         self.node.shutdown("called shutdown")
         
-    def register_cb(self, data):
-        print("Registering local api [" + self.uri + "] to the remote gateway")
-        
+    def _xmlrpc_node_error_handler(self, e):
+        '''
+        Handles exceptions of type 'Exception' thrown by the xmlrpc node.
+        '''
+        # Reproducing the xmlrpc node logic here so we can catch the exception
+        if type(e) == socket.error:
+            (n,errstr) = e
+            #if n == 98: # can't start the node because the port is already used
+                # save something to that the class can look up the problem later
+        else:
+            print("Xmlrpc Node Error")
+    

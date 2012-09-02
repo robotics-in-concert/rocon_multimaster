@@ -31,9 +31,25 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import roslib; roslib.load_manifest('rocon_gateway_sync')
 import sys
+import time
+import threading
+import roslib; roslib.load_manifest('rocon_gateway_sync')
+import rospy
 import rocon_gateway_sync
-       
+
+#    def register_cb(self, data):
+#        print("Registering local api [" + self.uri + "] to the remote gateway")
+
+##############################################################################
+# Launching
+##############################################################################
+
+# Make sure you launch this with test_local.launch which will also launch
+# a roscpp_tutorial talker
+
 if __name__ == '__main__':
-    sys.exit(rocon_gateway_sync.main())
+    rospy.init_node('local_gateway_sync')
+    gateway = rocon_gateway_sync.GatewaySync()
+    rospy.spin()
+    gateway.shutdown()

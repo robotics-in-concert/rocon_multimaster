@@ -30,13 +30,41 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier"
-__copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
-__license__ = "BSD"
-__version__ = '0.1.0'
-__date__ = "2012-08-29"
+import roslib; roslib.load_manifest('rocon_gateway_sync')
+import rosgraph
 
-from .gateway_sync import GatewaySync
-from .local_manager import LocalManager
-
+class LocalManager(object):
+    '''
+    Abstraction layer over the xmlrpc interface to the local master.
+    '''
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.master_uri = rosgraph.get_master_uri()
         
+        ns = rosgraph.names.get_ros_namespace() # ns in which this node resides, typically '/'
+        anon_name = rosgraph.names.anonymous_name('gateway') # creates a unique name, e,g, gateway_0258198135
+
+        self.master = rosgraph.masterapi.Master(rosgraph.names.ns_join(ns, anon_name), master_uri=self.master_uri)
+        #self.cb = cb
+        self.type_cache = {}
+        self.subs = {}
+        self.pubs = {}
+        self.srvs = {}
+    
+    def get_topic_type(self, query_topic):
+        query_topic = self.resolve(query_topic)
+        if query_topic in self.type_cache:
+            return self.type_cache[query_topic]
+        else:
+            for topic, topic_type in self.master.getTopicTypes():
+                self.type_cache[topic] = topic_type
+            if query_topic in self.type_cache:
+                return self.type_cache[query_topic]
+            else:
+                return "*"
+            
+    def resolve(self, topic):
+        ns = rosgraph.names.namespace(self.master.caller_id)
+        return rosgraph.names.ns_join(ns, topic)

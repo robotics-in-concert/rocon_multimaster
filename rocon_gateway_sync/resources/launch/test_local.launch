@@ -1,0 +1,7 @@
+<launch>
+  <env name="ROS_MASTER_URI" value="http://localhost:11311"/>
+  <node pkg="rocon_gateway_sync" type="test_local.py" name="gateway_sync" output="screen">
+    <rosparam param="port">53755</rosparam>
+  </node>
+  <node pkg="roscpp_tutorials" type="talker" name="talker"/>
+</launch>
