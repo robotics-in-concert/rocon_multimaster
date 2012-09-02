@@ -30,24 +30,47 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier"
-__copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
-__license__ = "BSD"
-__version__ = '0.1.0'
-__date__ = "2012-08-29"
-
 import time
 import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
-from .gateway_sync import GatewaySync
+import rosgraph
+from std_msgs.msg import Empty
 
-
-def main():
-    rospy.init_node('gateway_sync')
-    gateway = GatewaySync()
-    rospy.spin()
-    gateway.shutdown()
-#    while not rospy.is_shutdown():
+from .gateway_handler import GatewayHandler
+    
+class GatewaySync(object):
+    '''
+    The gateway between ros systems.
+    '''
+    def __init__(self):
+        '''
+        Creates a new gateway interface
+        '''
+        self.whitelist=[]
+        self.blacklist=[]
+        #self.ros_master_uri = rosgraph.rosenv.get_master_uri()
+        self._register_subscriber = rospy.Subscriber("register", Empty, self.register_cb)
         
-if __name__ == '__main__':
-    sys.exit(main())
+        self.handler = GatewayHandler()
+        self.node = rosgraph.xmlrpc.XmlRpcNode(rpc_handler=self.handler) # Can also pass port and run_error handlers
+        self.node.start()
+        
+        # poll for initialization
+        while not self.node.uri:
+            time.sleep(0.0001)
+
+        # Uri is determined by lockup in order (rosgraph.xmlrpc.XmlRpcNode 
+        #   1) ROS_IP/ROS_HOSTNAME 
+        #   2) hostname (if not localhost) 
+        #   3) rosgraph.network.get_local_address()
+        self.uri = self.node.uri
+
+        print("Created gateway")
+        print("  Node ["+self.uri+"]")
+    
+    def shutdown(self):
+        self.node.shutdown("called shutdown")
+        
+    def register_cb(self, data):
+        print("Registering local api [" + self.uri + "] to the remote gateway")
+        

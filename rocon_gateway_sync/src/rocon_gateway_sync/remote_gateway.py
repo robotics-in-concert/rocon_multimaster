@@ -30,24 +30,15 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier"
-__copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
-__license__ = "BSD"
-__version__ = '0.1.0'
-__date__ = "2012-08-29"
-
-import time
-import roslib; roslib.load_manifest('rocon_gateway_sync')
-import rospy
-from .gateway_sync import GatewaySync
-
-
-def main():
-    rospy.init_node('gateway_sync')
-    gateway = GatewaySync()
-    rospy.spin()
-    gateway.shutdown()
-#    while not rospy.is_shutdown():
+class RemoteGateway(object):
+    '''
+    Abstraction layer over the xmlrpc interface to a remote
+    gateway's xmlrpc node.
+    '''
+    def __init(self):
+        '''
+        Constructor
+        '''
         
-if __name__ == '__main__':
-    sys.exit(main())
+        
+    

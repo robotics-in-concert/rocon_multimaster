@@ -30,24 +30,48 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier"
-__copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
-__license__ = "BSD"
-__version__ = '0.1.0'
-__date__ = "2012-08-29"
-
-import time
 import roslib; roslib.load_manifest('rocon_gateway_sync')
-import rospy
-from .gateway_sync import GatewaySync
+import rosgraph
+
+class GatewayHandler(rosgraph.xmlrpc.XmlRpcHandler):
+    '''
+    Sets up the handlers for the xmlrpc node. Any public
+    method defined here will be associated with the 
+    xmlrpc server.
+    '''
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        pass
+    
+    ##########################################
+    # XmlRpcHandler Callbacks    
+    ##########################################    
+    def _ready(self, uri):
+        """
+        callback into handler to inform it of XML-RPC URI
+        """
+        #print "Xmlrpc Handler: ready"
+        pass
+
+    def _shutdown(self, reason):
+        """
+        callback into handler to inform it of shutdown
+        """
+        #print "Xmlrpc Handler: shutdown"
+        pass
 
 
-def main():
-    rospy.init_node('gateway_sync')
-    gateway = GatewaySync()
-    rospy.spin()
-    gateway.shutdown()
-#    while not rospy.is_shutdown():
-        
-if __name__ == '__main__':
-    sys.exit(main())
+    ##########################################
+    # Xmlrpc Api
+    ##########################################
+    
+    def list(self):
+        return "list"
+    
+    def handle_registration(self):
+        return "Flip requested ros api from the remote gateway to the local master"
+
+    def handle_request(self):
+        return "Flip exposed ros api from the local master to the remote gateway"
