@@ -1,17 +1,15 @@
 <package>
-  <description brief="master">
-
-     master
-
-  </description>
-  <author>Wim Meeussen</author>
-  <license>BSD</license>
-  <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/master</url>
-
-  <depend package="rosgraph"/>
+  <depend package="roslib"/>
   <depend package="rospy"/>
-
+  <depend package="std_msgs"/>
+  <description brief="multimaster">Multimaster is a script allowing to register topics and services at a second master and to subscribe to topics and services from a second master. </description>
+  <author>Maintained by Wim Meeussen</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/multimaster</url>
+  <depend package="rospy" />
+  <depend package="rosgraph" />
+  
 </package>
 
 
