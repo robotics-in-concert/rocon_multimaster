@@ -41,7 +41,7 @@ import rosgraph
 import rocon_gateway_sync
 
 ##############################################################################
-# Launching
+# Testing
 ##############################################################################
 
 # > roscore
@@ -54,6 +54,10 @@ import rocon_gateway_sync
 # export ROS_MASTER_URI=http://localhost:11312; ./register_publisher <node_xmlrpc_uri>
 
 # This neatly transfers across a publisher to the remote system.
+
+##############################################################################
+# Main
+##############################################################################
 
 if __name__ == '__main__':
     parser = OptionParser(usage="usage: %prog <node_xmlrpc_uri>")
