@@ -1,0 +1,25 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+@section Flipping a Publisher to Remote Master
+
+
+@code
+> roslaunch flip_publisher.launch
+@endcode
+
+In another shell
+
+@code
+export ROS_MASTER_URI=http://localhost:11312
+roscore --port=11312
+@endcode
+
+Open up shells to either 11311 or 11312 uri's and introspect with rostopic echo.
+
+@section Flipping a Subscriber
+
+Same as above, but use flip_subscriber.launch.
+
+*/
