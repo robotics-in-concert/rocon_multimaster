@@ -1,0 +1,10 @@
+<stack>
+  <description brief="multimaster">Multimaster is a script allowing to register topics and services at a second master and to subscribe to topics and services from a second master. </description>
+  <author>Maintained by Wim Meeussen</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/multimaster</url>
+  <depend stack="ros" />
+  <depend stack="ros_comm" /> <!-- rospy, rosgraph -->
+
+</stack>

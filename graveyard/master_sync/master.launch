@@ -1,0 +1,8 @@
+<launch>
+  <arg name="master" />
+  <node pkg="multimaster" type="master_sync.py" name="master_sync" output="screen"> 
+    <!--<param name="foreign_master" value="http://$(arg master):11311" />-->
+    <param name="foreign_master" value="http://snorriheim:11312" />      
+    <rosparam command="load" file="$(find multimaster)/config.yaml" />
+  </node>
+</launch>
