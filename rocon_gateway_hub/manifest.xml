@@ -1,0 +1,14 @@
+<package>
+  <description brief="rocon_gateway_hub">
+
+     rocon_gateway_hub
+
+  </description>
+  <author>yujin</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rocon_gateway_hub</url>
+
+</package>
+
+
