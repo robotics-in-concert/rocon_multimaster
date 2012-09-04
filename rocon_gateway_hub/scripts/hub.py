@@ -37,53 +37,46 @@ import time
 from optparse import OptionParser
 
 ##############################################################################
-# Testing
-##############################################################################
-
-# > roscore
-# > rosrun roscpp_tutorials talker
-# > show_node_xmlrpc_uri /talker
-
-# Copy the output of the last command, we'll use it below in <node_xmlrpc_uri>
-
-# > roscore --port 11312
-# export ROS_MASTER_URI=http://localhost:11312; ./register_publisher <node_xmlrpc_uri>
-
-# This neatly transfers across a publisher to the remote system.
-
-##############################################################################
 # Main
 ##############################################################################
 
-if __name__ == '__main__':        
+if __name__ == '__main__':      
     parser = OptionParser(
-                   usage="usage: %prog [OPTIONS]\n\n\
-%prog launches a hub enabling ros multimaster:\n\
+                   usage="usage: %prog [options]\n\n\
+Starts the ros multimaster hub:\n\n\
   1. Launches a central redis server for gateway information and interactions\n\
-  2. Optionally advertises a zeroconf service appropriate to your platform\n\",
-                   epilog="See: http://www.ros.org/wiki/rocon_multimaster for details\n")
+  2. Optionally advertises a zeroconf service appropriate to your platform\
+                   ",
+                   epilog="See: http://www.ros.org/wiki/rocon_multimaster for details\n\n"
+                         )
     parser.add_option("-p", "--port", dest="port", default=0,
                     help="Port on which to launch the redis server.",
                     action="store")
     options, args = parser.parse_args()
     
-    is_ros_environment = false;
+    is_ros_environment = False;
     try:
         import roslib; roslib.load_manifest('rocon_gateway')
         import rospy
         import rosgraph
-        import rocon_gateway
-        is_ros_environment = true
+        #import rocon_gateway
+        is_ros_environment = True
         rospy.init_node('hub')
         rospy.loginfo("Ros environment detected")
     except ImportError:
         print("No ros environment detected.")
 
-#    if rosgraph.is_master_online:
-#        print
-#        print("******************* General Information *************************")
-#        print
-#        print("*****************************************************************")
-#        print
-#    else:
-#        print "Master is not online"
+    # Try to autodetect the system and start redis appropriately
+    # Try to autodetect the system and start zeroconf appropriately
+    # Linux
+    # TODO: If port is zero, find a free port here before advertising
+    # Might need to track this one so we can kill it when the program 
+    # terminates
+    os.system('avahi-publish -s ros-gateway-hub _ros-gateway-hub._tcp '+options.port)
+
+    if is_ros_environment:
+        rospy.loginfo("Advertising _ros-gateway-hub._tcp on port "+options.port)
+        # Add some ros api here for server statistics
+    else:
+        print("Advertising _ros-gateway-hub._tcp on port "+options.port)
+        
