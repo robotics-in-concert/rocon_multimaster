@@ -1,0 +1,15 @@
+<package>
+  <description brief="test_redis">
+
+     test_redis
+
+  </description>
+  <author>jihoonl</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/test_redis</url>
+  <depend package="rospy"/>
+
+</package>
+
+
