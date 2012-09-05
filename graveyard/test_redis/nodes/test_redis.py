@@ -13,7 +13,6 @@ class SubThread(threading.Thread):
                   
   def run(self):
     rospy.loginfo("Start Listening")
-    r = self.pubsub.listen()
 
     for r in self.pubsub.listen():
       rospy.loginfo(str(r))
@@ -80,8 +79,10 @@ class Gateway():
   def spin(self):
     self.connect('localhost',6379,0,['/chatter','/whoola!!'])
     resp = self.server.smembers('masterlist')
-#for r in self.pubsub.listen() if not rospy.is_shutdown():
-#     rospy.loginfo(str(r))
+    rospy.loginfo(str(resp))
+    
+    for r in self.pubsub.listen():
+      rospy.loginfo(str(r))
     rospy.spin()
     rospy.loginfo("Stopping Thread")
     self.pubsub.unsubscribe()
