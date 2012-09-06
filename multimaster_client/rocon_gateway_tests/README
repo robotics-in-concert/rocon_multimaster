@@ -1,0 +1,15 @@
+
+- how to run
+
+1. Server side
+> sudo bash
+> rosrun rocon_gateway_hub hub.py
+
+2. Client side
+> rosrun rocon_gateway gateway.py
+> roslaunch rocon_gateway sync.launch
+
+Try either
+> rosrun rocon_gateway_tests register_public_topic.py <topicname> ...
+or
+> rosrun rocon_gateway_tests get_remote_list.py

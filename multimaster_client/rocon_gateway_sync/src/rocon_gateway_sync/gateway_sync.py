@@ -52,6 +52,10 @@ class GatewaySync(object):
   The gateway between ros system and redis server
   '''
 
+  masterlist = 'masterlist'
+  master_uri = None
+  connected = False
+
   def __init__(self):
     self.redis_manager = RedisManager()
     self.ros_manager = ROSManager()
@@ -60,10 +64,62 @@ class GatewaySync(object):
     # 1. connect to redis server
     self.redis_manager.connect(ip,port)
     # 2. register ros master uri
-    master_uri = self.ros_manager.getMasterUri()
+    self.master_uri = self.ros_manager.getMasterUri()
 
-    self.redis_manager.registerMasterUri(master_uri)
+    self.redis_manager.registerMasterUri(self.masterlist,self.master_uri)
 
-#def setDefaultSetup(self,param):
+    self.connected = True
 
-  
+  def getRemoteLists(self):
+    remotelist = {}
+    masterlist = self.redis_manager.getMembers(self.masterlist)
+
+    for master in masterlist:
+      remotelist[master] = {}
+      
+      # get public topic list of this master
+      key = master +":topic"
+      remotelist[master]['topic'] = self.redis_manager.getMembers(key)
+
+      # get public service list of this master
+      key = master +":service"
+      remotelist[master]['service'] = self.redis_manager.getMembers(key)
+
+    return remotelist    
+
+  def addPublicTopics(self,list):
+    if not self.connected:
+      print "It is not connected to Server"
+      return False
+    key = self.master_uri + ":topic"
+    return self.redis_manager.addMembers(key,list)
+
+  def removePublicTopics(self,list):
+    if not self.connected:
+      print "It is not connected to Server"
+      return False
+
+    key = self.master_uri + ":topic"
+
+    '''
+      this also stop publishing topic to remote server
+    '''
+    return self.redis_manager.removeMembers(key,list)
+
+
+  def addPublicService(self,list):
+    if not self.connected:
+      print "It is not connected to Server"
+      return False
+
+
+    key = self.master_uri + ":service"
+    return self.redis_manager.addMembers(key,list)
+
+  def removePublicService(self,list):
+    if not self.connected:
+      print "It is not connected to Server"
+      return False
+
+    key = self.master_uri + ":service"
+    return self.redis_manager.Members(key,list)

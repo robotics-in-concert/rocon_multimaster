@@ -52,8 +52,8 @@ class Gateway():
   zeroconf_lost_connection_topic = "/zeroconf/lost_connections" # This may not be needed
 
   # request from local node
-  register_remote_topic = "/gateway/register_remote_topic"
-  register_remote_service = "/gateway/register_remote_service"
+  remote_topic_handler = "/gateway/topic"
+  remote_service_handler = "/gateway/service"
 
   # Remote topic list request
   remote_topic_list_service_name = "/gateway/remotelist"
@@ -73,7 +73,11 @@ class Gateway():
     self.new_connectin_sub = rospy.Subscriber(self.zeroconf_new_connection_topic,DiscoveredService,self.processServerConnection)
 
     # Service Server for remote list request 
-    self.remote_list_srv = rospy.Service(self.remote_topic_list_service_name,GetRemoteLists,self.processServiceRequest)
+    self.remote_list_srv = rospy.Service(self.remote_topic_list_service_name,GetRemoteLists,self.processRemoteListRequest)
+
+    # Service Server for public topic/service handler
+    self.public_topic_handler = rospy.Service(self.remote_topic_handler,PublicHandler,self.processPublicTopicRequest)
+    self.public_service_handler = rospy.Service(self.remote_service_handler,PublicHandler,self.processPublicServiceRequest)
 
   def parse_params(self):
 
@@ -85,14 +89,45 @@ class Gateway():
     self.param['remote_topic'] = rospy.get_param('~remote_topic','')
     self.param['remoteservice'] = rospy.get_param('~remote_service','')
 
+  def processPublicServiceRequest(self,request):
+    success = False
+    if request.command == "register":
+      success = self.gateway_sync.addPublicService(request.list)
+    elif request.command == "remove":
+      success = self.gateway_sync.removePublicService(request.list)
+    else:
+      rospy.loginfo("Public Service Wrong command : " + request.command)
+    
+    return PublicHandlerResponse(success)
+
+  def processPublicTopicRequest(self,request):
+    success = False
+    if request.command == "register":
+      success = self.gateway_sync.addPublicTopics(request.list)
+    elif request.command == "remove":
+      success = self.gateway_sync.removePublicTopics(request.list)
+    else:
+      rospy.loginfo("Public Topic Wrong command : " + request.command)
+
+    
+    return PublicHandlerResponse(success)
+
 
   # This function receives a service request from local ros node, crawl remote topic/service list from redis, and respose to local ros node.
-  def processServiceRequest(self,request):
-    remote_list = self.gateway_sync.RequestRemoteList()
+  def processRemoteListRequest(self,request):
+    remote_list = self.gateway_sync.getRemoteLists()
 
-    r = GetRemoteListReponse()
-    r.list = remote_list
+    r = GetRemoteListsResponse()
+    r.list = []
 
+    for host in remote_list.keys():
+      l = RemoteList()
+      l.hostname = host
+      l.topics = remote_list[host]['topic']
+      l.services= remote_list[host]['service']
+      r.list.append(l)
+      
+    print str(r)
     return r
 
 
