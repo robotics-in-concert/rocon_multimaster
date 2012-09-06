@@ -1,6 +1,7 @@
+#!/usr/bin/env python       
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2012, Yujin Robot, Daniel Stonier
+# Copyright (c) 2012, Yujin Robot, Daniel Stonier, Jihoon Lee
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,13 +31,30 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier"
-__copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
-__license__ = "BSD"
-__version__ = '0.1.0'
-__date__ = "2012-08-29"
+import redis
 
-from .gateway_sync import GatewaySync
-#from .local_manager import LocalManager
+class RedisManager(object):
 
-        
+  pool = None
+  server = None
+  pubsub = None
+
+  masterlist = "masterlist"
+
+  def __init__(self):
+    print "Init Redis Manager"
+
+  def connect(self,ip,portarg):
+    try:
+      self.pool = redis.ConnectionPool(host=ip,port=portarg,db=0)
+      self.server = redis.Redis(connection_pool=self.pool)
+      self.pubsub = self.server.pubsub()
+    except ConnectionError as e:
+      print str(e)
+      raise
+
+  def registerMasterUri(self,masteruri):
+    pipe = self.server.pipeline()
+    pipe.sadd(self.masterlist,masteruri)
+    pipe.execute()
+

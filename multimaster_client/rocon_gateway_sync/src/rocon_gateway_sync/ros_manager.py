@@ -1,6 +1,7 @@
+#!/usr/bin/env python       
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2012, Yujin Robot, Daniel Stonier
+# Copyright (c) 2012, Yujin Robot, Daniel Stonier, Jihoon Lee
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,13 +31,53 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier"
-__copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
-__license__ = "BSD"
-__version__ = '0.1.0'
-__date__ = "2012-08-29"
+import roslib; roslib.load_manifest('rocon_gateway_sync')
+import rospy
+import rosgraph.masterapi
+import time
+from .gateway_handler import GatewayHandler
 
-from .gateway_sync import GatewaySync
-#from .local_manager import LocalManager
+class ROSManager(object):
 
-        
+  # xml rpc node
+  node = None
+  port = 0
+
+  def __init__(self):
+    print "init ROS manager"
+
+
+    # run xml rpc node
+    self.createXMLRPCNode()
+
+  def createXMLRPCNode(self):
+    self.handler = GatewayHandler()
+    self.node = rosgraph.xmlrpc.XmlRpcNode(port=self.port,rpc_handler=self.handler,on_run_error=self._xmlrpc_node_error_handler) # Can also pass port and run_error handlers
+    self.node.start()
+
+    # poll for initialization
+    timeout = time.time() + 5
+    while time.time() < timeout and self.node.uri is None and not rospy.is_shutdown():
+        time.sleep(0.01)
+    if self.node.uri is None:
+        # Some error handling here
+        return
+
+
+  def getMasterUri(self):
+    return rosgraph.get_master_uri()
+
+  def _xmlrpc_node_error_handler(self, e): 
+    ''' 
+    Handles exceptions of type 'Exception' thrown by the xmlrpc node.
+    '''
+    # Reproducing the xmlrpc node logic here so we can catch the exception
+    if type(e) == socket.error:
+      (n,errstr) = e 
+
+    #if n == 98: # can't start the node because the port is already used
+    # save something to that the class can look up the problem later
+    else:
+      print("Xmlrpc Node Error")
+
+

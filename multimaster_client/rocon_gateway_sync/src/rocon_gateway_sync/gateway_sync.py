@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2012, Yujin Robot, Daniel Stonier
+# Copyright (c) 2012, Yujin Robot, Daniel Stonier, Jihoon Lee
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,59 +38,32 @@ import rospy
 import rosgraph
 from std_msgs.msg import Empty
 
-from .gateway_handler import GatewayHandler
-from .local_manager import LocalManager
+from .redis_manager import RedisManager
+from .ros_manager import ROSManager
+
+'''
+  The roles of GatewaySync is below
+  1. communicate with ros master using xml rpc node
+  2. communicate with redis server
+'''
 
 class GatewaySync(object):
-    '''
-    The gateway between ros systems.
-    '''
-    def __init__(self):
-        '''
-        Creates a new gateway interface
-        '''
-        # Parameters
-        self.port = rospy.get_param('~port',0)
-        
-        self.whitelist=[]
-        self.blacklist=[]
-        
-        self.local_manager = LocalManager()
-        
-        self.handler = GatewayHandler()
-        self.node = rosgraph.xmlrpc.XmlRpcNode(port=self.port,rpc_handler=self.handler,on_run_error=self._xmlrpc_node_error_handler) # Can also pass port and run_error handlers
-        self.node.start()
-        
-        # poll for initialization
-        timeout = time.time() + 5
-        while time.time() < timeout and self.node.uri is None and not rospy.is_shutdown():
-            time.sleep(0.01)
-        if self.node.uri is None:
-            # Some error handling here
-            return
-            
-        # Uri is determined by lockup in order (rosgraph.xmlrpc.XmlRpcNode 
-        #   1) ROS_IP/ROS_HOSTNAME 
-        #   2) hostname (if not localhost) 
-        #   3) rosgraph.network.get_local_address()
-        self.uri = self.node.uri
-        # could probably update self.port here if we wanted to (only necessary if we set port = 0 (ANY))
+  '''
+  The gateway between ros system and redis server
+  '''
 
-        print("Created gateway")
-        print("  Node ["+self.uri+"]")
-    
-    def shutdown(self):
-        self.node.shutdown("called shutdown")
-        
-    def _xmlrpc_node_error_handler(self, e):
-        '''
-        Handles exceptions of type 'Exception' thrown by the xmlrpc node.
-        '''
-        # Reproducing the xmlrpc node logic here so we can catch the exception
-        if type(e) == socket.error:
-            (n,errstr) = e
-            #if n == 98: # can't start the node because the port is already used
-                # save something to that the class can look up the problem later
-        else:
-            print("Xmlrpc Node Error")
-    
+  def __init__(self):
+    self.redis_manager = RedisManager()
+    self.ros_manager = ROSManager()
+
+  def connectToRedisServer(self,ip,port):
+    # 1. connect to redis server
+    self.redis_manager.connect(ip,port)
+    # 2. register ros master uri
+    master_uri = self.ros_manager.getMasterUri()
+
+    self.redis_manager.registerMasterUri(master_uri)
+
+#def setDefaultSetup(self,param):
+
+  

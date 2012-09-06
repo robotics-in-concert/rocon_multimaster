@@ -35,6 +35,7 @@ import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
 import rosgraph
 from zeroconf_comms.msg import DiscoveredService
+from rocon_gateway_sync import *
 
 
 # This class is wrapper ros class of gateway sync.
@@ -42,8 +43,14 @@ from zeroconf_comms.msg import DiscoveredService
 # 1. listens to server up/down status from zero configuration node
 # 2. listens to local ros node's remote topic registration request
 class Gateway():
+
+  # Zeroconfiguratin topics
   zeroconf_new_connection_topic = "/zeroconf/new_connections"
   zeroconf_lost_connection_topic = "/zeroconf/lost_connections" # This may not be needed
+
+  # request from local node
+  register_remote_topic = "/gateway/register_remote_topic"
+  register_remote_service = "/gateway/register_remote_service"
   gateway_sync = None
   param = {}
 
@@ -52,7 +59,7 @@ class Gateway():
     self.parse_params()
 
     # Instantiate a GatewaySync module. This will take care of all redis server connection, communicatin with ros master uri
-#self.gateway_sync = GatewaySync()
+    self.gateway_sync = GatewaySync()
 
     # Subscribe from zero conf new connection
     self.new_connectin_sub = rospy.Subscriber(self.zeroconf_new_connection_topic,DiscoveredService,self.processServerConnection)
@@ -67,13 +74,15 @@ class Gateway():
     self.param['remote_topic'] = rospy.get_param('~remote_topic','')
     self.param['remoteservice'] = rospy.get_param('~remote_service','')
 
-
-    
   def processServerConnection(self,msg):
-    rospy.loginfo("Redis Server is discovered = " + str(msg.ipv4_addresses[0]) + ":"+str(msg.port))
+    ip = "localhost"
+    if not msg.is_local:
+      ip = msg.ipv4_addresses[0]
+
+    rospy.loginfo("Redis Server is discovered = " + str(ip) + ":"+str(msg.port))
 
     # Connects to Redis server
-    #ret = self.gateway_sync.connectToRedisServer(msg.ipv4_addresses,msg.port)
+    ret = self.gateway_sync.connectToRedisServer(ip,msg.port)
 #if not ret :
 #    print rospy.loginfo("Failed to connect Redis Server")
 #     return
