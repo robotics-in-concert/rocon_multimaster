@@ -11,7 +11,6 @@
   <depend package="roslib"/>
   <depend package="rospy"/>
   <depend package="std_msgs"/>
-  <depend package="zeroconf_comms"/>
 
   <rosdep name="python-redis"/>
   

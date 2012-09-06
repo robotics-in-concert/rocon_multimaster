@@ -11,6 +11,7 @@
   <depend package="rospy"/>
   <depend package="roslib"/>
   <depend package="zeroconf_comms"/>
+  <depend package="rocon_gateway_sync"/>
   <depend package="rocon_gateway_msgs"/>
 
 </package>

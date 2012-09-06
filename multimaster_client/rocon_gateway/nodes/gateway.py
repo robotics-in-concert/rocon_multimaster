@@ -34,8 +34,8 @@
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph
-from roscon_gateway_msgs.msg import *
-from roscon_gateway_msgs.srv import *
+from rocon_gateway_msgs.msg import *
+from rocon_gateway_msgs.srv import *
 from zeroconf_comms.msg import DiscoveredService
 from rocon_gateway_sync import *
 
@@ -45,7 +45,6 @@ from rocon_gateway_sync import *
 # 1. listens to server up/down status from zero configuration node
 # 2. listens to local ros node's remote topic registration request
 # 3. response a local ros node's get remote topic/service list request
-
 class Gateway():
 
   # Zeroconfiguratin topics
@@ -111,8 +110,6 @@ class Gateway():
 #     return
 
     # self.gateway_sync.setDefaultSetup(self.param)
-
-  def process
 
   def spin(self):
     rospy.spin()
