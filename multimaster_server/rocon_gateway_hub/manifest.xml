@@ -9,6 +9,7 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/rocon_gateway_hub</url>
 
+  <depend package="rospy" />
   <rosdep name="redis-server"/>
   <rosdep name="python-redis"/>
   <rosdep name="avahi-daemon"/>

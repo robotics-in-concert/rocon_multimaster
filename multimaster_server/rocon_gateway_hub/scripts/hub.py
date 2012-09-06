@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2012, Yujin Robot, Daniel Stonier
+# Copyright (c) 2012, Yujin Robot, Daniel Stonier , Jihoon Lee
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,6 @@ import sys
 import time
 import ConfigParser
 from optparse import OptionParser
-
 
 
 ##############################################################################
@@ -107,24 +106,6 @@ def run_package(package_name):
 
 
 
-##############################################################################
-# ROS Environment Importer
-##############################################################################
-def import_ros_environment():
-  is_ros_environment = False;
-  try:
-    import roslib; roslib.load_manifest('rocon_gateway')
-    import rospy
-    import rosgraph
-    #import rocon_gateway
-    is_ros_environment = True
-    rospy.init_node('hub')
-    rospy.loginfo("Ros environment detected")
-  except ImportError:
-    print("No ros environment detected.")
-
-  return is_ros_environment
-
 
 ##############################################################################
 # avahi advertisement
@@ -155,7 +136,27 @@ if __name__ == '__main__':
   run_package('avahi-daemon')
 
   config = parse_config('/etc/redis/redis.conf')
-  is_ros_environment = import_ros_environment()
+
+  # import ros environment
+  is_ros_environment = False;
+
+  try:
+    import roslib; roslib.load_manifest('rocon_gateway_hub')
+    import rospy
+    import rosgraph
+    is_ros_environment = True
+    rospy.init_node('hub')
+    rospy.loginfo("Ros environment detected")
+  except ImportError:
+    print("No ros environment detected.")
+
+
+
+
+
+
+
+
 
   # Try to autodetect the system and start redis appropriately
   # Try to autodetect the system and start zeroconf appropriately
@@ -168,7 +169,7 @@ if __name__ == '__main__':
 
   while True:
     try:
-      time.sleep(.3)
+      time.sleep(.1)
     except KeyboardInterrupt:
       print "Bye"
       break
