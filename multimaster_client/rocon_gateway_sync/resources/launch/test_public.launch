@@ -1,6 +1,0 @@
-<launch>
-  <env name="ROS_MASTER_URI" value="http://localhost:11312"/>
-  <node pkg="rocon_gateway_sync" type="gateway_sync.py" name="gateway_sync" output="screen">
-    <rosparam param="port">53756</rosparam>
-  </node>
-</launch>
