@@ -31,9 +31,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import roslib; roslib.load_manifest('rocon_gateway_sync')
+import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph
+from roscon_gateway_msgs.msg import *
+from roscon_gateway_msgs.srv import *
 from zeroconf_comms.msg import DiscoveredService
 from rocon_gateway_sync import *
 
@@ -42,6 +44,8 @@ from rocon_gateway_sync import *
 # The role of this node is below
 # 1. listens to server up/down status from zero configuration node
 # 2. listens to local ros node's remote topic registration request
+# 3. response a local ros node's get remote topic/service list request
+
 class Gateway():
 
   # Zeroconfiguratin topics
@@ -51,7 +55,12 @@ class Gateway():
   # request from local node
   register_remote_topic = "/gateway/register_remote_topic"
   register_remote_service = "/gateway/register_remote_service"
+
+  # Remote topic list request
+  remote_topic_list_service_name = "/gateway/remotelist"
+
   gateway_sync = None
+
   param = {}
 
   def __init__(self):
@@ -64,6 +73,9 @@ class Gateway():
     # Subscribe from zero conf new connection
     self.new_connectin_sub = rospy.Subscriber(self.zeroconf_new_connection_topic,DiscoveredService,self.processServerConnection)
 
+    # Service Server for remote list request 
+    self.remote_list_srv = rospy.Service(self.remote_topic_list_service_name,GetRemoteLists,self.processServiceRequest)
+
   def parse_params(self):
 
     # Local topics and services to register redis server
@@ -73,6 +85,17 @@ class Gateway():
     # Topics and services that need from remote server
     self.param['remote_topic'] = rospy.get_param('~remote_topic','')
     self.param['remoteservice'] = rospy.get_param('~remote_service','')
+
+
+  # This function receives a service request from local ros node, crawl remote topic/service list from redis, and respose to local ros node.
+  def processServiceRequest(self,request):
+    remote_list = self.gateway_sync.RequestRemoteList()
+
+    r = GetRemoteListReponse()
+    r.list = remote_list
+
+    return r
+
 
   def processServerConnection(self,msg):
     ip = "localhost"
@@ -88,6 +111,8 @@ class Gateway():
 #     return
 
     # self.gateway_sync.setDefaultSetup(self.param)
+
+  def process
 
   def spin(self):
     rospy.spin()

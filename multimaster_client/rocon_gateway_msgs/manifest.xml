@@ -1,0 +1,16 @@
+<package>
+  <description brief="rocon_gateway_msgs">
+
+     rocon_gateway_msgs
+
+  </description>
+  <author>Jihoon</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rocon_gateway_msgs</url>
+
+  <depend package="std_msgs"/>
+
+</package>
+
+
