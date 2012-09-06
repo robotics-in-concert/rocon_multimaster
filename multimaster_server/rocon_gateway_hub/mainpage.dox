@@ -8,7 +8,12 @@
 Provide an overview of your package.
 -->
 
--->
+This package script starts redis server and avahi daemon, and advertise redis server's ip and port
+
+- How to run the hub
+
+> sudo bash
+> roslaunch rocon_gateway_hub hub.launch
 
 
 */
