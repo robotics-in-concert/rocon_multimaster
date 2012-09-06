@@ -1,0 +1,4 @@
+local_public_topic: ['/chatter']
+local_public_service: []
+remote_topic: []
+remote_service: []

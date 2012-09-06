@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="rocon_gateway_sync" type="gateway.py" name="multimaster_gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway_sync)/config/default.yaml" />
+  </node>
+</launch>
