@@ -9,14 +9,14 @@
 # are met:
 #
 #  * Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
+#  notice, this list of conditions and the following disclaimer.
 #  * Redistributions in binary form must reproduce the above
-#    copyright notice, this list of conditions and the following
-#    disclaimer in the documentation and/or other materials provided
-#    with the distribution.
+#  copyright notice, this list of conditions and the following
+#  disclaimer in the documentation and/or other materials provided
+#  with the distribution.
 #  * Neither the name of Yujin Robot nor the names of its
-#    contributors may be used to endorse or promote products derived
-#    from this software without specific prior written permission.
+#  contributors may be used to endorse or promote products derived
+#  from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -43,35 +43,33 @@ from optparse import OptionParser
 # Option Parser
 ##############################################################################
 def parse_options():
-    parser = OptionParser(
-                   usage="usage: %prog [options]\n\n\
+  parser = OptionParser(
+           usage="usage: %prog [options]\n\n\
 Starts the ros multimaster hub:\n\n\
   1. Launches a central redis server for gateway information and interactions\n\
   2. Optionally advertises a zeroconf service appropriate to your platform\
-                   ",
-                   epilog="See: http://www.ros.org/wiki/rocon_multimaster for details\n\n"
-                         )
-    parser.add_option("-p", "--path", dest="path", default=0,
-                    help="Path to the redis configuration file.",
-                    action="store")
-    options, args = parser.parse_args()
-    
-    return options, args
-    
+           ",
+           epilog="See: http://www.ros.org/wiki/rocon_multimaster for details\n\n"
+             )
+  parser.add_option("-p", "--path", dest="path", default=0,
+          help="Path to the redis configuration file.",
+          action="store")
+  options, args = parser.parse_args()
+  
+  return options, args
+  
 ##############################################################################
 # Config Parser
 ##############################################################################
-
 def parse_config(filename):
 
   f = open(filename,'r')
   settings = {}
+
   for line in f:
     kv = line.split()
-
     if len(kv) > 1:
       settings[kv[0]]= kv[1]
-
   return settings
 
 
@@ -97,15 +95,15 @@ def run_package(package_name):
   import subprocess
 
   try:
-      # check if redis-server is installed
-      # pipe output to /dev/null for silence
+    # check if redis-server is installed
+    # pipe output to /dev/null for silence
 #null = open("/dev/null", "w")
-      null = open("/dev/stdout", "w")
-      subprocess.Popen(package_name, stdout=null, stderr=null)
-      null.close()
+    null = open("/dev/stdout", "w")
+    subprocess.Popen(package_name, stdout=null, stderr=null)
+    null.close()
   except OSError:
-#      print(package_name + " is not installed")
-      raise
+#    print(package_name + " is not installed")
+    raise
 
 
 
@@ -113,60 +111,65 @@ def run_package(package_name):
 # ROS Environment Importer
 ##############################################################################
 def import_ros_environment():
-    is_ros_environment = False;
-    try:
-        import roslib; roslib.load_manifest('rocon_gateway')
-        import rospy
-        import rosgraph
-        #import rocon_gateway
-        is_ros_environment = True
-        rospy.init_node('hub')
-        rospy.loginfo("Ros environment detected")
-    except ImportError:
-        print("No ros environment detected.")
+  is_ros_environment = False;
+  try:
+    import roslib; roslib.load_manifest('rocon_gateway')
+    import rospy
+    import rosgraph
+    #import rocon_gateway
+    is_ros_environment = True
+    rospy.init_node('hub')
+    rospy.loginfo("Ros environment detected")
+  except ImportError:
+    print("No ros environment detected.")
+
+  return is_ros_environment
 
 
 ##############################################################################
 # avahi advertisement
 ##############################################################################
 def advertise_port_to_avahi(config, is_ros_environment):
-    port = config["port"]
-    os.system('avahi-publish -s ros-gateway-hub _ros-gateway-hub._tcp '+str(port))
+  port = config["port"]
+  os.system('avahi-publish -s ros-gateway-hub _ros-gateway-hub._tcp '+str(port))
 
-    if is_ros_environment:
-        rospy.loginfo("Advertising _ros-gateway-hub._tcp on port "+str(port))
-        # Add some ros api here for server statistics
-    else:
-        print("Advertising _ros-gateway-hub._tcp on port "+str(port))
+  if is_ros_environment:
+    rospy.loginfo("Advertising _ros-gateway-hub._tcp on port "+str(port))
+    # Add some ros api here for server statistics
+  else:
+    print("Advertising _ros-gateway-hub._tcp on port "+str(port))
 
 
 ##############################################################################
 # Main
 ##############################################################################
 
-if __name__ == '__main__':      
+if __name__ == '__main__':    
 
-    options, args = parse_options()
+  options, args = parse_options()
 
-    check_if_package_available('redis-server')
-    check_if_package_available('avahi-daemon')
+  check_if_package_available('redis-server')
+  check_if_package_available('avahi-daemon')
   
-    run_package('redis-server')
-    run_package('avahi-daemon')
+  run_package('redis-server')
+  run_package('avahi-daemon')
 
-    config = parse_config('/etc/redis/redis.conf')
-    is_ros_environment = import_ros_environment()
+  config = parse_config('/etc/redis/redis.conf')
+  is_ros_environment = import_ros_environment()
 
-    # Try to autodetect the system and start redis appropriately
-    # Try to autodetect the system and start zeroconf appropriately
-    # Linux
-    # TODO: If port is zero, find a free port here before advertising
-    # Might need to track this one so we can kill it when the program 
-    # terminates
+  # Try to autodetect the system and start redis appropriately
+  # Try to autodetect the system and start zeroconf appropriately
+  # Linux
+  # TODO: If port is zero, find a free port here before advertising
+  # Might need to track this one so we can kill it when the program 
+  # terminates
 
-    advertise_port_to_avahi(config,is_ros_environment)
+  advertise_port_to_avahi(config,is_ros_environment)
 
-    rospy.spin()
-
-
-
+  while True:
+    try:
+      time.sleep(.3)
+    except KeyboardInterrupt:
+      print "Bye"
+      break
+    
