@@ -1,0 +1,5 @@
+<launch>
+  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen">
+    <rosparam param="listeners">['_ros-gateway-hub._tcp']</rosparam>
+  </node>
+</launch>
