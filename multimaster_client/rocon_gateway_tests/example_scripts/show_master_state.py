@@ -38,7 +38,6 @@ import xmlrpclib
 import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
 import rosgraph
-import rocon_gateway_sync
 
 ##############################################################################
 # Launching

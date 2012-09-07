@@ -98,6 +98,13 @@ class GatewaySync(object):
       print "It is not connected to Server"
       return False
     key = self.unique_name + ":topic"
+
+    list_with_node_ip = {}
+    
+    # figures out each topics node xmlrpc_uri and attach it on topic
+    for topic in list:
+      
+      
     return self.redis_manager.addMembers(key,list)
 
   def removePublicTopics(self,list):
