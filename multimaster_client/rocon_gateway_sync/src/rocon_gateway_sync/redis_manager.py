@@ -48,13 +48,14 @@ class RedisManager(object):
       self.server = redis.Redis(connection_pool=self.pool)
       self.pubsub = self.server.pubsub()
     except ConnectionError as e:
-      print str(e)
       raise
 
-  def registerMasterUri(self,masterlist,masteruri):
-    pipe = self.server.pipeline()
-    pipe.sadd(masterlist,masteruri)
-    pipe.execute()
+  def registerClient(self,masterlist,index):
+    unique_num = self.server.incr(index)
+    client_key = 'client'+str(unique_num)
+    self.server.sadd(masterlist,client_key)
+
+    return client_key
 
   def getMembers(self,key):
     return self.server.smembers(key)

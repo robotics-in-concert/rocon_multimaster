@@ -54,6 +54,8 @@ class GatewaySync(object):
 
   masterlist = 'masterlist'
   master_uri = None
+  index = 'index'
+  unique_name = None
   connected = False
 
   def __init__(self):
@@ -61,14 +63,18 @@ class GatewaySync(object):
     self.ros_manager = ROSManager()
 
   def connectToRedisServer(self,ip,port):
-    # 1. connect to redis server
-    self.redis_manager.connect(ip,port)
-    # 2. register ros master uri
-    self.master_uri = self.ros_manager.getMasterUri()
+    try:
+      # 1. connect to redis server
+      self.redis_manager.connect(ip,port)
 
-    self.redis_manager.registerMasterUri(self.masterlist,self.master_uri)
+      self.master_uri = self.ros_manager.getMasterUri()
+      self.unique_name = self.redis_manager.registerClient(self.masterlist,self.index)
 
-    self.connected = True
+      self.connected = True
+    except ConnectionError as e:
+      print str(e)
+      return False
+    return True
 
   def getRemoteLists(self):
     remotelist = {}
@@ -91,7 +97,7 @@ class GatewaySync(object):
     if not self.connected:
       print "It is not connected to Server"
       return False
-    key = self.master_uri + ":topic"
+    key = self.unique_name + ":topic"
     return self.redis_manager.addMembers(key,list)
 
   def removePublicTopics(self,list):
@@ -99,7 +105,7 @@ class GatewaySync(object):
       print "It is not connected to Server"
       return False
 
-    key = self.master_uri + ":topic"
+    key = self.unique_name + ":topic"
 
     '''
       this also stop publishing topic to remote server
@@ -113,7 +119,7 @@ class GatewaySync(object):
       return False
 
 
-    key = self.master_uri + ":service"
+    key = self.unique_name + ":service"
     return self.redis_manager.addMembers(key,list)
 
   def removePublicService(self,list):
@@ -121,5 +127,5 @@ class GatewaySync(object):
       print "It is not connected to Server"
       return False
 
-    key = self.master_uri + ":service"
+    key = self.unique_name + ":service"
     return self.redis_manager.Members(key,list)

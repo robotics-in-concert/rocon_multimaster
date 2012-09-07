@@ -35,6 +35,7 @@ import os
 import sys
 import time
 import ConfigParser
+import redis
 from optparse import OptionParser
 
 
@@ -104,7 +105,18 @@ def run_package(package_name):
 #    print(package_name + " is not installed")
     raise
 
+##############################################################################
+# Initialize redis server 
+##############################################################################
+def initialize_redis_server(p):
+  pool = redis.ConnectionPool(host='localhost', port=p, db=0)
+  server = redis.Redis(connection_pool=pool)
 
+  pipe = server.pipeline()
+  pipe.flushall()
+  pipe.set("index",0)
+  pipe.execute()
+  print "Clean up all database. set \"index\" 0"
 
 
 ##############################################################################
@@ -132,10 +144,12 @@ if __name__ == '__main__':
   check_if_package_available('redis-server')
   check_if_package_available('avahi-daemon')
   
+  config = parse_config('/etc/redis/redis.conf')
   run_package('redis-server')
   run_package('avahi-daemon')
 
-  config = parse_config('/etc/redis/redis.conf')
+  # flush all the previous data. and set unique key for indexing clients
+  initialize_redis_server(int(config["port"]))
 
   # import ros environment
   is_ros_environment = False;
@@ -149,14 +163,6 @@ if __name__ == '__main__':
     rospy.loginfo("Ros environment detected")
   except ImportError:
     print("No ros environment detected.")
-
-
-
-
-
-
-
-
 
   # Try to autodetect the system and start redis appropriately
   # Try to autodetect the system and start zeroconf appropriately
