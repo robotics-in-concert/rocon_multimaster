@@ -33,8 +33,8 @@
 
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
-from rocon_gateway_msgs.msg import *
-from rocon_gateway_msgs.srv import *
+from gateway_comms.msg import *
+from gateway_comms.srv import *
 
 if __name__ == '__main__':
 

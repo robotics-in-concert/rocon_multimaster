@@ -10,7 +10,6 @@
   <url>http://ros.org/wiki/rocon_gateway_sync</url>
   <depend package="roslib"/>
   <depend package="rospy"/>
-  <depend package="std_msgs"/>
 
   <rosdep name="python-redis"/>
   

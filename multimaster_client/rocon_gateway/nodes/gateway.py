@@ -34,8 +34,8 @@
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph
-from rocon_gateway_msgs.msg import *
-from rocon_gateway_msgs.srv import *
+from gateway_comms.msg import *
+from gateway_comms.srv import *
 from zeroconf_comms.msg import DiscoveredService
 from rocon_gateway_sync import *
 

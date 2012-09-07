@@ -9,7 +9,7 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/rocon_gateway_tests</url>
   <depend package="rospy"/>
-  <depend package="rocon_gateway_msgs"/>
+  <depend package="gateway_comms"/>
 
 </package>
 
