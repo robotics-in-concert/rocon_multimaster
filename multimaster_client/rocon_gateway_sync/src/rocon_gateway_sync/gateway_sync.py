@@ -104,13 +104,12 @@ class GatewaySync(object):
     # figures out each topics node xmlrpc_uri and attach it on topic
     try:
       for topic in list:
-        nodeuri = self.ros_manager.getNodeUri(topic)
+        topicinfo = self.ros_manager.getTopicInfo(topic)
+        print str(topicinfo)
         
         # there may exist multiple publisher
-        for uri in nodeuri:
-          print uri
-          print topic + ","+uri
-          list_with_node_ip.append(topic+","+uri)
+        for info in topicinfo:
+          list_with_node_ip.append(topic+","+info)
 
           
       print str(list_with_node_ip)
@@ -151,3 +150,19 @@ class GatewaySync(object):
 
     key = self.unique_name + ":service"
     return self.redis_manager.Members(key,list)
+
+  def requestForeignTopic(self,list): 
+
+    try:
+      for line in list:
+        topic, topictype, node_xmlrpc_uri = line.split(",")
+
+        print str(topic)
+        print str(topictype)
+        print str(node_xmlrpc_uri)
+
+        self.ros_manager.registerTopic(topic,topictype,node_xmlrpc_uri)
+    except Exception as e:
+      raise
+    
+    return True

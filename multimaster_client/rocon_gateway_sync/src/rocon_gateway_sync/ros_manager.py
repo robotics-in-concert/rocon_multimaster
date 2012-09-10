@@ -76,8 +76,10 @@ class ROSManager(object):
   def getMasterUri(self):
     return rosgraph.get_master_uri()
 
-  def getNodeUri(self,topic):
-    uris = []
+  def getTopicInfo(self,topic):
+    infolist = []
+    topictype, _1, _2 = rostopic.get_topic_type(topic)
+    print topictype
     try:
       pubs, _1, _2 = self.master.getSystemState()
       pubs = [x for x in pubs if x[0] == topic]
@@ -86,12 +88,21 @@ class ROSManager(object):
         raise Exception("Unknown topic %s"%topic)
 
       for p in itertools.chain(*[l for x, l in pubs]):
-        uris.append(rostopic.get_api(self.master,p))
+        info = topictype + "," + rostopic.get_api(self.master,p)
+        infolist.append(info)
       
     except Exception as e:
       raise e
 
-    return uris
+    return infolist
+
+  def registerTopic(self,topic,topictype,uri):
+    try:
+      self.master.registerPublisher(topic,topictype,uri)
+    except Exception as e:
+      raise
+
+    return
 
   def _xmlrpc_node_error_handler(self, e): 
     ''' 

@@ -55,6 +55,9 @@ class Gateway():
   remote_topic_handler = "/gateway/topic"
   remote_service_handler = "/gateway/service"
 
+  # Request foreign topic 
+  request_topic_handler_name = "/gateway/foreign_topic_request"
+
   # Remote topic list request
   remote_topic_list_service_name = "/gateway/remotelist"
   gateway_sync = None
@@ -63,7 +66,6 @@ class Gateway():
   allow_random_redis_server = False
 
   def __init__(self):
-
     self.parse_params()
 
     # Instantiate a GatewaySync module. This will take care of all redis server connection, communicatin with ros master uri
@@ -75,13 +77,15 @@ class Gateway():
     self.zeroconf_service_proxy = rospy.ServiceProxy(self.zeroconf_connection_service,ListDiscoveredServices)
     rospy.loginfo("Done")
     
-
     # Service Server for remote list request 
     self.remote_list_srv = rospy.Service(self.remote_topic_list_service_name,GetRemoteLists,self.processRemoteListRequest)
 
     # Service Server for public topic/service handler
     self.public_topic_handler = rospy.Service(self.remote_topic_handler,PublicHandler,self.processPublicTopicRequest)
     self.public_service_handler = rospy.Service(self.remote_service_handler,PublicHandler,self.processPublicServiceRequest)
+
+    # Service Server for request foreign topic
+    self.request_topic_handler = rospy.Service(self.request_topic_handler_name,PublicHandler,self.processRemoteTopicRequest)
 
   def parse_params(self):
     # Local topics and services to register redis server
@@ -137,6 +141,22 @@ class Gateway():
       r.list.append(l)
       
     return r
+
+  def processRemoteTopicRequest(self,request):
+    print str(request)
+    try:
+      if request.command == "register":
+        self.gateway_sync.requestForeignTopic(request.list)
+#      elif request.command == "remove":
+#        self.gateway_sync.unregister_foreign_topic(request.list)
+      else:
+        rospy.loginfo("Error in RemoteTopicRequest : " + request.command)
+    except Exception as e:
+      print str(e)
+      return PublicHandlerResponse(False)
+
+    return PublicHandlerResponse(True)
+
 
   def connect(self,msg):
     ip = "localhost"
