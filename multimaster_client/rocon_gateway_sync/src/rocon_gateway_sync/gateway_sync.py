@@ -99,13 +99,28 @@ class GatewaySync(object):
       return False
     key = self.unique_name + ":topic"
 
-    list_with_node_ip = {}
+    list_with_node_ip = []
     
     # figures out each topics node xmlrpc_uri and attach it on topic
-    for topic in list:
-      
-      
-    return self.redis_manager.addMembers(key,list)
+    try:
+      for topic in list:
+        nodeuri = self.ros_manager.getNodeUri(topic)
+        
+        # there may exist multiple publisher
+        for uri in nodeuri:
+          print uri
+          print topic + ","+uri
+          list_with_node_ip.append(topic+","+uri)
+
+          
+      print str(list_with_node_ip)
+      self.redis_manager.addMembers(key,list_with_node_ip)
+
+    except Exception as e:
+      print str(e)
+      return False
+
+    return True
 
   def removePublicTopics(self,list):
     if not self.connected:

@@ -35,6 +35,9 @@ import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
 import rosgraph.masterapi
 import time
+import rostopic
+import itertools
+import socket
 from .gateway_handler import GatewayHandler
 
 class ROSManager(object):
@@ -49,6 +52,12 @@ class ROSManager(object):
 
     # run xml rpc node
     self.createXMLRPCNode()
+
+    # Get the current node name
+    self.name = rospy.get_name()
+    # get Master
+    self.master = rosgraph.Master(self.name)
+    
 
   def createXMLRPCNode(self):
     self.handler = GatewayHandler()
@@ -66,6 +75,23 @@ class ROSManager(object):
 
   def getMasterUri(self):
     return rosgraph.get_master_uri()
+
+  def getNodeUri(self,topic):
+    uris = []
+    try:
+      pubs, _1, _2 = self.master.getSystemState()
+      pubs = [x for x in pubs if x[0] == topic]
+
+      if not pubs:
+        raise Exception("Unknown topic %s"%topic)
+
+      for p in itertools.chain(*[l for x, l in pubs]):
+        uris.append(rostopic.get_api(self.master,p))
+      
+    except Exception as e:
+      raise e
+
+    return uris
 
   def _xmlrpc_node_error_handler(self, e): 
     ''' 
