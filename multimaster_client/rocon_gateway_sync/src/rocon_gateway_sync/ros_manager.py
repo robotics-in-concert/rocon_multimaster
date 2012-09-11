@@ -38,6 +38,7 @@ import time
 import rostopic
 import itertools
 import socket
+import os
 from .gateway_handler import GatewayHandler
 
 class ROSManager(object):
@@ -47,8 +48,7 @@ class ROSManager(object):
   port = 0
 
   def __init__(self):
-    print "init ROS manager"
-
+    rospy.loginfo("init ROS manager")
 
     # run xml rpc node
     self.createXMLRPCNode()
@@ -79,7 +79,6 @@ class ROSManager(object):
   def getTopicInfo(self,topic):
     infolist = []
     topictype, _1, _2 = rostopic.get_topic_type(topic)
-    print topictype
     try:
       pubs, _1, _2 = self.master.getSystemState()
       pubs = [x for x in pubs if x[0] == topic]
@@ -98,12 +97,21 @@ class ROSManager(object):
 
   def registerTopic(self,topic,topictype,uri):
     try:
-      self.master.registerPublisher(topic,topictype,uri)
+      node_name = self.getAnonymousNodeName(topic)    
+      print "New node name = " + str(node_name)
+      master = rosgraph.Master(node_name)
+      master.registerPublisher(topic,topictype,uri)
     except Exception as e:
       raise
 
     return
 
+  def getAnonymousNodeName(self,topic):
+    t = topic[1:len(topic)]
+    name = "%s_%s_%s"%(t,os.getpid(),int(time.time()*1000))
+    return name
+
+    
   def _xmlrpc_node_error_handler(self, e): 
     ''' 
     Handles exceptions of type 'Exception' thrown by the xmlrpc node.
