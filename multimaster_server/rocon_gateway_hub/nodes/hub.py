@@ -124,7 +124,7 @@ def initialize_redis_server(p):
 ##############################################################################
 def advertise_port_to_avahi(config, is_ros_environment):
   port = config["port"]
-  os.system('avahi-publish -s ros-gateway-hub _ros-gateway-hub._tcp '+str(port))
+#  os.system('avahi-publish -s ros-gateway-hub _ros-gateway-hub._tcp '+str(port))
 
   if is_ros_environment:
     rospy.loginfo("Advertising _ros-gateway-hub._tcp on port "+str(port))

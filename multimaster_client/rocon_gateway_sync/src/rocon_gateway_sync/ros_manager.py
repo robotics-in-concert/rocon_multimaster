@@ -36,9 +36,12 @@ import rospy
 import rosgraph.masterapi
 import time
 import rostopic
+import roslib.names
 import itertools
 import socket
 import os
+import threading
+from cleanup_thread import CleanupThread
 from .gateway_handler import GatewayHandler
 
 class ROSManager(object):
@@ -57,6 +60,13 @@ class ROSManager(object):
     self.name = rospy.get_name()
     # get Master
     self.master = rosgraph.Master(self.name)
+    self.pubs_uri = {}
+    self.pubs_node = {}
+    self.cv = threading.Condition()
+
+    # create a thread to clean-up unavailable topics
+    self.cleanup_thread = CleanupThread(self)
+
     
 
   def createXMLRPCNode(self):
@@ -99,8 +109,23 @@ class ROSManager(object):
     try:
       node_name = self.getAnonymousNodeName(topic)    
       print "New node name = " + str(node_name)
-      master = rosgraph.Master(node_name)
-      master.registerPublisher(topic,topictype,uri)
+
+      # Initialize if it is a new topic
+      if topic not in self.pubs_uri.keys():
+        self.pubs_uri[topic] = [] 
+        self.pubs_node[topic] = [] 
+        
+        
+      self.cv.acquire()
+      if uri  not in self.pubs_uri[topic]:
+        self.pubs_uri[topic].append(uri)
+        self.pubs_node[topic].append(node_name)
+        master = rosgraph.Master(node_name)
+        master.registerPublisher(topic,topictype,uri)
+      else:
+        print "already registered"
+      self.cv.release()
+
     except Exception as e:
       raise
 
@@ -108,10 +133,9 @@ class ROSManager(object):
 
   def getAnonymousNodeName(self,topic):
     t = topic[1:len(topic)]
-    name = "%s_%s_%s"%(t,os.getpid(),int(time.time()*1000))
+    name = roslib.names.anonymous_name(t)
     return name
 
-    
   def _xmlrpc_node_error_handler(self, e): 
     ''' 
     Handles exceptions of type 'Exception' thrown by the xmlrpc node.
