@@ -10,3 +10,7 @@
 *.lai
 *.la
 *.a
+
+# temporary files that opened by vim
+*.swp
+*.swo
