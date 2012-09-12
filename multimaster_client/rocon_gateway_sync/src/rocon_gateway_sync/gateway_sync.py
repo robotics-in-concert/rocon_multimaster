@@ -159,3 +159,8 @@ class GatewaySync(object):
       raise
     
     return True
+
+  def clearServer(self):
+    self.redis_manager.unRegisterClient(self.masterlist,self.unique_name)
+    self.ros_manager.clear()
+

@@ -86,3 +86,19 @@ class RedisManager(object):
       return False
 
     return True
+
+  def unRegisterClient(self,masterlist,client_key):
+
+    try:
+      pipe = self.server.pipeline()
+      topiclist = client_key +":topic"
+      self.server.delete(topiclist)
+      srvlist = client_key +":service"
+      self.server.delete(srvlist)
+      self.server.srem(masterlist,client_key)
+      pipe.execute()
+    except Exception as e:
+      print "Error : unregistering client"
+      return False
+  
+    return True

@@ -157,6 +157,15 @@ class Gateway():
 
     return PublicHandlerResponse(True)
 
+  # It clears this client's information from redis-server
+  def clearServer(self):
+    try:
+      self.gateway_sync.clearServer()
+    except Exception as e:
+      print str(e)
+
+    print "Server cleared"
+
 
   def connect(self,msg):
     ip = "localhost"
@@ -204,6 +213,10 @@ class Gateway():
     rospy.loginfo("Connected to Server") 
 
     rospy.spin()
+
+    # When the node is going off, it should remove it's info from redis-server
+    self.clearServer()
+    
 
 
 if __name__ == '__main__':

@@ -136,6 +136,10 @@ class ROSManager(object):
     name = roslib.names.anonymous_name(t)
     return name
 
+  def clear(self):
+    self.pubs_node = {}
+    self.pubs_uri = {}
+
   def _xmlrpc_node_error_handler(self, e): 
     ''' 
     Handles exceptions of type 'Exception' thrown by the xmlrpc node.
