@@ -55,8 +55,9 @@ class Gateway():
   remote_topic_handler = "/gateway/topic"
   remote_service_handler = "/gateway/service"
 
-  # Request foreign topic 
+  # Request foreign topic/service 
   request_topic_handler_name = "/gateway/foreign_topic_request"
+  request_service_handler_name = "/gateway/foreign_service_request"
 
   # Remote topic list request
   remote_topic_list_service_name = "/gateway/remotelist"
@@ -84,8 +85,9 @@ class Gateway():
     self.public_topic_handler = rospy.Service(self.remote_topic_handler,PublicHandler,self.processPublicTopicRequest)
     self.public_service_handler = rospy.Service(self.remote_service_handler,PublicHandler,self.processPublicServiceRequest)
 
-    # Service Server for request foreign topic
+    # Service Server for request foreign topic/service
     self.request_topic_handler = rospy.Service(self.request_topic_handler_name,PublicHandler,self.processRemoteTopicRequest)
+    self.request_serivce_handler = rospy.Service(self.request_service_handler_name,PublicHandler,self.processRemoteServiceRequest)
 
   def parse_params(self):
     # Local topics and services to register redis server
@@ -156,6 +158,23 @@ class Gateway():
       return PublicHandlerResponse(False)
 
     return PublicHandlerResponse(True)
+
+  def processRemoteServiceRequest(self,request):
+    print str(request)
+    try:
+      if request.command == "register":
+        self.gateway_sync.requestForeignService(request.list)
+#      elif request.command == "remove":
+#        self.gateway_sync.unregister_foreign_topic(request.list)
+      else:
+        rospy.loginfo("Error in RemoteserviceRequest : " + request.command)
+    except Exception as e:
+      print str(e)
+      return PublicHandlerResponse(False)
+
+    return PublicHandlerResponse(True)
+
+
 
   # It clears this client's information from redis-server
   def clearServer(self):

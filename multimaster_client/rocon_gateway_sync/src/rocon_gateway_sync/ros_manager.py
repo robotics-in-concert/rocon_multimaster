@@ -64,6 +64,8 @@ class ROSManager(object):
     self.master = rosgraph.Master(self.name)
     self.pubs_uri = {}
     self.pubs_node = {}
+    self.srvs_uri = {}
+    self.srvs_node = {}
     self.cv = threading.Condition()
 
     # create a thread to clean-up unavailable topics
@@ -138,6 +140,32 @@ class ROSManager(object):
         self.pubs_node[topic].append(node_name)
         master = rosgraph.Master(node_name)
         master.registerPublisher(topic,topictype,uri)
+      else:
+        print "already registered"
+      self.cv.release()
+
+    except Exception as e:
+      raise
+
+    return
+
+  def registerService(self,service,service_api,node_xmlrpc_uri):
+    try:                                                  
+      node_name = self.getAnonymousNodeName(service)    
+      print "New node name = " + str(node_name)
+
+      # Initialize if it is a new topic
+      if service not in self.srvs_uri.keys():
+        self.srvs_uri[service] = [] 
+        self.srvs_node[service] = [] 
+        
+        
+      self.cv.acquire()
+      if service_api not in self.srvs_uri[service]:
+        self.srvs_uri[service].append(service_api)
+        self.srvs_node[service].append(node_name)
+        master = rosgraph.Master(node_name)
+        master.registerService(service,service_api,node_xmlrpc_uri)
       else:
         print "already registered"
       self.cv.release()

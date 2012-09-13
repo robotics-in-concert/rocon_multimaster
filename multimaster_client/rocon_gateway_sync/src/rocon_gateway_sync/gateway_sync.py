@@ -169,6 +169,18 @@ class GatewaySync(object):
     
     return True
 
+  def requestForeignService(self,list): 
+
+    try:
+      for line in list:
+        service, service_api, node_xmlrpc_uri, node_name = line.split(",")
+        print "Here"
+        self.ros_manager.registerService(service,service_api,node_xmlrpc_uri)
+    except Exception as e:
+      raise
+    
+    return True
+
   def clearServer(self):
     self.redis_manager.unRegisterClient(self.masterlist,self.unique_name)
     self.ros_manager.clear()
