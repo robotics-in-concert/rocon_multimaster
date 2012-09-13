@@ -109,6 +109,7 @@ class GatewaySync(object):
         # there may exist multiple publisher
         for info in topicinfo:
           list_with_node_ip.append(topic+","+info)
+          print "Adding topic : " + str(list_with_node_ip)
 
       self.redis_manager.addMembers(key,list_with_node_ip)
 
@@ -142,7 +143,7 @@ class GatewaySync(object):
       for service in list:
         srvinfo = self.ros_manager.getServiceInfo(service)
         list_with_node_ip.append(service+","+srvinfo)
-        print str(list_with_node_ip)
+        print "Adding Service : " + str(list_with_node_ip)
         self.redis_manager.addMembers(key,list_with_node_ip)
     except Exception as e:
       print str(e)
@@ -173,7 +174,7 @@ class GatewaySync(object):
 
     try:
       for line in list:
-        service, service_api, node_xmlrpc_uri, node_name = line.split(",")
+        service, service_api, node_xmlrpc_uri = line.split(",")
         print "Here"
         self.ros_manager.registerService(service,service_api,node_xmlrpc_uri)
     except Exception as e:

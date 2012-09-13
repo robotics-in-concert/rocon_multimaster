@@ -67,10 +67,11 @@ class Gateway():
   allow_random_redis_server = False
 
   def __init__(self):
-    self.parse_params()
 
     # Instantiate a GatewaySync module. This will take care of all redis server connection, communicatin with ros master uri
     self.gateway_sync = GatewaySync()
+
+    self.parse_params()
 
     # Subscribe from zero conf new connection
     rospy.loginfo("Wait for zeroconf service...")
@@ -95,8 +96,8 @@ class Gateway():
     self.param['local_public_service'] = rospy.get_param('~local_public_service','')
 
     # Topics and services that need from remote server
-    self.param['remote_topic'] = rospy.get_param('~remote_topic','')
-    self.param['remoteservice'] = rospy.get_param('~remote_service','')
+#    self.param['remote_topic'] = rospy.get_param('~remote_topic','')
+#    self.param['remoteservice'] = rospy.get_param('~remote_service','')
     self.param['white_list'] = rospy.get_param('~white_list','')
     self.param['black_list'] = rospy.get_param('~black_list','')
 
@@ -230,6 +231,13 @@ class Gateway():
 
     # Once you get here, it is connected to redis server
     rospy.loginfo("Connected to Server") 
+    rospy.loginfo("Register default public topic/service")
+    try:
+      self.gateway_sync.addPublicTopics(self.param['local_public_topic'])
+      self.gateway_sync.addPublicService(self.param['local_public_service'])
+    except Exception as e:
+      print str(e)
+      sys.exit(0)
 
     rospy.spin()
 

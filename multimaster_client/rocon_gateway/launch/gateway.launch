@@ -4,5 +4,6 @@
   </node>
 
   <node pkg="rocon_gateway" type="gateway.py" name="multimaster_gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/config/default.yaml" />
   </node>
 </launch>

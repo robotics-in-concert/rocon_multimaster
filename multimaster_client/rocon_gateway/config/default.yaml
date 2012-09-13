@@ -1,7 +1,7 @@
 white_list: []
 black_list: []
 
-local_public_topic: ['/chatter']
+local_public_topic: []
 local_public_service: []
 remote_topic: []
 remote_service: []

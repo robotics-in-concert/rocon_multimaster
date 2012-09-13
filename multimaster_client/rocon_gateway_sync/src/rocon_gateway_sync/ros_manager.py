@@ -116,7 +116,7 @@ class ROSManager(object):
       nodename = rosservice.get_service_node(service)
       nodeuri = rosnode.get_api_uri(self.master,nodename)
 
-      info = srvuri + "," + nodeuri + "," + nodename
+      info = srvuri + "," + nodeuri
 
     except Exception as e:
       raise e
