@@ -36,6 +36,8 @@ import rospy
 import rosgraph.masterapi
 import time
 import rostopic
+import rosservice
+import rosnode
 import roslib.names
 import itertools
 import socket
@@ -104,6 +106,20 @@ class ROSManager(object):
       raise e
 
     return infolist
+
+  def getServiceInfo(self,service):
+    try:
+      info = ""
+      srvuri = rosservice.get_service_uri(service)
+      nodename = rosservice.get_service_node(service)
+      nodeuri = rosnode.get_api_uri(self.master,nodename)
+
+      info = srvuri + "," + nodeuri + "," + nodename
+
+    except Exception as e:
+      raise e
+
+    return info
 
   def registerTopic(self,topic,topictype,uri):
     try:

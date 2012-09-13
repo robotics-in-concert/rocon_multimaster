@@ -110,7 +110,6 @@ class GatewaySync(object):
         for info in topicinfo:
           list_with_node_ip.append(topic+","+info)
 
-          
       self.redis_manager.addMembers(key,list_with_node_ip)
 
     except Exception as e:
@@ -137,9 +136,19 @@ class GatewaySync(object):
       print "It is not connected to Server"
       return False
 
-
     key = self.unique_name + ":service"
-    return self.redis_manager.addMembers(key,list)
+    list_with_node_ip = []
+    try:
+      for service in list:
+        srvinfo = self.ros_manager.getServiceInfo(service)
+        list_with_node_ip.append(service+","+srvinfo)
+        print str(list_with_node_ip)
+        self.redis_manager.addMembers(key,list_with_node_ip)
+    except Exception as e:
+      print str(e)
+      return False
+
+    return True
 
   def removePublicService(self,list):
     if not self.connected:
