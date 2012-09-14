@@ -40,7 +40,10 @@ if __name__ == '__main__':
 
   rospy.init_node('get_remote_list')
 
-  s = rospy.ServiceProxy('/gateway/remotelist',GetRemoteLists)
+  s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
-  req = GetRemoteListsRequest() 
-  print str(s(req))
+  req = PublicHandlerRequest()
+  req.command = "get_public_interfaces"
+  resp = s(req)
+    
+  print str(resp)

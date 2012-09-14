@@ -177,7 +177,6 @@ class GatewaySync(object):
     return True
 
   def requestForeignService(self,list): 
-
     try:
       for line in list:
         service, service_api, node_xmlrpc_uri = line.split(",")
@@ -190,6 +189,13 @@ class GatewaySync(object):
       raise
     
     return True
+
+  def unregisterForeignTopic(self,list):
+    return True
+
+  def unregisterForeignService(self,list):
+    return True
+
 
   def reshapeUri(self,uri):
     if uri[len(uri)-1] is not '/':
@@ -207,5 +213,12 @@ class GatewaySync(object):
     self.ros_manager.clear()
 
   def processUpdate(self,msg):
-    print str(msg)
+    cmd, rest =msg.split(",")
+
+    if cmd == "broadcast":
+      print str(rest) 
+    elif cmd == "update":
+      print str(rest)
+    else:
+      print "error"
 

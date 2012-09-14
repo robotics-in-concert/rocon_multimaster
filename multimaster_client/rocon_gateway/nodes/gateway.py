@@ -52,25 +52,20 @@ class Gateway():
   zeroconf_connection_service = "/zeroconf/list_discovered_services"
 
   # request from local node
-  remote_topic_handler = "/gateway/topic"
-  remote_service_handler = "/gateway/service"
+  local_request_name = "/gateway/request"
 
-  # Request foreign topic/service 
-  request_topic_handler_name = "/gateway/foreign_topic_request"
-  request_service_handler_name = "/gateway/foreign_service_request"
-
-  # Remote topic list request
-  remote_topic_list_service_name = "/gateway/remotelist"
   gateway_sync = None
   param = {}
   is_connected = False
   allow_random_redis_server = False
+  callbacks = {}
 
   def __init__(self):
 
     # Instantiate a GatewaySync module. This will take care of all redis server connection, communicatin with ros master uri
     self.gateway_sync = GatewaySync()
 
+    self.setupCallbacks()
     self.parse_params()
 
     # Subscribe from zero conf new connection
@@ -78,17 +73,28 @@ class Gateway():
     rospy.wait_for_service(self.zeroconf_connection_service)
     self.zeroconf_service_proxy = rospy.ServiceProxy(self.zeroconf_connection_service,ListDiscoveredServices)
     rospy.loginfo("Done")
+
     
-    # Service Server for remote list request 
-    self.remote_list_srv = rospy.Service(self.remote_topic_list_service_name,GetRemoteLists,self.processRemoteListRequest)
+    # Service Server for local node requests
+    self.remote_list_srv = rospy.Service(self.local_request_name,PublicHandler,self.processLocalRequest)
 
-    # Service Server for public topic/service handler
-    self.public_topic_handler = rospy.Service(self.remote_topic_handler,PublicHandler,self.processPublicTopicRequest)
-    self.public_service_handler = rospy.Service(self.remote_service_handler,PublicHandler,self.processPublicServiceRequest)
+  def setupCallbacks(self):
+    callbacks = self.callbacks
+    callbacks["get_public_interfaces"] = self.processRemoteListRequest
 
-    # Service Server for request foreign topic/service
-    self.request_topic_handler = rospy.Service(self.request_topic_handler_name,PublicHandler,self.processRemoteTopicRequest)
-    self.request_serivce_handler = rospy.Service(self.request_service_handler_name,PublicHandler,self.processRemoteServiceRequest)
+    callbacks["add_public_topic"] = self.gateway_sync.addPublicTopics
+    callbacks["remove_public_topic"] = self.gateway_sync.removePublicTopics 
+
+    callbacks["add_public_service"] = self.gateway_sync.addPublicService
+    callbacks["remove_public_service"] = self.gateway_sync.addPublicService
+
+    callbacks["add_foreign_topic"] = self.gateway_sync.requestForeignTopic
+    callbacks["remove_foreign_topic"] = self.gateway_sync.unregisterForeignTopic
+
+    callbacks["add_foreign_service"] = self.gateway_sync.requestForeignService
+    callbacks["remove_foreign_service"] = self.gateway_sync.unregisterForeignService
+
+
 
   def parse_params(self):
     # Local topics and services to register redis server
@@ -105,77 +111,45 @@ class Gateway():
     if len(self.param['white_list']) == 0:
       self.allow_random_redis_server = True
 
-  def processPublicServiceRequest(self,request):
+  def processLocalRequest(self,request):
+    command = request.command
     success = False
-    if request.command == "register":
-      success = self.gateway_sync.addPublicService(request.list)
-    elif request.command == "remove":
-      success = self.gateway_sync.removePublicService(request.list)
+    resp = PublicHandlerResponse()
+    resp.success = success
+
+    if command not in self.callbacks.keys():
+      print "Wrong Command = " + str(command)
+      return resp
+
+    try:
+      ret = self.callbacks[command](request.list)
+    except Exception as e:
+      print str(e)
+      return resp
+
+    if command == "get_public_interfaces":
+      resp.list = ret
+      resp.success = True
     else:
-      rospy.loginfo("Public Service Wrong command : " + request.command)
-    
-    return PublicHandlerResponse(success)
+      resp.success = ret
 
-  def processPublicTopicRequest(self,request):
-    success = False
-    if request.command == "register":
-      success = self.gateway_sync.addPublicTopics(request.list)
-    elif request.command == "remove":
-      success = self.gateway_sync.removePublicTopics(request.list)
-    else:
-      rospy.loginfo("Public Topic Wrong command : " + request.command)
-
-    
-    return PublicHandlerResponse(success)
-
+    return resp
+      
 
   # This function receives a service request from local ros node, crawl remote topic/service list from redis, and respose to local ros node.
-  def processRemoteListRequest(self,request):
+  def processRemoteListRequest(self,list):
     remote_list = self.gateway_sync.getRemoteLists()
 
-    r = GetRemoteListsResponse()
-    r.list = []
+    rl = []
 
     for host in remote_list.keys():
       l = RemoteList()
       l.hostname = host
       l.topics = remote_list[host]['topic']
       l.services= remote_list[host]['service']
-      r.list.append(l)
+      rl.append(l)
       
-    return r
-
-  def processRemoteTopicRequest(self,request):
-    print str(request)
-    try:
-      if request.command == "register":
-        self.gateway_sync.requestForeignTopic(request.list)
-#      elif request.command == "remove":
-#        self.gateway_sync.unregister_foreign_topic(request.list)
-      else:
-        rospy.loginfo("Error in RemoteTopicRequest : " + request.command)
-    except Exception as e:
-      print str(e)
-      return PublicHandlerResponse(False)
-
-    return PublicHandlerResponse(True)
-
-  def processRemoteServiceRequest(self,request):
-    print str(request)
-    try:
-      if request.command == "register":
-        self.gateway_sync.requestForeignService(request.list)
-#      elif request.command == "remove":
-#        self.gateway_sync.unregister_foreign_topic(request.list)
-      else:
-        rospy.loginfo("Error in RemoteserviceRequest : " + request.command)
-    except Exception as e:
-      print str(e)
-      return PublicHandlerResponse(False)
-
-    return PublicHandlerResponse(True)
-
-
+    return rl
 
   # It clears this client's information from redis-server
   def clearServer(self):

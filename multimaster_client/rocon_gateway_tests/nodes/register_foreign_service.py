@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
   rospy.init_node('register_foreign_service')
 
-  s = rospy.ServiceProxy('/gateway/foreign_service_request',PublicHandler)
+  s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
   if len(sys.argv) < 2:
     print "Usage : rosrun rocon_gateway_tests register_foreign_service.py \"<service name>,<service api>,<node xml uri>\"..."
@@ -50,7 +50,7 @@ if __name__ == '__main__':
   print "service " + str(l)
 
   req = PublicHandlerRequest() 
-  req.command = "register"
+  req.command = "add_foreign_service"
   req.list = l
 
   print s(req)
