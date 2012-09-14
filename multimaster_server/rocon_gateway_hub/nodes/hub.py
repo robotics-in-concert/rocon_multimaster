@@ -145,8 +145,10 @@ if __name__ == '__main__':
   check_if_package_available('avahi-daemon')
   
   config = parse_config('/etc/redis/redis.conf')
-  run_package('redis-server')
-  run_package('avahi-daemon')
+
+# redis-server and avahi-daemon should already be running
+#  run_package('redis-server')
+#  run_package('avahi-daemon')
 
   # flush all the previous data. and set unique key for indexing clients
   initialize_redis_server(int(config["port"]))

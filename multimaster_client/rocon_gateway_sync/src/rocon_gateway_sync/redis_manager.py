@@ -32,15 +32,35 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import redis
+import threading
+
+class SubThread(threading.Thread):
+  def __init__(self,pubsub,callback):
+    threading.Thread.__init__(self)
+    self.pubsub = pubsub
+    self.callback = callback
+            
+  def run(self):
+    print "Start Listening"
+   
+    for r in self.pubsub.listen():
+      if r['type'] != 'unsubscribe':
+        self.callback(r['data'])
+
+    print "Done listening"
+    return
+
 
 class RedisManager(object):
 
   pool = None
   server = None
   pubsub = None
+  callback = None
 
-  def __init__(self):
+  def __init__(self,pubsubcallback):
     print "Init Redis Manager"
+    self.callback = pubsubcallback
 
   def connect(self,ip,portarg):
     try:
@@ -50,10 +70,13 @@ class RedisManager(object):
     except ConnectionError as e:
       raise
 
-  def registerClient(self,masterlist,index):
+  def registerClient(self,masterlist,index,update_topic):
     unique_num = self.server.incr(index)
     client_key = 'client'+str(unique_num)
     self.server.sadd(masterlist,client_key)
+    self.pubsub.subscribe(update_topic)
+    self.subThread = SubThread(self.pubsub,self.callback)
+    self.subThread.start()
 
     return client_key
 
@@ -87,7 +110,7 @@ class RedisManager(object):
 
     return True
 
-  def unRegisterClient(self,masterlist,client_key):
+  def unregisterClient(self,masterlist,client_key):
 
     try:
       pipe = self.server.pipeline()
@@ -97,8 +120,15 @@ class RedisManager(object):
       self.server.delete(srvlist)
       self.server.srem(masterlist,client_key)
       pipe.execute()
+      self.pubsub.unsubscribe()
     except Exception as e:
       print "Error : unregistering client"
       return False
+
+    print "Client Unregistered"
   
     return True
+
+  def sendUpdateMessage(self,update_topic,msg):
+      self.server.publish(update_topic,msg)
+

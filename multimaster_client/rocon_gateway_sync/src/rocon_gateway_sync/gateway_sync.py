@@ -54,12 +54,13 @@ class GatewaySync(object):
 
   masterlist = 'masterlist'
   master_uri = None
+  update_topic = 'update'
   index = 'index'
   unique_name = None
   connected = False
 
   def __init__(self):
-    self.redis_manager = RedisManager()
+    self.redis_manager = RedisManager(self.processUpdate)
     self.ros_manager = ROSManager()
 
   def connectToRedisServer(self,ip,port):
@@ -68,10 +69,10 @@ class GatewaySync(object):
       self.redis_manager.connect(ip,port)
 
       self.master_uri = self.ros_manager.getMasterUri()
-      self.unique_name = self.redis_manager.registerClient(self.masterlist,self.index)
+      self.unique_name = self.redis_manager.registerClient(self.masterlist,self.index,self.update_topic)
 
       self.connected = True
-    except ConnectionError as e:
+    except Exception as e:
       print str(e)
       return False
     return True
@@ -129,7 +130,9 @@ class GatewaySync(object):
     '''
       this also stop publishing topic to remote server
     '''
-    return self.redis_manager.removeMembers(key,list)
+#self.redis_manager.removeMembers(key,list)
+    self.redis_manager.sendUpdateMessage(self.update_topic,"update!")
+    return True
 
 
   def addPublicService(self,list):
@@ -200,6 +203,9 @@ class GatewaySync(object):
 
 
   def clearServer(self):
-    self.redis_manager.unRegisterClient(self.masterlist,self.unique_name)
+    self.redis_manager.unregisterClient(self.masterlist,self.unique_name)
     self.ros_manager.clear()
+
+  def processUpdate(self,msg):
+    print str(msg)
 
