@@ -164,8 +164,12 @@ class GatewaySync(object):
     try:
       for line in list:
         topic, topictype, node_xmlrpc_uri = line.split(",")
+        topic = self.reshapeTopic(topic)
+        topictype = self.reshapeTopic(topictype)
+        node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
         self.ros_manager.registerTopic(topic,topictype,node_xmlrpc_uri)
     except Exception as e:
+      print "In requestForeignTopic"
       raise
     
     return True
@@ -175,12 +179,26 @@ class GatewaySync(object):
     try:
       for line in list:
         service, service_api, node_xmlrpc_uri = line.split(",")
-        print "Here"
+        service = self.reshapeTopic(service)
+        service_api = self.reshapeUri(service_api)
+        node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
         self.ros_manager.registerService(service,service_api,node_xmlrpc_uri)
     except Exception as e:
+      print "In requestForeignService"
       raise
     
     return True
+
+  def reshapeUri(self,uri):
+    if uri[len(uri)-1] is not '/':
+      uri = uri + '/'
+    return uri
+
+  def reshapeTopic(self,t):
+    if t[0] is not '/':
+      t = '/' + t
+    return t
+
 
   def clearServer(self):
     self.redis_manager.unRegisterClient(self.masterlist,self.unique_name)

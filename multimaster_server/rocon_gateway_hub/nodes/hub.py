@@ -163,6 +163,7 @@ if __name__ == '__main__':
     rospy.loginfo("Ros environment detected")
   except ImportError:
     print("No ros environment detected.")
+    sys.exit(0)
 
   # Try to autodetect the system and start redis appropriately
   # Try to autodetect the system and start zeroconf appropriately
@@ -173,10 +174,13 @@ if __name__ == '__main__':
 
   advertise_port_to_avahi(config,is_ros_environment)
 
-  while True:
+  rospy.spin()
+  """
+  while not rospy.is_shutdown():
     try:
       time.sleep(.1)
     except KeyboardInterrupt:
       print "Bye"
       break
+  """
     

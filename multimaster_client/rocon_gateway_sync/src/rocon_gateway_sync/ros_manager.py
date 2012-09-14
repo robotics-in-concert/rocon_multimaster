@@ -56,7 +56,7 @@ class ROSManager(object):
     rospy.loginfo("init ROS manager")
 
     # run xml rpc node
-    self.createXMLRPCNode()
+    # self.createXMLRPCNode()
 
     # Get the current node name
     self.name = rospy.get_name()
@@ -125,6 +125,10 @@ class ROSManager(object):
 
   def registerTopic(self,topic,topictype,uri):
     try:
+      if self.checkIfItisLocal(topic,uri,"topic"):
+        print "It is local topic"
+        return
+        
       node_name = self.getAnonymousNodeName(topic)    
       print "New node name = " + str(node_name)
 
@@ -151,6 +155,9 @@ class ROSManager(object):
 
   def registerService(self,service,service_api,node_xmlrpc_uri):
     try:                                                  
+      if self.checkIfItisLocal(service,node_xmlrpc_uri,"service"):
+        print "It is local service"
+        return
       node_name = self.getAnonymousNodeName(service)    
       print "New node name = " + str(node_name)
 
@@ -171,6 +178,7 @@ class ROSManager(object):
       self.cv.release()
 
     except Exception as e:
+      print "registerService:ros_master.py"
       raise
 
     return
@@ -180,9 +188,35 @@ class ROSManager(object):
     name = roslib.names.anonymous_name(t)
     return name
 
+  def checkIfItisLocal(self,name,uri,identifier):
+    pubs, _1, srvs = self.master.getSystemState()
+
+    if identifier == "topic":
+      for p in itertools.chain(*[l for x, l in pubs]):
+        uri_m = rostopic.get_api(self.master,p)
+
+        if uri_m == uri:
+          return True
+
+    elif identifier == "service":
+      nodename = rosservice.get_service_node(name)
+    
+      if not nodename:
+        return False
+
+      nodeuri = rosnode.get_api_uri(self.master,nodename)
+
+      if nodeuri == uri:
+        return True
+    else:
+      print "Wrong Identifier in checkIfItisLocal"
+
+    return False
+
   def clear(self):
     self.pubs_node = {}
     self.pubs_uri = {}
+
 
   def _xmlrpc_node_error_handler(self, e): 
     ''' 
