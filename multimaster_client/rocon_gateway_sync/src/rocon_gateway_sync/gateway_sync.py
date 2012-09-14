@@ -165,7 +165,6 @@ class GatewaySync(object):
       for line in list:
         topic, topictype, node_xmlrpc_uri = line.split(",")
         topic = self.reshapeTopic(topic)
-        topictype = self.reshapeTopic(topictype)
         node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
         self.ros_manager.registerTopic(topic,topictype,node_xmlrpc_uri)
     except Exception as e:

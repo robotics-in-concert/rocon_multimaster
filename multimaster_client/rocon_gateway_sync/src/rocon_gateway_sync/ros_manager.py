@@ -105,6 +105,7 @@ class ROSManager(object):
         infolist.append(info)
       
     except Exception as e:
+      print "getTopicInfo"
       raise e
 
     return infolist
@@ -119,6 +120,7 @@ class ROSManager(object):
       info = srvuri + "," + nodeuri
 
     except Exception as e:
+      print "Error in getServiceInfo"
       raise e
 
     return info
@@ -149,6 +151,7 @@ class ROSManager(object):
       self.cv.release()
 
     except Exception as e:
+      print "In registerTopic"
       raise
 
     return
