@@ -1,0 +1,16 @@
+<stack>
+  <description brief="Fundamental building blocks enabling ros multimaster">
+  This doesn't do everything you need for multimaster, however it does
+  provide the building blocks common to most or all multimaster systems.
+  In particular, it provides the gateway model, which is an upgrade on
+  old foreign_relay and master_sync concepts.
+ adk packages).
+  </description>
+  <author>Daniel Stonier</author>
+  <author>Lee JiHoon</author>
+  <license>BSD</license>  
+  <review status="experimental" notes=""/>
+  <url>http://ros.org/wiki/rocon_multimaster</url>
+  <depend stack="ros" />
+  <depend stack="ros_comm" /> <!-- rosgraph, rospy -->
+</stack>
