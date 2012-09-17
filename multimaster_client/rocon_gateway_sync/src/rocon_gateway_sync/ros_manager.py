@@ -43,7 +43,6 @@ import itertools
 import socket
 import os
 import threading
-from cleanup_thread import CleanupThread
 from .gateway_handler import GatewayHandler
 
 class ROSManager(object):
@@ -66,10 +65,10 @@ class ROSManager(object):
     self.pubs_node = {}
     self.srvs_uri = {}
     self.srvs_node = {}
+    self.public_interface = {}
+    self.public_interface["topic"] = []
+    self.public_interface["service"] = []
     self.cv = threading.Condition()
-
-    # create a thread to clean-up unavailable topics
-    self.cleanup_thread = CleanupThread(self)
 
     self.getSystemState = self.master.getSystemState()
 
@@ -137,13 +136,12 @@ class ROSManager(object):
       # Initialize if it is a new topic
       if topic not in self.pubs_uri.keys():
         self.pubs_uri[topic] = [] 
-        self.pubs_node[topic] = [] 
         
         
       self.cv.acquire()
       if uri  not in self.pubs_uri[topic]:
         self.pubs_uri[topic].append(uri)
-        self.pubs_node[topic].append(node_name)
+        self.pubs_node[(topic,uri)] = node_name
         master = rosgraph.Master(node_name)
         master.registerPublisher(topic,topictype,uri)
       else:
@@ -167,13 +165,11 @@ class ROSManager(object):
       # Initialize if it is a new topic
       if service not in self.srvs_uri.keys():
         self.srvs_uri[service] = [] 
-        self.srvs_node[service] = [] 
-        
         
       self.cv.acquire()
       if service_api not in self.srvs_uri[service]:
         self.srvs_uri[service].append(service_api)
-        self.srvs_node[service].append(node_name)
+        self.srvs_node[(service,service_api)] =node_name
         master = rosgraph.Master(node_name)
         master.registerService(service,service_api,node_xmlrpc_uri)
       else:
@@ -185,6 +181,32 @@ class ROSManager(object):
       raise
 
     return
+
+  def unregisterTopic(self,topic,topictype,node_uri):
+    try:
+      node_name = self.pubs_node[(topic,node_uri)]
+      print "Unregistering ",topic," from ",node_name
+      master_n = rosgraph.Master(node_name)
+      master_n.unregisterPublisher(topic,node_uri)
+      del self.pubs_node[(topic,node_uri)]
+      self.pubs_uri[topic].remove(node_uri)
+    except:
+      print "Failed in unregister Topic"
+      raise
+    return True
+
+  def unregisterService(self,service,service_api,node_uri):
+    try:
+      node_name = self.srvs_node[(service,service_api)]
+      print "Unregistering ",service," from ",node_name
+      master_n = rosgraph.Master(node_name)
+      master_n.unregisterService(service, service_api)
+      del self.srvs_node[(service,service_api)]
+      self.srvs_uri[service].remove(service_api)
+    except:
+      print "Failed in unregister Service"
+      raise
+    return True
 
   def getAnonymousNodeName(self,topic):
     t = topic[1:len(topic)]
@@ -224,9 +246,18 @@ class ROSManager(object):
     pub, sub, srv = self.ros_manager.getSystemState()
   """
 
+  # return false if it is already registered
+  def addPublicInterface(self,identifier,l):
 
+    if l in self.public_interface[identifier]:
+      return False
+    else:
+      self.public_interface[identifier].append(l)
+      return True
 
-
+  def removePublicInterface(self,identifier,string):
+    self.public_interface[identifier].remove(string)
+    
   def clear(self):
     self.pubs_node = {}
     self.pubs_uri = {}

@@ -44,7 +44,7 @@ class SubThread(threading.Thread):
     print "Start Listening"
    
     for r in self.pubsub.listen():
-      print str(r)
+#      print str(r)
       if r['type'] != 'unsubscribe':
         self.callback(r['data'])
 
@@ -84,12 +84,11 @@ class RedisManager(object):
   def getMembers(self,key):
     return self.server.smembers(key)
 
-  def addMembers(self,key,list):
+  def addMembers(self,key,topic):
     try:
       pipe = self.server.pipeline()
     
-      for topic in list:
-        pipe.sadd(key,topic)
+      pipe.sadd(key,topic)
       pipe.execute()
     except:
       print "Error : addMembers"
@@ -97,12 +96,11 @@ class RedisManager(object):
   
     return True
 
-  def removeMembers(self,key,list):
+  def removeMembers(self,key,string):
     try:
       pipe = self.server.pipeline()
     
-      for topic in list:
-        pipe.srem(key,topic)
+      pipe.srem(key,string)
       pipe.execute()
 
     except:
