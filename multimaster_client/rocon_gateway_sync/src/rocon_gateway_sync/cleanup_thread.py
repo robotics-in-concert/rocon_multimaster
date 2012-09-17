@@ -58,25 +58,23 @@ class CleanupThread(threading.Thread):
     while not rospy.is_shutdown():
       self.cv.acquire()
 
-      # 1. unregister the unavailable remote topics/services
 #      self.checkRemoteList()
+      if self.gateway_sync.connected: 
+        # 1. Check all remove interfaces are still in redis server, if it is gone, unregister it
+#self.pollServer()
 
-      # 2. Check all public interfaces are still valid
-      self.checkPublicInterfaces()
+
+        # 2. Check all local public interfaces are still valid
+        self.checkPublicInterfaces()
       self.cv.release()
       rospy.sleep(3.0)
 
-  def checkRemoteList(self):
-    
-    pinged, unpinged = rosnode.rosnode_ping_all()
-    
-    # Unregister unresponsive nodes
-    if unpinged:
-      master = rosgraph.Master('/rosnode')
-      rosnode.cleanup_master_blacklist(master,unpinged)
-      
-    # Check if publishers in pinged node have been changed
-    # for node in pinged:
+  def pollServer(self):
+    remotelist = self.gateway_sync.getRemoteLists()
+
+    for master in remotelist:
+      print str(remotelist[master])
+
 
   def checkPublicInterfaces(self):
     pubs, _, srvs = self.master.getSystemState() 

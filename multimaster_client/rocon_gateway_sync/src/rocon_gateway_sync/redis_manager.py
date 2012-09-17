@@ -44,8 +44,7 @@ class SubThread(threading.Thread):
     print "Start Listening"
    
     for r in self.pubsub.listen():
-#      print str(r)
-      if r['type'] != 'unsubscribe':
+      if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
         self.callback(r['data'])
 
     print "Done listening"

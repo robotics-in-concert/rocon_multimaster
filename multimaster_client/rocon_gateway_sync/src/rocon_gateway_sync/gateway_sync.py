@@ -273,19 +273,22 @@ class GatewaySync(object):
     if not self.validateWhiteList():
       print str(msg) + "couldn't pass the white list validation"
       return
+    try:
 
-    msg = msg.split("-")
-    cmd = msg[0]
-    rest = msg[1:len(msg)]
+      msg = msg.split("-")
+      cmd = msg[0]
+      rest = msg[1:len(msg)]
 
-    if cmd == "flipouttopic":
-      self.requestForeignTopic(rest)
-    elif cmd == "flipoutservice":
-      self.requestForeignService(rest)
-    elif cmd == "update":
-      print str(rest)
-    else:
-      print "error"
+      if cmd == "flipouttopic":
+        self.requestForeignTopic(rest)
+      elif cmd == "flipoutservice":
+        self.requestForeignService(rest)
+      elif cmd == "update":
+        print str(rest)
+      else:
+        print "error"
+    except:
+      print "Wrong Message : " + str(msg)
 
   def flipoutTopic(self,list):
     msg = "flipouttopic"

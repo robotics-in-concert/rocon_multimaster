@@ -43,7 +43,6 @@ import itertools
 import socket
 import os
 import threading
-from .gateway_handler import GatewayHandler
 
 class ROSManager(object):
 
@@ -53,9 +52,6 @@ class ROSManager(object):
 
   def __init__(self):
     rospy.loginfo("init ROS manager")
-
-    # run xml rpc node
-    # self.createXMLRPCNode()
 
     # Get the current node name
     self.name = rospy.get_name()
@@ -71,19 +67,6 @@ class ROSManager(object):
     self.cv = threading.Condition()
 
     self.getSystemState = self.master.getSystemState()
-
-  def createXMLRPCNode(self):
-    self.handler = GatewayHandler()
-    self.node = rosgraph.xmlrpc.XmlRpcNode(port=self.port,rpc_handler=self.handler,on_run_error=self._xmlrpc_node_error_handler) # Can also pass port and run_error handlers
-    self.node.start()
-
-    # poll for initialization
-    timeout = time.time() + 5
-    while time.time() < timeout and self.node.uri is None and not rospy.is_shutdown():
-        time.sleep(0.01)
-    if self.node.uri is None:
-        # Some error handling here
-        return
 
 
   def getMasterUri(self):
@@ -238,13 +221,6 @@ class ROSManager(object):
 
     return False
 
-  """
-  def getSystemState(self):
-    topic_ignorelist = ["rosout", "rosout_agg", "parameter_descriptions","paramdeter_updates"]
-    srv_ignorelst = ["get_loggers","seg_loggers_level"]
-
-    pub, sub, srv = self.ros_manager.getSystemState()
-  """
 
   # return false if it is already registered
   def addPublicInterface(self,identifier,l):
@@ -262,18 +238,5 @@ class ROSManager(object):
     self.pubs_node = {}
     self.pubs_uri = {}
 
-
-  def _xmlrpc_node_error_handler(self, e): 
-    ''' 
-    Handles exceptions of type 'Exception' thrown by the xmlrpc node.
-    '''
-    # Reproducing the xmlrpc node logic here so we can catch the exception
-    if type(e) == socket.error:
-      (n,errstr) = e 
-
-    #if n == 98: # can't start the node because the port is already used
-    # save something to that the class can look up the problem later
-    else:
-      print("Xmlrpc Node Error")
 
 
