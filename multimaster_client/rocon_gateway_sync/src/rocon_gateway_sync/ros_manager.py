@@ -87,7 +87,7 @@ class ROSManager(object):
         infolist.append(info)
       
     except Exception as e:
-      print "getTopicInfo"
+      print str(e)
       raise e
 
     return infolist

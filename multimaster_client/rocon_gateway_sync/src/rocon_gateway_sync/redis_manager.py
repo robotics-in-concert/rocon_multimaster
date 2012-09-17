@@ -44,6 +44,7 @@ class SubThread(threading.Thread):
     print "Start Listening"
    
     for r in self.pubsub.listen():
+      print str(r)
       if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
         self.callback(r['data'])
 
@@ -75,6 +76,7 @@ class RedisManager(object):
     client_key = 'client'+str(unique_num)
     self.server.sadd(masterlist,client_key)
     self.pubsub.subscribe(update_topic)
+    self.pubsub.subscribe(client_key)
     self.subThread = SubThread(self.pubsub,self.callback)
     self.subThread.start()
 

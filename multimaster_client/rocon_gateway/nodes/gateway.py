@@ -96,10 +96,8 @@ class Gateway():
 
     callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
    
-    callbacks["flipout_topic"] = self.gateway_sync.flipoutTopic
-    callbacks["flipout_service"] = self.gateway_sync.flipoutService
-  
-
+    callbacks["flipout_topic"] = self.flipoutTopic
+    callbacks["flipout_service"] = self.flipoutService
 
 
   def parse_params(self):
@@ -143,7 +141,7 @@ class Gateway():
       
 
   # This function receives a service request from local ros node, crawl remote topic/service list from redis, and respose to local ros node.
-  def processRemoteListRequest(self,list):
+  def processRemoteListRequest(self,msg):
     remote_list = self.gateway_sync.getRemoteLists()
 
     rl = []
@@ -156,6 +154,41 @@ class Gateway():
       rl.append(l)
       
     return rl
+
+  def flipoutTopic(self,list):
+    # list[0] # of channel
+    # list[1:list[0]] is channels
+    # rest of them are fliping topics
+    try:
+      num = int(list[0])
+      channels = list[1:num+1]
+      topics = list[num+1:len(list)]
+      topics = self.gateway_sync.getTopicString(topics)
+
+      for chn in channels:
+        self.gateway_sync.flipout("flipouttopic",chn,topics)
+    except:
+      return False
+
+    return True
+
+  def flipoutService(self,list):
+    # list[0] # of channel
+    # list[1:list[0]] is channels
+    # rest of them are fliping services
+    try:
+      num = list[0]    
+      channels = list[1:num+1]
+      services = list[num+1:len(list)]
+      services = self.gateway_sync.getServiceString(services)
+
+      for chn in channels:
+        self.gateway_sync.flipoutService("flipoutservice",chn,services)
+    except Exception as e:
+      print str(e)
+      return False
+    return True
+
 
   # It clears this client's information from redis-server
   def clearServer(self):

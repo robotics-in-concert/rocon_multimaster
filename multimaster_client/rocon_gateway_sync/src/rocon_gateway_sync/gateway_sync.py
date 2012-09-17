@@ -223,6 +223,7 @@ class GatewaySync(object):
   def unregisterForeignTopic(self,list):
     try:
       for line in list:
+        print line
         topic, topictype, node_xmlrpc_uri = line.split(",")
         topic = self.reshapeTopic(topic)
         node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
@@ -270,14 +271,16 @@ class GatewaySync(object):
     self.ros_manager.clear()
 
   def processUpdate(self,msg):
-    if not self.validateWhiteList():
-      print str(msg) + "couldn't pass the white list validation"
-      return
-    try:
 
+    try:
       msg = msg.split("-")
       cmd = msg[0]
-      rest = msg[1:len(msg)]
+      provider = msg[1]
+      rest = msg[2:len(msg)]
+
+      if not self.validateWhiteList(provider):
+        print str(msg) + "couldn't pass the white list validation"
+        return
 
       if cmd == "flipouttopic":
         self.requestForeignTopic(rest)
@@ -290,33 +293,20 @@ class GatewaySync(object):
     except:
       print "Wrong Message : " + str(msg)
 
-  def flipoutTopic(self,list):
-    msg = "flipouttopic"
-    list_with_info = self.getTopicString(list)
-
-    for tinfo in list_with_info:
-      msg = msg + "-" + tinfo
+  def flipout(self,cmd,channel,list):
+    cmd = cmd + "-" + self.unique_name
+    for tinfo in list:
+      cmd = cmd + "-" + tinfo
 
     try:
-      self.redis_manager.sendMessage(self.update_topic,msg)
+      self.redis_manager.sendMessage(channel,cmd)
     except Exception as e:
       return False
 
     return True
 
-  def flipoutService(self,list):
-    msg = "flipoutservice"
-    list_with_info = self.getServiceString(list)
-    for l in list_with_info: 
-      msg = msg + "-" + l
-
-    try:
-      self.redis_manager.sendMessage(self.update_topic,msg)
-    except Exception as e:
-      return False
-
-    return True
-
-  def validateWhiteList(self):
+  def validateWhiteList(self,provider):
     # There is no validation method yet
+    print str(provider)
+
     return True
