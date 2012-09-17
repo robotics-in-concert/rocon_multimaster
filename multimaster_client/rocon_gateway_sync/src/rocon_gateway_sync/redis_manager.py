@@ -44,6 +44,7 @@ class SubThread(threading.Thread):
     print "Start Listening"
    
     for r in self.pubsub.listen():
+      print str(r)
       if r['type'] != 'unsubscribe':
         self.callback(r['data'])
 
@@ -129,6 +130,6 @@ class RedisManager(object):
   
     return True
 
-  def sendUpdateMessage(self,update_topic,msg):
-      self.server.publish(update_topic,msg)
+  def sendMessage(self,channel,msg):
+      self.server.publish(channel,msg)
 

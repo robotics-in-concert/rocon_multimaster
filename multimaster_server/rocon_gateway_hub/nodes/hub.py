@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
 # redis-server and avahi-daemon should already be running
 #  run_package('redis-server')
-#  run_package('avahi-daemon')
+  run_package('avahi-daemon')
 
   # flush all the previous data. and set unique key for indexing clients
   initialize_redis_server(int(config["port"]))

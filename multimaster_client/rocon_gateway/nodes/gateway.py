@@ -94,6 +94,12 @@ class Gateway():
     callbacks["add_foreign_service"] = self.gateway_sync.requestForeignService
     callbacks["remove_foreign_service"] = self.gateway_sync.unregisterForeignService
 
+    callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
+   
+    callbacks["flipout_topic"] = self.gateway_sync.flipoutTopic
+    callbacks["flipout_service"] = self.gateway_sync.flipoutService
+  
+
 
 
   def parse_params(self):

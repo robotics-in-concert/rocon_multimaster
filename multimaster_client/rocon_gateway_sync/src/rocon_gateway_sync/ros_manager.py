@@ -71,7 +71,7 @@ class ROSManager(object):
     # create a thread to clean-up unavailable topics
     self.cleanup_thread = CleanupThread(self)
 
-    
+    self.getSystemState = self.master.getSystemState()
 
   def createXMLRPCNode(self):
     self.handler = GatewayHandler()
@@ -215,6 +215,17 @@ class ROSManager(object):
       print "Wrong Identifier in checkIfItisLocal"
 
     return False
+
+  """
+  def getSystemState(self):
+    topic_ignorelist = ["rosout", "rosout_agg", "parameter_descriptions","paramdeter_updates"]
+    srv_ignorelst = ["get_loggers","seg_loggers_level"]
+
+    pub, sub, srv = self.ros_manager.getSystemState()
+  """
+
+
+
 
   def clear(self):
     self.pubs_node = {}

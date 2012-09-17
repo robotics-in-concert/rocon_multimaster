@@ -100,25 +100,29 @@ class GatewaySync(object):
       return False
     key = self.unique_name + ":topic"
 
-    list_with_node_ip = []
-    
     # figures out each topics node xmlrpc_uri and attach it on topic
     try:
-      for topic in list:
-        topicinfo = self.ros_manager.getTopicInfo(topic)
-        
-        # there may exist multiple publisher
-        for info in topicinfo:
-          list_with_node_ip.append(topic+","+info)
-          print "Adding topic : " + str(list_with_node_ip)
+      list_with_node_ip = self.getTopicString(list)
 
-      self.redis_manager.addMembers(key,list_with_node_ip)
+      for l in list_with_node_ip:
+        print "Adding topic : " + str(l)
+        self.redis_manager.addMembers(key,l)
 
     except Exception as e:
       print str(e)
       return False
 
     return True
+
+  def getTopicString(self,list):
+    l = [] 
+    for topic in list:
+      topicinfo = self.ros_manager.getTopicInfo(topic)
+      
+      # there may exist multiple publisher
+      for info in topicinfo:
+        l.append(topic+","+info)
+    return l
 
   def removePublicTopics(self,list):
     if not self.connected:
@@ -134,25 +138,32 @@ class GatewaySync(object):
     self.redis_manager.sendUpdateMessage(self.update_topic,"update!")
     return True
 
-
   def addPublicService(self,list):
     if not self.connected:
       print "It is not connected to Server"
       return False
 
     key = self.unique_name + ":service"
-    list_with_node_ip = []
     try:
-      for service in list:
-        srvinfo = self.ros_manager.getServiceInfo(service)
-        list_with_node_ip.append(service+","+srvinfo)
-        print "Adding Service : " + str(list_with_node_ip)
-        self.redis_manager.addMembers(key,list_with_node_ip)
+      list_with_node_ip = self.getServiceString(list)
+
+      for l in list_with_node_ip:
+        print "Adding Service : " + str(l)
+        self.redis_manager.addMembers(key,l)
     except Exception as e:
       print str(e)
       return False
 
     return True
+
+  def getServiceString(self,list):
+    list_with_node_ip = []
+    for service in list:
+      print service
+      srvinfo = self.ros_manager.getServiceInfo(service)
+      list_with_node_ip.append(service+","+srvinfo)
+    return list_with_node_ip
+
 
   def removePublicService(self,list):
     if not self.connected:
@@ -197,6 +208,12 @@ class GatewaySync(object):
     return True
 
 
+  def makeAllPublic(self,msg):
+    pub, sub, srv = self.ros_manager.getSystemState()
+
+    return True
+
+
   def reshapeUri(self,uri):
     if uri[len(uri)-1] is not '/':
       uri = uri + '/'
@@ -213,12 +230,49 @@ class GatewaySync(object):
     self.ros_manager.clear()
 
   def processUpdate(self,msg):
-    cmd, rest =msg.split(",")
+    if not self.validateWhiteList():
+      print str(msg) + "is ignored"
+      return
 
-    if cmd == "broadcast":
-      print str(rest) 
+    cmd, rest =msg.split("-")
+    print str(rest)
+
+    if cmd == "flipouttopic":
+        self.requestForeignTopic([rest])
+    elif cmd == "flipoutservice":
+        self.requestForeignService([rest])
     elif cmd == "update":
       print str(rest)
     else:
       print "error"
 
+  def flipoutTopic(self,list):
+    msg = "flipouttopic"
+    list_with_info = self.getTopicString(list)
+
+    for tinfo in list_with_info:
+      msg = msg + "-" + tinfo
+
+    try:
+      self.redis_manager.sendMessage(self.update_topic,msg)
+    except Exception as e:
+      return False
+
+    return True
+
+  def flipoutService(self,list):
+    msg = "flipoutservice"
+    list_with_info = self.getServiceString(list)
+    for l in list_with_info: 
+      msg = msg + "-" + l
+
+    try:
+      self.redis_manager.sendMessage(self.update_topic,msg)
+    except Exception as e:
+      return False
+
+    return True
+
+  def validateWhiteList(self):
+    # There is no validation method yet
+    return True
