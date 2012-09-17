@@ -43,7 +43,8 @@ if __name__ == '__main__':
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
   if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests flipout_topic.py <topic name,topic type,nodeuri> ..."
+    print "Usage : rosrun rocon_gateway_tests flipout_topic.py <# of channel> <channel> <channel...> <topicname,type,uri> ..."
+    print "Ex    : rosrun rocon_gateway_tests flipout_topic.py 2 client1 client 3 /topic,topictype,topicuri"
     sys.exit()
   
   l = sys.argv[1:len(sys.argv)]
