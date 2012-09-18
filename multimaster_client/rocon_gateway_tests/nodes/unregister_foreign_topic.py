@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
   # Form a request message
   req = PublicHandlerRequest() 
-  req.command = "remove_foreign_topic"
+  req.command = "unregister_foreign_topic"
   req.list = l
 
   # Receive whether it is successful

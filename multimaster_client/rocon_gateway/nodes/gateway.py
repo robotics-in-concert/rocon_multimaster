@@ -166,6 +166,7 @@ class Gateway():
       topics = self.gateway_sync.getTopicString(topics)
 
       for chn in channels:
+        print "Flipping out : " + str(topics) + " to " + chn
         self.gateway_sync.flipout("flipouttopic",chn,topics)
     except:
       return False
@@ -177,13 +178,14 @@ class Gateway():
     # list[1:list[0]] is channels
     # rest of them are fliping services
     try:
-      num = list[0]    
+      num = int(list[0])
       channels = list[1:num+1]
       services = list[num+1:len(list)]
       services = self.gateway_sync.getServiceString(services)
 
       for chn in channels:
-        self.gateway_sync.flipoutService("flipoutservice",chn,services)
+        print "Flipping out : " + str(services) + " to " + chn
+        self.gateway_sync.flipout("flipoutservice",chn,services)
     except Exception as e:
       print str(e)
       return False
