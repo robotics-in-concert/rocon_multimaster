@@ -31,6 +31,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+"""
+  get_public_interfaces.py
+
+  It shows the currently available public interfaces(topic and service). 
+"""
+
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
 from gateway_comms.msg import *
@@ -38,20 +44,15 @@ from gateway_comms.srv import *
 
 if __name__ == '__main__':
 
-  rospy.init_node('register_public_topic')
+  rospy.init_node('get_public_interfaces')
 
-  s = rospy.ServiceProxy('/gateway/request',PublicHandler)
+  try:
+    s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
-  if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests register_public_topic.py <topic name> ..."
-    sys.exit()
-  
-  l = sys.argv[1:len(sys.argv)]
-  print "Topics " + str(l)
-
-  req = PublicHandlerRequest() 
-  req.command = "add_public_topic"
-  req.list = l
-
-  print s(req)
-
+    req = PublicHandlerRequest()
+    req.command = "get_public_interfaces"
+    resp = s(req)
+    
+    print str(resp)
+  except Exception as e:
+    print str(e)

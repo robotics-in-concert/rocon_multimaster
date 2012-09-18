@@ -86,13 +86,13 @@ class Gateway():
     callbacks["remove_public_topic"] = self.gateway_sync.removePublicTopics 
 
     callbacks["add_public_service"] = self.gateway_sync.addPublicService
-    callbacks["remove_public_service"] = self.gateway_sync.addPublicService
+    callbacks["remove_public_service"] = self.gateway_sync.removePublicService
 
-    callbacks["add_foreign_topic"] = self.gateway_sync.requestForeignTopic
-    callbacks["remove_foreign_topic"] = self.gateway_sync.unregisterForeignTopic
+    callbacks["register_foreign_topic"] = self.gateway_sync.requestForeignTopic
+    callbacks["unregister_foreign_topic"] = self.gateway_sync.unregisterForeignTopic
 
-    callbacks["add_foreign_service"] = self.gateway_sync.requestForeignService
-    callbacks["remove_foreign_service"] = self.gateway_sync.unregisterForeignService
+    callbacks["register_foreign_service"] = self.gateway_sync.requestForeignService
+    callbacks["unregister_foreign_service"] = self.gateway_sync.unregisterForeignService
 
     callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
    

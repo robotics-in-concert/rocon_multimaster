@@ -36,6 +36,19 @@ import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 
+"""
+  register_foreign_topic.py 
+  
+  It registers topic that publically available.
+
+  Usage   :
+    rosrun rocon_gateway_tests register_foreign_topic.py <topic_name,topic_type,nodeuri> ...
+  Example :
+    rosrun rocon_gateway_tests register_foreign_service.py /topic1,topic1type,node1uri /topic2,topic2type,node2uri 
+
+    Available public topics can be checked using get_remote_list.py 
+    It drops registration if it tries to register local topic
+"""
 if __name__ == '__main__':
 
   rospy.init_node('register_public_topic')
@@ -45,13 +58,19 @@ if __name__ == '__main__':
   if len(sys.argv) < 2:
     print "Usage : rosrun rocon_gateway_tests register_foreign_topic.py \"<topic name>,<topic type>,<node xml uri>\"..."
     sys.exit()
-  
+
+  # all arguements are service info strings
   l = sys.argv[1:len(sys.argv)]
   print "Topics " + str(l)
 
+  # Form a request message
   req = PublicHandlerRequest() 
-  req.command = "add_foreign_topic"
+  req.command = "register_foreign_topic"
   req.list = l
 
-  print s(req)
+  # Receive whether it is successful
+  resp = s(req)
+
+  # Print result
+  print resp
 

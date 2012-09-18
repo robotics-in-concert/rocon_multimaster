@@ -36,22 +36,40 @@ import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 
+"""
+  add_public_topic.py 
+  
+  It publicize local topic to the centralised multimaster server
+
+  Usage   :
+    rosrun rocon_gateway_tests add_public_topic.py <topic_name> ...
+  Example :
+    rosrun rocon_gateway_tests add_public_topic.py /chatter
+
+    Lookup  local topic : 
+      rostopic list
+"""
 if __name__ == '__main__':
 
-  rospy.init_node('unregister_public_topic')
+  rospy.init_node('add_public_topic')
 
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
   if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests unregister_public_service.py <service name,service api,node uri> ..."
+    print "Usage : rosrun rocon_gateway_tests add_public_topic.py <topic name> ..."
     sys.exit()
   
+  # all arguements are topic names
   l = sys.argv[1:len(sys.argv)]
   print "Topics " + str(l)
 
+  # Form a request message
   req = PublicHandlerRequest() 
-  req.command = "remove_public_service"
+  req.command = "add_public_topic"
   req.list = l
 
-  print s(req)
+  # Receive whether it is successful
+  resp = s(req)
+
+  print resp
 

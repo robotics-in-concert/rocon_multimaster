@@ -36,6 +36,20 @@ import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 
+"""
+  flip_topic.py script
+
+  It flips given topics to given channels.(?)
+
+  Usage   :
+    rosrun rocon_gateway_tests flipout_topic.py <# of channel> <channel> <channel...> <topicname,topictype,nodeuri> ...
+  Example :
+    rosrun rocon_gateway_tests flipout_topic.py 2 client1 client 3 /topic1,topic1type,node1uri /topic2,topic2type,node2uri
+
+    topic_type and node uri for local topic can be checked using get_topic_info.py
+
+"""
+
 if __name__ == '__main__':
 
   rospy.init_node('flipout_topic')
@@ -43,16 +57,24 @@ if __name__ == '__main__':
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
   if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests flipout_topic.py <# of channel> <channel> <channel...> <topicname,type,uri> ..."
-    print "Ex    : rosrun rocon_gateway_tests flipout_topic.py 2 client1 client 3 /topic,topictype,topicuri"
+    print "Usage : rosrun rocon_gateway_tests flipout_topic.py <# of channel> <channel> <channel...> <topicname,topictype,uri> ..."
+    print "Ex    : rosrun rocon_gateway_tests flipout_topic.py 2 client1 client2 /topic,topictype,topicuri"
     sys.exit()
   
+  #  1. num_chn = sys.argv[1] is # of channel
+  #  2. sys.argv[2:num_chn] is channel names
+  #  3. rests are topicinfostrings
   l = sys.argv[1:len(sys.argv)]
   print "Topics " + str(l)
 
+  # Form a request message
   req = PublicHandlerRequest() 
   req.command = "flipout_topic"
   req.list = l
 
-  print s(req)
+  # Receive whether it is successful
+  resp = s(req)
+
+  # Print Result
+  print resp
 

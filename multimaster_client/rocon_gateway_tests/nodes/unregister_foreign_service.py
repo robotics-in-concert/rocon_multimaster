@@ -30,7 +30,18 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""
+  unregister_foreign_service.py 
+  
+  It unregisters services that is registered from public interface
 
+  Usage   :
+    rosrun rocon_gateway_tests unregister_foreign_service.py <servicename,srv_api,nodeuri> ...
+  Example :
+    rosrun rocon_gateway_tests unregister_foreign_service.py /service1,service1api,node1uri /service2,service2api,node2uri
+
+    Service api and node uri for local service can be checked using get_service_info.py
+"""
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
 from gateway_comms.msg import *
@@ -43,15 +54,21 @@ if __name__ == '__main__':
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
   if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests unregister_foreign_service.py <topic name> ..."
+    print "Usage : rosrun rocon_gateway_tests unregister_foreign_service.py <servicename,srv_api,nodeuri> ..."
     sys.exit()
   
+  # all arguements are service names
   l = sys.argv[1:len(sys.argv)]
   print "Services " + str(l)
 
+  # Form a request message
   req = PublicHandlerRequest() 
-  req.command = "remove_foreign_service"
+  req.command = "unregister_foreign_service"
   req.list = l
 
-  print s(req)
+  # Receive whether it is successful
+  resp = s(req)
+
+  # Print result
+  print resp
 

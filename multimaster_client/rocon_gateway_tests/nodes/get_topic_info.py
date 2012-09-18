@@ -33,25 +33,62 @@
 
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
-from gateway_comms.msg import *
-from gateway_comms.srv import *
+import rostopic
+import rosnode
+import rosgraph
+import itertools
+import sys
+
+"""
+  get_topic_info.py
+
+  It prints general topic information including 
+    topic name, topic type, and topic nodes' uri
+
+  Usage : 
+    rosrun rocon_gateway_tests get_service_info.py <topic_name>
+  Ex    :
+    rosrun rocon_gateway_tests get_topic_info.py /chatter
+"""
 
 if __name__ == '__main__':
 
-  rospy.init_node('register_public_service')
+  rospy.init_node('get_topic_info')
+  name = rospy.get_name()
+  master = rosgraph.Master(name)
 
-  s = rospy.ServiceProxy('/gateway/request',PublicHandler)
-  
-  if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests register_public_service.py <service name> ..."
+  if len(sys.argv) != 2:
+    print "Usage :  rosrun rocon_gateway_tests get_topic_info.py <topic_name>"
     sys.exit()
-  
-  l = sys.argv[1:len(sys.argv)]
-  print "Service " + str(l)
 
-  req = PublicHandlerRequest() 
-  req.command = "add_public_service"
-  req.list = l
+  try:
+    infolist = []
+    topic_name = sys.argv[1]
+    topic_type, _1,_2 = rostopic.get_topic_type(topic_name)
+    pubs, _1,_2 = master.getSystemState()
+    pubs = [x for x in pubs if x[0] == topic_name]
 
-  print s(req)
+    if not pubs:
+      raise Exception("Unknown topic %s",topic_name)
+
+    print "== Topic =="
+    print " - Name     : " + topic_name
+    print " - Type     : " + topic_type
+    print " - Node Uri : " 
+
+    # Print Publisher uris
+    for p in itertools.chain(*[l for x, l in pubs]):
+      api = rostopic.get_api(master,p)
+      print "              " + str(api)
+      info = topic_name + "," + topic_type + "," + api
+      infolist.append(info)
+      
+    # Print info strings
+    print " - Concat   : " 
+    for info in infolist:
+      print "              " + info
+
+
+  except Exception as e:
+    print str(e)
 

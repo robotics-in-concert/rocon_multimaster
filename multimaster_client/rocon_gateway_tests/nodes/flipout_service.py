@@ -36,6 +36,18 @@ import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 
+"""
+  flip_service.py script
+
+  It flips given services to given channels.(?)
+
+  Usage   :
+    rosrun rocon_gateway_tests flipout_service.py <# of channel> <channel> <channel...> <servicename,srv_api,nodeuri> ...
+  Example :
+    rosrun rocon_gateway_tests flipout_service.py 2 client1 client2 /service1,service1api,node1uri /service2,service2api,node2uri
+
+    Service api and node uri for local service can be checked using get_service_info.py
+"""
 if __name__ == '__main__':
 
   rospy.init_node('flipout_service')
@@ -44,16 +56,24 @@ if __name__ == '__main__':
   
   if len(sys.argv) < 2:
     print "Usage : rosrun rocon_gateway_tests flipout_service.py <# of channel> <channel> <channel...> <servicename,srv_api,nodeuri> ..."
-    print "Ex    : rosrun rocon_gateway_tests flipout_service.py 2 client1 client 3 /service,serviceapi,nodeuri"
+    print "Ex    : rosrun rocon_gateway_tests flipout_service.py 2 client1 client2 /service,serviceapi,nodeuri"
 
     sys.exit()
   
+  #  1. num_chn = sys.argv[1] is # of channel
+  #  2. sys.argv[2:num_chn] is channel names
+  #  3. rests are serviceinfostrings
   l = sys.argv[1:len(sys.argv)]
   print "Serivces " + str(l)
 
+  # Form a request message
   req = PublicHandlerRequest() 
   req.command = "flipout_service"
   req.list = l
 
-  print s(req)
+  # Receive whether it is successful
+  resp = s(req)
+
+  # Print Result
+  print resp
 

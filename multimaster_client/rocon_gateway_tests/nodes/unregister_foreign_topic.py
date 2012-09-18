@@ -36,6 +36,18 @@ import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 
+"""
+  unregister_foreign_topic.py 
+  
+  It unregisters topics that is registered from public interface
+
+  Usage   :
+    rosrun rocon_gateway_tests unregister_foreign_topic.py <topicname,topictype,nodeuri> ...
+  Example :
+    rosrun rocon_gateway_tests unregister_foreign_topic.py /topic2,topic2type,node2uri
+
+  topic_type and node uri for local topic can be checked using get_topic_info.py
+"""
 if __name__ == '__main__':
 
   rospy.init_node('unregister_foreign_topic')
@@ -43,15 +55,19 @@ if __name__ == '__main__':
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
   if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests unregister_foreign_topic.py <topic name> ..."
+    print "Usage : rosrun rocon_gateway_tests unregister_foreign_topic.py <topicname,topictype,nodeuri> ..."
     sys.exit()
   
+  # all arguements are topicinfostring
   l = sys.argv[1:len(sys.argv)]
   print "Topics " + str(l)
 
+  # Form a request message
   req = PublicHandlerRequest() 
   req.command = "remove_foreign_topic"
   req.list = l
 
-  print s(req)
+  # Receive whether it is successful
+  resp = s(req)
 
+  print resp

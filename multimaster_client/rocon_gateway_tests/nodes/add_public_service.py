@@ -37,36 +37,36 @@ from gateway_comms.msg import *
 from gateway_comms.srv import *
 
 """
-  register_foreign_service.py 
+  add_public_service.py 
   
-  It registers services that is publicly available.
+  It publicize local service to the centralised multimaster server
 
   Usage   :
-    rosrun rocon_gateway_tests register_foreign_service.py <servicename,srv_api,nodeuri> ...
+    rosrun rocon_gateway_tests add_public_service.py <service_name> ...
   Example :
-    rosrun rocon_gateway_tests register_foreign_service.py /service1,service1api,node1uri /service2,service2api,node2uri
+    rosrun rocon_gateway_tests add_public_service.py /add_two_ints
 
-    Available public services can be checked using get_remote_list.py 
-    It drops registration if it tries to register local service
+    Lookup  local service : 
+      rosservice list
 """
 
 if __name__ == '__main__':
 
-  rospy.init_node('register_foreign_service')
+  rospy.init_node('add_public_service')
 
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
   if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests register_foreign_service.py \"<service name>,<service api>,<node xml uri>\"..."
+    print "Usage : rosrun rocon_gateway_tests add_public_service.py <service name> ..."
     sys.exit()
   
-  # all arguements are service info strings
+  # all arguements are service names
   l = sys.argv[1:len(sys.argv)]
   print "Service " + str(l)
 
   # Form a request message
   req = PublicHandlerRequest() 
-  req.command = "register_foreign_service"
+  req.command = "add_public_service"
   req.list = l
 
   # Receive whether it is successful

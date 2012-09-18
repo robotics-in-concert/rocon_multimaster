@@ -37,41 +37,39 @@ from gateway_comms.msg import *
 from gateway_comms.srv import *
 
 """
-  register_foreign_service.py 
+  remove_public_topic.py 
   
-  It registers services that is publicly available.
+  It stop publicizing local topic to the centralised multimaster server
 
   Usage   :
-    rosrun rocon_gateway_tests register_foreign_service.py <servicename,srv_api,nodeuri> ...
+    rosrun rocon_gateway_tests remove_public_topic.py <topicname,topictype,nodeuri> ...
   Example :
-    rosrun rocon_gateway_tests register_foreign_service.py /service1,service1api,node1uri /service2,service2api,node2uri
+    rosrun rocon_gateway_tests remove_public_topic.py /service1,service1api,nodeuri
 
-    Available public services can be checked using get_remote_list.py 
-    It drops registration if it tries to register local service
+  Lookup topic info string : 
+    get_topic_info.py
 """
-
 if __name__ == '__main__':
 
-  rospy.init_node('register_foreign_service')
+  rospy.init_node('remove_public_topic')
 
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
   if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests register_foreign_service.py \"<service name>,<service api>,<node xml uri>\"..."
+    print "Usage : rosrun rocon_gateway_tests remove_public_topic.py <topic name,topic type,node uri> ..."
     sys.exit()
   
-  # all arguements are service info strings
+  # all arguements are topicinfostring
   l = sys.argv[1:len(sys.argv)]
-  print "Service " + str(l)
+  print "Topics " + str(l)
 
   # Form a request message
   req = PublicHandlerRequest() 
-  req.command = "register_foreign_service"
+  req.command = "remove_public_topic"
   req.list = l
 
   # Receive whether it is successful
   resp = s(req)
-
+                                     
   # Print result
   print resp
-
