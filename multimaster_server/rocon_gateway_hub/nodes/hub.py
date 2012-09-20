@@ -120,15 +120,17 @@ def check_if_package_available(package_name):
 ##############################################################################
 # Initialize redis server 
 ##############################################################################
-def initialize_redis_server(p):
-  pool = redis.ConnectionPool(host='localhost', port=p, db=0)
-  server = redis.Redis(connection_pool=pool)
 
-  pipe = server.pipeline()
-  pipe.flushall()
-  pipe.set("index",0)
-  pipe.execute()
-  print "Clean up all database. set \"index\" 0"
+def initialize_redis_server(p):
+    pool = redis.ConnectionPool(host='localhost', port=p, db=0)
+    server = redis.Redis(connection_pool=pool)
+
+    pipe = server.pipeline()
+    # Don't flush other programs use of the hub.
+    pipe.flushall()
+    pipe.set("index",0)
+    pipe.execute()
+    print "Clean up all database. set \"index\" 0"
 
 
 ##############################################################################
