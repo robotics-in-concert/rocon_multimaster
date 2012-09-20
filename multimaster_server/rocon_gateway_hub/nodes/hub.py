@@ -143,8 +143,6 @@ def advertise_port_to_avahi(config, is_ros_environment):
 if __name__ == '__main__':    
 
   args = parse_options()
-  print args
-  sys.exit(0)
 
   check_if_package_available('redis-server')
   check_if_package_available('avahi-daemon')
