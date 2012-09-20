@@ -134,15 +134,11 @@ def initialize_redis_server(p):
 ##############################################################################
 # avahi advertisement
 ##############################################################################
-def advertise_port_to_avahi(config, is_ros_environment):
-  port = config["port"]
-  os.system('avahi-publish -s ros-gateway-hub _ros-gateway-hub._tcp '+str(port))
 
-  if is_ros_environment:
-    rospy.loginfo("Advertising _ros-gateway-hub._tcp on port "+str(port))
-    # Add some ros api here for server statistics
-  else:
-    print("Advertising _ros-gateway-hub._tcp on port "+str(port))
+def advertise_port_to_avahi(config):
+    port = config["port"]
+    os.system('avahi-publish -s ros-gateway-hub _ros-gateway-hub._tcp '+str(port))
+    loginfo(("advertising _ros-gateway-hub._tcp on port "+str(port)))
 
 
 ##############################################################################
@@ -183,7 +179,7 @@ if __name__ == '__main__':
   # TODO: If port is zero, find a free port here before advertising
   # Might need to track this one so we can kill it when the program 
   # terminates
-    #advertise_port_to_avahi(config,is_ros_environment)
+    advertise_port_to_avahi(config)
 
     if is_ros_environment:
         rospy.spin()
