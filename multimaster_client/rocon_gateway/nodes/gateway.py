@@ -269,5 +269,5 @@ if __name__ == '__main__':
   rospy.loginfo("Initilized")
 
   gateway.spin()
-  print "Done"
+  rospy.loginfo("Done")
 
