@@ -35,29 +35,32 @@ import os
 import sys
 import time
 import ConfigParser
-import redis
-from optparse import OptionParser
+import argparse
 
+try:
+    import redis
+except ImportError:
+    sys.exit("\n[ERROR] No python-redis found - hint 'rosdep install rocon_gateway_hub'\n")
 
 ##############################################################################
 # Option Parser
 ##############################################################################
+
 def parse_options():
-  parser = OptionParser(
-           usage="usage: %prog [options]\n\n\
-Starts the ros multimaster hub:\n\n\
+    
+    parser = argparse.ArgumentParser(description="\
+        Starts the ros multimaster hub:\n\n\
   1. Launches a central redis server for gateway information and interactions\n\
-  2. Optionally advertises a zeroconf service appropriate to your platform\
-           ",
-           epilog="See: http://www.ros.org/wiki/rocon_multimaster for details\n\n"
-             )
-  parser.add_option("-p", "--path", dest="path", default=0,
-          help="Path to the redis configuration file.",
-          action="store")
-  options, args = parser.parse_args()
-  
-  return options, args
-  
+  2. Optionally advertises a zeroconf service appropriate to your platform",
+        epilog="See http://www.ros.org/wiki/rocon_multimaster for details.",
+        formatter_class=argparse.RawTextHelpFormatter )
+    parser.add_argument('-z', '--zeroconf', action='store_false',  # default is true
+                        help='publish the hub on zeroconf [true]')
+    parser.add_argument('-n', '--name', action='store',
+                   default='Gateway Hub',
+                   help='string identifier for this hub [Gateway Hub]')
+    return parser.parse_args()
+    
 ##############################################################################
 # Config Parser
 ##############################################################################
@@ -139,7 +142,9 @@ def advertise_port_to_avahi(config, is_ros_environment):
 
 if __name__ == '__main__':    
 
-  options, args = parse_options()
+  args = parse_options()
+  print args
+  sys.exit(0)
 
   check_if_package_available('redis-server')
   check_if_package_available('avahi-daemon')
