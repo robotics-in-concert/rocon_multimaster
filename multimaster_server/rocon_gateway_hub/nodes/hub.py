@@ -43,6 +43,33 @@ except ImportError:
     sys.exit("\n[ERROR] No python-redis found - hint 'rosdep install rocon_gateway_hub'\n")
 
 ##############################################################################
+# Logging
+##############################################################################
+
+is_ros_environment = False
+
+def loginfo(message):
+    if is_ros_environment:
+        rospy.loginfo(message)
+    else:
+        print("[ INFO] "+message+"\n")
+        
+##############################################################################
+# Ros
+##############################################################################
+
+is_ros_environment = False
+
+try:
+    import roslib; roslib.load_manifest('rocon_gateway_hub')
+    import rospy
+    import rosgraph
+    is_ros_environment = True
+    loginfo("Ros modules imported")
+except ImportError:
+    loginfo("No ros environment detected.")
+
+##############################################################################
 # Option Parser
 ##############################################################################
 
@@ -64,17 +91,17 @@ def parse_options():
 ##############################################################################
 # Config Parser
 ##############################################################################
+
 def parse_config(filename):
 
-  f = open(filename,'r')
-  settings = {}
+    f = open(filename,'r')
+    settings = {}
 
-  for line in f:
-    kv = line.split()
-    if len(kv) > 1:
-      settings[kv[0]]= kv[1]
-  return settings
-
+    for line in f:
+        kv = line.split()
+        if len(kv) > 1:
+            settings[kv[0]]= kv[1]
+    return settings
 
 ##############################################################################
 # Check Package availability
@@ -82,31 +109,13 @@ def parse_config(filename):
 
 def check_if_package_available(package_name):
 
-  import subprocess
-  devnull = open(os.devnull,"w")
-  retval = subprocess.call(["dpkg","-s",package_name],stdout=devnull,stderr=subprocess.STDOUT)
-  devnull.close()
+    import subprocess
+    devnull = open(os.devnull,"w")
+    retval = subprocess.call(["dpkg","-s",package_name],stdout=devnull,stderr=subprocess.STDOUT)
+    devnull.close()
 
-  if retval != 0:
-    print "Package " + package_name + " not installed."
-
-##############################################################################
-# Run Package 
-##############################################################################
-
-def run_package(package_name):
-  import subprocess
-
-  try:
-    # check if redis-server is installed
-    # pipe output to /dev/null for silence
-#null = open("/dev/null", "w")
-    null = open("/dev/stdout", "w")
-    subprocess.Popen(package_name, stdout=null, stderr=null)
-    null.close()
-  except OSError:
-#    print(package_name + " is not installed")
-    raise
+    if retval != 0:
+        sys.exit("\n[ERROR] " + package_name + " not installed - hint 'rosdep install rocon_gateway_hub'\n")
 
 ##############################################################################
 # Initialize redis server 
@@ -142,33 +151,31 @@ def advertise_port_to_avahi(config, is_ros_environment):
 
 if __name__ == '__main__':    
 
-  args = parse_options()
 
-  check_if_package_available('redis-server')
-  check_if_package_available('avahi-daemon')
-  
-  config = parse_config('/etc/redis/redis.conf')
+    if is_ros_environment:
+        try:
+            rospy.init_node('hub')
+            zeroconf_flag = rospy.get_param("~zeroconf",True)
+            hub_name = rospy.get_param("~name","Gateway Hub")
+            loginfo("ros initialised.")
+        except NameError:
+            sys.exit("[ERROR] ros environment detected, but failed to initialise.")
+    else:
+        args = parse_options()
+        hub_name = args.name
+        zeroconf_flag = args.zeroconf
 
-# redis-server and avahi-daemon should already be running
-#  run_package('redis-server')
-  run_package('avahi-daemon')
+    # These abort if not found 
+    check_if_package_available('redis-server')
+    check_if_package_available('avahi-daemon')
+
+    # check if the daemons (redis and avahi) are running by testing
+    # their connection and functionality explicitly    
+
 
   # flush all the previous data. and set unique key for indexing clients
-  initialize_redis_server(int(config["port"]))
-
-  # import ros environment
-  is_ros_environment = False;
-
-  try:
-    import roslib; roslib.load_manifest('rocon_gateway_hub')
-    import rospy
-    import rosgraph
-    is_ros_environment = True
-    rospy.init_node('hub')
-    rospy.loginfo("Ros environment detected")
-  except ImportError:
-    print("No ros environment detected.")
-    sys.exit(0)
+    config = parse_config('/etc/redis/redis.conf')
+    initialize_redis_server(int(config["port"]))
 
   # Try to autodetect the system and start redis appropriately
   # Try to autodetect the system and start zeroconf appropriately
@@ -176,16 +183,8 @@ if __name__ == '__main__':
   # TODO: If port is zero, find a free port here before advertising
   # Might need to track this one so we can kill it when the program 
   # terminates
+    #advertise_port_to_avahi(config,is_ros_environment)
 
-  advertise_port_to_avahi(config,is_ros_environment)
-
-  rospy.spin()
-  """
-  while not rospy.is_shutdown():
-    try:
-      time.sleep(.1)
-    except KeyboardInterrupt:
-      print "Bye"
-      break
-  """
+    if is_ros_environment:
+        rospy.spin()
     
