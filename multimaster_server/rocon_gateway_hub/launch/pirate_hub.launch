@@ -12,7 +12,7 @@
 -->
 <launch>
   <node pkg="rocon_gateway_hub" type="hub.py" name="gateway_hub" output="screen">
-    <rosparam param="name">Gateway Hub</rosparam>
+    <rosparam param="name">Pirate Hub</rosparam>
     <rosparam param="zeroconf">true</rosparam>
   </node>
 </launch>
