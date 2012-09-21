@@ -1,0 +1,15 @@
+<package>
+  <description brief="rocon_gateway_helper">
+
+     rocon_gateway_helper
+
+  </description>
+  <author>Jihoon</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rocon_gateway_helper</url>
+  <depend package="rospy"/>
+
+</package>
+
+

@@ -174,6 +174,7 @@ class GatewaySync(object):
     def getServiceString(self,list):
         list_with_node_ip = []
         for service in list:
+            print service
             srvinfo = self.ros_manager.getServiceInfo(service)
             list_with_node_ip.append(service+","+srvinfo)
         return list_with_node_ip
@@ -330,3 +331,6 @@ class GatewaySync(object):
             return False
 
         return True, []
+
+    def getInfo(self):
+        return self.unique_name
