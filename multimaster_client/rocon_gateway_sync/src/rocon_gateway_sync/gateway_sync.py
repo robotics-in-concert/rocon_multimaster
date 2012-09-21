@@ -53,10 +53,10 @@ class GatewaySync(object):
     The gateway between ros system and redis server
     '''
 
-    masterlist = 'masterlist'
+    masterlist = 'rocon:masterlist'
     master_uri = None
-    update_topic = 'update'
-    index = 'index'
+    update_topic = 'rocon:update'
+    index = 'rocon:index'
     unique_name = None
     connected = False
 

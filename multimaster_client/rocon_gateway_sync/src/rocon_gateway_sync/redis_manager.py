@@ -73,7 +73,7 @@ class RedisManager(object):
 
   def registerClient(self,masterlist,index,update_topic):
     unique_num = self.server.incr(index)
-    client_key = 'client'+str(unique_num)
+    client_key = 'rocon:client'+str(unique_num)
     self.server.sadd(masterlist,client_key)
     self.pubsub.subscribe(update_topic)
     self.pubsub.subscribe(client_key)

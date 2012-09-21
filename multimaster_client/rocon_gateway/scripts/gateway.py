@@ -133,7 +133,7 @@ class Gateway():
       print str(e)
       return resp
 
-    if command == "get_public_interfaces":
+    if command == "get_public_interfaces" or command == "get_concertmaster_list":
       resp.list = ret
       resp.success = True
     else:
