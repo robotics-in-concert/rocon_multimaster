@@ -99,6 +99,8 @@ class Gateway():
     callbacks["flipout_topic"] = self.flipoutTopic
     callbacks["flipout_service"] = self.flipoutService
 
+    callbacks["post"] = self.gateway_sync.post
+
 
   def parse_params(self):
     # Local topics and services to register redis server
