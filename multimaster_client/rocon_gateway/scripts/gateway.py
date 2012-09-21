@@ -128,14 +128,19 @@ class Gateway():
       return resp
 
     try:
-      ret = self.callbacks[command](request.list)
+      success, lists = self.callbacks[command](request.list)
     except Exception as e:
       print str(e)
       return resp
 
-    if command == "get_public_interfaces" or command == "get_concertmaster_list":
-      resp.list = ret
-      resp.success = True
+    if command == "get_public_interfaces":
+      resp.remotelist = lists
+      resp.success = success
+      resp.concertmaster_list = []
+    elif command == "post":
+      resp.remotelist = []
+      resp.success = success
+      resp.concertmaster_list = lists
     else:
       resp.success = ret
 
@@ -155,7 +160,7 @@ class Gateway():
       l.services= remote_list[host]['service']
       rl.append(l)
       
-    return rl
+    return True, rl
 
   def flipoutTopic(self,list):
     # list[0] # of channel
@@ -171,9 +176,9 @@ class Gateway():
         print "Flipping out : " + str(topics) + " to " + chn
         self.gateway_sync.flipout("flipouttopic",chn,topics)
     except:
-      return False
+      return False, []
 
-    return True
+    return True, []
 
   def flipoutService(self,list):
     # list[0] # of channel
@@ -190,8 +195,8 @@ class Gateway():
         self.gateway_sync.flipout("flipoutservice",chn,services)
     except Exception as e:
       print str(e)
-      return False
-    return True
+      return False, []
+    return True, []
 
 
   # It clears this client's information from redis-server

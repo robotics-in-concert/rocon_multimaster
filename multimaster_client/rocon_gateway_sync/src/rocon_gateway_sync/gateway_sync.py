@@ -102,7 +102,7 @@ class GatewaySync(object):
     def addPublicTopics(self,list):
         if not self.connected:
             print "It is not connected to Server"
-            return False
+            return False, []
         key = self.unique_name + ":topic"
 
         # figures out each topics node xmlrpc_uri and attach it on topic
@@ -116,9 +116,9 @@ class GatewaySync(object):
 
         except Exception as e:
             print str(e)
-            return False
+            return False, []
 
-        return True
+        return True, []
 
     def getTopicString(self,list):
         l = [] 
@@ -133,7 +133,7 @@ class GatewaySync(object):
     def removePublicTopics(self,list):
         if not self.connected:
             print "It is not connected to Server"
-            return False
+            return False, []
 
         '''
             this also stop publishing topic to remote server
@@ -143,13 +143,13 @@ class GatewaySync(object):
             self.removePublicInterface("topic",l)
 
         self.redis_manager.sendMessage(self.update_topic,"update-removing")
-        return True
+        return True, []
 
 
     def addPublicService(self,list):
         if not self.connected:
             print "It is not connected to Server"
-            return False
+            return False, []
 
         key = self.unique_name + ":service"
         try:
@@ -161,7 +161,7 @@ class GatewaySync(object):
                 self.redis_manager.addMembers(key,l)
         except Exception as e:
             print str(e)
-            return False
+            return False, []
 
         return True
 
@@ -182,12 +182,12 @@ class GatewaySync(object):
     def removePublicService(self,list):
         if not self.connected:
             print "It is not connected to Server"
-            return False
+            return False, []
 
         for l in list:
             self.removePublicInterface("service",l)
 
-        return True
+        return True, []
 
 
     def requestForeignTopic(self,list): 
@@ -203,7 +203,7 @@ class GatewaySync(object):
             print "In requestForeignTopic"
             raise
         
-        return True
+        return True, []
 
     def requestForeignService(self,list): 
         try:
@@ -218,7 +218,7 @@ class GatewaySync(object):
             print "In requestForeignService"
             raise
         
-        return True
+        return True, []
 
     def unregisterForeignTopic(self,list):
         try:
@@ -232,7 +232,7 @@ class GatewaySync(object):
             print "In unregisterForeignTopic"
             raise
             
-        return True
+        return True, []
 
     def unregisterForeignService(self,list):
         try:
@@ -246,13 +246,13 @@ class GatewaySync(object):
             print "In Unregister Foreign Service"
             raise
         
-        return True
+        return True, []
 
 
     def makeAllPublic(self,msg):
         pub, sub, srv = self.ros_manager.getSystemState()
 
-        return True
+        return True, []
 
 
     def reshapeUri(self,uri):
@@ -320,13 +320,13 @@ class GatewaySync(object):
                 self.redis_manager.addMembers(key,member)
             elif command == "removemember":
                 self.redis_manager.removeMembers(key,member)
+            elif command == "getmembers":
+                member_list = self.redis_manager.getMembers(key)
+                return True, member_list
             else:
                 print "Error Wrong command %s",command
         except Exception as e:
             print str(e)
             return False
 
-        return True
-
-
-
+        return True, []
