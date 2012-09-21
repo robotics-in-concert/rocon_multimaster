@@ -99,8 +99,8 @@ def initialize_redis_server(port, hub_name):
     pipe = server.pipeline()
     # DJS Todo: don't flush other programs use of the hub.
     pipe.flushall()
-    pipe.set("rocon_index",0)
-    pipe.set("rocon_hub_name",hub_name)
+    pipe.set("rocon:index",0)
+    pipe.set("rocon:hub_name",hub_name)
     pipe.execute()
     print "Clean up all database. set \"index\" 0"
 
