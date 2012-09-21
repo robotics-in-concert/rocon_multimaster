@@ -33,6 +33,7 @@
 
 import os
 import sys
+import subprocess
 
 try:
     import redis
@@ -79,7 +80,6 @@ def check_if_package_available(name):
       available, but more reliable and general - just check if program binary
       is available.
     '''
-    import subprocess
     devnull = open(os.devnull,"w")
     #retval = subprocess.call(["dpkg","-s",package_name],stdout=devnull,stderr=subprocess.STDOUT)
     retval = subprocess.call(["which",name],stdout=devnull,stderr=subprocess.STDOUT)
@@ -111,8 +111,12 @@ def initialize_redis_server(port, hub_name):
 
 def advertise_port_to_avahi(config, hub_name):
     port = config["port"]
-    # DJS Todo: check for success here
-    os.system("avahi-publish -s '"+hub_name+"' _ros-gateway-hub._tcp "+str(port))
+    # if you don't specify  stdout/stderr streams, then it will automatically go to the background
+    # note, it will be also killed if the parent process itself is killed later on.
+    retval = subprocess.Popen(["avahi-publish","-s",hub_name,"_ros-gateway-hub._tcp",str(port)])
+    print("avahi-publish -s "+hub_name+" _ros-gateway-hub._tcp "+str(port))
+    #retval = subprocess.call("avahi-publish -s '"+hub_name+"' _ros-gateway-hub._tcp "+str(port),shell=True)
+    print("Return value: " + str(retval))
     rospy.loginfo("advertising '"+hub_name+"' on zeroconf [_ros-gateway-hub._tcp, port "+str(port)+"]")
 
 ##############################################################################
@@ -147,5 +151,6 @@ def launch():
     # terminates
     if zeroconf_flag:
         advertise_port_to_avahi(config, hub_name)
-
+    print("SPIIIIIIIIIIIIIINNNINNNNNNNNNNNNNG")
     rospy.spin()
+    # Need to kill avahipublish here
