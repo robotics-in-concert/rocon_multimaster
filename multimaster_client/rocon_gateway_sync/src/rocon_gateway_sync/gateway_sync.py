@@ -107,9 +107,7 @@ class GatewaySync(object):
 
         # figures out each topics node xmlrpc_uri and attach it on topic
         try:
-            list_with_node_ip = self.getTopicString(list)
-
-            for l in list_with_node_ip:
+            for l in list:
                 print "Adding topic : " + str(l)
                 if self.ros_manager.addPublicInterface("topic",l):
                     self.redis_manager.addMembers(key,l)
@@ -153,9 +151,7 @@ class GatewaySync(object):
 
         key = self.unique_name + ":service"
         try:
-            list_with_node_ip = self.getServiceString(list)
-
-            for l in list_with_node_ip:
+            for l in list:
                 print "Adding Service : " + str(l)
                 self.ros_manager.addPublicInterface("service",l)
                 self.redis_manager.addMembers(key,l)
@@ -163,7 +159,7 @@ class GatewaySync(object):
             print str(e)
             return False, []
 
-        return True
+        return True, []
 
     def removePublicInterface(self,identifier,string):
         print "Removing "+ identifier + " : " + string
@@ -288,6 +284,7 @@ class GatewaySync(object):
             elif cmd == "flipoutservice":
                 self.requestForeignService(rest)
             elif cmd == "update":
+                print "HERE"
                 print str(rest)
             else:
                 print "error"
@@ -308,7 +305,7 @@ class GatewaySync(object):
 
     def validateWhiteList(self,provider):
         # There is no validation method yet
-        print str(provider)
+#print str(provider)
 
         return True
 
@@ -328,7 +325,7 @@ class GatewaySync(object):
                 print "Error Wrong command %s",command
         except Exception as e:
             print str(e)
-            return False
+            return False, []
 
         return True, []
 

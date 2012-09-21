@@ -8,15 +8,15 @@
 # modification, are permitted provided that the following conditions
 # are met:
 #
-#  * Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-#  * Redistributions in binary form must reproduce the above
-#    copyright notice, this list of conditions and the following
-#    disclaimer in the documentation and/or other materials provided
-#    with the distribution.
-#  * Neither the name of Yujin Robot nor the names of its
-#    contributors may be used to endorse or promote products derived
-#    from this software without specific prior written permission.
+#    * Redistributions of source code must retain the above copyright
+#        notice, this list of conditions and the following disclaimer.
+#    * Redistributions in binary form must reproduce the above
+#        copyright notice, this list of conditions and the following
+#        disclaimer in the documentation and/or other materials provided
+#        with the distribution.
+#    * Neither the name of Yujin Robot nor the names of its
+#        contributors may be used to endorse or promote products derived
+#        from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -33,43 +33,53 @@
 
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
+from rocon_gateway_helper import *
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 
 """
-  add_public_topic.py 
-  
-  It publicize local topic to the centralised multimaster server
+    add_public_topic.py 
+    
+    It publicize local topic to the centralised multimaster server
 
-  Usage   :
-    rosrun rocon_gateway_tests add_public_topic.py <topic_name> ...
-  Example :
-    rosrun rocon_gateway_tests add_public_topic.py /chatter
+    Usage     :
+        rosrun rocon_gateway_tests add_public_topic.py <topic_name> ...
+    Example :
+        rosrun rocon_gateway_tests add_public_topic.py /chatter
 
-    Lookup  local topic : 
-      rostopic list
+        Lookup    local topic : 
+            rostopic list
 """
 if __name__ == '__main__':
 
-  rospy.init_node('add_public_topic')
+    rospy.init_node('add_public_topic')
 
-  s = rospy.ServiceProxy('/gateway/request',PublicHandler)
-  
-  if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests add_public_topic.py <topic name> ..."
-    sys.exit()
-  
-  # all arguements are topic names
-  l = sys.argv[1:len(sys.argv)]
-  print "Topics " + str(l)
+    s = rospy.ServiceProxy('/gateway/request',PublicHandler)
+    
+    if len(sys.argv) < 2:
+        print "Usage : rosrun rocon_gateway_tests add_public_topic.py <topic name> ..."
+        sys.exit()
+    
+    # all arguements are topic names
+    l = sys.argv[1:len(sys.argv)]
+    print "Topics " + str(l)
 
-  # Form a request message
-  req = PublicHandlerRequest() 
-  req.command = "add_public_topic"
-  req.list = l
+    ll = []
+    for topic in l:
+        tname, ttype, apis = get_topic_info(topic)
+        for api in apis:
+            info = tname + "," + ttype + "," + api
+            ll.append(info)
+        
+        
 
-  # Receive whether it is successful
-  resp = s(req)
+    # Form a request message
+    req = PublicHandlerRequest() 
+    req.command = "add_public_topic"
+    req.list = ll
 
-  print resp
+    # Receive whether it is successful
+    resp = s(req)
+
+    print resp
 

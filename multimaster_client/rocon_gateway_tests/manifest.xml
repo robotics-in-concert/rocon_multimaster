@@ -10,6 +10,7 @@
   <url>http://ros.org/wiki/rocon_gateway_tests</url>
   <depend package="rospy"/>
   <depend package="gateway_comms"/>
+  <depend package="rocon_gateway_helper"/>
 
 </package>
 

@@ -155,9 +155,6 @@ class Gateway():
         return GatewayInfoResponse(self.gateway_sync.getInfo())
         
 
-
-            
-
     # This function receives a service request from local ros node, crawl remote topic/service list from redis, and respose to local ros node.
     def processRemoteListRequest(self,msg):
         remote_list = self.gateway_sync.getRemoteLists()
@@ -181,7 +178,7 @@ class Gateway():
             num = int(list[0])
             channels = list[1:num+1]
             topics = list[num+1:len(list)]
-            topics = self.gateway_sync.getTopicString(topics)
+#topics = self.gateway_sync.getTopicString(topics)
 
             for chn in channels:
                 print "Flipping out : " + str(topics) + " to " + chn
@@ -199,7 +196,7 @@ class Gateway():
             num = int(list[0])
             channels = list[1:num+1]
             services = list[num+1:len(list)]
-            services = self.gateway_sync.getServiceString(services)
+#services = self.gateway_sync.getServiceString(services)
 
             for chn in channels:
                 print "Flipping out : " + str(services) + " to " + chn
