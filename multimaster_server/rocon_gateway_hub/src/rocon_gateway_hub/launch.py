@@ -107,14 +107,19 @@ def initialize_redis_server(port, hub_name):
 ##############################################################################
 
 def advertise_port_to_avahi(config, hub_name):
+    '''
+      Check if avahi-daemon is around and publish the redis server ip:port.
+    '''
+    # Check
+    proc = subprocess.Popen(["pidof","avahi-daemon"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    if proc.stdout.read() == "":
+        sys.exit(utils.logfatal("hub: could not find the avahi-daemon - is it running?"))
+
     port = config["port"]
-    #subprocess.Popen(["pidof","avahi-daemon"],stdout=subprocess.STDOUT,stderr=subprocess.STDOUT)
     # if you don't specify  stdout/stderr streams, then it will automatically go to the background
-    # note, it will be also killed if the parent process itself is killed later on.
+    # avahi-publish is a blocking call - it has to go to the background
+    # also note, we don't worrry about cleaning it up as it will be killed with the parent process
     subprocess.Popen(["avahi-publish","-s",hub_name,"_ros-gateway-hub._tcp",str(port)])
-    #retval = subprocess.Popen(["avahi-publish","-s",hub_name,"_ros-gateway-hub._tcp",str(port)])
-    # print("avahi-publish -s "+hub_name+" _ros-gateway-hub._tcp "+str(port))
-    # print("Return value: " + str(retval))
     rospy.loginfo("hub: advertising '"+hub_name+"' on zeroconf [_ros-gateway-hub._tcp, port "+str(port)+"]")
 
 ##############################################################################
