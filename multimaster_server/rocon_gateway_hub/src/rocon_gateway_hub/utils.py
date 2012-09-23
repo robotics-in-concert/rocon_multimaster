@@ -31,6 +31,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import os
 import socket
 import roslib; roslib.load_manifest('rocon_gateway_hub')
 import rosgraph
@@ -76,3 +77,21 @@ def check_master():
     except socket.error:
         return False
 
+def which(program):
+    '''
+    Emulate in a cross platform way the linux shell command
+    '''
+    def is_exe(fpath):
+        return os.path.exists(fpath) and os.access(fpath, os.X_OK)
+ 
+    fpath, unused_fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+ 
+    return None

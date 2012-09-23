@@ -80,12 +80,8 @@ def check_if_package_available(name):
       available, but more reliable and general - just check if program binary
       is available.
     '''
-    devnull = open(os.devnull,"w")
-    #retval = subprocess.call(["dpkg","-s",package_name],stdout=devnull,stderr=subprocess.STDOUT)
-    retval = subprocess.call(["which",name],stdout=devnull,stderr=subprocess.STDOUT)
-    devnull.close()
-    if retval != 0:
-        sys.exit(utils.logfatal("hub: " + name + " not installed - hint 'rosdep install rocon_gateway_hub'\n"))
+    if utils.which(name) is None:
+        sys.exit(utils.logfatal("hub: " + name + " not installed - hint 'rosdep install rocon_gateway_hub'."))
 
 ##############################################################################
 # Initialize redis server 
@@ -112,6 +108,7 @@ def initialize_redis_server(port, hub_name):
 
 def advertise_port_to_avahi(config, hub_name):
     port = config["port"]
+    #subprocess.Popen(["pidof","avahi-daemon"],stdout=subprocess.STDOUT,stderr=subprocess.STDOUT)
     # if you don't specify  stdout/stderr streams, then it will automatically go to the background
     # note, it will be also killed if the parent process itself is killed later on.
     subprocess.Popen(["avahi-publish","-s",hub_name,"_ros-gateway-hub._tcp",str(port)])
