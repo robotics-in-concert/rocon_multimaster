@@ -130,29 +130,18 @@ def launch():
     if not utils.check_master():
         sys.exit(utils.red_string("Unable to communicate with master!"))
 
+    # Parameters
     rospy.init_node('hub')
     zeroconf_flag = rospy.get_param("~zeroconf",True)
     hub_name = rospy.get_param("~name","Gateway Hub")
 
-    # These abort if not found 
-    check_if_package_available('redis-server')
-    if zeroconf_flag:
-        check_if_package_available('avahi-daemon')
-
-    # check if the daemons (redis and avahi) are running by testing
-    # their connection and functionality explicitly
-
-    # flush all the previous data. and set unique key for indexing clients
+    # Redis
+    check_if_package_available('redis-server')  # aborts if redis-server not installed
     config = parse_redis_configuration()
     initialize_redis_server(int(config["port"]), hub_name)
 
-    # Try to autodetect the system and start redis appropriately
-    # Try to autodetect the system and start zeroconf appropriately
-    # Linux
-    # TODO: If port is zero, find a free port here before advertising
-    # Might need to track this one so we can kill it when the program 
-    # terminates
+    # Zeroconf
     if zeroconf_flag:
-        advertise_port_to_avahi(config, hub_name)
+        check_if_package_available('avahi-daemon') # aborts if avahi-daemon not installed
+        advertise_port_to_avahi(config, hub_name) # aborts if avahi-daemon not running
     rospy.spin()
-    # Need to kill avahipublish here
