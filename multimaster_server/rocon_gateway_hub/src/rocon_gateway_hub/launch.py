@@ -87,6 +87,11 @@ def check_if_package_available(name):
 ##############################################################################
 import re
 def initialize_redis_server(port, hub_name):
+    '''
+      Connect, delete all rocon:xxx variables and reinitialise with specified values."
+      
+      Aborts the program if the connection fails.
+    '''
     try:
         pool = redis.ConnectionPool(host='localhost', port=port, db=0)
         server = redis.Redis(connection_pool=pool)
