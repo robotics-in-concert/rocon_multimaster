@@ -56,7 +56,7 @@ class GatewaySync(object):
     masterlist = 'rocon:masterlist'
     master_uri = None
     update_topic = 'rocon:update'
-    index = 'rocon:index'
+    index = 'rocon:hub:index'
     unique_name = None
     connected = False
 

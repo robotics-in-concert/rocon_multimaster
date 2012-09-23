@@ -102,8 +102,8 @@ def initialize_redis_server(port, hub_name):
         #pipe.delete(["rocon:index","rocon:hub_name"])
         for key in keys_to_delete:
             pipe.delete(key)
-        pipe.set("rocon:index",0)
-        pipe.set("rocon:hub_name",hub_name)
+        pipe.set("rocon:hub:index",0)
+        pipe.set("rocon:hub:name",hub_name)
         pipe.execute()
     except redis.exceptions.ConnectionError:
         sys.exit(utils.logfatal("hub: could not connect to the redis server - is it running?"))
