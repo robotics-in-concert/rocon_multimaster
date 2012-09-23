@@ -97,11 +97,7 @@ def initialize_redis_server(port, hub_name):
             if pattern.match(key):
                 keys_to_delete.append(key)
         pipe = server.pipeline()
-        #Why aren't multi-deletes working?
-        #pipe.delete("rocon:index rocon:hub_name")
-        #pipe.delete(["rocon:index","rocon:hub_name"])
-        for key in keys_to_delete:
-            pipe.delete(key)
+        pipe.delete(*keys_to_delete) # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
         pipe.set("rocon:hub:index",0)
         pipe.set("rocon:hub:name",hub_name)
         pipe.execute()
