@@ -31,7 +31,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os
 import sys
 import subprocess
 
@@ -86,14 +85,23 @@ def check_if_package_available(name):
 ##############################################################################
 # Initialize redis server 
 ##############################################################################
-
+import re
 def initialize_redis_server(port, hub_name):
     try:
         pool = redis.ConnectionPool(host='localhost', port=port, db=0)
         server = redis.Redis(connection_pool=pool)
+        rocon_keys = server.keys("rocon:*")
+        pattern = re.compile("rocon:*")
+        keys_to_delete = []
+        for key in rocon_keys:
+            if pattern.match(key):
+                keys_to_delete.append(key)
         pipe = server.pipeline()
-        # DJS Todo: don't flush other programs use of the hub.
-        pipe.flushall()
+        #Why aren't multi-deletes working?
+        #pipe.delete("rocon:index rocon:hub_name")
+        #pipe.delete(["rocon:index","rocon:hub_name"])
+        for key in keys_to_delete:
+            pipe.delete(key)
         pipe.set("rocon:index",0)
         pipe.set("rocon:hub_name",hub_name)
         pipe.execute()
