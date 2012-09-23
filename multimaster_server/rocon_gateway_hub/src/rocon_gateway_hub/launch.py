@@ -85,24 +85,25 @@ def check_if_package_available(name):
     retval = subprocess.call(["which",name],stdout=devnull,stderr=subprocess.STDOUT)
     devnull.close()
     if retval != 0:
-        sys.exit(utils.logerror("[ERROR] " + name + " not installed - hint 'rosdep install rocon_gateway_hub'\n"))
+        sys.exit(utils.logfatal("hub: " + name + " not installed - hint 'rosdep install rocon_gateway_hub'\n"))
 
 ##############################################################################
 # Initialize redis server 
 ##############################################################################
 
 def initialize_redis_server(port, hub_name):
-    # DJS Todo: check for success here
-    pool = redis.ConnectionPool(host='localhost', port=port, db=0)
-    server = redis.Redis(connection_pool=pool)
-
-    pipe = server.pipeline()
-    # DJS Todo: don't flush other programs use of the hub.
-    pipe.flushall()
-    pipe.set("rocon:index",0)
-    pipe.set("rocon:hub_name",hub_name)
-    pipe.execute()
-    print "Clean up all database. set \"index\" 0"
+    try:
+        pool = redis.ConnectionPool(host='localhost', port=port, db=0)
+        server = redis.Redis(connection_pool=pool)
+        pipe = server.pipeline()
+        # DJS Todo: don't flush other programs use of the hub.
+        pipe.flushall()
+        pipe.set("rocon:index",0)
+        pipe.set("rocon:hub_name",hub_name)
+        pipe.execute()
+    except redis.exceptions.ConnectionError:
+        sys.exit(utils.logfatal("hub: could not connect to the redis server - is it running?"))
+    rospy.loginfo("hub: reset all rocon:xxx variables on the redis server.")
 
 
 ##############################################################################
@@ -113,11 +114,11 @@ def advertise_port_to_avahi(config, hub_name):
     port = config["port"]
     # if you don't specify  stdout/stderr streams, then it will automatically go to the background
     # note, it will be also killed if the parent process itself is killed later on.
-    retval = subprocess.Popen(["avahi-publish","-s",hub_name,"_ros-gateway-hub._tcp",str(port)])
-    print("avahi-publish -s "+hub_name+" _ros-gateway-hub._tcp "+str(port))
-    #retval = subprocess.call("avahi-publish -s '"+hub_name+"' _ros-gateway-hub._tcp "+str(port),shell=True)
-    print("Return value: " + str(retval))
-    rospy.loginfo("advertising '"+hub_name+"' on zeroconf [_ros-gateway-hub._tcp, port "+str(port)+"]")
+    subprocess.Popen(["avahi-publish","-s",hub_name,"_ros-gateway-hub._tcp",str(port)])
+    #retval = subprocess.Popen(["avahi-publish","-s",hub_name,"_ros-gateway-hub._tcp",str(port)])
+    # print("avahi-publish -s "+hub_name+" _ros-gateway-hub._tcp "+str(port))
+    # print("Return value: " + str(retval))
+    rospy.loginfo("hub: advertising '"+hub_name+"' on zeroconf [_ros-gateway-hub._tcp, port "+str(port)+"]")
 
 ##############################################################################
 # Main
@@ -151,6 +152,5 @@ def launch():
     # terminates
     if zeroconf_flag:
         advertise_port_to_avahi(config, hub_name)
-    print("SPIIIIIIIIIIIIIINNNINNNNNNNNNNNNNG")
     rospy.spin()
     # Need to kill avahipublish here

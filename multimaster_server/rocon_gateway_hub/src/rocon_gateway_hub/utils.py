@@ -57,6 +57,9 @@ def loginfo(message):
 
 def logerror(message):
     print(red_string("[ERROR] "+message))
+
+def logfatal(message):
+    print(red_string("[FATAL] "+message))
     
 ##############################################################################
 # Other
