@@ -11,7 +11,9 @@
   <depend package="roslib"/>
   <depend package="rospy"/>
 
-  <rosdep name="python-redis"/>
+  <!-- using our patched redis until pull request is accepted. -->
+  <depend package="redis"/>
+  <!-- <rosdep name="python-redis"/> -->
   
 </package>
 
