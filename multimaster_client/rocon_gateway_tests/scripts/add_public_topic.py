@@ -36,6 +36,7 @@ import rospy
 from rocon_gateway_helper import *
 from gateway_comms.msg import *
 from gateway_comms.srv import *
+import argparse
 
 """
     add_public_topic.py 
@@ -43,36 +44,26 @@ from gateway_comms.srv import *
     It publicize local topic to the centralised multimaster server
 
     Usage     :
-        rosrun rocon_gateway_tests add_public_topic.py <topic_name,topictype,node_uri> ...
+        rosrun rocon_gateway_tests add_public_topic.py -m <topic_name,topictype,node_uri> ...
     Example :
-        rosrun rocon_gateway_tests add_public_topic.py /chatter,std_msgs/String,<nodeuri> ...
+        rosrun rocon_gateway_tests add_public_topic.py -m /chatter,std_msgs/String,<nodeuri> ...
 
         Lookup    local topic : 
             rostopic list
 """
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser(description='Process gateway request.')
+    parser.add_argument('-m','--message',metavar='<Topic triple>',type=str,nargs='+',help='<Topic triple>="<topic name>,<topic type>,<node uri>"')
+    args = parser.parse_args()
+
     rospy.init_node('add_public_topic')
 
     s = rospy.ServiceProxy('/gateway/request',PublicHandler)
     
-    if len(sys.argv) < 2:
-        print "Usage : rosrun rocon_gateway_tests add_public_topic.py <topic name,topic_type,nodeuri> ..."
-        sys.exit()
-    
     # all arguements are topic names
-    l = sys.argv[1:len(sys.argv)]
+    l = args.message
     print "Topics " + str(l)
-
-    """
-    ll = []
-    for topic in l:
-        tname, ttype, apis = get_topic_info(topic)
-        for api in apis:
-            info = tname + "," + ttype + "," + api
-            ll.append(info)
-    """  
-        
 
     # Form a request message
     req = PublicHandlerRequest() 

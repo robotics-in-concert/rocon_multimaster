@@ -36,6 +36,7 @@ import rospy
 from rocon_gateway_helper import *
 from gateway_comms.msg import *
 from gateway_comms.srv import *
+import argparse
 
 """
     add_public_service.py 
@@ -43,9 +44,9 @@ from gateway_comms.srv import *
     It publicize local service to the centralised multimaster server
 
     Usage     :
-        rosrun rocon_gateway_tests add_public_service.py <service_name,service_api,node uri> ...
+        rosrun rocon_gateway_tests add_public_service.py --message <service_name,service_api,node uri> ...
     Example :
-        rosrun rocon_gateway_tests add_public_service.py /add_two_ints,<service_api>,<nodeuri>
+        rosrun rocon_gateway_tests add_public_service.py --message /add_two_ints,<service_api>,<nodeuri>
 
         Lookup    local service : 
             rosservice list
@@ -53,25 +54,18 @@ from gateway_comms.srv import *
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser(description='Process gateway request.')
+    parser.add_argument('-m','--message',metavar='<Service triple>',type=str,nargs='+',help='<Service triple>="<Service name>,<Service api>,<node uri>"')
+    args = parser.parse_args()
+
     rospy.init_node('add_public_service')
 
     s = rospy.ServiceProxy('/gateway/request',PublicHandler)
-    
-    if len(sys.argv) < 2:
-        print "Usage : rosrun rocon_gateway_tests add_public_service.py <service name,service api,node uri> ..."
-        sys.exit()
+
     
     # all arguements are service names
-    l = sys.argv[1:len(sys.argv)]
+    l = args.message
     print "Service " + str(l)
-
-    """
-    ll = []
-    for srv in l:
-        sname,suri,nuri = get_service_info(srv)
-        info = sname + "," + suri + "," + nuri
-        ll.append(info)
-    """
 
     # Form a request message
     req = PublicHandlerRequest() 
@@ -83,4 +77,3 @@ if __name__ == '__main__':
 
     # Print result
     print resp
-

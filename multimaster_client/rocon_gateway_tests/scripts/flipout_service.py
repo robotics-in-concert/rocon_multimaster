@@ -35,6 +35,7 @@ import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
+import argparse
 
 """
   flip_service.py script
@@ -42,28 +43,26 @@ from gateway_comms.srv import *
   It flips given services to given channels.(?)
 
   Usage   :
-    rosrun rocon_gateway_tests flipout_service.py <# of channel> <channel> <channel...> <servicename,srv_api,nodeuri> ...
-  Example :
-    rosrun rocon_gateway_tests flipout_service.py 2 client1 client2 /service1,service1api,node1uri /service2,service2api,node2uri
+    rosrun rocon_gateway_tests flipout_service.py --clients <clients> ... --message  <servicename,srv_api,nodeuri> ...
 
-    Service api and node uri for local service can be checked using get_service_info.py
+   Service api and node uri for local service can be checked using get_service_info.py
 """
 if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='Process gateway request.')
+  parser.add_argument('-c','--clients',metavar='<Client name>',type=str,nargs='+',help='Client\'s unique name on hub')
+  parser.add_argument('-m','--message',metavar='<Service triple>',type=str,nargs='+',help='<Service triple>="<Service name>,<Service api>,<node uri>"')
+  args = parser.parse_args()
 
   rospy.init_node('flipout_service')
 
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
-  
-  if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests flipout_service.py <# of channel> <channel> <channel...> <servicename,srv_api,nodeuri> ..."
-    print "Ex    : rosrun rocon_gateway_tests flipout_service.py 2 client1 client2 /service,serviceapi,nodeuri"
 
-    sys.exit()
-  
-  #  1. num_chn = sys.argv[1] is # of channel
-  #  2. sys.argv[2:num_chn] is channel names
-  #  3. rests are serviceinfostrings
-  l = sys.argv[1:len(sys.argv)]
+  l = []
+  l.append(str(len(args.clients)))
+  l += args.clients
+  l += args.message
+
   print "Serivces " + str(l)
 
   # Form a request message

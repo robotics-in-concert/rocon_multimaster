@@ -35,6 +35,7 @@ import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
+import argparse
 
 """
   remove_public_topic.py 
@@ -42,25 +43,22 @@ from gateway_comms.srv import *
   It stop publicizing local topic to the centralised multimaster server
 
   Usage   :
-    rosrun rocon_gateway_tests remove_public_topic.py <topicname,topictype,nodeuri> ...
-  Example :
-    rosrun rocon_gateway_tests remove_public_topic.py /service1,service1api,nodeuri
+    rosrun rocon_gateway_tests remove_public_topic.py -m <topicname,topictype,nodeuri> ...
 
   Lookup topic info string : 
     get_topic_info.py
 """
 if __name__ == '__main__':
 
+  parser = argparse.ArgumentParser(description='Process gateway request.')
+  parser.add_argument('-m','--message',metavar='<Topic triple>',type=str,nargs='+',help='<Topic triple>="<topic name>,<topic type>,<node uri>"')
+  args = parser.parse_args()
+
   rospy.init_node('remove_public_topic')
 
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
-  if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests remove_public_topic.py <topic name,topic type,node uri> ..."
-    sys.exit()
-  
-  # all arguements are topicinfostring
-  l = sys.argv[1:len(sys.argv)]
+  l = args.message
   print "Topics " + str(l)
 
   # Form a request message

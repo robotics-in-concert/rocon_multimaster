@@ -35,6 +35,7 @@ import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
+import argparse
 
 """
   flip_topic.py script
@@ -42,29 +43,27 @@ from gateway_comms.srv import *
   It flips given topics to given channels.(?)
 
   Usage   :
-    rosrun rocon_gateway_tests flipout_topic.py <# of channel> <channel> <channel...> <topicname,topictype,nodeuri> ...
-  Example :
-    rosrun rocon_gateway_tests flipout_topic.py 2 client1 client 3 /topic1,topic1type,node1uri /topic2,topic2type,node2uri
+    rosrun rocon_gateway_tests flipout_topic.py --clients <clients> ... --message  <topicname,topictype,nodeuri> ...
 
     topic_type and node uri for local topic can be checked using get_topic_info.py
-
 """
 
 if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='Process gateway request.')
+  parser.add_argument('-c','--clients',metavar='<Client name>',type=str,nargs='+',help='Client\'s unique name on hub')
+  parser.add_argument('-m','--message',metavar='<Topic triple>',type=str,nargs='+',help='<Topic triple>="<topic name>,<topic type>,<node uri>"')
+  args = parser.parse_args()
 
   rospy.init_node('flipout_topic')
 
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
-  if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests flipout_topic.py <# of channel> <channel> <channel...> <topicname,topictype,uri> ..."
-    print "Ex    : rosrun rocon_gateway_tests flipout_topic.py 2 client1 client2 /topic,topictype,topicuri"
-    sys.exit()
-  
-  #  1. num_chn = sys.argv[1] is # of channel
-  #  2. sys.argv[2:num_chn] is channel names
-  #  3. rests are topicinfostrings
-  l = sys.argv[1:len(sys.argv)]
+  l = []
+  l.append(str(len(args.clients)))
+  l += args.clients
+  l += args.message
+
   print "Topics " + str(l)
 
   # Form a request message

@@ -35,6 +35,7 @@ import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
+import argparse
 
 """
   register_foreign_topic.py 
@@ -42,25 +43,25 @@ from gateway_comms.srv import *
   It registers topic that publically available.
 
   Usage   :
-    rosrun rocon_gateway_tests register_foreign_topic.py <topic_name,topic_type,nodeuri> ...
+    rosrun rocon_gateway_tests register_foreign_topic.py -m <topic_name,topic_type,nodeuri> ...
   Example :
-    rosrun rocon_gateway_tests register_foreign_service.py /topic1,topic1type,node1uri /topic2,topic2type,node2uri 
+    rosrun rocon_gateway_tests register_foreign_topic.py -m /topic1,topic1type,node1uri /topic2,topic2type,node2uri 
 
     Available public topics can be checked using get_remote_list.py 
     It drops registration if it tries to register local topic
 """
 if __name__ == '__main__':
 
+  parser = argparse.ArgumentParser(description='Process gateway request.')
+  parser.add_argument('-m','--message',metavar='<Topic triple>',type=str,nargs='+',help='<Topic triple>="<topic name>,<topic type>,<node uri>"')
+  args = parser.parse_args()
+
   rospy.init_node('register_public_topic')
 
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
-  if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests register_foreign_topic.py \"<topic name>,<topic type>,<node xml uri>\"..."
-    sys.exit()
 
-  # all arguements are service info strings
-  l = sys.argv[1:len(sys.argv)]
+  l = args.message
   print "Topics " + str(l)
 
   # Form a request message

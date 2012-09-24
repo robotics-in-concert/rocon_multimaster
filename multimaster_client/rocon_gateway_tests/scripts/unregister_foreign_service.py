@@ -36,9 +36,9 @@
   It unregisters services that is registered from public interface
 
   Usage   :
-    rosrun rocon_gateway_tests unregister_foreign_service.py <servicename,srv_api,nodeuri> ...
+    rosrun rocon_gateway_tests unregister_foreign_service.py -m <servicename,srv_api,nodeuri> ...
   Example :
-    rosrun rocon_gateway_tests unregister_foreign_service.py /service1,service1api,node1uri /service2,service2api,node2uri
+    rosrun rocon_gateway_tests unregister_foreign_service.py -m /service1,service1api,node1uri /service2,service2api,node2uri
 
     Service api and node uri for local service can be checked using get_service_info.py
 """
@@ -46,19 +46,20 @@ import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
 from gateway_comms.msg import *
 from gateway_comms.srv import *
+import argparse
 
 if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='Process gateway request.')
+  parser.add_argument('-m','--message',metavar='<Service triple>',type=str,nargs='+',help='<Service triple>="<Service name>,<Service api>,<node uri>"')
+  args = parser.parse_args()
 
   rospy.init_node('unregister_foreign_service')
 
   s = rospy.ServiceProxy('/gateway/request',PublicHandler)
   
-  if len(sys.argv) < 2:
-    print "Usage : rosrun rocon_gateway_tests unregister_foreign_service.py <servicename,srv_api,nodeuri> ..."
-    sys.exit()
-  
   # all arguements are service names
-  l = sys.argv[1:len(sys.argv)]
+  l = args.message
   print "Services " + str(l)
 
   # Form a request message

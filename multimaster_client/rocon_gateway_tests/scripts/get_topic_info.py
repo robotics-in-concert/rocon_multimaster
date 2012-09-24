@@ -38,6 +38,7 @@ import rosnode
 import rosgraph
 import itertools
 import sys
+import argparse
 
 """
   get_topic_info.py
@@ -46,24 +47,25 @@ import sys
     topic name, topic type, and topic nodes' uri
 
   Usage : 
-    rosrun rocon_gateway_tests get_service_info.py <topic_name>
+    rosrun rocon_gateway_tests get_service_info.py --topic <topic_name>
   Ex    :
-    rosrun rocon_gateway_tests get_topic_info.py /chatter
+    rosrun rocon_gateway_tests get_topic_info.py --topic /chatter
 """
 
 if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='Provide a topic information and triple.')
+  parser.add_argument('-t','--topic',metavar='<topic name>',type=str,help='Ex : /chatter')
+  args = parser.parse_args()
 
   rospy.init_node('get_topic_info')
   name = rospy.get_name()
   master = rosgraph.Master(name)
 
-  if len(sys.argv) != 2:
-    print "Usage :  rosrun rocon_gateway_tests get_topic_info.py <topic_name>"
-    sys.exit()
 
   try:
     infolist = []
-    topic_name = sys.argv[1]
+    topic_name = args.topic
     topic_type, _1,_2 = rostopic.get_topic_type(topic_name)
     pubs, _1,_2 = master.getSystemState()
     pubs = [x for x in pubs if x[0] == topic_name]
