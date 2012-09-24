@@ -1,6 +1,7 @@
+#!/usr/bin/env python       
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2012, Yujin Robot, Daniel Stonier
+# Copyright (c) 2012, Yujin Robot, Daniel Stonier, Jihoon Lee
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,10 +31,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier, Jihoon Lee"
-__copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
-__license__ = "BSD"
-__version__ = '0.1.0'
-__date__ = "2012-08-29"
+import redis
 
-from .gateway_sync import GatewaySync
+###############################################################################
+# Functions
+###############################################################################
+
+def resolveHub(ip, port):
+    '''
+      Pings the hub for identification. We currently use this to check
+      against the gateway whitelist/blacklists to determine if a connection
+      should proceed or not.
+      
+      @return string - hub name
+    '''
+    r = redis.Redis()
+    return r.get("rocon:hub:name") # perhaps should store all key names somewhere central
+    

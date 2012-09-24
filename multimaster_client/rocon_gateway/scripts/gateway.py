@@ -34,10 +34,12 @@
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph
+import rocon_gateway
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 from zeroconf_comms.srv import *
 from rocon_gateway_sync import *
+
 
 
 # This class is wrapper ros class of gateway sync.
@@ -218,17 +220,11 @@ class Gateway():
 
 
     def connect(self,msg):
-        ip = "localhost"
-        if not msg.is_local:
-            ip = msg.ipv4_addresses[0]
-
-        # Connects to Redis server
-        if self.gateway_sync.connectToRedisServer(ip,msg.port):
+        (ip, port) = rocon_gateway.resolveZeroconfAddress(msg)
+        if self.gateway_sync.connectToRedisServer(ip,port):
             return True
         else:
             return False
-
-
 
     def spin(self):
         
@@ -239,13 +235,12 @@ class Gateway():
             req.service_type = self.zeroconf_service
             resp = self.zeroconf_service_proxy(req)
 
-            rospy.loginfo("Received available server")
+            rospy.loginfo("gw: checking for autodiscovered gateway hubs")
 
             for service in resp.services:
                 # if both whitelist is empty, connect to any redis server that is not in black list
-                ip = service.ipv4_addresses[0]
-                rospy.loginfo("Redis Server is discovered = " + str(ip) + ":"+str(service.port))
-
+                (ip, port) = rocon_gateway.resolveZeroconfAddress(service)
+                rospy.loginfo("gw: discovered hub at " + str(ip) + ":"+str(service.port))
                 if len(self.param['whitelist']) == 0 and ip not in self.param['blacklist']:
                     if self.connect(service):
                         self.is_connected = True
@@ -255,12 +250,22 @@ class Gateway():
                     if self.connect(service):
                         self.is_connected = True
                         break
+                # check for hub name in whitelist 
+                else:
+                    try:
+                        hub_name = rocon_gateway.resolveHub(ip,port) # this needs a ConnectionError try/catch
+                        if hub_name in  self.param['whitelist']:
+                            if self.connect(service):
+                                self.is_connected = True
+                                break
+                    except redis.exceptions.ConnectionError:
+                        break
 
-            rospy.loginfo("No valid redis server is up. Will try again..")
+            rospy.loginfo("gw: waiting for a valid gateway hub...")
             rospy.sleep(3.0)
 
         # Once you get here, it is connected to redis server
-        rospy.loginfo("Connected to Server") 
+        rospy.loginfo("gw: connected to hub.") 
         rospy.loginfo("Register default public topic/service")
         try:
             self.gateway_sync.addPublicTopics(self.param['local_public_topic'])
@@ -268,7 +273,6 @@ class Gateway():
         except Exception as e:
             print str(e)
             sys.exit(0)
-
         rospy.spin()
 
         # When the node is going off, it should remove it's info from redis-server

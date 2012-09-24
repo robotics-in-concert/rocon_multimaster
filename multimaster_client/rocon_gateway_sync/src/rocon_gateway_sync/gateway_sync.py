@@ -63,6 +63,7 @@ class GatewaySync(object):
     def __init__(self):
         self.redis_manager = RedisManager(self.processUpdate)
         self.ros_manager = ROSManager()
+        self.master_uri = self.ros_manager.getMasterUri()
 
         # create a thread to clean-up unavailable topics
         self.cleanup_thread = CleanupThread(self)
@@ -70,12 +71,8 @@ class GatewaySync(object):
 
     def connectToRedisServer(self,ip,port):
         try:
-            # 1. connect to redis server
             self.redis_manager.connect(ip,port)
-
-            self.master_uri = self.ros_manager.getMasterUri()
             self.unique_name = self.redis_manager.registerClient(self.masterlist,self.index,self.update_topic)
-
             self.connected = True
         except Exception as e:
             print str(e)

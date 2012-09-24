@@ -1,6 +1,7 @@
+#!/usr/bin/env python       
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2012, Yujin Robot, Daniel Stonier
+# Copyright (c) 2012, Yujin Robot, Daniel Stonier, Jihoon Lee
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,10 +31,18 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier, Jihoon Lee"
-__copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
-__license__ = "BSD"
-__version__ = '0.1.0'
-__date__ = "2012-08-29"
+###############################################################################
+# Functions
+###############################################################################
 
-from .gateway_sync import GatewaySync
+def resolveZeroconfAddress(msg):
+    '''
+      Resolves a zeroconf address into ip/port portions.
+      @var msg : zeroconf_comms.DiscoveredService 
+      @return (string,int) : ip, port pair.
+    '''
+    ip = "localhost"
+    if not msg.is_local:
+        ip = msg.ipv4_addresses[0]
+    return (ip,msg.port)
+    

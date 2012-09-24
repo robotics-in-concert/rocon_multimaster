@@ -36,4 +36,5 @@ __license__ = "BSD"
 __version__ = '0.1.0'
 __date__ = "2012-08-29"
 
-from .gateway_sync import GatewaySync
+from .hub import resolveHub
+from .zeroconf import resolveZeroconfAddress

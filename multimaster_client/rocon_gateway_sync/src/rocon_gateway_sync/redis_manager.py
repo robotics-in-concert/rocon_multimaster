@@ -33,6 +33,10 @@
 
 import redis
 import threading
+    
+###############################################################################
+# Classes
+###############################################################################
 
 class SubThread(threading.Thread):
   def __init__(self,pubsub,callback):
