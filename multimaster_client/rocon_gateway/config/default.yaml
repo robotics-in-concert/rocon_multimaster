@@ -1,6 +1,9 @@
-white_list: []
-black_list: []
+# Hub whitelist/blacklists - use these to control 
+# which hubs you wish to work with (default = []).
+whitelist: []
+blacklist: []
 
+# Static flip/request lists. 
 local_public_topic: []
 local_public_service: []
 remote_topic: []

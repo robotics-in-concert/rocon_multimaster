@@ -49,12 +49,12 @@ class Gateway():
 
     # Zeroconfiguratin topics
     zeroconf_service = "_ros-gateway-hub._tcp"
-    zeroconf_connection_service = "/zeroconf/list_discovered_services"
+    zeroconf_connection_service = "~list_discovered_services"
 
     # request from local node
-    local_request_name = "/gateway/request"
+    local_request_name = "~request"
 
-    gateway_info_srv_name = "/gateway/info"
+    gateway_info_srv_name = "~info"
     gateway_info_srv = None
 
     gateway_sync = None
@@ -72,10 +72,10 @@ class Gateway():
         self.parse_params()
 
         # Subscribe from zero conf new connection
-        rospy.loginfo("Wait for zeroconf service...")
+        rospy.loginfo("gw: wait for zeroconf service...")
         rospy.wait_for_service(self.zeroconf_connection_service)
         self.zeroconf_service_proxy = rospy.ServiceProxy(self.zeroconf_connection_service,ListDiscoveredServices)
-        rospy.loginfo("Done")
+        rospy.loginfo("gw: done")
 
         # Service Server for local node requests
         self.remote_list_srv = rospy.Service(self.local_request_name,PublicHandler,self.processLocalRequest)
@@ -114,12 +114,12 @@ class Gateway():
 
         # Topics and services that need from remote server
 #        self.param['remote_topic'] = rospy.get_param('~remote_topic','')
-#        self.param['remoteservice'] = rospy.get_param('~remote_service','')
-        self.param['white_list'] = rospy.get_param('~white_list','')
-        self.param['black_list'] = rospy.get_param('~black_list','')
+#        self.param['remote_service'] = rospy.get_param('~remote_service','')
+        self.param['whitelist'] = rospy.get_param('~whitelist','')
+        self.param['blacklist'] = rospy.get_param('~blacklist','')
 
-        # if both white_list and black_list are empty, it connects to any discovered redis server
-        if len(self.param['white_list']) == 0:
+        # if both whitelist and blacklist are empty, it connects to any discovered redis server
+        if len(self.param['whitelist']) == 0:
             self.allow_random_redis_server = True
 
     def processLocalRequest(self,request):
@@ -242,16 +242,16 @@ class Gateway():
             rospy.loginfo("Received available server")
 
             for service in resp.services:
-                # if both white_list is empty, connect to any redis server that is not in black list
+                # if both whitelist is empty, connect to any redis server that is not in black list
                 ip = service.ipv4_addresses[0]
                 rospy.loginfo("Redis Server is discovered = " + str(ip) + ":"+str(service.port))
 
-                if len(self.param['white_list']) == 0 and ip not in self.param['black_list']:
+                if len(self.param['whitelist']) == 0 and ip not in self.param['blacklist']:
                     if self.connect(service):
                         self.is_connected = True
                         break
-                # if white list is not empty, it only waits for ip in white_list 
-                elif ip in self.param['white_list']:
+                # if white list is not empty, it only waits for ip in whitelist 
+                elif ip in self.param['whitelist']:
                     if self.connect(service):
                         self.is_connected = True
                         break
