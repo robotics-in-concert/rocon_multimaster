@@ -5,6 +5,7 @@
 
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway)/config/default.yaml" />
+    <rosparam param="blacklist">['Pirate Hub']</rosparam>
     <remap from="gateway/list_discovered_services" to="zeroconf/list_discovered_services"/>
   </node>
 </launch>

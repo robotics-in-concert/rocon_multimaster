@@ -227,21 +227,36 @@ class Gateway():
             return False
 
     def spin(self):
-        
+        previously_found_hubs = []
         while not rospy.is_shutdown() and not self.is_connected:
 
             # Get discovered redis server list from zeroconf
             req = ListDiscoveredServicesRequest() 
             req.service_type = self.zeroconf_service
             resp = self.zeroconf_service_proxy(req)
-
+            
             rospy.loginfo("gw: checking for autodiscovered gateway hubs")
-
-            for service in resp.services:
+            
+            new_services = lambda l1,l2: [x for x in l1 if x not in l2]
+            for service in new_services(resp.services,previously_found_hubs):
+                previously_found_hubs.append(service)
                 # if both whitelist is empty, connect to any redis server that is not in black list
                 (ip, port) = rocon_gateway.resolveZeroconfAddress(service)
                 rospy.loginfo("gw: discovered hub at " + str(ip) + ":"+str(service.port))
-                if len(self.param['whitelist']) == 0 and ip not in self.param['blacklist']:
+                try:
+                    hub_name = rocon_gateway.resolveHub(ip,port)
+                except redis.exceptions.ConnectionError:
+                    rospy.logerr("gw: couldn't connect to the hub [%s:%s]", ip, port)
+                    continue
+                # Check blacklists first
+                if ip in self.param['blacklist']:
+                    rospy.loginfo("gw: ignoring blacklisted hub [%s]",ip)
+                    continue
+                if hub_name in self.param['blacklist']:
+                    rospy.loginfo("gw: ignoring blacklisted hub [%s]",hub_name)
+                    continue
+                # Handle whitelist
+                if len(self.param['whitelist']) == 0:
                     if self.connect(service):
                         self.is_connected = True
                         break
@@ -252,15 +267,10 @@ class Gateway():
                         break
                 # check for hub name in whitelist 
                 else:
-                    try:
-                        hub_name = rocon_gateway.resolveHub(ip,port) # this needs a ConnectionError try/catch
-                        if hub_name in  self.param['whitelist']:
-                            if self.connect(service):
-                                self.is_connected = True
-                                break
-                    except redis.exceptions.ConnectionError:
-                        break
-
+                    if hub_name in  self.param['whitelist']:
+                        if self.connect(service):
+                            self.is_connected = True
+                            break
             rospy.loginfo("gw: waiting for a valid gateway hub...")
             rospy.sleep(3.0)
 
