@@ -1,0 +1,13 @@
+<!--
+  Works with rocon_gateway_hub/pirate.launch - just works with a non-default hub
+  name so we can test hubs in parallel. 
+-->
+<launch>
+  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen">
+    <rosparam param="listeners">['_ros-gateway-hub._tcp']</rosparam>
+  </node>
+
+  <node pkg="rocon_gateway" type="gateway.py" name="multimaster_gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/config/default.yaml" />
+  </node>
+</launch>

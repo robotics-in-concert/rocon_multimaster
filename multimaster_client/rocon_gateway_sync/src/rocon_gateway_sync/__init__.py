@@ -30,13 +30,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Daniel Stonier"
+__author__ = "Daniel Stonier, Jihoon Lee"
 __copyright__ = "Copyright (c) 2012 Daniel Stonier, Yujin Robot"
 __license__ = "BSD"
 __version__ = '0.1.0'
 __date__ = "2012-08-29"
 
 from .gateway_sync import GatewaySync
-#from .local_manager import LocalManager
 
         
