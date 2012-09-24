@@ -43,9 +43,9 @@ from gateway_comms.srv import *
     It publicize local topic to the centralised multimaster server
 
     Usage     :
-        rosrun rocon_gateway_tests add_public_topic.py <topic_name> ...
+        rosrun rocon_gateway_tests add_public_topic.py <topic_name,topictype,node_uri> ...
     Example :
-        rosrun rocon_gateway_tests add_public_topic.py /chatter
+        rosrun rocon_gateway_tests add_public_topic.py /chatter,std_msgs/String,<nodeuri> ...
 
         Lookup    local topic : 
             rostopic list
@@ -57,26 +57,27 @@ if __name__ == '__main__':
     s = rospy.ServiceProxy('/gateway/request',PublicHandler)
     
     if len(sys.argv) < 2:
-        print "Usage : rosrun rocon_gateway_tests add_public_topic.py <topic name> ..."
+        print "Usage : rosrun rocon_gateway_tests add_public_topic.py <topic name,topic_type,nodeuri> ..."
         sys.exit()
     
     # all arguements are topic names
     l = sys.argv[1:len(sys.argv)]
     print "Topics " + str(l)
 
+    """
     ll = []
     for topic in l:
         tname, ttype, apis = get_topic_info(topic)
         for api in apis:
             info = tname + "," + ttype + "," + api
             ll.append(info)
-        
+    """  
         
 
     # Form a request message
     req = PublicHandlerRequest() 
     req.command = "add_public_topic"
-    req.list = ll
+    req.list = l
 
     # Receive whether it is successful
     resp = s(req)

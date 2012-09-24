@@ -43,9 +43,9 @@ from gateway_comms.srv import *
     It publicize local service to the centralised multimaster server
 
     Usage     :
-        rosrun rocon_gateway_tests add_public_service.py <service_name> ...
+        rosrun rocon_gateway_tests add_public_service.py <service_name,service_api,node uri> ...
     Example :
-        rosrun rocon_gateway_tests add_public_service.py /add_two_ints
+        rosrun rocon_gateway_tests add_public_service.py /add_two_ints,<service_api>,<nodeuri>
 
         Lookup    local service : 
             rosservice list
@@ -58,24 +58,25 @@ if __name__ == '__main__':
     s = rospy.ServiceProxy('/gateway/request',PublicHandler)
     
     if len(sys.argv) < 2:
-        print "Usage : rosrun rocon_gateway_tests add_public_service.py <service name> ..."
+        print "Usage : rosrun rocon_gateway_tests add_public_service.py <service name,service api,node uri> ..."
         sys.exit()
     
     # all arguements are service names
     l = sys.argv[1:len(sys.argv)]
     print "Service " + str(l)
 
+    """
     ll = []
     for srv in l:
         sname,suri,nuri = get_service_info(srv)
         info = sname + "," + suri + "," + nuri
         ll.append(info)
-        
+    """
 
     # Form a request message
     req = PublicHandlerRequest() 
     req.command = "add_public_service"
-    req.list = ll
+    req.list = l
 
     # Receive whether it is successful
     resp = s(req)
