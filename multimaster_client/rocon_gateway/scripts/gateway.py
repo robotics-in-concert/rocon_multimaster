@@ -240,7 +240,6 @@ class Gateway():
             new_services = lambda l1,l2: [x for x in l1 if x not in l2]
             for service in new_services(resp.services,previously_found_hubs):
                 previously_found_hubs.append(service)
-                # if both whitelist is empty, connect to any redis server that is not in black list
                 (ip, port) = rocon_gateway.resolveZeroconfAddress(service)
                 rospy.loginfo("gw: discovered hub at " + str(ip) + ":"+str(service.port))
                 try:
@@ -248,30 +247,27 @@ class Gateway():
                 except redis.exceptions.ConnectionError:
                     rospy.logerr("gw: couldn't connect to the hub [%s:%s]", ip, port)
                     continue
-                # Check blacklists first
+                # Check blacklist (ip or hub name)
                 if ip in self.param['blacklist']:
                     rospy.loginfo("gw: ignoring blacklisted hub [%s]",ip)
                     continue
                 if hub_name in self.param['blacklist']:
                     rospy.loginfo("gw: ignoring blacklisted hub [%s]",hub_name)
                     continue
-                # Handle whitelist
+                # Handle whitelist (ip or hub name)
                 if len(self.param['whitelist']) == 0:
                     if self.connect(service):
                         self.is_connected = True
                         break
-                # if white list is not empty, it only waits for ip in whitelist 
                 elif ip in self.param['whitelist']:
                     if self.connect(service):
                         self.is_connected = True
                         break
-                # check for hub name in whitelist 
                 else:
                     if hub_name in  self.param['whitelist']:
                         if self.connect(service):
                             self.is_connected = True
                             break
-            rospy.loginfo("gw: waiting for a valid gateway hub...")
             rospy.sleep(3.0)
 
         # Once you get here, it is connected to redis server
