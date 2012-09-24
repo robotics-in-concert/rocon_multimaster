@@ -12,6 +12,7 @@
   <depend package="rospy" />
   <rosdep name="redis-server"/>
   <rosdep name="avahi-daemon"/>
+  <rosdep name="avahi-utils"/>
   <!-- using our patched redis until pull request is accepted. -->
   <depend package="redis"/>
   <!-- <rosdep name="python-redis"/> -->
