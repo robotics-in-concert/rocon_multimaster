@@ -1,0 +1,21 @@
+<package>
+  <catkin/>
+  <description brief="patched code for redis-py">
+
+     The python redis client has a minor issue - it hangs on ctrl-c.
+     This is a locally patched version that we can use directly until it
+     is patched upstream.
+
+     https://github.com/robotics-in-concert/rocon_multimaster/issues/30
+
+     Note - this package has to be named 'redis' so we can conveniently
+     import as if we were using the python-redis package.
+
+  </description>
+  <author>Daniel Stonier</author>
+  <license>BSD</license>
+  <review status="experimental" notes=""/>
+  <url>http://ros.org/wiki/redis</url>
+
+
+</package>
