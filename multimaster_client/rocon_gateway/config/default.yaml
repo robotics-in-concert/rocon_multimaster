@@ -1,7 +1,20 @@
-white_list: []
-black_list: []
+# Default values are commented with a #.
 
-local_public_topic: []
-local_public_service: []
-remote_topic: []
-remote_service: []
+## Uri for the hub - set this if you want to manually
+## find the gateway hub instead of via zeroconf.
+## Typical setting for a redis server on ubuntu would
+## be: http://localhost:6379
+# hub_uri: 
+
+## Hub whitelist/blacklists - use these to control 
+## which hubs you wish to work with.
+## Hubs are referred to either by ip or hub name. 
+# whitelist: []
+# blacklist: []
+
+## Static flip/request lists.
+# local_public_topic: []
+# local_public_service: []
+# remote_topic: []
+# remote_service: []
+

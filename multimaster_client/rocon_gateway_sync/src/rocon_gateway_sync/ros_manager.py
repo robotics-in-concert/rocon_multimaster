@@ -51,7 +51,7 @@ class ROSManager(object):
   port = 0
 
   def __init__(self):
-    rospy.loginfo("init ROS manager")
+    rospy.loginfo("Gateway: initialising ros manager")
 
     # Get the current node name
     self.name = rospy.get_name()

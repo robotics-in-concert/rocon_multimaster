@@ -1,5 +1,5 @@
 <!--
-  Works with rocon_gateway_hub/pirate.launch - just works with a non-default hub
+  Works with rocon_gateway_hub/pirate.launch - uses a non-default hub
   name so we can test hubs in parallel. 
 -->
 <launch>
@@ -7,7 +7,9 @@
     <rosparam param="listeners">['_ros-gateway-hub._tcp']</rosparam>
   </node>
 
-  <node pkg="rocon_gateway" type="gateway.py" name="multimaster_gateway" output="screen">
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway)/config/default.yaml" />
+    <rosparam param="whitelist">['Pirate Hub']</rosparam>
+    <remap from="gateway/list_discovered_services" to="zeroconf/list_discovered_services"/>
   </node>
 </launch>
