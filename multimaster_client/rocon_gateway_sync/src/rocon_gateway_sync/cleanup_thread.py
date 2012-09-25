@@ -90,7 +90,7 @@ class CleanupThread(threading.Thread):
         llist = [x[1] for x in list if x[0] == name]
 
         # all nodes are gone.
-        uris = [rosnode.get_api_uri(self.master,p) for p in llist[0]]
+        uris = [self.master.lookupNode(p) for p in llist[0]]
         still_exist = node_uri in uris
       except: 
         still_exist = False
