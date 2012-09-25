@@ -312,7 +312,7 @@ class GatewaySync(object):
     def post(self,msg):
         command, key, member = msg 
 
-        print "Posting : " + str(msg)
+#print "Posting : " + str(msg)
         try:
             if command == "addmember":
                 self.redis_manager.addMembers(key,member)
