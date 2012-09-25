@@ -49,10 +49,6 @@ from rocon_gateway_sync import *
 # 3. response a local ros node's get remote topic/service list request
 class Gateway():
 
-    # Zeroconfiguratin topics
-    zeroconf_service = "_ros-gateway-hub._tcp"
-    zeroconf_connection_service = "~list_discovered_services"
-
     # request from local node
     local_request_name = "~request"
 
@@ -65,6 +61,12 @@ class Gateway():
     callbacks = {}
 
     def __init__(self):
+        self.zeroconf = False
+        # Configuration
+        self.zeroconf_service = "_ros-gateway-hub._tcp"
+        zeroconf_add_listener_service = "~add_listener"
+        zeroconf_connection_service = "~list_discovered_services"
+        zeroconf_timeout = 5 # Amount of time to wait for the zeroconf services to appear
 
         # Instantiate a GatewaySync module. This will take care of all redis server connection, communicatin with ros master uri
         self.gateway_sync = GatewaySync()
@@ -72,16 +74,34 @@ class Gateway():
         self.setupCallbacks()
         self.parse_params()
 
-        # Subscribe from zero conf new connection
-        rospy.loginfo("Gateway: wait for zeroconf service...")
-        rospy.wait_for_service(self.zeroconf_connection_service)
-        self.zeroconf_service_proxy = rospy.ServiceProxy(self.zeroconf_connection_service,ListDiscoveredServices)
-
         # Service Server for local node requests
         self.remote_list_srv = rospy.Service(self.local_request_name,PublicHandler,self.processLocalRequest)
 
         # Service Server for gateway info
         self.gateway_info_srv = rospy.Service(self.gateway_info_srv_name,GatewayInfo,self.processGatewayInfo)
+
+        if self.param['hub_uri'] != '':
+            from urlparse import urlparse
+            o = urlparse(self.param['hub_uri'])
+            if self.connect(o.hostname, o.port):
+                rospy.logwarn("Gateway: made direct connection attempt to hub [%s]"%self.param['hub_uri'])
+                self.is_connected = True
+            else:
+                rospy.logwarn("Gateway: failed direct connection attempt to hub [%s]"%self.param['hub_uri'])
+        else: # see if we can use zeroconf to autodect
+            rospy.loginfo("Gateway: wait for zeroconf service...")
+            try:
+                rospy.wait_for_service(zeroconf_add_listener_service, timeout=zeroconf_timeout)
+                self.zeroconf = True
+            except rospy.ROSException:
+                rospy.logwarn("Gateway: no zeroconf services available.")
+                
+            if self.zeroconf:
+                zeroconf_add_listener = rospy.ServiceProxy(zeroconf_add_listener_service,AddListener)
+                self.zeroconf_service_proxy = rospy.ServiceProxy(zeroconf_connection_service,ListDiscoveredServices)
+                if not zeroconf_add_listener(service_type = self.zeroconf_service):
+                    self.zeroconf = False
+
 
     def setupCallbacks(self):
         callbacks = self.callbacks
@@ -216,8 +236,14 @@ class Gateway():
         print "Server cleared"
 
 
-    def connect(self,msg):
+    def connectByZeroconfName(self,msg):
         (ip, port) = rocon_gateway.resolveZeroconfAddress(msg)
+        return self.connect(ip,port)
+        
+    def connectByUri(self,uri):
+        return
+    
+    def connect(self,ip,port):
         if self.gateway_sync.connectToRedisServer(ip,port):
             return True
         else:
@@ -226,45 +252,49 @@ class Gateway():
     def spin(self):
         previously_found_hubs = []
         while not rospy.is_shutdown() and not self.is_connected:
-
-            # Get discovered redis server list from zeroconf
-            req = ListDiscoveredServicesRequest() 
-            req.service_type = self.zeroconf_service
-            resp = self.zeroconf_service_proxy(req)
-            
-            rospy.loginfo("Gateway: checking for autodiscovered gateway hubs")
-            
-            new_services = lambda l1,l2: [x for x in l1 if x not in l2]
-            for service in new_services(resp.services,previously_found_hubs):
-                previously_found_hubs.append(service)
-                (ip, port) = rocon_gateway.resolveZeroconfAddress(service)
-                rospy.loginfo("Gateway: discovered hub at " + str(ip) + ":"+str(service.port))
-                try:
-                    hub_name = rocon_gateway.resolveHub(ip,port)
-                except redis.exceptions.ConnectionError:
-                    rospy.logerr("Gateway: couldn't connect to the hub [%s:%s]", ip, port)
-                    continue
-                # Check blacklist (ip or hub name)
-                if ip in self.param['blacklist']:
-                    rospy.loginfo("Gateway: ignoring blacklisted hub [%s]",ip)
-                    continue
-                if hub_name in self.param['blacklist']:
-                    rospy.loginfo("Gateway: ignoring blacklisted hub [%s]",hub_name)
-                    continue
-                # Handle whitelist (ip or hub name)
-                if len(self.param['whitelist']) == 0:
-                    if self.connect(service):
-                        self.is_connected = True
-                        break
-                elif ip in self.param['whitelist']:
-                    if self.connect(service):
-                        self.is_connected = True
-                        break
-                else:
-                    if hub_name in  self.param['whitelist']:
-                        if self.connect(service):
+            if self.zeroconf:
+                # Get discovered redis server list from zeroconf
+                req = ListDiscoveredServicesRequest() 
+                req.service_type = self.zeroconf_service
+                resp = self.zeroconf_service_proxy(req)
+                
+                rospy.loginfo("Gateway: checking for autodiscovered gateway hubs")
+                
+                new_services = lambda l1,l2: [x for x in l1 if x not in l2]
+                for service in new_services(resp.services,previously_found_hubs):
+                    previously_found_hubs.append(service)
+                    (ip, port) = rocon_gateway.resolveZeroconfAddress(service)
+                    rospy.loginfo("Gateway: discovered hub at " + str(ip) + ":"+str(service.port))
+                    try:
+                        hub_name = rocon_gateway.resolveHub(ip,port)
+                        rospy.loginfo("Gateway: hub name [%s]", hub_name)
+                    except redis.exceptions.ConnectionError:
+                        rospy.logerr("Gateway: couldn't connect to the hub [%s:%s]", ip, port)
+                        continue
+                    # Check blacklist (ip or hub name)
+                    if ip in self.param['blacklist']:
+                        rospy.loginfo("Gateway: ignoring blacklisted hub [%s]",ip)
+                        continue
+                    if hub_name in self.param['blacklist']:
+                        rospy.loginfo("Gateway: ignoring blacklisted hub [%s]",hub_name)
+                        continue
+                    # Handle whitelist (ip or hub name)
+                    if len(self.param['whitelist']) == 0:
+                        if self.connectByZeroconfName(service):
                             self.is_connected = True
                             break
+                    elif ip in self.param['whitelist']:
+                        if self.connectByZeroconfName(service):
+                            self.is_connected = True
+                            break
+                    else:
+                        if hub_name in self.param['whitelist']:
+                            if self.connectByZeroconfName(service):
+                                self.is_connected = True
+                                break
+            else:
+                rospy.loginfo("Gateway: waiting for hub uri input.")
+                pass # add ip connect here
             rospy.sleep(3.0)
 
         # Once you get here, it is connected to redis server
@@ -288,7 +318,7 @@ if __name__ == '__main__':
     rospy.init_node('gateway')
 
     gateway = Gateway()
-    rospy.loginfo("Gateway: initilised.")
+    rospy.loginfo("Gateway: initialised.")
 
     gateway.spin()
     rospy.loginfo("Gateway: shutting down.")

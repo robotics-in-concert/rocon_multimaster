@@ -5,6 +5,7 @@
 
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway)/config/default.yaml" />
+    <remap from="gateway/add_listener" to="zeroconf/add_listener"/>
     <remap from="gateway/list_discovered_services" to="zeroconf/list_discovered_services"/>
   </node>
 </launch>
