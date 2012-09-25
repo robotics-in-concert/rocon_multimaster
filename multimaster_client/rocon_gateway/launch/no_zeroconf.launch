@@ -1,9 +1,9 @@
 <!--
-  Works with rocon_gateway_hub/pirate.launch - uses a non-default hub
-  name so we can test hubs in parallel. 
+  Works with rocon_gateway_hub/hub.launch. 
   
-  This one has no auto-discovery mode. Instead it uses the typical default
-  settings for a local ubuntu redis server.
+  This one has no auto-discovery mode. Instead it uses manual direct
+  configuration with the typical default settings for a local ubuntu 
+  redis server.
 -->
 <launch>
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">

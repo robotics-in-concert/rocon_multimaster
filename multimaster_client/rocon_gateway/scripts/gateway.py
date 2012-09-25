@@ -64,8 +64,8 @@ class Gateway():
         self.zeroconf = False
         # Configuration
         self.zeroconf_service = "_ros-gateway-hub._tcp"
-        zeroconf_add_listener_service = "~add_listener"
-        zeroconf_connection_service = "~list_discovered_services"
+        zeroconf_add_listener_service = "zeroconf/add_listener"
+        zeroconf_connection_service = "zeroconf/list_discovered_services"
         zeroconf_timeout = 5 # Amount of time to wait for the zeroconf services to appear
 
         # Instantiate a GatewaySync module. This will take care of all redis server connection, communicatin with ros master uri

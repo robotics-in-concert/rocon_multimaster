@@ -1,3 +1,6 @@
+<!-- 
+  Works with rocon_gateway_hub/hub.launch. 
+-->
 <launch>
   <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen">
     <rosparam param="listeners">['_ros-gateway-hub._tcp']</rosparam>
@@ -5,7 +8,5 @@
 
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway)/config/default.yaml" />
-    <remap from="gateway/add_listener" to="zeroconf/add_listener"/>
-    <remap from="gateway/list_discovered_services" to="zeroconf/list_discovered_services"/>
   </node>
 </launch>
