@@ -33,6 +33,7 @@
 
 import socket
 import time
+import re
 import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
 import rosgraph
@@ -68,6 +69,11 @@ class GatewaySync(object):
         # create a thread to clean-up unavailable topics
         self.cleanup_thread = CleanupThread(self)
 
+        # create a whitelist of named topics and services
+        self.topic_whitelist = list()
+        self.topic_blacklist = list()
+        self.service_whitelist = list()
+        self.service_blacklist = list()
 
     def connectToRedisServer(self,ip,port):
         try:
@@ -105,14 +111,23 @@ class GatewaySync(object):
         # figures out each topics node xmlrpc_uri and attach it on topic
         try:
             for l in list:
-                print "Adding topic : " + str(l)
                 if self.ros_manager.addPublicInterface("topic",l):
+                    print "Adding topic : " + str(l)
                     self.redis_manager.addMembers(key,l)
 
         except Exception as e:
             print str(e)
             return False, []
 
+        return True, []
+
+    def addPublicTopicByName(self,topic):
+        list = self.getTopicString([topic])
+        return self.addPublicTopics(list)
+
+    def addNamedTopics(self, list):
+        print "Adding named topics: " + str(list)
+        self.topic_whitelist.extend(list)
         return True, []
 
     def getTopicString(self,list):
@@ -134,12 +149,24 @@ class GatewaySync(object):
             this also stop publishing topic to remote server
         '''
 #self.redis_manager.removeMembers(key,list)
+        key = self.unique_name + ":topic"
         for l in list:
-            self.removePublicInterface("topic",l)
+            if self.ros_manager.removePublicInterface("topic",l):
+                print "Removing topic : " + l
+                self.redis_manager.removeMembers(key,l)
 
         self.redis_manager.sendMessage(self.update_topic,"update-removing")
         return True, []
 
+    def removePublicTopicByName(self,topic):
+        # remove topics that exist, but are no longer part of the public interface
+        list = self.getTopicString([topic])
+        return self.removePublicTopics(list)
+
+    def removeNamedTopics(self, list):
+        print "Removing named topics: " + str(list)
+        self.topic_whitelist[:] = [x for x in self.topic_whitelist if x not in list]
+        return True, []
 
     def addPublicService(self,list):
         if not self.connected:
@@ -158,16 +185,19 @@ class GatewaySync(object):
 
         return True, []
 
-    def removePublicInterface(self,identifier,string):
-        print "Removing "+ identifier + " : " + string
-        self.ros_manager.removePublicInterface(identifier,string)
-        key = self.unique_name + ":"+identifier
-        self.redis_manager.removeMembers(key,string)
+    def addPublicServiceByName(self,service):
+        list = self.getServiceString([service])
+        return self.addPublicServices(list)
+
+    def addNamedServices(self, list):
+        print "Adding named services: " + str(list)
+        self.service_whitelist.extend(list)
+        return True, []
 
     def getServiceString(self,list):
         list_with_node_ip = []
         for service in list:
-            print service
+            #print service
             srvinfo = self.ros_manager.getServiceInfo(service)
             list_with_node_ip.append(service+","+srvinfo)
         return list_with_node_ip
@@ -178,11 +208,41 @@ class GatewaySync(object):
             print "It is not connected to Server"
             return False, []
 
+        key = self.unique_name + ":service"
         for l in list:
-            self.removePublicInterface("service",l)
+            if self.ros_manager.removePublicInterface("service",l):
+                print "Removing service : " + l
+                self.redis_manager.removeMembers(key,l)
 
         return True, []
 
+    def removePublicServiceByName(self,service):
+        # remove available services that should no longer be on the public interface
+        list = self.getServiceString([service])
+        return self.removePublicService(list)
+
+    def removeNamedServices(self, list):
+        print "Removing named services: " + str(list)
+        self.service_whitelist[:] = [x for x in self.service_whitelist if x not in list]
+        return True, []
+
+    def addPublicInterfaceByName(self, identifier, name):
+        if identifier == "topic":
+            self.addPublicTopicByName(name)
+        elif identifier == "service":
+            self.addPublicServiceByName(name)
+
+    def removePublicInterface(self,identifier,string):
+        if identifier == "topic":
+            self.removePublicTopics([string])
+        elif identifier == "service":
+            self.removePublicServices([string])
+
+    def removePublicInterfaceByName(self,identifier,name):
+        if identifier == "topic":
+            self.removePublicTopicByName(name)
+        elif identifier == "service":
+            self.removePublicServiceByName(name)
 
     def requestForeignTopic(self,list): 
 
@@ -243,11 +303,38 @@ class GatewaySync(object):
         return True, []
 
 
-    def makeAllPublic(self,msg):
-        pub, sub, srv = self.ros_manager.getSystemState()
-
+    def makeAllPublic(self,list):
+        print "Dumping all non-blacklisted interfaces"
+        self.topic_whitelist.append('.*')
+        self.service_whitelist.append('.*')
         return True, []
 
+    def removeAllPublic(self,list):
+        print "Resuming dump of explicitly whitelisted interfaces"
+        self.topic_whitelist[:] = [x for x in self.topic_whitelist if x != '.*']
+        self.service_whitelist[:] = [x for x in self.service_whitelist if x != '.*']
+        return True, []
+
+    def allowInterfaceInDump(self,identifier,name):
+        if identifier == 'topic':
+            whitelist = self.topic_whitelist
+            blacklist = self.topic_blacklist
+        else:
+            whitelist = self.service_whitelist
+            blacklist = self.service_blacklist
+
+        in_whitelist = False
+        in_blacklist = False
+        for x in whitelist:
+            if re.match(x, name):
+                in_whitelist = True
+                break
+        for x in blacklist:
+            if re.match(x, name):
+                in_blacklist = True
+                break
+
+        return in_whitelist and (not in_blacklist)
 
     def reshapeUri(self,uri):
         if uri[len(uri)-1] is not '/':
@@ -281,8 +368,9 @@ class GatewaySync(object):
             elif cmd == "flipoutservice":
                 self.requestForeignService(rest)
             elif cmd == "update":
-                print "HERE"
-                print str(rest)
+                # print "HERE"
+                # print str(rest)
+                pass
             else:
                 print "error"
         except:

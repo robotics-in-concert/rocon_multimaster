@@ -83,7 +83,7 @@ class ROSManager(object):
         raise Exception("Unknown topic %s"%topic)
 
       for p in itertools.chain(*[l for x, l in pubs]):
-        info = topictype + "," + rostopic.get_api(self.master,p)
+        info = topictype + "," + self.master.lookupNode(p)
         infolist.append(info)
       
     except Exception as e:
@@ -231,8 +231,13 @@ class ROSManager(object):
       self.public_interface[identifier].append(l)
       return True
 
+  # return false if not registered
   def removePublicInterface(self,identifier,string):
-    self.public_interface[identifier].remove(string)
+    if not (string in self.public_interface[identifier]):
+      return False
+    else:
+      self.public_interface[identifier].remove(string)
+      return True
     
   def clear(self):
     self.pubs_node = {}
