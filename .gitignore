@@ -17,3 +17,6 @@
 
 # python
 *.py[co]
+
+#build directories
+build
