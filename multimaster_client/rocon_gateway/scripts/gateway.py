@@ -142,10 +142,10 @@ class Gateway():
         self.param['local_public_topic'] = rospy.get_param('~local_public_topic',[])
         self.param['local_public_service'] = rospy.get_param('~local_public_service',[])
 
-        self.param['public_named_topics_whitelist'] = rospy.get_param('~public_named_topics_whitelist', '')
+        self.param['public_named_topics'] = rospy.get_param('~public_named_topics', '')
         self.param['public_named_topics_blacklist'] = rospy.get_param('~public_named_topics_blacklist', '.*zeroconf.*,.*gateway.*,.*rosout.*,.*parameter_descriptions,.*parameter_updates,/tf')
 
-        self.param['public_named_services_whitelist'] = rospy.get_param('~public_named_services_whitelist', '')
+        self.param['public_named_services'] = rospy.get_param('~public_named_services', '')
         self.param['public_named_services_blacklist'] = rospy.get_param('~public_named_services_blacklist', '.*zeroconf.*,.*gateway.*,.*get_loggers,.*set_logger_level')
 
         # Topics and services that need from remote server
@@ -339,12 +339,12 @@ class Gateway():
             sys.exit(0)
 
         # Add named public topics and services
-        if self.param['public_named_topics_whitelist']:
-            self.gateway_sync.topic_whitelist.extend(self.param['public_named_topics_whitelist'].split(','))
+        if self.param['public_named_topics']:
+            self.gateway_sync.topic_whitelist.extend(self.param['public_named_topics'].split(','))
         if self.param['public_named_topics_blacklist']:
             self.gateway_sync.topic_blacklist.extend(self.param['public_named_topics_blacklist'].split(','))
-        if self.param['public_named_services_whitelist']:
-            self.gateway_sync.service_whitelist.extend(self.param['public_named_services_whitelist'].split(','))
+        if self.param['public_named_services']:
+            self.gateway_sync.service_whitelist.extend(self.param['public_named_services'].split(','))
         if self.param['public_named_services_blacklist']:
             self.gateway_sync.service_blacklist.extend(self.param['public_named_services_blacklist'].split(','))
 
