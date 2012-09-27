@@ -176,9 +176,9 @@ class GatewaySync(object):
         key = self.unique_name + ":service"
         try:
             for l in list:
-                print "Adding Service : " + str(l)
-                self.ros_manager.addPublicInterface("service",l)
-                self.redis_manager.addMembers(key,l)
+                if self.ros_manager.addPublicInterface("service",l):
+                    print "Adding Service : " + str(l)
+                    self.redis_manager.addMembers(key,l)
         except Exception as e:
             print str(e)
             return False, []
@@ -187,7 +187,7 @@ class GatewaySync(object):
 
     def addPublicServiceByName(self,service):
         list = self.getServiceString([service])
-        return self.addPublicServices(list)
+        return self.addPublicService(list)
 
     def addNamedServices(self, list):
         print "Adding named services: " + str(list)
@@ -227,6 +227,7 @@ class GatewaySync(object):
         return True, []
 
     def addPublicInterfaceByName(self, identifier, name):
+        print "apin"
         if identifier == "topic":
             self.addPublicTopicByName(name)
         elif identifier == "service":
@@ -236,9 +237,10 @@ class GatewaySync(object):
         if identifier == "topic":
             self.removePublicTopics([string])
         elif identifier == "service":
-            self.removePublicServices([string])
+            self.removePublicService([string])
 
     def removePublicInterfaceByName(self,identifier,name):
+        print "rpin"
         if identifier == "topic":
             self.removePublicTopicByName(name)
         elif identifier == "service":
