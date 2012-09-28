@@ -102,7 +102,8 @@ def initialize_redis_server(port, hub_name):
             if pattern.match(key):
                 keys_to_delete.append(key)
         pipe = server.pipeline()
-        pipe.delete(*keys_to_delete) # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
+        if len(keys_to_delete) != 0:
+            pipe.delete(*keys_to_delete) # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
         pipe.set("rocon:hub:index",0)
         pipe.set("rocon:hub:name",hub_name)
         pipe.execute()

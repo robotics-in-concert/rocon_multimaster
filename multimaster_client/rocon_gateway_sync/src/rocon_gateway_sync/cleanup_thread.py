@@ -48,10 +48,16 @@ class CleanupThread(threading.Thread):
     self.cv = self.ros_manager.cv
     self.pubs = self.ros_manager.pubs_node
     self.public_interface = self.ros_manager.public_interface
-    self.start()  
-  
+
+    # dumped interface is a mapping of whitelist regex to actual topics as they
+    # become available
+    self.dumped_interface = dict()
+    self.dumped_interface['topic'] = set()
+    self.dumped_interface['service'] = set()
+
+    self.start()
+
   def run(self):
- 
  
     print "Thread Started"
 
@@ -99,7 +105,18 @@ class CleanupThread(threading.Thread):
       if not still_exist:
         self.gateway_sync.removePublicInterface(identifier,string)
 
-
+    # add/remove named interfaces as necessary
+    for x in list:
+      name = x[0]
+      if self.gateway_sync.allowInterfaceInDump(identifier, name):
+        # check if any new publishers are available
+        self.gateway_sync.addPublicInterfaceByName(identifier, name)
+        self.dumped_interface[identifier].add(name)
+      else:
+        # this interface has been dumped in the past, and is no longer needed
+        if name in self.dumped_interface[identifier]:
+          self.gateway_sync.removePublicInterfaceByName(identifier, name)
+          self.dumped_interface[identifier].remove(name)
 
 """
   polling thread should do...

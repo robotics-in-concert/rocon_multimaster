@@ -108,10 +108,14 @@ class Gateway():
         callbacks["get_public_interfaces"] = self.processRemoteListRequest
 
         callbacks["add_public_topic"] = self.gateway_sync.addPublicTopics
-        callbacks["remove_public_topic"] = self.gateway_sync.removePublicTopics 
+        callbacks["remove_public_topic"] = self.gateway_sync.removePublicTopics
+        callbacks["add_named_topics"] = self.gateway_sync.addNamedTopics
+        callbacks["remove_named_topics"] = self.gateway_sync.removeNamedTopics
 
         callbacks["add_public_service"] = self.gateway_sync.addPublicService
         callbacks["remove_public_service"] = self.gateway_sync.removePublicService
+        callbacks["add_named_services"] = self.gateway_sync.addNamedServices
+        callbacks["remove_named_services"] = self.gateway_sync.removeNamedServices
 
         callbacks["register_foreign_topic"] = self.gateway_sync.requestForeignTopic
         callbacks["unregister_foreign_topic"] = self.gateway_sync.unregisterForeignTopic
@@ -120,6 +124,7 @@ class Gateway():
         callbacks["unregister_foreign_service"] = self.gateway_sync.unregisterForeignService
 
         callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
+        callbacks["remove_all_public"] = self.gateway_sync.removeAllPublic
      
         callbacks["flipout_topic"] = self.flipoutTopic
         callbacks["flipout_service"] = self.flipoutService
@@ -136,6 +141,12 @@ class Gateway():
         # Local topics and services to register redis server
         self.param['local_public_topic'] = rospy.get_param('~local_public_topic',[])
         self.param['local_public_service'] = rospy.get_param('~local_public_service',[])
+
+        self.param['public_named_topics'] = rospy.get_param('~public_named_topics', '')
+        self.param['public_named_topics_blacklist'] = rospy.get_param('~public_named_topics_blacklist', '.*zeroconf.*,.*gateway.*,.*rosout.*,.*parameter_descriptions,.*parameter_updates,/tf')
+
+        self.param['public_named_services'] = rospy.get_param('~public_named_services', '')
+        self.param['public_named_services_blacklist'] = rospy.get_param('~public_named_services_blacklist', '.*zeroconf.*,.*gateway.*,.*get_loggers,.*set_logger_level')
 
         # Topics and services that need from remote server
 #        self.param['remote_topic'] = rospy.get_param('~remote_topic','')
@@ -318,12 +329,25 @@ class Gateway():
         # Once you get here, it is connected to redis server
         rospy.loginfo("Gateway : connected to hub.") 
         rospy.loginfo("Register default public topic/service")
+
+        # Add public topics and services
         try:
             self.gateway_sync.addPublicTopics(self.param['local_public_topic'])
             self.gateway_sync.addPublicService(self.param['local_public_service'])
         except Exception as e:
             print str(e)
             sys.exit(0)
+
+        # Add named public topics and services
+        if self.param['public_named_topics']:
+            self.gateway_sync.topic_whitelist.extend(self.param['public_named_topics'].split(','))
+        if self.param['public_named_topics_blacklist']:
+            self.gateway_sync.topic_blacklist.extend(self.param['public_named_topics_blacklist'].split(','))
+        if self.param['public_named_services']:
+            self.gateway_sync.service_whitelist.extend(self.param['public_named_services'].split(','))
+        if self.param['public_named_services_blacklist']:
+            self.gateway_sync.service_blacklist.extend(self.param['public_named_services_blacklist'].split(','))
+
         rospy.spin()
 
         # When the node is going off, it should remove it's info from redis-server
