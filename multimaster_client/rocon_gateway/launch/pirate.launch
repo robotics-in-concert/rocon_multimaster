@@ -6,7 +6,7 @@
   <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen"/>
 
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
-    <rosparam command="load" file="$(find rocon_gateway)/config/default.yaml" />
-    <rosparam param="whitelist">['Pirate Hub']</rosparam>
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
+    <rosparam param="hub_whitelist">['Pirate Hub']</rosparam>
   </node>
 </launch>

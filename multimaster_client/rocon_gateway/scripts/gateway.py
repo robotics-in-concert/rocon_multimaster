@@ -29,9 +29,9 @@ class Gateway():
         # Gateway configuration
         self.zeroconf = False
         self.zeroconf_service = "_ros-gateway-hub._tcp"
-        self.gateway_sync = None # redis server (hub) and local ros master connections
+        self.gateway_sync = GatewaySync() # redis server (hub) and local ros master connections
         self.is_connected = False # used to flag whether it is connected to the hub (move to gateway sync)
-        self.param = {}
+        self.param = rocon_gateway.rosParameters()
         self.callbacks = {}
         
         # Topic and Service Names
@@ -44,9 +44,7 @@ class Gateway():
         # Initialisation variables
         zeroconf_timeout = 5 # Amount of time to wait for the zeroconf services to appear
 
-        self.gateway_sync = GatewaySync()  
         self.setupCallbacks()
-        self.parse_params()
 
         # Service Server for local node requests
         self.remote_list_service = rospy.Service(gateway_request_service_name,PublicHandler,self.processLocalRequest)
@@ -103,26 +101,6 @@ class Gateway():
 
         self.callbacks["post"] = self.gateway_sync.post
 
-
-    def parse_params(self):
-        self.param['hub_uri'] = rospy.get_param('~hub_uri','')
-
-        self.param['whitelist'] = rospy.get_param('~whitelist',[])
-        self.param['blacklist'] = rospy.get_param('~blacklist',[])
-
-        # Local topics and services to register redis server
-        self.param['local_public_topic'] = rospy.get_param('~local_public_topic',[])
-        self.param['local_public_service'] = rospy.get_param('~local_public_service',[])
-
-        self.param['public_named_topics'] = rospy.get_param('~public_named_topics', '')
-        self.param['public_named_topics_blacklist'] = rospy.get_param('~public_named_topics_blacklist', '.*zeroconf.*,.*gateway.*,.*rosout.*,.*parameter_descriptions,.*parameter_updates,/tf')
-
-        self.param['public_named_services'] = rospy.get_param('~public_named_services', '')
-        self.param['public_named_services_blacklist'] = rospy.get_param('~public_named_services_blacklist', '.*zeroconf.*,.*gateway.*,.*get_loggers,.*set_logger_level')
-
-        # Topics and services that need from remote server
-#        self.param['remote_topic'] = rospy.get_param('~remote_topic','')
-#        self.param['remote_service'] = rospy.get_param('~remote_service','')
 
     def processLocalRequest(self,request):
         command = request.command
@@ -273,23 +251,23 @@ class Gateway():
                         rospy.logerr("Gateway : couldn't connect to the hub [%s:%s]", ip, port)
                         continue
                     # Check blacklist (ip or hub name)
-                    if ip in self.param['blacklist']:
+                    if ip in self.param['hub_blacklist']:
                         rospy.loginfo("Gateway : ignoring blacklisted hub [%s]",ip)
                         continue
-                    if hub_name in self.param['blacklist']:
+                    if hub_name in self.param['hub_blacklist']:
                         rospy.loginfo("Gateway : ignoring blacklisted hub [%s]",hub_name)
                         continue
                     # Handle whitelist (ip or hub name)
-                    if len(self.param['whitelist']) == 0:
+                    if len(self.param['hub_whitelist']) == 0:
                         if self.connectByZeroconfName(service):
                             self.is_connected = True
                             break
-                    elif ip in self.param['whitelist']:
+                    elif ip in self.param['hub_whitelist']:
                         if self.connectByZeroconfName(service):
                             self.is_connected = True
                             break
                     else:
-                        if hub_name in self.param['whitelist']:
+                        if hub_name in self.param['hub_whitelist']:
                             if self.connectByZeroconfName(service):
                                 self.is_connected = True
                                 break

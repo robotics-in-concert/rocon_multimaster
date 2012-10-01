@@ -13,3 +13,4 @@ __date__ = "2012-08-29"
 
 from .hub import resolveHub
 from .zeroconf import resolveZeroconfAddress
+from .ros_parameters import rosParameters
