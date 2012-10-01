@@ -28,15 +28,18 @@ class GatewaySync(object):
     The gateway between ros system and redis server
     '''
 
-    gatewaylist = 'rocon:gatewaylist'
-    master_uri = None
-    update_topic = 'rocon:update'
-    index = 'rocon:hub:index'
     unique_name = None
     connected = False
 
     def __init__(self, name):
         self.name = name
+        self.master_uri = None
+        self.redis_keys = {}
+
+        self.redis_keys['gatewaylist'] = 'rocon:gatewaylist'
+        self.redis_keys['update_topic'] = 'rocon:update'
+        self.redis_keys['index'] = 'rocon:hub:index'
+        
         self.redis_manager = RedisManager(self.processUpdate, self.name)
         self.ros_manager = ROSManager()
         self.master_uri = self.ros_manager.getMasterUri()
@@ -53,7 +56,11 @@ class GatewaySync(object):
     def connectToRedisServer(self,ip,port):
         try:
             self.redis_manager.connect(ip,port)
-            self.unique_name = self.redis_manager.registerClient(self.gatewaylist,self.index,self.update_topic)
+            self.unique_name = self.redis_manager.registerClient(
+                        self.redis_keys['gatewaylist'],
+                        self.redis_keys['index'],
+                        self.redis_keys['update_topic']
+                        )
             self.connected = True
         except Exception as e:
             print str(e)
@@ -62,7 +69,7 @@ class GatewaySync(object):
 
     def getRemoteLists(self):
         remotelist = {}
-        gatewaylist = self.redis_manager.getMembers(self.gatewaylist)
+        gatewaylist = self.redis_manager.getMembers(self.redis_keys['gatewaylist'])
 
         for gateway in gatewaylist:
             remotelist[gateway] = {}
@@ -130,7 +137,7 @@ class GatewaySync(object):
                 print "Removing topic : " + l
                 self.redis_manager.removeMembers(key,l)
 
-        self.redis_manager.sendMessage(self.update_topic,"update-removing")
+        self.redis_manager.sendMessage(self.redis_keys['update_topic'],"update-removing")
         return True, []
 
     def removePublicTopicByName(self,topic):
@@ -325,7 +332,7 @@ class GatewaySync(object):
 
 
     def clearServer(self):
-        self.redis_manager.unregisterClient(self.gatewaylist,self.unique_name)
+        self.redis_manager.unregisterClient(self.redis_keys['gatewaylist'],self.unique_name)
         self.ros_manager.clear()
 
     def processUpdate(self,msg):
