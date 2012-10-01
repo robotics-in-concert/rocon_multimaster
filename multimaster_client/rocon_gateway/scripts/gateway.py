@@ -29,9 +29,9 @@ class Gateway():
         # Gateway configuration
         self.zeroconf = False
         self.zeroconf_service = "_ros-gateway-hub._tcp"
-        self.gateway_sync = GatewaySync() # redis server (hub) and local ros master connections
+        self.gateway_sync = None # redis server (hub) and local ros master connections
         self.is_connected = False # used to flag whether it is connected to the hub (move to gateway sync)
-        self.param = rocon_gateway.rosParameters()
+        self.param = {}
         self.callbacks = {}
         
         # Topic and Service Names
@@ -44,6 +44,8 @@ class Gateway():
         # Initialisation variables
         zeroconf_timeout = 5 # Amount of time to wait for the zeroconf services to appear
 
+        self.param = rocon_gateway.rosParameters()
+        self.gateway_sync = GatewaySync(self.param['name']) # redis server (hub) and local ros master connections
         self.setupCallbacks()
 
         # Service Server for local node requests
@@ -246,7 +248,7 @@ class Gateway():
                     rospy.loginfo("Gateway : discovered hub at " + str(ip) + ":"+str(service.port))
                     try:
                         hub_name = rocon_gateway.resolveHub(ip,port)
-                        rospy.loginfo("Gateway : hub name [%s]", hub_name)
+                        rospy.loginfo("Gateway : resolved hub name [%s].", hub_name)
                     except redis.exceptions.ConnectionError:
                         rospy.logerr("Gateway : couldn't connect to the hub [%s:%s]", ip, port)
                         continue
@@ -277,7 +279,7 @@ class Gateway():
             rospy.sleep(3.0)
 
         # Once you get here, it is connected to redis server
-        rospy.loginfo("Gateway : connected to hub.") 
+        rospy.loginfo("Gateway : connected to hub [%s]."%hub_name) 
         rospy.loginfo("Register default public topic/service")
 
         # Add public topics and services

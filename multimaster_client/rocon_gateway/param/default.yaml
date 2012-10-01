@@ -12,6 +12,9 @@
 # hub_whitelist: []
 # hub_blacklist: []
 
+## Gateway name - this is a human readable convenience only
+# name: 'gateway'
+
 ## Static flip/request lists.
 # local_public_topic: []
 # local_public_service: []

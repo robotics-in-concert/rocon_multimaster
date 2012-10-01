@@ -27,7 +27,7 @@ class RedisSubscriberThread(threading.Thread):
         self.callback = callback
             
     def run(self):
-        rospy.loginfo("Gateway : listening to the subscribed redis channels.")
+        rospy.logdebug("Gateway : listening to the subscribed redis channels.")
         for r in self.pubsub.listen():
             if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
                 self.callback(r['data'])
@@ -39,21 +39,23 @@ class RedisManager(object):
     pubsub = None
     callback = None
 
-    def __init__(self,pubsubcallback):
+    def __init__(self,pubsubcallback,name):
+        self.name = name
         self.callback = pubsubcallback
 
     def connect(self,ip,portarg):
         try:
             self.pool = redis.ConnectionPool(host=ip,port=portarg,db=0)
             self.server = redis.Redis(connection_pool=self.pool)
-            rospy.loginfo("Gateway : connected to the hub's redis server.")
+            rospy.logdebug("Gateway : connected to the hub's redis server.")
             self.pubsub = self.server.pubsub()
         except ConnectionError as e:
+            rospy.logerror("Gateway : failed connection to the hub's redis server.")
             raise
 
     def registerClient(self,masterlist,index,update_topic):
         unique_num = self.server.incr(index)
-        client_key = 'rocon:client'+str(unique_num)
+        client_key = 'rocon:'+self.name+str(unique_num)
         self.server.sadd(masterlist,client_key)
         self.pubsub.subscribe(update_topic)
         self.pubsub.subscribe(client_key)

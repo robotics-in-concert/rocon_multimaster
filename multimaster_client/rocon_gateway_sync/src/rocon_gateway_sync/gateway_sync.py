@@ -35,8 +35,9 @@ class GatewaySync(object):
     unique_name = None
     connected = False
 
-    def __init__(self):
-        self.redis_manager = RedisManager(self.processUpdate)
+    def __init__(self, name):
+        self.name = name
+        self.redis_manager = RedisManager(self.processUpdate, self.name)
         self.ros_manager = ROSManager()
         self.master_uri = self.ros_manager.getMasterUri()
 

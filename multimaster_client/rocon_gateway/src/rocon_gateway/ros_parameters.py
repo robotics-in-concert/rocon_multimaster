@@ -23,6 +23,9 @@ def rosParameters():
     param['hub_uri'] = rospy.get_param('~hub_uri','')
     param['hub_whitelist'] = rospy.get_param('~hub_whitelist',[])
     param['hub_blacklist'] = rospy.get_param('~hub_blacklist',[])
+    
+    # Gateway
+    param['name'] = rospy.get_param('~name','gateway')
 
     # Topics and services for pre-initialisation/configuration
     param['local_public_topic'] = rospy.get_param('~local_public_topic',[])
