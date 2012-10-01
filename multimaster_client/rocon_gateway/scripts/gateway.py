@@ -29,8 +29,7 @@ class Gateway():
         # Gateway configuration
         self.zeroconf = False
         self.zeroconf_service = "_ros-gateway-hub._tcp"
-        self.gateway_sync = None # redis server (hub) and local ros master connections
-        self.is_connected = False # used to flag whether it is connected to the hub (move to gateway sync)
+        self.gateway_sync = None # hub and local ros master connections
         self.param = {}
         self.callbacks = {}
         
@@ -59,7 +58,6 @@ class Gateway():
         if self.param['hub_uri'] != '':
             if self.connectByUri(self.param['hub_uri']):
                 rospy.logwarn("Gateway : made direct connection attempt to hub [%s]"%self.param['hub_uri'])
-                self.is_connected = True
             else:
                 rospy.logwarn("Gateway : failed direct connection attempt to hub [%s]"%self.param['hub_uri'])
         else: # see if we can use zeroconf to autodect
@@ -141,10 +139,9 @@ class Gateway():
           Requests are of the form of a uri (hostname:port pair) pointing to 
           the gateway hub. 
         '''
-        if not self.is_connected:
+        if not self.gateway_sync.is_connected:
             if self.connectByUri(uri.data):
                 rospy.logwarn("Gateway : made direct connection attempt to hub [%s]"%uri.data)
-                self.is_connected = True
             else:
                 rospy.logwarn("Gateway : failed direct connection attempt to hub [%s]"%uri.data)
         else:
@@ -225,14 +222,14 @@ class Gateway():
         return self.connect(o.hostname, o.port)
     
     def connect(self,ip,port):
-        if self.gateway_sync.connectToRedisServer(ip,port):
+        if self.gateway_sync.connectToHub(ip,port):
             return True
         else:
             return False
 
     def spin(self):
         previously_found_hubs = []
-        while not rospy.is_shutdown() and not self.is_connected:
+        while not rospy.is_shutdown() and not self.gateway_sync.is_connected:
             if self.zeroconf:
                 # Get discovered redis server list from zeroconf
                 req = ListDiscoveredServicesRequest() 
@@ -262,16 +259,13 @@ class Gateway():
                     # Handle whitelist (ip or hub name)
                     if len(self.param['hub_whitelist']) == 0:
                         if self.connectByZeroconfName(service):
-                            self.is_connected = True
                             break
                     elif ip in self.param['hub_whitelist']:
                         if self.connectByZeroconfName(service):
-                            self.is_connected = True
                             break
                     else:
                         if hub_name in self.param['hub_whitelist']:
                             if self.connectByZeroconfName(service):
-                                self.is_connected = True
                                 break
             else:
                 rospy.logdebug("Gateway : waiting for hub uri input.")

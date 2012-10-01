@@ -28,13 +28,13 @@ class GatewaySync(object):
     The gateway between ros system and redis server
     '''
 
-    unique_name = None
-    connected = False
 
     def __init__(self, name):
         self.name = name
         self.master_uri = None
         self.redis_keys = {}
+        self.is_connected = False
+        self.unique_name = None
 
         self.hub_manager = HubManager(self.processUpdate, self.name)
         self.ros_manager = ROSManager()
@@ -49,11 +49,11 @@ class GatewaySync(object):
         self.service_whitelist = list()
         self.service_blacklist = list()
 
-    def connectToRedisServer(self,ip,port):
+    def connectToHub(self,ip,port):
         try:
             self.hub_manager.connect(ip,port)
             self.unique_name = self.hub_manager.registerGateway()
-            self.connected = True
+            self.is_connected = True
         except Exception as e:
             print str(e)
             return False
@@ -76,7 +76,7 @@ class GatewaySync(object):
         return remotelist        
 
     def addPublicTopics(self,list):
-        if not self.connected:
+        if not self.is_connected:
             print "It is not connected to Server"
             return False, []
         key = self.unique_name + ":topic"
@@ -114,7 +114,7 @@ class GatewaySync(object):
         return l
 
     def removePublicTopics(self,list):
-        if not self.connected:
+        if not self.is_connected:
             print "It is not connected to Server"
             return False, []
 
@@ -142,7 +142,7 @@ class GatewaySync(object):
         return True, []
 
     def addPublicService(self,list):
-        if not self.connected:
+        if not self.is_connected:
             print "It is not connected to Server"
             return False, []
 
@@ -177,7 +177,7 @@ class GatewaySync(object):
 
 
     def removePublicService(self,list):
-        if not self.connected:
+        if not self.is_connected:
             print "It is not connected to Server"
             return False, []
 
