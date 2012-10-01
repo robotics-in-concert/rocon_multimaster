@@ -126,8 +126,19 @@ class Gateway():
         callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
         callbacks["remove_all_public"] = self.gateway_sync.removeAllPublic
      
-        callbacks["flipout_topic"] = self.flipoutTopic
-        callbacks["flipout_service"] = self.flipoutService
+        callbacks["flipout_topic"] = self.gateway_sync.flipoutTopic
+        callbacks["remove_flipped_topic"] = self.gateway_sync.removeFlippedTopic
+        callbacks["add_named_flipped_topics"] = self.gateway_sync.addNamedFlippedTopics
+        callbacks["remove_named_flipped_topics"] = self.gateway_sync.removeNamedFlippedTopics
+
+        callbacks["flipout_service"] = self.gateway_sync.flipoutService
+        callbacks["remove_flipped_service"] = self.gateway_sync.removeFlippedService
+        callbacks["add_named_flipped_services"] = self.gateway_sync.addNamedFlippedServices
+        callbacks["remove_named_flipped_services"] = self.gateway_sync.removeNamedFlippedServices
+
+        callbacks["flip_all"] = self.gateway_sync.flipAll
+        callbacks["flip_all_public"] = self.gateway_sync.flipAllPublic
+        callbacks["flip_list_only"] = self.gateway_sync.flipListOnly
 
         callbacks["post"] = self.gateway_sync.post
 
@@ -217,41 +228,7 @@ class Gateway():
             
         return True, rl
 
-    def flipoutTopic(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping topics
-        try:
-            num = int(list[0])
-            channels = list[1:num+1]
-            topics = list[num+1:len(list)]
-#topics = self.gateway_sync.getTopicString(topics)
 
-            for chn in channels:
-                print "Flipping out : " + str(topics) + " to " + chn
-                self.gateway_sync.flipout("flipouttopic",chn,topics)
-        except:
-            return False, []
-
-        return True, []
-
-    def flipoutService(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping services
-        try:
-            num = int(list[0])
-            channels = list[1:num+1]
-            services = list[num+1:len(list)]
-#services = self.gateway_sync.getServiceString(services)
-
-            for chn in channels:
-                print "Flipping out : " + str(services) + " to " + chn
-                self.gateway_sync.flipout("flipoutservice",chn,services)
-        except Exception as e:
-            print str(e)
-            return False, []
-        return True, []
 
 
     # It clears this client's information from redis-server
@@ -340,13 +317,13 @@ class Gateway():
 
         # Add named public topics and services
         if self.param['public_named_topics']:
-            self.gateway_sync.topic_whitelist.extend(self.param['public_named_topics'].split(','))
+            self.gateway_sync.addNamedTopics(self.param['public_named_topics'].split(','))
         if self.param['public_named_topics_blacklist']:
-            self.gateway_sync.topic_blacklist.extend(self.param['public_named_topics_blacklist'].split(','))
+            self.gateway_sync.public_topic_blacklist.extend(self.param['public_named_topics_blacklist'].split(','))
         if self.param['public_named_services']:
-            self.gateway_sync.service_whitelist.extend(self.param['public_named_services'].split(','))
+            self.gateway_sync.addNamedService(self.param['public_named_services'].split(','))
         if self.param['public_named_services_blacklist']:
-            self.gateway_sync.service_blacklist.extend(self.param['public_named_services_blacklist'].split(','))
+            self.gateway_sync.public_service_blacklist.extend(self.param['public_named_services_blacklist'].split(','))
 
         rospy.spin()
 

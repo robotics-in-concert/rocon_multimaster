@@ -111,7 +111,7 @@ class ROSManager(object):
     try:
       if self.checkIfItisLocal(topic,uri,"topic"):
         print "It is local topic"
-        return
+        return False
         
       node_name = self.getAnonymousNodeName(topic)    
       print "New node name = " + str(node_name)
@@ -129,19 +129,20 @@ class ROSManager(object):
         master.registerPublisher(topic,topictype,uri)
       else:
         print "already registered"
+        return False
       self.cv.release()
 
     except Exception as e:
       print "In registerTopic"
       raise
 
-    return
+    return True
 
   def registerService(self,service,service_api,node_xmlrpc_uri):
     try:                                                  
       if self.checkIfItisLocal(service,node_xmlrpc_uri,"service"):
         print "It is local service"
-        return
+        return False
       node_name = self.getAnonymousNodeName(service)    
       print "New node name = " + str(node_name)
 
@@ -157,17 +158,22 @@ class ROSManager(object):
         master.registerService(service,service_api,node_xmlrpc_uri)
       else:
         print "already registered"
+        return False
       self.cv.release()
 
     except Exception as e:
       print "registerService:ros_master.py"
       raise
 
-    return
+    return True
 
   def unregisterTopic(self,topic,topictype,node_uri):
     try:
-      node_name = self.pubs_node[(topic,node_uri)]
+      try: 
+        node_name = self.pubs_node[(topic,node_uri)]
+      except KeyError:
+        print "Topic does not exist"
+        return False
       print "Unregistering ",topic," from ",node_name
       master_n = rosgraph.Master(node_name)
       master_n.unregisterPublisher(topic,node_uri)
@@ -180,7 +186,11 @@ class ROSManager(object):
 
   def unregisterService(self,service,service_api,node_uri):
     try:
-      node_name = self.srvs_node[(service,service_api)]
+      try: 
+        node_name = self.srvs_node[(service,service_api)]
+      except KeyError:
+        print "Service does not exist"
+        return False
       print "Unregistering ",service," from ",node_name
       master_n = rosgraph.Master(node_name)
       master_n.unregisterService(service, service_api)
