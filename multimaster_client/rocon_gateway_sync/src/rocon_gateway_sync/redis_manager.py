@@ -53,10 +53,10 @@ class RedisManager(object):
             rospy.logerror("Gateway : failed connection to the hub's redis server.")
             raise
 
-    def registerClient(self,masterlist,index,update_topic):
+    def registerClient(self,gatewaylist,index,update_topic):
         unique_num = self.server.incr(index)
         client_key = 'rocon:'+self.name+str(unique_num)
-        self.server.sadd(masterlist,client_key)
+        self.server.sadd(gatewaylist,client_key)
         self.pubsub.subscribe(update_topic)
         self.pubsub.subscribe(client_key)
         self.subThread = RedisSubscriberThread(self.pubsub,self.callback)
@@ -87,7 +87,7 @@ class RedisManager(object):
             return False
         return True
 
-    def unregisterClient(self,masterlist,client_key):
+    def unregisterClient(self,gatewaylist,client_key):
 
         try:
             pipe = self.server.pipeline()
@@ -95,7 +95,7 @@ class RedisManager(object):
             self.server.delete(topiclist)
             srvlist = client_key +":service"
             self.server.delete(srvlist)
-            self.server.srem(masterlist,client_key)
+            self.server.srem(gatewaylist,client_key)
             pipe.execute()
             self.pubsub.unsubscribe()
         except Exception as e:

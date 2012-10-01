@@ -28,7 +28,7 @@ class GatewaySync(object):
     The gateway between ros system and redis server
     '''
 
-    masterlist = 'rocon:masterlist'
+    gatewaylist = 'rocon:gatewaylist'
     master_uri = None
     update_topic = 'rocon:update'
     index = 'rocon:hub:index'
@@ -53,7 +53,7 @@ class GatewaySync(object):
     def connectToRedisServer(self,ip,port):
         try:
             self.redis_manager.connect(ip,port)
-            self.unique_name = self.redis_manager.registerClient(self.masterlist,self.index,self.update_topic)
+            self.unique_name = self.redis_manager.registerClient(self.gatewaylist,self.index,self.update_topic)
             self.connected = True
         except Exception as e:
             print str(e)
@@ -62,18 +62,18 @@ class GatewaySync(object):
 
     def getRemoteLists(self):
         remotelist = {}
-        masterlist = self.redis_manager.getMembers(self.masterlist)
+        gatewaylist = self.redis_manager.getMembers(self.gatewaylist)
 
-        for master in masterlist:
-            remotelist[master] = {}
+        for gateway in gatewaylist:
+            remotelist[gateway] = {}
             
             # get public topic list of this master
-            key = master +":topic"
-            remotelist[master]['topic'] = self.redis_manager.getMembers(key)
+            key = gateway +":topic"
+            remotelist[gateway]['topic'] = self.redis_manager.getMembers(key)
 
             # get public service list of this master
-            key = master +":service"
-            remotelist[master]['service'] = self.redis_manager.getMembers(key)
+            key = gateway +":service"
+            remotelist[gateway]['service'] = self.redis_manager.getMembers(key)
 
         return remotelist        
 
@@ -325,7 +325,7 @@ class GatewaySync(object):
 
 
     def clearServer(self):
-        self.redis_manager.unregisterClient(self.masterlist,self.unique_name)
+        self.redis_manager.unregisterClient(self.gatewaylist,self.unique_name)
         self.ros_manager.clear()
 
     def processUpdate(self,msg):
