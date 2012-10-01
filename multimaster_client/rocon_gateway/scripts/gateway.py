@@ -24,33 +24,32 @@ from urlparse import urlparse
 # 3. response a local ros node's get remote topic/service list request
 class Gateway():
 
-    # request from local node
-    local_request_name = "~request"
-    gateway_info_srv = None
-
-    gateway_sync = None
-    param = {}
-    is_connected = False
-    callbacks = {}
 
     def __init__(self):
+        # Gateway configuration
         self.zeroconf = False
-        # Configuration
-        gateway_info_service_name = "~info"
-        gateway_connect_subscriber_name = "~connect"
         self.zeroconf_service = "_ros-gateway-hub._tcp"
+        self.gateway_sync = None # redis server (hub) and local ros master connections
+        self.is_connected = False # used to flag whether it is connected to the hub (move to gateway sync)
+        self.param = {}
+        self.callbacks = {}
+        
+        # Topic and Service Names
+        gateway_info_service_name = "~info"
+        gateway_request_service_name = "~request"
+        gateway_connect_subscriber_name = "~connect"
         zeroconf_add_listener_service = "zeroconf/add_listener"
         zeroconf_connection_service = "zeroconf/list_discovered_services"
+        
+        # Initialisation variables
         zeroconf_timeout = 5 # Amount of time to wait for the zeroconf services to appear
 
-        # Instantiate a GatewaySync module. This will take care of all redis server connection, communicatin with ros master uri
-        self.gateway_sync = GatewaySync()
-
+        self.gateway_sync = GatewaySync()  
         self.setupCallbacks()
         self.parse_params()
 
         # Service Server for local node requests
-        self.remote_list_service = rospy.Service(self.local_request_name,PublicHandler,self.processLocalRequest)
+        self.remote_list_service = rospy.Service(gateway_request_service_name,PublicHandler,self.processLocalRequest)
 
         self.connect_hub_subscriber = rospy.Subscriber(gateway_connect_subscriber_name,String,self.processConnectHubRequest)
 
@@ -78,32 +77,31 @@ class Gateway():
                     self.zeroconf = False
 
     def setupCallbacks(self):
-        callbacks = self.callbacks
-        callbacks["get_public_interfaces"] = self.processRemoteListRequest
+        self.callbacks["get_public_interfaces"] = self.processRemoteListRequest
+        self.callbacks["add_public_topic"] = self.gateway_sync.addPublicTopics
+        self.callbacks["remove_public_topic"] = self.gateway_sync.removePublicTopics
 
-        callbacks["add_public_topic"] = self.gateway_sync.addPublicTopics
-        callbacks["remove_public_topic"] = self.gateway_sync.removePublicTopics
-        callbacks["add_named_topics"] = self.gateway_sync.addNamedTopics
-        callbacks["remove_named_topics"] = self.gateway_sync.removeNamedTopics
+        self.callbacks["add_named_topics"] = self.gateway_sync.addNamedTopics
+        self.callbacks["remove_named_topics"] = self.gateway_sync.removeNamedTopics
 
-        callbacks["add_public_service"] = self.gateway_sync.addPublicService
-        callbacks["remove_public_service"] = self.gateway_sync.removePublicService
-        callbacks["add_named_services"] = self.gateway_sync.addNamedServices
-        callbacks["remove_named_services"] = self.gateway_sync.removeNamedServices
+        self.callbacks["add_public_service"] = self.gateway_sync.addPublicService
+        self.callbacks["remove_public_service"] = self.gateway_sync.removePublicService
+        self.callbacks["add_named_services"] = self.gateway_sync.addNamedServices
+        self.callbacks["remove_named_services"] = self.gateway_sync.removeNamedServices
 
-        callbacks["register_foreign_topic"] = self.gateway_sync.requestForeignTopic
-        callbacks["unregister_foreign_topic"] = self.gateway_sync.unregisterForeignTopic
+        self.callbacks["register_foreign_topic"] = self.gateway_sync.requestForeignTopic
+        self.callbacks["unregister_foreign_topic"] = self.gateway_sync.unregisterForeignTopic
 
-        callbacks["register_foreign_service"] = self.gateway_sync.requestForeignService
-        callbacks["unregister_foreign_service"] = self.gateway_sync.unregisterForeignService
+        self.callbacks["register_foreign_service"] = self.gateway_sync.requestForeignService
+        self.callbacks["unregister_foreign_service"] = self.gateway_sync.unregisterForeignService
 
-        callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
-        callbacks["remove_all_public"] = self.gateway_sync.removeAllPublic
+        self.callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
+        self.callbacks["remove_all_public"] = self.gateway_sync.removeAllPublic
      
-        callbacks["flipout_topic"] = self.flipoutTopic
-        callbacks["flipout_service"] = self.flipoutService
+        self.callbacks["flipout_topic"] = self.flipoutTopic
+        self.callbacks["flipout_service"] = self.flipoutService
 
-        callbacks["post"] = self.gateway_sync.post
+        self.callbacks["post"] = self.gateway_sync.post
 
 
     def parse_params(self):
