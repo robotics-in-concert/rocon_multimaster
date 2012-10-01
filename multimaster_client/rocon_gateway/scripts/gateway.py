@@ -149,7 +149,15 @@ class Gateway():
             rospy.logwarn("Gateway : is already connected to a hub, cowardly refusing to connect.")
 
     def processGatewayInfo(self,msg):
-        return GatewayInfoResponse(self.gateway_sync.getInfo())
+        response = GatewayInfoResponse()
+        # Should add something about connected status here
+        if self.gateway_sync.unique_name != None:
+            response.name = self.gateway_sync.unique_name
+        else:
+            response.name = self.gateway_sync.unresolved_name
+        response.public_interface.topics = self.gateway_sync.ros_manager.public_interface['topic']
+        response.public_interface.services = self.gateway_sync.ros_manager.public_interface['service']
+        return response
         
 
     def processListPublicInterfaces(self,request):
