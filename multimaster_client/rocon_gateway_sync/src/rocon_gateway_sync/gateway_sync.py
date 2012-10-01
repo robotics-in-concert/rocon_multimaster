@@ -14,7 +14,7 @@ import rosgraph
 from std_msgs.msg import Empty
 
 from watcher_thread import WatcherThread
-from .redis_manager import RedisManager
+from .hub_manager import HubManager
 from .ros_manager import ROSManager
 
 '''
@@ -36,11 +36,7 @@ class GatewaySync(object):
         self.master_uri = None
         self.redis_keys = {}
 
-        self.redis_keys['gatewaylist'] = 'rocon:gatewaylist'
-        self.redis_keys['update_topic'] = 'rocon:update'
-        self.redis_keys['index'] = 'rocon:hub:index'
-        
-        self.redis_manager = RedisManager(self.processUpdate, self.name)
+        self.hub_manager = HubManager(self.processUpdate, self.name)
         self.ros_manager = ROSManager()
         self.master_uri = self.ros_manager.getMasterUri()
 
@@ -55,12 +51,8 @@ class GatewaySync(object):
 
     def connectToRedisServer(self,ip,port):
         try:
-            self.redis_manager.connect(ip,port)
-            self.unique_name = self.redis_manager.registerClient(
-                        self.redis_keys['gatewaylist'],
-                        self.redis_keys['index'],
-                        self.redis_keys['update_topic']
-                        )
+            self.hub_manager.connect(ip,port)
+            self.unique_name = self.hub_manager.registerGateway()
             self.connected = True
         except Exception as e:
             print str(e)
@@ -69,18 +61,17 @@ class GatewaySync(object):
 
     def getRemoteLists(self):
         remotelist = {}
-        gatewaylist = self.redis_manager.getMembers(self.redis_keys['gatewaylist'])
 
-        for gateway in gatewaylist:
+        for gateway in self.hub_manager.gatewayList():
             remotelist[gateway] = {}
             
             # get public topic list of this master
             key = gateway +":topic"
-            remotelist[gateway]['topic'] = self.redis_manager.getMembers(key)
+            remotelist[gateway]['topic'] = self.hub_manager.getMembers(key)
 
             # get public service list of this master
             key = gateway +":service"
-            remotelist[gateway]['service'] = self.redis_manager.getMembers(key)
+            remotelist[gateway]['service'] = self.hub_manager.getMembers(key)
 
         return remotelist        
 
@@ -95,7 +86,7 @@ class GatewaySync(object):
             for l in list:
                 if self.ros_manager.addPublicInterface("topic",l):
                     print "Adding topic : " + str(l)
-                    self.redis_manager.addMembers(key,l)
+                    self.hub_manager.addMembers(key,l)
 
         except Exception as e:
             print str(e)
@@ -130,14 +121,14 @@ class GatewaySync(object):
         '''
             this also stop publishing topic to remote server
         '''
-#self.redis_manager.removeMembers(key,list)
+#self.hub_manager.removeMembers(key,list)
         key = self.unique_name + ":topic"
         for l in list:
             if self.ros_manager.removePublicInterface("topic",l):
                 print "Removing topic : " + l
-                self.redis_manager.removeMembers(key,l)
+                self.hub_manager.removeMembers(key,l)
 
-        self.redis_manager.sendMessage(self.redis_keys['update_topic'],"update-removing")
+        self.hub_manager.broadcastTopicUpdate("update-removing")
         return True, []
 
     def removePublicTopicByName(self,topic):
@@ -160,7 +151,7 @@ class GatewaySync(object):
             for l in list:
                 if self.ros_manager.addPublicInterface("service",l):
                     print "Adding Service : " + str(l)
-                    self.redis_manager.addMembers(key,l)
+                    self.hub_manager.addMembers(key,l)
         except Exception as e:
             print str(e)
             return False, []
@@ -194,7 +185,7 @@ class GatewaySync(object):
         for l in list:
             if self.ros_manager.removePublicInterface("service",l):
                 print "Removing service : " + l
-                self.redis_manager.removeMembers(key,l)
+                self.hub_manager.removeMembers(key,l)
 
         return True, []
 
@@ -332,7 +323,7 @@ class GatewaySync(object):
 
 
     def clearServer(self):
-        self.redis_manager.unregisterClient(self.redis_keys['gatewaylist'],self.unique_name)
+        self.hub_manager.unregisterGateway(self.unique_name)
         self.ros_manager.clear()
 
     def processUpdate(self,msg):
@@ -370,7 +361,7 @@ class GatewaySync(object):
             cmd = cmd + "-" + tinfo
 
         try:
-            self.redis_manager.sendMessage(channel,cmd)
+            self.hub_manager.sendMessage(channel,cmd)
         except Exception as e:
             return False
 
@@ -388,11 +379,11 @@ class GatewaySync(object):
 #print "Posting : " + str(msg)
         try:
             if command == "addmember":
-                self.redis_manager.addMembers(key,member)
+                self.hub_manager.addMembers(key,member)
             elif command == "removemember":
-                self.redis_manager.removeMembers(key,member)
+                self.hub_manager.removeMembers(key,member)
             elif command == "getmembers":
-                member_list = self.redis_manager.getMembers(key)
+                member_list = self.hub_manager.getMembers(key)
                 return True, member_list
             else:
                 print "Error Wrong command %s",command
