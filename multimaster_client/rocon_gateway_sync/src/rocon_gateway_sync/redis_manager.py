@@ -40,14 +40,20 @@ import rospy
 # Classes
 ###############################################################################
 
-class SubThread(threading.Thread):
+class RedisSubscriberThread(threading.Thread):
+    '''
+      Tunes into the redis channels that have been subscribed to and
+      calls the apropriate callbacks.
+      
+      Note, the callbacks are from GatewaySync's processUpdate method.
+    '''
     def __init__(self,pubsub,callback):
         threading.Thread.__init__(self)
         self.pubsub = pubsub
         self.callback = callback
             
     def run(self):
-        rospy.loginfo("Gateway: watcher thread starting.")
+        rospy.loginfo("Gateway : listening to the subscribed redis channels.")
         for r in self.pubsub.listen():
             if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
                 self.callback(r['data'])
@@ -60,13 +66,13 @@ class RedisManager(object):
     callback = None
 
     def __init__(self,pubsubcallback):
-        print "Init Redis Manager"
         self.callback = pubsubcallback
 
     def connect(self,ip,portarg):
         try:
             self.pool = redis.ConnectionPool(host=ip,port=portarg,db=0)
             self.server = redis.Redis(connection_pool=self.pool)
+            rospy.loginfo("Gateway : connected to the hub's redis server.")
             self.pubsub = self.server.pubsub()
         except ConnectionError as e:
             raise
@@ -77,7 +83,7 @@ class RedisManager(object):
         self.server.sadd(masterlist,client_key)
         self.pubsub.subscribe(update_topic)
         self.pubsub.subscribe(client_key)
-        self.subThread = SubThread(self.pubsub,self.callback)
+        self.subThread = RedisSubscriberThread(self.pubsub,self.callback)
         self.subThread.start()
 
         return client_key

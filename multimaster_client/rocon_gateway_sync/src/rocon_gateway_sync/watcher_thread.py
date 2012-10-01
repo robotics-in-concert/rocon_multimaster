@@ -37,7 +37,7 @@ import rosmaster
 import rosnode
 import rosgraph
 
-class CleanupThread(threading.Thread):
+class WatcherThread(threading.Thread):
 
   def __init__(self,gateway_sync):
     # init thread

@@ -39,7 +39,7 @@ import rospy
 import rosgraph
 from std_msgs.msg import Empty
 
-from cleanup_thread import CleanupThread
+from watcher_thread import WatcherThread
 from .redis_manager import RedisManager
 from .ros_manager import ROSManager
 
@@ -67,7 +67,7 @@ class GatewaySync(object):
         self.master_uri = self.ros_manager.getMasterUri()
 
         # create a thread to clean-up unavailable topics
-        self.cleanup_thread = CleanupThread(self)
+        self.watcher_thread = WatcherThread(self)
 
         # create a whitelist of named topics and services
         self.topic_whitelist = list()
@@ -354,6 +354,10 @@ class GatewaySync(object):
         self.ros_manager.clear()
 
     def processUpdate(self,msg):
+        '''
+          Used as a callback for incoming requests on redis pubsub channels.
+          It gets assigned to RedisManager.callback.
+        '''
 
         try:
             msg = msg.split("-")
