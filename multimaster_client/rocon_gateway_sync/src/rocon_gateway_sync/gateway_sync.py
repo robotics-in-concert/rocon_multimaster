@@ -60,7 +60,7 @@ class GatewaySync(object):
 
     def addPublicTopics(self,list):
         if not self.is_connected:
-            print "It is not connected to Server"
+            rospy.logerr("Gateway : not connected to a hub.")
             return False, []
         key = self.unique_name + ":topic"
 
