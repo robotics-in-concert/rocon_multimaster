@@ -157,7 +157,7 @@ class Gateway():
           Returns a list of all public interfaces found advertised on the hub.
         '''
         response = ListPublicInterfacesResponse()
-        public_interfaces = self.gateway_sync.listPublicInterfaces()
+        public_interfaces = self.gateway_sync.hub_manager.listPublicInterfaces()
 
         for gateway_name in public_interfaces.keys():
             public_interface = PublicInterface()

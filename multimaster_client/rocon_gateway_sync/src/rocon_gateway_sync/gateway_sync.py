@@ -58,9 +58,6 @@ class GatewaySync(object):
             return False
         return True
 
-    def listPublicInterfaces(self):
-        return self.hub_manager.listPublicInterfaces()
-
     def addPublicTopics(self,list):
         if not self.is_connected:
             print "It is not connected to Server"
