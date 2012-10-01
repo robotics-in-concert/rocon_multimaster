@@ -34,6 +34,9 @@
 import socket
 import time
 import re
+import itertools
+import json
+
 import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
 import rosgraph
@@ -77,13 +80,17 @@ class GatewaySync(object):
 
         # create a whitelist/blacklist of named topics and services for flipped
         self.flipped_topic_whitelist = dict()
-        self.flipped_topic_blacklist = dict()
+        self.flipped_service_whitelist = dict()
         self.flip_public_topics = set()
+
+        #create a list of flipped triples
+        self.flipped_interface_list = dict()
 
     def connectToRedisServer(self,ip,port):
         try:
             self.redis_manager.connect(ip,port)
             self.unique_name = self.redis_manager.registerClient(self.masterlist,self.index,self.update_topic)
+            print "Obtained unique name: " + self.unique_name
             self.connected = True
         except Exception as e:
             print str(e)
@@ -160,7 +167,7 @@ class GatewaySync(object):
                 print "Removing topic : " + l
                 self.redis_manager.removeMembers(key,l)
 
-        self.redis_manager.sendMessage(self.update_topic,"update-removing")
+        #self.redis_manager.sendMessage(self.update_topic,"update-removing")
         return True, []
 
     def removePublicTopicByName(self,topic):
@@ -312,9 +319,7 @@ class GatewaySync(object):
         return True, []
 
     def flipout(self,cmd,channel,list):
-        cmd = cmd + "-" + self.unique_name
-        for tinfo in list:
-            cmd = cmd + "-" + tinfo
+        cmd = json.dumps([cmd,self.unique_name] + list)
 
         try:
             self.redis_manager.sendMessage(channel,cmd)
@@ -331,6 +336,8 @@ class GatewaySync(object):
             num = int(list[0])
             channels = list[1:num+1]
             topics = list[num+1:len(list)]
+            if num == 0 or len(topics) == 0:
+                return False, []
 
             for chn in channels:
                 print "Flipping out topics: " + str(topics) + " to " + chn
@@ -354,6 +361,15 @@ class GatewaySync(object):
             self.flipped_topic_whitelist[chn].update(set(topics))
         return True, []
 
+    def addFlippedTopicByName(self,clients,name):
+        topic_triples = self.getTopicString([name])
+        for client in clients:
+            if client not in self.flipped_interface_list:
+                self.flipped_interface_list[client] = set()
+            add_topic_triples = [x for x in topic_triples if x not in self.flipped_interface_list[client]]
+            self.flipped_interface_list[client].update(set(add_topic_triples))
+            topic_list = list(itertools.chain.from_iterable([[1, client], add_topic_triples]))
+            self.flipoutTopic(topic_list)
 
     def removeFlippedTopic(self,list):
         # list[0] # of channel
@@ -363,6 +379,8 @@ class GatewaySync(object):
             num = int(list[0])
             channels = list[1:num+1]
             topics = list[num+1:len(list)]
+            if num == 0 or len(topics) == 0:
+                return False, []
 
             for chn in channels:
                 print "Removing fipped out topics: " + str(topics) + " to " + chn
@@ -371,6 +389,16 @@ class GatewaySync(object):
             return False, []
 
         return True, []
+
+    def removeFlippedTopicByName(self,clients,name):
+        topic_triples = self.getTopicString([name])
+        for client in clients:
+            if client not in self.flipped_interface_list:
+                continue
+            delete_topic_triples = [x for x in topic_triples if x in self.flipped_interface_list[client]]
+            self.flipped_interface_list[client].difference_update(set(delete_topic_triples))
+            topic_list = list(itertools.chain.from_iterable([[1, client], delete_topic_triples]))
+            self.removeFlippedTopic(topic_list)
 
     def removeNamedFlippedTopics(self,list):
         # list[0] # of channel
@@ -393,6 +421,8 @@ class GatewaySync(object):
             num = int(list[0])
             channels = list[1:num+1]
             services = list[num+1:len(list)]
+            if num == 0 or len(services) == 0:
+                return False, []
 
             for chn in channels:
                 print "Flipping out services: " + str(services) + " to " + chn
@@ -401,6 +431,16 @@ class GatewaySync(object):
             print str(e)
             return False, []
         return True, []
+
+    def addFlippedServiceByName(self,clients,name):
+        service_triples = self.getServiceString([name])
+        for client in clients:
+            if client not in self.flipped_interface_list:
+                self.flipped_interface_list[client] = set()
+            add_service_triples = [x for x in service_triples if x not in self.flipped_interface_list[client]]
+            self.flipped_interface_list[client].update(set(add_service_triples))
+            service_list = list(itertools.chain.from_iterable([[1, client], add_service_triples]))
+            self.flipoutService(service_list)
 
     def addNamedFlippedServices(self, list):
         # list[0] # of channel
@@ -424,6 +464,8 @@ class GatewaySync(object):
             num = int(list[0])
             channels = list[1:num+1]
             services = list[num+1:len(list)]
+            if num == 0 or len(services) == 0:
+                return False, []
 
             for chn in channels:
                 print "Removing flipped out services: " + str(services) + " to " + chn
@@ -432,6 +474,16 @@ class GatewaySync(object):
             print str(e)
             return False, []
         return True, []
+
+    def removeFlippedServiceByName(self,clients,name):
+        service_triples = self.getServiceString([name])
+        for client in clients:
+            if client not in self.flipped_interface_list:
+                continue
+            delete_service_triples = [x for x in service_triples if x in self.flipped_interface_list[client]]
+            self.flipped_interface_list[client].difference_update(set(delete_service_triples))
+            service_list = list(itertools.chain.from_iterable([[1, client], delete_service_triples]))
+            self.removeFlippedService(service_list)
 
     def removeNamedFlippedServices(self,list):
         # list[0] # of channel
@@ -446,6 +498,18 @@ class GatewaySync(object):
                 self.flipped_service_whitelist[chn].difference_update(set(services))
         return True, []
 
+    def addFlippedInterfaceByName(self,identifier,clients,name):
+        if identifier == 'topic':
+            self.addFlippedTopicByName(clients,name)
+        elif identifier == 'service':
+            self.addFlippedServiceByName(clients,name)
+
+    def removeFlippedInterfaceByName(self,identifier,clients,name):
+        if identifier == 'topic':
+            self.removeFlippedTopicByName(clients,name)
+        elif identifier == 'service':
+            self.removeFlippedServiceByName(clients,name)
+
     def flipAll(self,list):
         #list is channels
         for chn in list:
@@ -457,6 +521,7 @@ class GatewaySync(object):
             self.flipped_service_whitelist[chn].add('.*')
             if chn in self.flip_public_topics:
                 self.flip_public_topics.remove(chn)
+        return True, []
 
     def flipAllPublic(self,list):
         #list is channels
@@ -466,6 +531,7 @@ class GatewaySync(object):
             if chn not in self.flipped_service_whitelist:
               self.flipped_service_whitelist[chn].remove('.*')
             self.flip_public_topics.add(chn)
+        return True, []
 
     def flipListOnly(self,list):
         #list is channels
@@ -476,6 +542,7 @@ class GatewaySync(object):
               self.flipped_service_whitelist[chn].remove('.*')
             if chn in self.flip_public_topics:
                 self.flip_public_topics.remove(chn)
+        return True, []
 
     def makeAllPublic(self,list):
         print "Dumping all non-blacklisted interfaces"
@@ -528,6 +595,14 @@ class GatewaySync(object):
             blacklist = self.public_service_blacklist
         return self.allowInterface(name,whitelist,blacklist)
 
+    def getFlippedClientList(self,identifier,name):
+        if identifier == 'topic':
+            list = self.flipped_topic_whitelist
+        else:
+            list = self.flipped_service_whitelist
+
+        return [chn for chn in list if self.allowInterfaceInFlipped(identifier,chn,name)], [chn for chn in list if not self.allowInterfaceInFlipped(identifier,chn,name)]
+
     def reshapeUri(self,uri):
         if uri[len(uri)-1] is not '/':
             uri = uri + '/'
@@ -545,7 +620,7 @@ class GatewaySync(object):
     def processUpdate(self,msg):
 
         try:
-            msg = msg.split("-")
+            msg = json.loads(msg)
             cmd = msg[0]
             provider = msg[1]
             rest = msg[2:len(msg)]

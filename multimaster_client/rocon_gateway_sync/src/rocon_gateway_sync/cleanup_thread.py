@@ -121,7 +121,9 @@ class CleanupThread(threading.Thread):
     # add/remove named interfaces to flipped list as necessary
     for x in list:
       name = x[0]
-      if self.gateway_sync.allowInterfaceInFlipped(identifier
+      clients, non_clients = self.gateway_sync.getFlippedClientList(identifier, name)
+      self.gateway_sync.addFlippedInterfaceByName(identifier,clients,name)
+      self.gateway_sync.removeFlippedInterfaceByName(identifier,non_clients,name)
 
 """
   polling thread should do...
