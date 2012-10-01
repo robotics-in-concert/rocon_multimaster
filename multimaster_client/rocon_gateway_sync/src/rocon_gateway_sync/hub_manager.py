@@ -9,6 +9,7 @@ import redis
 import threading
 import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
+import re
 
 ###############################################################################
 # Classes
@@ -31,6 +32,10 @@ class RedisSubscriberThread(threading.Thread):
         for r in self.pubsub.listen():
             if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
                 self.callback(r['data'])
+   
+##############################################################################
+# Hub Manager - Redis Implementation
+##############################################################################
 
 class HubManager(object):
 
@@ -43,10 +48,10 @@ class HubManager(object):
         self.name = name
         self.callback = pubsubcallback
         self.redis_keys = {}
-        self.redis_keys['index'] = 'rocon:hub:index' # used for uniquely id'ing the gateway (client)
-        self.redis_keys['gatewaylist'] = 'rocon:gatewaylist'
+        self.redis_keys['index'] = self.createKey('hub:index') # used for uniquely id'ing the gateway (client)
+        self.redis_keys['gatewaylist'] = self.createKey('gatewaylist')
         self.redis_channels = {}
-        self.redis_channels['update_topic'] = 'rocon:update'
+        self.redis_channels['update_topic'] = self.createKey('update')
         
     ##########################################################################
     # Hub
@@ -63,8 +68,34 @@ class HubManager(object):
             raise
 
     def gatewayList(self):
-        return self.redis_manager.getMembers(self.redis_keys['gatewaylist'])
+        '''
+          Return a list of the gateways (name list, not redis keys).
+          e.g. ['gateway32','pirate33']
+        '''
+        gateway_keys = self.getMembers(self.redis_keys['gatewaylist'])
+        gateway_list = []
+        for gateway in gateway_keys:
+            gateway_list.append(self.baseName(key))
+        return gateway_list
 
+    def listPublicInterfaces(self):
+        '''
+          Return all the 'remote' public interfaces connnected to the hub.
+        '''
+        public_interfaces = {}
+        gateway_keys = self.getMembers(self.redis_keys['gatewaylist'])
+        for gateway_key in gateway_keys:
+            gateway = self.baseName(gateway_key)
+            public_interfaces[gateway] = {}
+            # get public topic list of this master
+            key = gateway_key +":topic"
+            public_interfaces[gateway]['topic'] = self.getMembers(key)
+
+            # get public service list of this master
+            key = gateway_key +":service"
+            public_interfaces[gateway]['service'] = self.getMembers(key)
+        return public_interfaces
+        
     ##########################################################################
     # Gateway Connection
     ##########################################################################
@@ -133,3 +164,32 @@ class HubManager(object):
     def sendMessage(self,channel,msg):
         self.server.publish(channel,msg)
 
+
+    ##########################################################################
+    # Redis Key Manipulation Functions - not class related, should push out
+    ##########################################################################
+    
+    def createKey(self,key):
+        '''
+          Root the specified redis key name in our pseudo redis database.
+        '''
+        if re.match('rocon:',key): # checks if leading rocon: is found
+            return key
+        else:
+            return 'rocon:'+key
+    
+    def extractKey(self,key):
+        '''
+          Extract the specified redis key name from our pseudo redis database.
+        '''
+        if re.match('rocon:',key): # checks if leading rocon: is found
+            re.sub(r'rocon:','',key)
+        else:
+            return key
+    
+    def baseName(self,key):
+        '''
+          Extract the base name (i.e. last value) from the key.
+          e.g. rocon:key:pirate24 -> pirate24
+        '''
+        return key.split(':')[-1]

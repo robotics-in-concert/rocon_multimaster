@@ -28,15 +28,14 @@ class GatewaySync(object):
     The gateway between ros system and redis server
     '''
 
-
     def __init__(self, name):
-        self.name = name
+        self.unresolved_name = name # This gets used to build unique names after connection to the hub
+        self.unique_name = None
         self.master_uri = None
         self.redis_keys = {}
         self.is_connected = False
-        self.unique_name = None
 
-        self.hub_manager = HubManager(self.processUpdate, self.name)
+        self.hub_manager = HubManager(self.processUpdate, self.unresolved_name)
         self.ros_manager = ROSManager()
         self.master_uri = self.ros_manager.getMasterUri()
 
@@ -59,21 +58,8 @@ class GatewaySync(object):
             return False
         return True
 
-    def getRemoteLists(self):
-        remotelist = {}
-
-        for gateway in self.hub_manager.gatewayList():
-            remotelist[gateway] = {}
-            
-            # get public topic list of this master
-            key = gateway +":topic"
-            remotelist[gateway]['topic'] = self.hub_manager.getMembers(key)
-
-            # get public service list of this master
-            key = gateway +":service"
-            remotelist[gateway]['service'] = self.hub_manager.getMembers(key)
-
-        return remotelist        
+    def listPublicInterfaces(self):
+        return self.hub_manager.listPublicInterfaces()
 
     def addPublicTopics(self,list):
         if not self.is_connected:

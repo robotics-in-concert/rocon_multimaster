@@ -17,31 +17,37 @@ from std_msgs.msg import String
 from urlparse import urlparse
 
 
-# This class is wrapper ros class of gateway sync.
-# The role of this node is below
-# 1. listens to server up/down status from zero configuration node
-# 2. listens to local ros node's remote topic registration request
-# 3. response a local ros node's get remote topic/service list request
 class Gateway():
-
-
+    '''
+      This class is wrapper ros class of gateway sync.
+      The role of this node is below:
+      1. configure connections to gateway hubs
+      2. make use of zeroconf for connections if flagged (optional)
+      3. listen for requests (connections, flips, advertising) from the local ros system
+      4. listen for requests (flips) from remote gateways
+    '''
     def __init__(self):
         # Gateway configuration
-        self.zeroconf = False
-        self.zeroconf_service = "_ros-gateway-hub._tcp"
         self.gateway_sync = None # hub and local ros master connections
         self.param = {}
         self.callbacks = {}
         
-        # Topic and Service Names
-        gateway_info_service_name = "~info"
+        # Gateway Ros Api (topics/services/actions)
+        self.gateway_service_names = {}
+        self.gateway_services = {}
         gateway_request_service_name = "~request"
         gateway_connect_subscriber_name = "~connect"
+        
+        self.gateway_services['info'] = rospy.Service('~info',GatewayInfo,self.processGatewayInfo)
+        self.gateway_services['list_public_interfaces'] = rospy.Service('~list_public_interfaces',ListPublicInterfaces,self.processListPublicInterfaces)
+        
+        # Optional Zeroconf Configuration
+        self.zeroconf = False
+        self.zeroconf_service = "_ros-gateway-hub._tcp"
+        zeroconf_timeout = 5 # Amount of time to wait for the zeroconf services to appear
         zeroconf_add_listener_service = "zeroconf/add_listener"
         zeroconf_connection_service = "zeroconf/list_discovered_services"
-        
-        # Initialisation variables
-        zeroconf_timeout = 5 # Amount of time to wait for the zeroconf services to appear
+
 
         self.param = rocon_gateway.rosParameters()
         self.gateway_sync = GatewaySync(self.param['name']) # redis server (hub) and local ros master connections
@@ -51,9 +57,6 @@ class Gateway():
         self.remote_list_service = rospy.Service(gateway_request_service_name,PublicHandler,self.processLocalRequest)
 
         self.connect_hub_subscriber = rospy.Subscriber(gateway_connect_subscriber_name,String,self.processConnectHubRequest)
-
-        # Service Server for gateway info
-        self.gateway_info_service = rospy.Service(gateway_info_service_name,GatewayInfo,self.processGatewayInfo)
 
         if self.param['hub_uri'] != '':
             if self.connectByUri(self.param['hub_uri']):
@@ -67,7 +70,7 @@ class Gateway():
                 self.zeroconf = True
             except rospy.ROSException:
                 rospy.logwarn("Gateway : timed out waiting for zeroconf services to come up.")
-                
+
             if self.zeroconf:
                 zeroconf_add_listener = rospy.ServiceProxy(zeroconf_add_listener_service,AddListener)
                 self.zeroconf_service_proxy = rospy.ServiceProxy(zeroconf_connection_service,ListDiscoveredServices)
@@ -75,7 +78,6 @@ class Gateway():
                     self.zeroconf = False
 
     def setupCallbacks(self):
-        self.callbacks["get_public_interfaces"] = self.processRemoteListRequest
         self.callbacks["add_public_topic"] = self.gateway_sync.addPublicTopics
         self.callbacks["remove_public_topic"] = self.gateway_sync.removePublicTopics
 
@@ -101,7 +103,10 @@ class Gateway():
 
         self.callbacks["post"] = self.gateway_sync.post
 
-
+    ##########################################################################
+    # Ros Service Callbacks
+    ##########################################################################
+    
     def processLocalRequest(self,request):
         command = request.command
         success = False
@@ -118,11 +123,7 @@ class Gateway():
             print str(e)
             return resp
 
-        if command == "get_public_interfaces":
-            resp.remotelist = lists
-            resp.success = success
-            resp.concertmaster_list = []
-        elif command == "post":
+        if command == "post":
             resp.remotelist = []
             resp.success = success
             resp.concertmaster_list = lists
@@ -151,20 +152,22 @@ class Gateway():
         return GatewayInfoResponse(self.gateway_sync.getInfo())
         
 
-    # This function receives a service request from local ros node, crawl remote topic/service list from redis, and respose to local ros node.
-    def processRemoteListRequest(self,msg):
-        remote_list = self.gateway_sync.getRemoteLists()
+    def processListPublicInterfaces(self,request):
+        '''
+          Returns a list of all public interfaces found advertised on the hub.
+        '''
+        response = ListPublicInterfacesResponse()
+        public_interfaces = self.gateway_sync.listPublicInterfaces()
 
-        rl = []
-
-        for host in remote_list.keys():
-            l = RemoteList()
-            l.hostname = host
-            l.topics = remote_list[host]['topic']
-            l.services= remote_list[host]['service']
-            rl.append(l)
-            
-        return True, rl
+        for gateway_name in public_interfaces.keys():
+            public_interface = PublicInterface()
+            public_interface.gateway_name = gateway_name
+            interface = Interface()
+            interface.topics = public_interfaces[gateway_name]['topic']
+            interface.services = public_interfaces[gateway_name]['service']
+            public_interface.interface = interface
+            response.public_interfaces.append(public_interface)
+        return response
 
     def flipoutTopic(self,list):
         # list[0] # of channel

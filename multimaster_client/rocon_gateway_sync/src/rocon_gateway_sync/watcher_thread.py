@@ -39,7 +39,7 @@ class WatcherThread(threading.Thread):
       self.cv.acquire()
 
 #      self.checkRemoteList()
-      if self.gateway_sync.connected: 
+      if self.gateway_sync.is_connected: 
         # 1. Check all remove interfaces are still in redis server, if it is gone, unregister it
 #self.pollServer()
 
