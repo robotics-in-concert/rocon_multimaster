@@ -67,7 +67,7 @@ class HubManager(object):
             rospy.logerror("Gateway : failed connection to the hub's redis server.")
             raise
 
-    def gatewayList(self):
+    def listGateways(self):
         '''
           Return a list of the gateways (name list, not redis keys).
           e.g. ['gateway32','pirate33']

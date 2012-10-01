@@ -38,7 +38,7 @@ class Gateway():
         gateway_request_service_name = "~request"
         gateway_connect_subscriber_name = "~connect"
         
-        self.gateway_services['info'] = rospy.Service('~info',GatewayInfo,self.processGatewayInfo)
+        self.gateway_services['gateway_info'] = rospy.Service('~gateway_info',GatewayInfo,self.processGatewayInfo)
         self.gateway_services['list_public_interfaces'] = rospy.Service('~list_public_interfaces',ListPublicInterfaces,self.processListPublicInterfaces)
         
         # Optional Zeroconf Configuration
