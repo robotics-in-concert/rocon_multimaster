@@ -206,9 +206,6 @@ class Gateway():
             response.public_interfaces.append(public_interface)
         return response
 
-
-
-
     # It clears this client's information from redis-server
     def clearServer(self):
         try:

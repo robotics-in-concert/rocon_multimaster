@@ -107,13 +107,16 @@ class GatewaySync(object):
         return True, []
 
     def getTopicString(self,list):
-        l = [] 
+        l = []
         for topic in list:
-            topicinfo = self.ros_manager.getTopicInfo(topic)
+            try:
+                topicinfo = self.ros_manager.getTopicInfo(topic)
             
-            # there may exist multiple publisher
-            for info in topicinfo:
-                l.append(topic+","+info)
+                # there may exist multiple publisher
+                for info in topicinfo:
+                    l.append(topic+","+info)
+            except:
+                print "Error while looking up topic. Perhaps topic does not exist"
         return l
 
     def removePublicTopics(self,list):
@@ -157,8 +160,11 @@ class GatewaySync(object):
         list_with_node_ip = []
         for service in list:
             #print service
-            srvinfo = self.ros_manager.getServiceInfo(service)
-            list_with_node_ip.append(service+","+srvinfo)
+            try:
+                srvinfo = self.ros_manager.getServiceInfo(service)
+                list_with_node_ip.append(service+","+srvinfo)
+            except:
+                print "Error obtaining service info. Perhaps service does not exist?"
         return list_with_node_ip
 
 
@@ -265,6 +271,7 @@ class GatewaySync(object):
 
     def flipout(self,cmd,channel,list):
         cmd = json.dumps([cmd,self.unique_name] + list)
+        channel = self.hub.createKey(channel)
 
         try:
             self.hub.sendMessage(channel,cmd)
@@ -472,9 +479,9 @@ class GatewaySync(object):
         #list is channels
         for chn in list:
             if chn in self.flipped_topic_whitelist:
-              self.flipped_topic_whitelist[chn].remove('.*')
-            if chn not in self.flipped_service_whitelist:
-              self.flipped_service_whitelist[chn].remove('.*')
+              self.flipped_topic_whitelist[chn].difference_update(set(['.*']))
+            if chn in self.flipped_service_whitelist:
+              self.flipped_service_whitelist[chn].difference_update(set(['.*']))
             self.flip_public_topics.add(chn)
         return True, []
 
@@ -482,9 +489,9 @@ class GatewaySync(object):
         #list is channels
         for chn in list:
             if chn in self.flipped_topic_whitelist:
-              self.flipped_topic_whitelist[chn].remove('.*')
-            if chn not in self.flipped_service_whitelist:
-              self.flipped_service_whitelist[chn].remove('.*')
+              self.flipped_topic_whitelist[chn].difference_update(set(['.*']))
+            if chn in self.flipped_service_whitelist:
+              self.flipped_service_whitelist[chn].difference_update(set(['.*']))
             if chn in self.flip_public_topics:
                 self.flip_public_topics.remove(chn)
         return True, []
@@ -525,7 +532,9 @@ class GatewaySync(object):
         return self.allowInterface(name,whitelist,blacklist)
 
     def allowInterfaceInFlipped(self,identifier,client,name):
+        #print '  testing ' + identifier + ': ' + name + ' for ' + client
         if client in self.flip_public_topics:
+          #print '    client in public list'
           return self.allowInterfaceInPublic(identifier,name)
 
         if identifier == 'topic':
@@ -541,11 +550,15 @@ class GatewaySync(object):
         return self.allowInterface(name,whitelist,blacklist)
 
     def getFlippedClientList(self,identifier,name):
-        if identifier == 'topic':
-            list = self.flipped_topic_whitelist
-        else:
-            list = self.flipped_service_whitelist
-        return [chn for chn in list if self.allowInterfaceInFlipped(identifier,chn,name)], [chn for chn in list if not self.allowInterfaceInFlipped(identifier,chn,name)]
+        list = self.hub.listPublicInterfaces()
+        allowed_clients = []
+        not_allowed_clients = []
+        for chn in list:
+            if self.allowInterfaceInFlipped(identifier,chn,name):
+                allowed_clients.append(chn)
+            else:
+                not_allowed_clients.append(chn)
+        return [allowed_clients, not_allowed_clients]
 
     def reshapeUri(self,uri):
         if uri[len(uri)-1] is not '/':
