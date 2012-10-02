@@ -10,6 +10,9 @@ import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
 import re
 
+# local
+from .utils import connectionType, Connection
+
 ###############################################################################
 # Classes
 ###############################################################################
@@ -36,7 +39,7 @@ class RedisSubscriberThread(threading.Thread):
 # Hub Manager - Redis Implementation
 ##############################################################################
 
-class HubManager(object):
+class Hub(object):
 
     pool = None
     server = None
@@ -44,9 +47,10 @@ class HubManager(object):
     callback = None
 
     def __init__(self,pubsubcallback,name):
-        self.name = name
+        self._name = name # used to generate the unique name key later
         self.callback = pubsubcallback
         self.redis_keys = {}
+        #self.redis_keys['name'] = '' # it's a unique id generated later when connecting
         self.redis_keys['index'] = self.createKey('hub:index') # used for uniquely id'ing the gateway (client)
         self.redis_keys['gatewaylist'] = self.createKey('gatewaylist')
         self.redis_channels = {}
@@ -101,14 +105,15 @@ class HubManager(object):
 
     def registerGateway(self):
         unique_num = self.server.incr(self.redis_keys['index'])
-        client_key = 'rocon:'+self.name+str(unique_num)
-        self.server.sadd(self.redis_keys['gatewaylist'],client_key)
+        self.redis_keys['name'] = self.createKey(self._name+str(unique_num))
+        self.server.sadd(self.redis_keys['gatewaylist'],self.redis_keys['name'])
         self.pubsub.subscribe(self.redis_channels['update_topic'])
-        self.pubsub.subscribe(client_key)
+        self.pubsub.subscribe(self.redis_keys['name'])
         self.subThread = RedisSubscriberThread(self.pubsub,self.callback)
         self.subThread.start()
 
-        return client_key
+        #return self.baseName(self.redis_keys['name'])
+        return self.redis_keys['name']
 
     def unregisterGateway(self,client_key):
         try:
@@ -125,6 +130,27 @@ class HubManager(object):
             return False
         print "Client Unregistered"
         return True
+
+    ##########################################################################
+    # Public Interface
+    ##########################################################################
+
+    def advertise(self, connection):
+        '''
+          Places a topic, service or action on the public interface. On the
+          redis server, this representation will always be:
+          
+           - topic : a triple { name, type, xmlrpc node uri }
+           - service : a triple { name, rosrpc uri, xmlrpc node uri }
+           - action : ???
+        '''
+        if connectionType(connection) == Connection.topic:
+            key = self.redis_keys['name']+":topic"
+        elif connectionType(connection) == Connection.service:
+            key = self.redis_keys['name']+":service"
+        # action not yet implemented
+        self.addMembers(key,connection)
+    
 
     ##########################################################################
     # Gateway-Gateway Communications

@@ -2,21 +2,14 @@
 \mainpage
 \htmlinclude manifest.html
 
-@section Testing
+@section Definitions
 
-In one shell:
+@subsection Representations
 
-@code
-> roslaunch --port=11311 rocon_gateway_sync test_local.launch 
-@endcode
+ - topic triple   : { name, type, xmlrpc node uri } 
+                    { /chatter,std_msgs/String,http://snorriheim:35403/ }
+ - service triple : { name, rosrpc uri, xmlrpc node uri } 
+                    { /add_two_ints,rosrpc://snorriheim:59822,http://snorriheim:34035/ }
 
-@code
-> roslaunch --port=11312 rocon_gateway_sync test_local.launch 
-@endcode
-
-@section Todo
-
-Generate some test python scripts which validate things, much like the roslaunch test scripts and
-validate methods work.
 
 */

@@ -13,7 +13,7 @@ import rosgraph
 from std_msgs.msg import Empty
 
 from watcher_thread import WatcherThread
-from .hub_manager import HubManager
+from .hub import Hub
 from .ros_manager import ROSManager
 
 '''
@@ -31,10 +31,9 @@ class GatewaySync(object):
         self.unresolved_name = name # This gets used to build unique names after connection to the hub
         self.unique_name = None
         self.master_uri = None
-        self.redis_keys = {}
         self.is_connected = False
 
-        self.hub_manager = HubManager(self.processUpdate, self.unresolved_name)
+        self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.ros_manager = ROSManager()
         self.master_uri = self.ros_manager.getMasterUri()
 
@@ -49,8 +48,8 @@ class GatewaySync(object):
 
     def connectToHub(self,ip,port):
         try:
-            self.hub_manager.connect(ip,port)
-            self.unique_name = self.hub_manager.registerGateway()
+            self.hub.connect(ip,port)
+            self.unique_name = self.hub.registerGateway()
             self.is_connected = True
         except Exception as e:
             print str(e)
@@ -58,17 +57,24 @@ class GatewaySync(object):
         return True
 
     def addPublicTopics(self,list):
+        '''
+        Adds a topic triple to the public interface.
+        
+        - adds to the ros manager so it can watch for changes
+        - adds to the hub so it can be pulled by remote gateways
+        
+        @param list : list of topic triples
+        '''
         if not self.is_connected:
             rospy.logerr("Gateway : not connected to a hub.")
             return False, []
-        key = self.unique_name + ":topic"
 
         # figures out each topics node xmlrpc_uri and attach it on topic
         try:
             for l in list:
                 if self.ros_manager.addPublicInterface("topic",l):
                     print "Adding topic : " + str(l)
-                    self.hub_manager.addMembers(key,l)
+                    self.hub.advertise(l)
 
         except Exception as e:
             print str(e)
@@ -103,14 +109,14 @@ class GatewaySync(object):
         '''
             this also stop publishing topic to remote server
         '''
-#self.hub_manager.removeMembers(key,list)
+#self.hub.removeMembers(key,list)
         key = self.unique_name + ":topic"
         for l in list:
             if self.ros_manager.removePublicInterface("topic",l):
                 print "Removing topic : " + l
-                self.hub_manager.removeMembers(key,l)
+                self.hub.removeMembers(key,l)
 
-        self.hub_manager.broadcastTopicUpdate("update-removing")
+        self.hub.broadcastTopicUpdate("update-removing")
         return True, []
 
     def removePublicTopicByName(self,topic):
@@ -125,15 +131,14 @@ class GatewaySync(object):
 
     def addPublicService(self,list):
         if not self.is_connected:
-            print "It is not connected to Server"
+            rospy.logwarn("Gateway : cannot add services, gateway is not connected to the hub.")
             return False, []
 
-        key = self.unique_name + ":service"
         try:
             for l in list:
                 if self.ros_manager.addPublicInterface("service",l):
                     print "Adding Service : " + str(l)
-                    self.hub_manager.addMembers(key,l)
+                    self.hub.advertise(l)
         except Exception as e:
             print str(e)
             return False, []
@@ -167,7 +172,7 @@ class GatewaySync(object):
         for l in list:
             if self.ros_manager.removePublicInterface("service",l):
                 print "Removing service : " + l
-                self.hub_manager.removeMembers(key,l)
+                self.hub.removeMembers(key,l)
 
         return True, []
 
@@ -305,7 +310,7 @@ class GatewaySync(object):
 
 
     def clearServer(self):
-        self.hub_manager.unregisterGateway(self.unique_name)
+        self.hub.unregisterGateway(self.unique_name)
         self.ros_manager.clear()
 
     def processUpdate(self,msg):
@@ -343,7 +348,7 @@ class GatewaySync(object):
             cmd = cmd + "-" + tinfo
 
         try:
-            self.hub_manager.sendMessage(channel,cmd)
+            self.hub.sendMessage(channel,cmd)
         except Exception as e:
             return False
 
@@ -361,11 +366,11 @@ class GatewaySync(object):
 #print "Posting : " + str(msg)
         try:
             if command == "addmember":
-                self.hub_manager.addMembers(key,member)
+                self.hub.addMembers(key,member)
             elif command == "removemember":
-                self.hub_manager.removeMembers(key,member)
+                self.hub.removeMembers(key,member)
             elif command == "getmembers":
-                member_list = self.hub_manager.getMembers(key)
+                member_list = self.hub.getMembers(key)
                 return True, member_list
             else:
                 print "Error Wrong command %s",command
