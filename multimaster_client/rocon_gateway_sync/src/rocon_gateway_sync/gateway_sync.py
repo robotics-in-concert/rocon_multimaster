@@ -131,7 +131,7 @@ class GatewaySync(object):
                 print "Removing topic : " + l
                 self.hub.removeMembers(key,l)
 
-        self.hub.broadcastTopicUpdate("update-removing")
+        self.hub.broadcastTopicUpdate(json.dumps(['update','removing']))
         return True, []
 
     def removePublicTopicByName(self,topic):

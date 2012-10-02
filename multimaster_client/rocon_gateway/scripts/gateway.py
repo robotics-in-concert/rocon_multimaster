@@ -97,21 +97,21 @@ class Gateway():
         self.callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
         self.callbacks["remove_all_public"] = self.gateway_sync.removeAllPublic
      
-        callbacks["flipout_topic"] = self.gateway_sync.flipoutTopic
-        callbacks["remove_flipped_topic"] = self.gateway_sync.removeFlippedTopic
-        callbacks["add_named_flipped_topics"] = self.gateway_sync.addNamedFlippedTopics
-        callbacks["remove_named_flipped_topics"] = self.gateway_sync.removeNamedFlippedTopics
+        self.callbacks["flipout_topic"] = self.gateway_sync.flipoutTopic
+        self.callbacks["remove_flipped_topic"] = self.gateway_sync.removeFlippedTopic
+        self.callbacks["add_named_flipped_topics"] = self.gateway_sync.addNamedFlippedTopics
+        self.callbacks["remove_named_flipped_topics"] = self.gateway_sync.removeNamedFlippedTopics
 
-        callbacks["flipout_service"] = self.gateway_sync.flipoutService
-        callbacks["remove_flipped_service"] = self.gateway_sync.removeFlippedService
-        callbacks["add_named_flipped_services"] = self.gateway_sync.addNamedFlippedServices
-        callbacks["remove_named_flipped_services"] = self.gateway_sync.removeNamedFlippedServices
+        self.callbacks["flipout_service"] = self.gateway_sync.flipoutService
+        self.callbacks["remove_flipped_service"] = self.gateway_sync.removeFlippedService
+        self.callbacks["add_named_flipped_services"] = self.gateway_sync.addNamedFlippedServices
+        self.callbacks["remove_named_flipped_services"] = self.gateway_sync.removeNamedFlippedServices
 
-        callbacks["flip_all"] = self.gateway_sync.flipAll
-        callbacks["flip_all_public"] = self.gateway_sync.flipAllPublic
-        callbacks["flip_list_only"] = self.gateway_sync.flipListOnly
+        self.callbacks["flip_all"] = self.gateway_sync.flipAll
+        self.callbacks["flip_all_public"] = self.gateway_sync.flipAllPublic
+        self.callbacks["flip_list_only"] = self.gateway_sync.flipListOnly
 
-        callbacks["post"] = self.gateway_sync.post
+        self.callbacks["post"] = self.gateway_sync.post
 
 
     def parse_params(self):
