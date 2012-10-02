@@ -10,7 +10,6 @@ import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
 import re
 
-# local
 from .utils import connectionType, Connection
 
 ###############################################################################

@@ -56,24 +56,27 @@ class GatewaySync(object):
             return False
         return True
 
-    def addPublicTopics(self,list):
+    ##########################################################################
+    # Public Interface Methods
+    ##########################################################################
+    
+    def advertise(self,list):
         '''
-        Adds a topic triple to the public interface.
+        Adds a connection (topic/service/action) to the public
+        interface.
         
         - adds to the ros manager so it can watch for changes
         - adds to the hub so it can be pulled by remote gateways
         
-        @param list : list of topic triples
+        @param list : list of connection representations (usually triples)
         '''
         if not self.is_connected:
             rospy.logerr("Gateway : not connected to a hub.")
             return False, []
-
-        # figures out each topics node xmlrpc_uri and attach it on topic
         try:
             for l in list:
-                if self.ros_manager.addPublicInterface("topic",l):
-                    print "Adding topic : " + str(l)
+                if self.ros_manager.addPublicInterface(l):
+                    print "Adding connection: " + str(l)
                     self.hub.advertise(l)
 
         except Exception as e:
@@ -81,10 +84,10 @@ class GatewaySync(object):
             return False, []
 
         return True, []
-
+        
     def addPublicTopicByName(self,topic):
         list = self.getTopicString([topic])
-        return self.addPublicTopics(list)
+        return self.advertise(list)
 
     def addNamedTopics(self, list):
         print "Adding named topics: " + str(list)
@@ -129,25 +132,9 @@ class GatewaySync(object):
         self.topic_whitelist[:] = [x for x in self.topic_whitelist if x not in list]
         return True, []
 
-    def addPublicService(self,list):
-        if not self.is_connected:
-            rospy.logwarn("Gateway : cannot add services, gateway is not connected to the hub.")
-            return False, []
-
-        try:
-            for l in list:
-                if self.ros_manager.addPublicInterface("service",l):
-                    print "Adding Service : " + str(l)
-                    self.hub.advertise(l)
-        except Exception as e:
-            print str(e)
-            return False, []
-
-        return True, []
-
     def addPublicServiceByName(self,service):
         list = self.getServiceString([service])
-        return self.addPublicService(list)
+        return self.advertise(list)
 
     def addNamedServices(self, list):
         print "Adding named services: " + str(list)

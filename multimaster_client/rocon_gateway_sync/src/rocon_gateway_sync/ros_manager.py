@@ -17,6 +17,8 @@ import socket
 import os
 import threading
 
+from .utils import connectionType, Connection
+
 class ROSManager(object):
 
   # xml rpc node
@@ -196,12 +198,18 @@ class ROSManager(object):
 
 
   # return false if it is already registered
-  def addPublicInterface(self,identifier,l):
+  def addPublicInterface(self,connection):
 
-    if l in self.public_interface[identifier]:
+    if connectionType(connection) == Connection.topic:
+        identifier = "topic"
+    elif connectionType(connection) == Connection.service:
+        identifier = "service"
+    # action not yet implemented
+
+    if connection in self.public_interface[identifier]:
       return False
     else:
-      self.public_interface[identifier].append(l)
+      self.public_interface[identifier].append(connection)
       return True
 
   # return false if not registered

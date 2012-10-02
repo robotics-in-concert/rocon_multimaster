@@ -77,13 +77,13 @@ class Gateway():
                     self.zeroconf = False
 
     def setupCallbacks(self):
-        self.callbacks["add_public_topic"] = self.gateway_sync.addPublicTopics
+        self.callbacks["add_public_topic"] = self.gateway_sync.advertise
         self.callbacks["remove_public_topic"] = self.gateway_sync.removePublicTopics
 
         self.callbacks["add_named_topics"] = self.gateway_sync.addNamedTopics
         self.callbacks["remove_named_topics"] = self.gateway_sync.removeNamedTopics
 
-        self.callbacks["add_public_service"] = self.gateway_sync.addPublicService
+        self.callbacks["add_public_service"] = self.gateway_sync.advertise
         self.callbacks["remove_public_service"] = self.gateway_sync.removePublicService
         self.callbacks["add_named_services"] = self.gateway_sync.addNamedServices
         self.callbacks["remove_named_services"] = self.gateway_sync.removeNamedServices
@@ -288,8 +288,8 @@ class Gateway():
 
         # Add public topics and services
         try:
-            self.gateway_sync.addPublicTopics(self.param['local_public_topic'])
-            self.gateway_sync.addPublicService(self.param['local_public_service'])
+            self.gateway_sync.advertise(self.param['local_public_topic'])
+            self.gateway_sync.advertise(self.param['local_public_service'])
         except Exception as e:
             print str(e)
             sys.exit(0)
