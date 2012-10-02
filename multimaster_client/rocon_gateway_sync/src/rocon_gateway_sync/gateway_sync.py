@@ -186,7 +186,6 @@ class GatewaySync(object):
         return True, []
 
     def addPublicInterfaceByName(self, identifier, name):
-        print "apin"
         if identifier == "topic":
             self.addPublicTopicByName(name)
         elif identifier == "service":
@@ -199,7 +198,6 @@ class GatewaySync(object):
             self.removePublicService([string])
 
     def removePublicInterfaceByName(self,identifier,name):
-        print "rpin"
         if identifier == "topic":
             self.removePublicTopicByName(name)
         elif identifier == "service":
@@ -547,7 +545,6 @@ class GatewaySync(object):
             list = self.flipped_topic_whitelist
         else:
             list = self.flipped_service_whitelist
-
         return [chn for chn in list if self.allowInterfaceInFlipped(identifier,chn,name)], [chn for chn in list if not self.allowInterfaceInFlipped(identifier,chn,name)]
 
     def reshapeUri(self,uri):
