@@ -5,6 +5,6 @@
   <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen"/>
 
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
-    <rosparam command="load" file="$(find rocon_gateway)/config/default.yaml" />
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
   </node>
 </launch>

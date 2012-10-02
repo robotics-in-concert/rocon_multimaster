@@ -1,35 +1,8 @@
 #!/usr/bin/env python
-# Software License Agreement (BSD License)
+#       
+# License: BSD
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_sync/LICENSE 
 #
-# Copyright (c) 2012, Yujin Robot, Daniel Stonier, Jihoon Lee
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#    * Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#    * Neither the name of Yujin Robot nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
 
 import socket
 import time
@@ -42,8 +15,8 @@ import rospy
 import rosgraph
 from std_msgs.msg import Empty
 
-from cleanup_thread import CleanupThread
-from .redis_manager import RedisManager
+from watcher_thread import WatcherThread
+from .hub import Hub
 from .ros_manager import ROSManager
 
 '''
@@ -57,20 +30,18 @@ class GatewaySync(object):
     The gateway between ros system and redis server
     '''
 
-    masterlist = 'rocon:masterlist'
-    master_uri = None
-    update_topic = 'rocon:update'
-    index = 'rocon:hub:index'
-    unique_name = None
-    connected = False
+    def __init__(self, name):
+        self.unresolved_name = name # This gets used to build unique names after connection to the hub
+        self.unique_name = None
+        self.master_uri = None
+        self.is_connected = False
 
-    def __init__(self):
-        self.redis_manager = RedisManager(self.processUpdate)
+        self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.ros_manager = ROSManager()
         self.master_uri = self.ros_manager.getMasterUri()
 
         # create a thread to clean-up unavailable topics
-        self.cleanup_thread = CleanupThread(self)
+        self.watcher_thread = WatcherThread(self)
 
         # create a whitelist of named topics and services for public
         self.public_topic_whitelist = list()
@@ -86,56 +57,49 @@ class GatewaySync(object):
         #create a list of flipped triples
         self.flipped_interface_list = dict()
 
-    def connectToRedisServer(self,ip,port):
+    def connectToHub(self,ip,port):
         try:
-            self.redis_manager.connect(ip,port)
-            self.unique_name = self.redis_manager.registerClient(self.masterlist,self.index,self.update_topic)
+            self.hub.connect(ip,port)
+            self.unique_name = self.hub.registerGateway()
             print "Obtained unique name: " + self.unique_name
-            self.connected = True
+            self.is_connected = True
         except Exception as e:
             print str(e)
             return False
         return True
 
-    def getRemoteLists(self):
-        remotelist = {}
-        masterlist = self.redis_manager.getMembers(self.masterlist)
-
-        for master in masterlist:
-            remotelist[master] = {}
-            
-            # get public topic list of this master
-            key = master +":topic"
-            remotelist[master]['topic'] = self.redis_manager.getMembers(key)
-
-            # get public service list of this master
-            key = master +":service"
-            remotelist[master]['service'] = self.redis_manager.getMembers(key)
-
-        return remotelist        
-
-    def addPublicTopics(self,list):
-        if not self.connected:
-            print "It is not connected to Server"
+    ##########################################################################
+    # Public Interface Methods
+    ##########################################################################
+    
+    def advertise(self,list):
+        '''
+        Adds a connection (topic/service/action) to the public
+        interface.
+        
+        - adds to the ros manager so it can watch for changes
+        - adds to the hub so it can be pulled by remote gateways
+        
+        @param list : list of connection representations (usually triples)
+        '''
+        if not self.is_connected:
+            rospy.logerr("Gateway : not connected to a hub.")
             return False, []
-        key = self.unique_name + ":topic"
-
-        # figures out each topics node xmlrpc_uri and attach it on topic
         try:
             for l in list:
-                if self.ros_manager.addPublicInterface("topic",l):
-                    print "Adding topic : " + str(l)
-                    self.redis_manager.addMembers(key,l)
+                if self.ros_manager.addPublicInterface(l):
+                    print "Adding connection: " + str(l)
+                    self.hub.advertise(l)
 
         except Exception as e:
             print str(e)
             return False, []
 
         return True, []
-
+        
     def addPublicTopicByName(self,topic):
         list = self.getTopicString([topic])
-        return self.addPublicTopics(list)
+        return self.advertise(list)
 
     def addNamedTopics(self, list):
         print "Adding named topics: " + str(list)
@@ -153,21 +117,21 @@ class GatewaySync(object):
         return l
 
     def removePublicTopics(self,list):
-        if not self.connected:
+        if not self.is_connected:
             print "It is not connected to Server"
             return False, []
 
         '''
             this also stop publishing topic to remote server
         '''
-#self.redis_manager.removeMembers(key,list)
+#self.hub.removeMembers(key,list)
         key = self.unique_name + ":topic"
         for l in list:
             if self.ros_manager.removePublicInterface("topic",l):
                 print "Removing topic : " + l
-                self.redis_manager.removeMembers(key,l)
+                self.hub.removeMembers(key,l)
 
-        #self.redis_manager.sendMessage(self.update_topic,"update-removing")
+        self.hub.broadcastTopicUpdate("update-removing")
         return True, []
 
     def removePublicTopicByName(self,topic):
@@ -180,26 +144,9 @@ class GatewaySync(object):
         self.public_topic_whitelist[:] = [x for x in self.public_topic_whitelist if x not in list]
         return True, []
 
-    def addPublicService(self,list):
-        if not self.connected:
-            print "It is not connected to Server"
-            return False, []
-
-        key = self.unique_name + ":service"
-        try:
-            for l in list:
-                if self.ros_manager.addPublicInterface("service",l):
-                    print "Adding Service : " + str(l)
-                    self.redis_manager.addMembers(key,l)
-        except Exception as e:
-            print str(e)
-            return False, []
-
-        return True, []
-
     def addPublicServiceByName(self,service):
         list = self.getServiceString([service])
-        return self.addPublicService(list)
+        return self.advertise(list)
 
     def addNamedServices(self, list):
         print "Adding named services: " + str(list)
@@ -216,7 +163,7 @@ class GatewaySync(object):
 
 
     def removePublicService(self,list):
-        if not self.connected:
+        if not self.is_connected:
             print "It is not connected to Server"
             return False, []
 
@@ -224,7 +171,7 @@ class GatewaySync(object):
         for l in list:
             if self.ros_manager.removePublicInterface("service",l):
                 print "Removing service : " + l
-                self.redis_manager.removeMembers(key,l)
+                self.hub.removeMembers(key,l)
 
         return True, []
 
@@ -322,7 +269,7 @@ class GatewaySync(object):
         cmd = json.dumps([cmd,self.unique_name] + list)
 
         try:
-            self.redis_manager.sendMessage(channel,cmd)
+            self.hub.sendMessage(channel,cmd)
         except Exception as e:
             return False
 
@@ -614,10 +561,14 @@ class GatewaySync(object):
         return t
 
     def clearServer(self):
-        self.redis_manager.unregisterClient(self.masterlist,self.unique_name)
+        self.hub.unregisterGateway(self.unique_name)
         self.ros_manager.clear()
 
     def processUpdate(self,msg):
+        '''
+          Used as a callback for incoming requests on redis pubsub channels.
+          It gets assigned to RedisManager.callback.
+        '''
 
         try:
             msg = json.loads(msg)
@@ -646,7 +597,6 @@ class GatewaySync(object):
         except:
             print "Wrong Message : " + str(msg)
 
-
     def validateWhiteList(self,provider):
         # There is no validation method yet
 #print str(provider)
@@ -659,11 +609,11 @@ class GatewaySync(object):
 #print "Posting : " + str(msg)
         try:
             if command == "addmember":
-                self.redis_manager.addMembers(key,member)
+                self.hub.addMembers(key,member)
             elif command == "removemember":
-                self.redis_manager.removeMembers(key,member)
+                self.hub.removeMembers(key,member)
             elif command == "getmembers":
-                member_list = self.redis_manager.getMembers(key)
+                member_list = self.hub.getMembers(key)
                 return True, member_list
             else:
                 print "Error Wrong command %s",command

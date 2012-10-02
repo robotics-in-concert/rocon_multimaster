@@ -9,8 +9,11 @@
 ## Hub whitelist/blacklists - use these to control 
 ## which hubs you wish to work with.
 ## Hubs are referred to either by ip or hub name. 
-# whitelist: []
-# blacklist: []
+# hub_whitelist: []
+# hub_blacklist: []
+
+## Gateway name - this is a human readable convenience only
+# name: 'gateway'
 
 ## Static flip/request lists.
 # local_public_topic: []
