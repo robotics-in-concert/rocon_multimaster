@@ -2,7 +2,6 @@
 #       
 # License: BSD
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_sync/LICENSE 
-# Copyright (c) 2012, Yujin Robot, Daniel Stonier
 #
 
 import rospy
