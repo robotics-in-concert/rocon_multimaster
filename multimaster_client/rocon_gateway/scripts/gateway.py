@@ -97,8 +97,38 @@ class Gateway():
         self.callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
         self.callbacks["remove_all_public"] = self.gateway_sync.removeAllPublic
      
-        self.callbacks["flipout_topic"] = self.flipoutTopic
-        self.callbacks["flipout_service"] = self.flipoutService
+        self.callbacks["flipout_topic"] = self.gateway_sync.flipoutTopic
+        self.callbacks["remove_flipped_topic"] = self.gateway_sync.removeFlippedTopic
+        self.callbacks["add_named_flipped_topics"] = self.gateway_sync.addNamedFlippedTopics
+        self.callbacks["remove_named_flipped_topics"] = self.gateway_sync.removeNamedFlippedTopics
+
+        self.callbacks["flipout_service"] = self.gateway_sync.flipoutService
+        self.callbacks["remove_flipped_service"] = self.gateway_sync.removeFlippedService
+        self.callbacks["add_named_flipped_services"] = self.gateway_sync.addNamedFlippedServices
+        self.callbacks["remove_named_flipped_services"] = self.gateway_sync.removeNamedFlippedServices
+
+        self.callbacks["flip_all"] = self.gateway_sync.flipAll
+        self.callbacks["flip_all_public"] = self.gateway_sync.flipAllPublic
+        self.callbacks["flip_list_only"] = self.gateway_sync.flipListOnly
+
+        self.callbacks["post"] = self.gateway_sync.post
+
+
+    def parse_params(self):
+        self.param['hub_uri'] = rospy.get_param('~hub_uri','')
+
+        self.param['whitelist'] = rospy.get_param('~whitelist',[])
+        self.param['blacklist'] = rospy.get_param('~blacklist',[])
+
+        # Local topics and services to register redis server
+        self.param['local_public_topic'] = rospy.get_param('~local_public_topic',[])
+        self.param['local_public_service'] = rospy.get_param('~local_public_service',[])
+
+        self.param['public_named_topics'] = rospy.get_param('~public_named_topics', '')
+        self.param['public_named_topics_blacklist'] = rospy.get_param('~public_named_topics_blacklist', '.*zeroconf.*,.*gateway.*,.*rosout.*,.*parameter_descriptions,.*parameter_updates,/tf')
+
+        self.param['public_named_services'] = rospy.get_param('~public_named_services', '')
+        self.param['public_named_services_blacklist'] = rospy.get_param('~public_named_services_blacklist', '.*zeroconf.*,.*gateway.*,.*get_loggers,.*set_logger_level')
 
         self.callbacks["post"] = self.gateway_sync.post
 
@@ -164,7 +194,7 @@ class Gateway():
           Returns a list of all public interfaces found advertised on the hub.
         '''
         response = ListPublicInterfacesResponse()
-        public_interfaces = self.gateway_sync.hub_manager.listPublicInterfaces()
+        public_interfaces = self.gateway_sync.hub.listPublicInterfaces()
 
         for gateway_name in public_interfaces.keys():
             public_interface = PublicInterface()
@@ -175,43 +205,6 @@ class Gateway():
             public_interface.interface = interface
             response.public_interfaces.append(public_interface)
         return response
-
-    def flipoutTopic(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping topics
-        try:
-            num = int(list[0])
-            channels = list[1:num+1]
-            topics = list[num+1:len(list)]
-#topics = self.gateway_sync.getTopicString(topics)
-
-            for chn in channels:
-                print "Flipping out : " + str(topics) + " to " + chn
-                self.gateway_sync.flipout("flipouttopic",chn,topics)
-        except:
-            return False, []
-
-        return True, []
-
-    def flipoutService(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping services
-        try:
-            num = int(list[0])
-            channels = list[1:num+1]
-            services = list[num+1:len(list)]
-#services = self.gateway_sync.getServiceString(services)
-
-            for chn in channels:
-                print "Flipping out : " + str(services) + " to " + chn
-                self.gateway_sync.flipout("flipoutservice",chn,services)
-        except Exception as e:
-            print str(e)
-            return False, []
-        return True, []
-
 
     # It clears this client's information from redis-server
     def clearServer(self):
@@ -296,13 +289,13 @@ class Gateway():
 
         # Add named public topics and services
         if self.param['public_named_topics']:
-            self.gateway_sync.topic_whitelist.extend(self.param['public_named_topics'].split(','))
+            self.gateway_sync.addNamedTopics(self.param['public_named_topics'].split(','))
         if self.param['public_named_topics_blacklist']:
-            self.gateway_sync.topic_blacklist.extend(self.param['public_named_topics_blacklist'].split(','))
+            self.gateway_sync.public_topic_blacklist.extend(self.param['public_named_topics_blacklist'].split(','))
         if self.param['public_named_services']:
-            self.gateway_sync.service_whitelist.extend(self.param['public_named_services'].split(','))
+            self.gateway_sync.addNamedService(self.param['public_named_services'].split(','))
         if self.param['public_named_services_blacklist']:
-            self.gateway_sync.service_blacklist.extend(self.param['public_named_services_blacklist'].split(','))
+            self.gateway_sync.public_service_blacklist.extend(self.param['public_named_services_blacklist'].split(','))
 
         rospy.spin()
 
