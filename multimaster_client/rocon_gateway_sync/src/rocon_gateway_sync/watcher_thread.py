@@ -16,11 +16,10 @@ class WatcherThread(threading.Thread):
         # init thread
         threading.Thread.__init__(self)
         self.gateway_sync = gateway_sync
-        self.ros_manager = gateway_sync.ros_manager
-        self.master = self.ros_manager.master
-        self.cv = self.ros_manager.cv
-        self.pubs = self.ros_manager.pubs_node
-        self.public_interface = self.ros_manager.public_interface
+        self.ros_master = gateway_sync.ros_master
+        self.cv = self.ros_master.cv
+        self.pubs = self.ros_master.pubs_node
+        self.public_interface = self.ros_master.public_interface
     
         # dumped interface is a mapping of whitelist regex to actual topics as they
         # become available
@@ -51,7 +50,7 @@ class WatcherThread(threading.Thread):
 
 
     def checkPublicInterfaces(self):
-        pubs, _, srvs = self.master.getSystemState() 
+        pubs, _, srvs = self.ros_master.master.getSystemState() 
         self.update("topic",pubs)
         self.update("service",srvs)
 
@@ -63,14 +62,18 @@ class WatcherThread(threading.Thread):
                 llist = [x[1] for x in list if x[0] == name]
   
                 # all nodes are gone.
-                uris = [self.master.lookupNode(p) for p in llist[0]]
+                uris = [self.ros_master.master.lookupNode(p) for p in llist[0]]
                 still_exist = node_uri in uris
             except: 
                 still_exist = False
               
             # if it is not exist anymore, remove it from public interface
             if not still_exist:
+                print("not existing [%s]"%string)
                 self.gateway_sync.unadvertise([string])
+                print("unadvertised")
+            else:
+                print("existing [%s]"%string)
 
         # add/remove named interfaces to public list as necessary
         for x in list:

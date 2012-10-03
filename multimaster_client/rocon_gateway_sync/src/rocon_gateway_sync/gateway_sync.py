@@ -19,8 +19,8 @@ import rospy
 import rosgraph
 from std_msgs.msg import Empty
 
-from .hub import Hub
-from .ros_manager import ROSManager
+from .hub_api import Hub
+from .master_api import RosMaster
 from .watcher_thread import WatcherThread
 from .exceptions import GatewayError, ConnectionTypeError
 
@@ -46,8 +46,8 @@ class GatewaySync(object):
         self.is_connected = False
 
         self.hub = Hub(self.processUpdate, self.unresolved_name)
-        self.ros_manager = ROSManager()
-        self.master_uri = self.ros_manager.getMasterUri()
+        self.ros_master = RosMaster()
+        self.master_uri = self.ros_master.getMasterUri()
 
         # create a thread to clean-up unavailable topics
         self.watcher_thread = WatcherThread(self)
@@ -96,7 +96,7 @@ class GatewaySync(object):
             return False, []
         try:
             for l in list:
-                if self.ros_manager.addPublicInterface(l): # watching may repeatedly try and add, but return false if already present (not an error)
+                if self.ros_master.addPublicInterface(l): # watching may repeatedly try and add, but return false if already present (not an error)
                     self.hub.advertise(l) # can raise InvalidConnectionTypeError exceptions
                     rospy.loginfo("Gateway : added connection to the public interface [%s]"%l)
         except ConnectionTypeError as e: 
@@ -116,7 +116,7 @@ class GatewaySync(object):
             return False, []
         try:
             for l in list:
-                if self.ros_manager.removePublicInterface(l):
+                if self.ros_master.removePublicInterface(l):
                     self.hub.unadvertise(l)
                     rospy.loginfo("Gateway : removed connection from the public interface [%s]"%l)
         except ConnectionTypeError as e: 
@@ -140,7 +140,7 @@ class GatewaySync(object):
         l = []
         for topic in list:
             try:
-                topicinfo = self.ros_manager.getTopicInfo(topic)
+                topicinfo = self.ros_master.getTopicInfo(topic)
             
                 # there may exist multiple publisher
                 for info in topicinfo:
@@ -173,7 +173,7 @@ class GatewaySync(object):
         for service in list:
             #print service
             try:
-                srvinfo = self.ros_manager.getServiceInfo(service)
+                srvinfo = self.ros_master.getServiceInfo(service)
                 list_with_node_ip.append(service+","+srvinfo)
             except:
                 print "Error obtaining service info. Perhaps service does not exist?"
@@ -209,7 +209,7 @@ class GatewaySync(object):
                 topic, topictype, node_xmlrpc_uri = line.split(",")
                 topic = self.reshapeTopic(topic)
                 node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
-                if self.ros_manager.registerTopic(topic,topictype,node_xmlrpc_uri):
+                if self.ros_master.registerTopic(topic,topictype,node_xmlrpc_uri):
                     print "Adding foreign topic: " + line
         except Exception as e:
             print "In requestForeignTopic"
@@ -224,7 +224,7 @@ class GatewaySync(object):
                 service = self.reshapeTopic(service)
                 service_api = self.reshapeUri(service_api)
                 node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
-                if self.ros_manager.registerService(service,service_api,node_xmlrpc_uri):
+                if self.ros_master.registerService(service,service_api,node_xmlrpc_uri):
                     print "Adding foreign service: " + line
         except Exception as e:
             print "In requestForeignService"
@@ -239,7 +239,7 @@ class GatewaySync(object):
                 topic, topictype, node_xmlrpc_uri = line.split(",")
                 topic = self.reshapeTopic(topic)
                 node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
-                if self.ros_manager.unregisterTopic(topic,topictype,node_xmlrpc_uri):
+                if self.ros_master.unregisterTopic(topic,topictype,node_xmlrpc_uri):
                     print "Removing foreign topic: " + line
         except Exception as e:
             print "In unregisterForeignTopic"
@@ -254,7 +254,7 @@ class GatewaySync(object):
                 service = self.reshapeTopic(service)
                 service_api = self.reshapeUri(service_api)
                 node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
-                if self.ros_manager.unregisterService(service,service_api,node_xmlrpc_uri):
+                if self.ros_master.unregisterService(service,service_api,node_xmlrpc_uri):
                     print "Removing foreign service: " + line
         except Exception as e:
             print "In Unregister Foreign Service"
@@ -565,7 +565,7 @@ class GatewaySync(object):
 
     def clearServer(self):
         self.hub.unregisterGateway(self.unique_name)
-        self.ros_manager.clear()
+        self.ros_master.clear()
 
     def processUpdate(self,msg):
         '''
