@@ -564,7 +564,7 @@ class GatewaySync(object):
         return t
 
     def clearServer(self):
-        self.hub.unregisterGateway(self.unique_name)
+        self.hub.unregisterGateway()
         self.master.clear()
 
     def processUpdate(self,msg):

@@ -115,14 +115,14 @@ class Hub(object):
         #return self.baseName(self.redis_keys['name'])
         return self.redis_keys['name']
 
-    def unregisterGateway(self,client_key):
+    def unregisterGateway(self):
         try:
             pipe = self.server.pipeline()
-            topiclist = client_key +":topic"
+            topiclist = self.redis_keys['name'] +":topic"
             self.server.delete(topiclist)
-            srvlist = client_key +":service"
+            srvlist = self.redis_keys['name'] +":service"
             self.server.delete(srvlist)
-            self.server.srem(self.redis_keys['gatewaylist'],client_key)
+            self.server.srem(self.redis_keys['gatewaylist'],self.redis_keys['name'])
             pipe.execute()
             self.pubsub.unsubscribe()
         except Exception as e:
