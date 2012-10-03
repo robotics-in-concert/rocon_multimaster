@@ -78,13 +78,13 @@ class Gateway():
 
     def setupCallbacks(self):
         self.callbacks["add_public_topic"] = self.gateway_sync.advertise
-        self.callbacks["remove_public_topic"] = self.gateway_sync.removePublicTopics
+        self.callbacks["remove_public_topic"] = self.gateway_sync.unadvertise
 
         self.callbacks["add_named_topics"] = self.gateway_sync.addNamedTopics
         self.callbacks["remove_named_topics"] = self.gateway_sync.removeNamedTopics
 
         self.callbacks["add_public_service"] = self.gateway_sync.advertise
-        self.callbacks["remove_public_service"] = self.gateway_sync.removePublicService
+        self.callbacks["remove_public_service"] = self.gateway_sync.unadvertise
         self.callbacks["add_named_services"] = self.gateway_sync.addNamedServices
         self.callbacks["remove_named_services"] = self.gateway_sync.removeNamedServices
 

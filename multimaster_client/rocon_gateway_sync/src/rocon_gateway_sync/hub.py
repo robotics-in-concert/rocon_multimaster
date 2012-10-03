@@ -10,7 +10,8 @@ import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
 import re
 
-from .utils import connectionType, Connection
+from .exceptions import GatewayError, ConnectionTypeError
+from .utils import Connection, connectionTypeString
 
 ###############################################################################
 # Classes
@@ -125,9 +126,9 @@ class Hub(object):
             pipe.execute()
             self.pubsub.unsubscribe()
         except Exception as e:
-            print "Error : unregistering client"
+            rospy.logerr("Gateway : error unregistering gateway from the hub (need better error handling here).")
             return False
-        print "Client Unregistered"
+        rospy.loginfo("Gateway : unregistering gateway from the hub.")
         return True
 
     ##########################################################################
@@ -143,12 +144,22 @@ class Hub(object):
            - service : a triple { name, rosrpc uri, xmlrpc node uri }
            - action : ???
         '''
-        if connectionType(connection) == Connection.topic:
-            key = self.redis_keys['name']+":topic"
-        elif connectionType(connection) == Connection.service:
-            key = self.redis_keys['name']+":service"
-        # action not yet implemented
+        identifier = connectionTypeString(connection)
+        if identifier not in ['topic', 'service']:  # action not yet implemented
+            raise ConnectionTypeError("trying to advertise an invalid connection type on the hub [%s]"%connection)
+        key = self.redis_keys['name']+":"+identifier
         self.addMembers(key,connection)
+    
+    def unadvertise(self, connection):
+        '''
+          Removes a topic, service or action from the public interface.
+          Compare with 'advertise'.
+        '''
+        identifier = connectionTypeString(connection)
+        if identifier not in ['topic', 'service']:  # action not yet implemented
+            raise ConnectionTypeError("trying to unadvertise an invalid connection type on the hub.")
+        key = self.redis_keys['name']+":"+identifier
+        self.removeMembers(key,connection)
     
 
     ##########################################################################

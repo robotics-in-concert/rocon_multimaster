@@ -19,6 +19,7 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 Connection = enum('topic','service','action', 'invalid')
+ConnectionStrings = ['topic','service','action', 'invalid']
 
 ##############################################################################
 # Connection type handlers
@@ -46,7 +47,19 @@ def connectionType(connection):
         return Connection.topic
     # action not implemented yet
     return Connection.invalid
-    
+
+def connectionTypeString(connection):
+    '''
+      Checks a connection string representation to determine if it is a 
+      topic, service or action. Returns a string representation of the type.
+      
+                { "topic", "service", "action", "invalid" }
+        
+      @param connection : the string representation for a connection
+      @return string : the string representation for the connection type. 
+    '''
+    return ConnectionStrings[connectionType(connection)] 
+        
 
 if __name__ == "__main__":
     '''
@@ -60,3 +73,10 @@ if __name__ == "__main__":
         print "service"
     else:
         print "not service"
+    
+    print connectionTypeString('/chatter,std_msgs/String,http://snorriheim:35403/')
+    print connectionTypeString('/add_two_ints,rosrpc://snorriheim:59822,http://snorriheim:34035/')
+    print connectionTypeString('/add_two_ints,snorriheim:59822,snorriheim:34035/')
+    
+    dudette="dudette"
+    raise Exception("dude %s"%dudette)

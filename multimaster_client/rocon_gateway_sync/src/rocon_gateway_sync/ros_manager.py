@@ -17,7 +17,8 @@ import socket
 import os
 import threading
 
-from .utils import connectionType, Connection
+from .exceptions import GatewayError, GatewayException, ConnectionTypeError
+from .utils import Connection, connectionTypeString
 
 class ROSManager(object):
 
@@ -209,25 +210,27 @@ class ROSManager(object):
 
   # return false if it is already registered
   def addPublicInterface(self,connection):
+      
+      identifier = connectionTypeString(connection)
+      if identifier not in ['topic', 'service']:  # action not yet implemented
+          raise ConnectionTypeError("trying to add an invalid connection type to the public interface [%s]"%connection)
 
-    if connectionType(connection) == Connection.topic:
-        identifier = "topic"
-    elif connectionType(connection) == Connection.service:
-        identifier = "service"
-    # action not yet implemented
-
-    if connection in self.public_interface[identifier]:
-      return False
-    else:
-      self.public_interface[identifier].append(connection)
+      if connection in self.public_interface[identifier]:
+          return False
+      else:
+          self.public_interface[identifier].append(connection)
       return True
 
-  # return false if not registered
-  def removePublicInterface(self,identifier,string):
-    if not (string in self.public_interface[identifier]):
-      return False
-    else:
-      self.public_interface[identifier].remove(string)
+  def removePublicInterface(self,connection):
+
+      identifier = connectionTypeString(connection)
+      if identifier not in ['topic', 'service']:  # action not yet implemented
+          raise ConnectionTypeError("trying to remove an invalid connection type from the public interface [%s]"%connection)
+
+      if not (connection in self.public_interface[identifier]):
+          return False
+      else:
+          self.public_interface[identifier].remove(connection)
       return True
     
   def clear(self):

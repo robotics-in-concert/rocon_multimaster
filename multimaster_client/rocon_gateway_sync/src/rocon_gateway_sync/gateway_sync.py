@@ -4,6 +4,10 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_sync/LICENSE 
 #
 
+##############################################################################
+# Imports
+##############################################################################
+
 import socket
 import time
 import re
@@ -15,9 +19,14 @@ import rospy
 import rosgraph
 from std_msgs.msg import Empty
 
-from watcher_thread import WatcherThread
 from .hub import Hub
 from .ros_manager import ROSManager
+from .watcher_thread import WatcherThread
+from .exceptions import GatewayError, ConnectionTypeError
+
+##############################################################################
+# Gateway
+##############################################################################
 
 '''
     The roles of GatewaySync is below
@@ -83,20 +92,41 @@ class GatewaySync(object):
         @param list : list of connection representations (usually triples)
         '''
         if not self.is_connected:
-            rospy.logerr("Gateway : not connected to a hub.")
+            rospy.logerr("Gateway : advertise call failed [no hub connection].")
             return False, []
         try:
             for l in list:
-                if self.ros_manager.addPublicInterface(l):
-                    print "Adding connection: " + str(l)
-                    self.hub.advertise(l)
-
-        except Exception as e:
-            print str(e)
+                if self.ros_manager.addPublicInterface(l): # watching may repeatedly try and add, but return false if already present (not an error)
+                    self.hub.advertise(l) # can raise InvalidConnectionTypeError exceptions
+                    rospy.loginfo("Gateway : added connection to the public interface [%s]"%l)
+        except ConnectionTypeError as e: 
+            rospy.logerr("Gateway : %s"%str(e))
             return False, []
-
         return True, []
         
+    def unadvertise(self,list):
+        '''
+        Removes a connection (topic/service/action) from the public
+        interface.
+        
+        @param list : list of connection representations (usually stringified triples)
+        '''
+        if not self.is_connected:
+            rospy.logerr("Gateway : unadvertise call failed [no hub connection].")
+            return False, []
+        try:
+            for l in list:
+                if self.ros_manager.removePublicInterface(l):
+                    self.hub.unadvertise(l)
+                    rospy.loginfo("Gateway : removed connection from the public interface [%s]"%l)
+        except ConnectionTypeError as e: 
+            rospy.logerr("Gateway : %s"%str(e))
+            return False, []
+        
+        # inform other gateways of the change
+        self.hub.broadcastTopicUpdate(json.dumps(['update','removing']))
+        return True, []
+       
     def addPublicTopicByName(self,topic):
         list = self.getTopicString([topic])
         return self.advertise(list)
@@ -119,28 +149,10 @@ class GatewaySync(object):
                 print "Error while looking up topic. Perhaps topic does not exist"
         return l
 
-    def removePublicTopics(self,list):
-        if not self.is_connected:
-            print "It is not connected to Server"
-            return False, []
-
-        '''
-            this also stop publishing topic to remote server
-        '''
-#self.hub.removeMembers(key,list)
-        key = self.unique_name + ":topic"
-        for l in list:
-            if self.ros_manager.removePublicInterface("topic",l):
-                print "Removing topic : " + l
-                self.hub.removeMembers(key,l)
-
-        self.hub.broadcastTopicUpdate(json.dumps(['update','removing']))
-        return True, []
-
     def removePublicTopicByName(self,topic):
         # remove topics that exist, but are no longer part of the public interface
         list = self.getTopicString([topic])
-        return self.removePublicTopics(list)
+        return self.unadvertise(list)
 
     def removeNamedTopics(self, list):
         print "Removing named topics: " + str(list)
@@ -168,23 +180,10 @@ class GatewaySync(object):
         return list_with_node_ip
 
 
-    def removePublicService(self,list):
-        if not self.is_connected:
-            print "It is not connected to Server"
-            return False, []
-
-        key = self.unique_name + ":service"
-        for l in list:
-            if self.ros_manager.removePublicInterface("service",l):
-                print "Removing service : " + l
-                self.hub.removeMembers(key,l)
-
-        return True, []
-
     def removePublicServiceByName(self,service):
         # remove available services that should no longer be on the public interface
         list = self.getServiceString([service])
-        return self.removePublicService(list)
+        return self.unadvertise(list)
 
     def removeNamedServices(self, list):
         print "Removing named services: " + str(list)
@@ -196,12 +195,6 @@ class GatewaySync(object):
             self.addPublicTopicByName(name)
         elif identifier == "service":
             self.addPublicServiceByName(name)
-
-    def removePublicInterface(self,identifier,string):
-        if identifier == "topic":
-            self.removePublicTopics([string])
-        elif identifier == "service":
-            self.removePublicService([string])
 
     def removePublicInterfaceByName(self,identifier,name):
         if identifier == "topic":
