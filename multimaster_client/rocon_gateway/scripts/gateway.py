@@ -184,8 +184,8 @@ class Gateway():
             response.name = self.gateway_sync.unique_name
         else:
             response.name = self.gateway_sync.unresolved_name
-        response.public_interface.topics = self.gateway_sync.ros_manager.public_interface['topic']
-        response.public_interface.services = self.gateway_sync.ros_manager.public_interface['service']
+        response.public_interface.topics = self.gateway_sync.master.public_interface['topic']
+        response.public_interface.services = self.gateway_sync.master.public_interface['service']
         return response
         
 

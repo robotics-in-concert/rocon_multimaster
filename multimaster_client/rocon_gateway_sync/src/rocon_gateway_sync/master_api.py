@@ -20,18 +20,16 @@ import threading
 from .exceptions import GatewayError, GatewayException, ConnectionTypeError
 from .utils import Connection, connectionTypeString
 
-class RosMaster(object):
+class LocalMaster(rosgraph.Master):
 
     # xml rpc node
     node = None
     port = 0
 
     def __init__(self):
+        rosgraph.Master.__init__(self,rospy.get_name())
         rospy.loginfo("Gateway: initialising ros manager")
     
-        # Get the current node name
-        self.name = rospy.get_name()
-        self.master = rosgraph.Master(self.name)
         self.pubs_uri = {}
         self.pubs_node = {}
         self.srvs_uri = {}
@@ -41,29 +39,21 @@ class RosMaster(object):
         self.public_interface["service"] = []
         self.cv = threading.Condition()
     
-        self.getSystemState = self.master.getSystemState()
-
     def getMasterUri(self):
         return rosgraph.get_master_uri()
-
-    def getSystemState(self):
-        return self.master.getSystemState()
-  
-    def lookupNode(p):
-        return self.master.lookupNode(p)
 
     def getTopicInfo(self,topic):
         infolist = []
         topictype, _1, _2 = rostopic.get_topic_type(topic)
         try:
-            pubs, _1, _2 = self.master.getSystemState()
+            pubs, _1, _2 = self.getSystemState()
             pubs = [x for x in pubs if x[0] == topic]
 
             if not pubs:
                 raise Exception("Unknown topic %s"%topic)
 
             for p in itertools.chain(*[l for x, l in pubs]):
-                info = topictype + "," + self.master.lookupNode(p)
+                info = topictype + "," + self.lookupNode(p)
                 infolist.append(info)
       
         except Exception as e:
@@ -77,7 +67,7 @@ class RosMaster(object):
             info = ""
             srvuri = rosservice.get_service_uri(service)
             nodename = rosservice.get_service_node(service)
-            nodeuri = rosnode.get_api_uri(self.master,nodename)
+            nodeuri = rosnode.get_api_uri(self,nodename)
             info = srvuri + "," + nodeuri
         except Exception as e:
             print "Error in getServiceInfo"
@@ -183,11 +173,11 @@ class RosMaster(object):
         return name
 
     def checkIfItisLocal(self,name,uri,identifier):
-        pubs, _1, srvs = self.master.getSystemState()
+        pubs, _1, srvs = self.getSystemState()
     
         if identifier == "topic":
             for p in itertools.chain(*[l for x, l in pubs]):
-                uri_m = rostopic.get_api(self.master,p)
+                uri_m = rostopic.get_api(self,p)
                 if uri_m == uri:
                     return True
         elif identifier == "service":
@@ -196,7 +186,7 @@ class RosMaster(object):
             if not nodename:
                 return False
     
-            nodeuri = rosnode.get_api_uri(self.master,nodename)
+            nodeuri = rosnode.get_api_uri(self,nodename)
     
             if nodeuri == uri:
                 return True
