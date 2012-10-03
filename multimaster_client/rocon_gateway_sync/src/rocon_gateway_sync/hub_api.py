@@ -127,8 +127,7 @@ class Hub(object):
         self.subThread = RedisSubscriberThread(self.pubsub,self.callback)
         self.subThread.start()
 
-        #return self.baseName(self.redis_keys['name'])
-        return self.redis_keys['name']
+        return self.baseName(self.redis_keys['name'])
 
     def unregisterGateway(self):
         '''

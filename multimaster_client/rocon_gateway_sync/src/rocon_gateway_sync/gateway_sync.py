@@ -43,7 +43,7 @@ class GatewaySync(object):
 
     def __init__(self, name):
         self.unresolved_name = name # This gets used to build unique names after connection to the hub
-        self.unique_name = None
+        self.unique_name = None # single string value set after hub connection (note: it is not a redis rocon:: rooted key!)
         self.master_uri = None
         self.is_connected = False
 
