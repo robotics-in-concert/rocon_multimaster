@@ -4,6 +4,7 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_sync/LICENSE 
 #
 
+import json
 import redis
 import threading
 import roslib; roslib.load_manifest('rocon_gateway_sync')
@@ -195,6 +196,20 @@ class Hub(object):
 
     def broadcastTopicUpdate(self,msg):
         self.server.publish(self.redis_channels['update_topic'],msg)
+
+
+    ##########################################################################
+    # Flipping
+    ##########################################################################
+
+    def flip(self,cmd,channel,list):
+        cmd = json.dumps([cmd, self.redis_keys['name'] ] + list)
+        channel = self.createKey(channel)
+        try:
+            self.sendMessage(channel,cmd)
+        except Exception as e:
+            return False
+        return True
 
     ##########################################################################
     # Redis Api

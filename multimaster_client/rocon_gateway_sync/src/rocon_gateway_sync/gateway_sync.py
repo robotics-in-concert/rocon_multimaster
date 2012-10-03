@@ -264,17 +264,6 @@ class GatewaySync(object):
         
         return True, []
 
-    def flipout(self,cmd,channel,list):
-        cmd = json.dumps([cmd,self.unique_name] + list)
-        channel = self.hub.createKey(channel)
-
-        try:
-            self.hub.sendMessage(channel,cmd)
-        except Exception as e:
-            return False
-
-        return True
-
     def flipoutTopic(self,list):
         # list[0] # of channel
         # list[1:list[0]] is channels
@@ -288,7 +277,8 @@ class GatewaySync(object):
 
             for chn in channels:
                 print "Flipping out topics: " + str(topics) + " to " + chn
-                self.flipout("flipouttopic",chn,topics)
+                self.hub.flip("flipouttopic",chn,topics)
+#                self.flipout("flipouttopic",chn,topics)
         except:
             return False, []
 
