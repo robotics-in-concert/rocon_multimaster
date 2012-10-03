@@ -598,25 +598,5 @@ class GatewaySync(object):
 
         return True
 
-    def post(self,msg):
-        command, key, member = msg 
-
-#print "Posting : " + str(msg)
-        try:
-            if command == "addmember":
-                self.hub.addMembers(key,member)
-            elif command == "removemember":
-                self.hub.removeMembers(key,member)
-            elif command == "getmembers":
-                member_list = self.hub.getMembers(key)
-                return True, member_list
-            else:
-                print "Error Wrong command %s",command
-        except Exception as e:
-            print str(e)
-            return False, []
-
-        return True, []
-
     def getInfo(self):
         return self.unique_name

@@ -111,8 +111,6 @@ class Gateway():
         self.callbacks["flip_all_public"] = self.gateway_sync.flipAllPublic
         self.callbacks["flip_list_only"] = self.gateway_sync.flipListOnly
 
-        self.callbacks["post"] = self.gateway_sync.post
-
 
     def parse_params(self):
         self.param['hub_uri'] = rospy.get_param('~hub_uri','')
@@ -150,12 +148,7 @@ class Gateway():
             print str(e)
             return resp
 
-        if command == "post":
-            resp.remotelist = []
-            resp.success = success
-            resp.concertmaster_list = lists
-        else:
-            resp.success = success
+        resp.success = success
 
         return resp
 
