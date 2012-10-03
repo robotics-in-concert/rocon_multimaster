@@ -130,8 +130,6 @@ class Gateway():
         self.param['public_named_services'] = rospy.get_param('~public_named_services', '')
         self.param['public_named_services_blacklist'] = rospy.get_param('~public_named_services_blacklist', '.*zeroconf.*,.*gateway.*,.*get_loggers,.*set_logger_level')
 
-        self.callbacks["post"] = self.gateway_sync.post
-
     ##########################################################################
     # Ros Service Callbacks
     ##########################################################################

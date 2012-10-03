@@ -19,6 +19,8 @@ import rospy
 import rosgraph
 from std_msgs.msg import Empty
 
+# Local imports
+import utils
 from .hub_api import Hub
 from .master_api import LocalMaster
 from .watcher_thread import WatcherThread
@@ -207,8 +209,8 @@ class GatewaySync(object):
         try:
             for line in list:
                 topic, topictype, node_xmlrpc_uri = line.split(",")
-                topic = self.reshapeTopic(topic)
-                node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
+                topic = utils.reshapeTopic(topic)
+                node_xmlrpc_uri = utils.reshapeUri(node_xmlrpc_uri)
                 if self.master.registerTopic(topic,topictype,node_xmlrpc_uri):
                     print "Adding foreign topic: " + line
         except Exception as e:
@@ -221,9 +223,9 @@ class GatewaySync(object):
         try:
             for line in list:
                 service, service_api, node_xmlrpc_uri = line.split(",")
-                service = self.reshapeTopic(service)
-                service_api = self.reshapeUri(service_api)
-                node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
+                service = utils.reshapeTopic(service)
+                service_api = utils.reshapeUri(service_api)
+                node_xmlrpc_uri = utils.reshapeUri(node_xmlrpc_uri)
                 if self.master.registerService(service,service_api,node_xmlrpc_uri):
                     print "Adding foreign service: " + line
         except Exception as e:
@@ -237,8 +239,8 @@ class GatewaySync(object):
             for line in list:
                 print line
                 topic, topictype, node_xmlrpc_uri = line.split(",")
-                topic = self.reshapeTopic(topic)
-                node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
+                topic = utils.reshapeTopic(topic)
+                node_xmlrpc_uri = utils.reshapeUri(node_xmlrpc_uri)
                 if self.master.unregisterTopic(topic,topictype,node_xmlrpc_uri):
                     print "Removing foreign topic: " + line
         except Exception as e:
@@ -251,9 +253,9 @@ class GatewaySync(object):
         try:
             for line in list:
                 service, service_api, node_xmlrpc_uri = line.split(",")
-                service = self.reshapeTopic(service)
-                service_api = self.reshapeUri(service_api)
-                node_xmlrpc_uri = self.reshapeUri(node_xmlrpc_uri)
+                service = utils.reshapeTopic(service)
+                service_api = utils.reshapeUri(service_api)
+                node_xmlrpc_uri = utils.reshapeUri(node_xmlrpc_uri)
                 if self.master.unregisterService(service,service_api,node_xmlrpc_uri):
                     print "Removing foreign service: " + line
         except Exception as e:
@@ -552,16 +554,6 @@ class GatewaySync(object):
             else:
                 not_allowed_clients.append(chn)
         return [allowed_clients, not_allowed_clients]
-
-    def reshapeUri(self,uri):
-        if uri[len(uri)-1] is not '/':
-            uri = uri + '/'
-        return uri
-
-    def reshapeTopic(self,t):
-        if t[0] is not '/':
-            t = '/' + t
-        return t
 
     def clearServer(self):
         self.hub.unregisterGateway()

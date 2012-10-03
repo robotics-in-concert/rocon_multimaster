@@ -11,7 +11,37 @@
 import re
 
 ##############################################################################
-# Enums
+# Ros string utilities
+##############################################################################
+
+def reshapeUri(uri):
+    '''
+      Correct human vagarities, make sure the string always ends with a '/'.
+      
+      @param uri: a simple uri
+      @type  uri: str
+      @return: uri string with a trailing slash
+      @rtype: str
+    '''
+    if uri[len(uri)-1] is not '/':
+        uri = uri + '/'
+    return uri
+
+def reshapeTopic(t):
+    '''
+      Correct human vagarities, make sure the topic name always starts with a '/'.
+      
+      @param t: a simple topic name
+      @type  t: str
+      @return: properly namespaced topic string
+      @rtype: str
+    '''
+    if t[0] is not '/':
+        t = '/' + t
+    return t
+
+##############################################################################
+# Connections - usually our wierd triple style string representations.
 ##############################################################################
 
 def enum(*sequential, **named):
@@ -20,10 +50,6 @@ def enum(*sequential, **named):
 
 Connection = enum('topic','service','action', 'invalid')
 ConnectionStrings = ['topic','service','action', 'invalid']
-
-##############################################################################
-# Connection type handlers
-##############################################################################
 
 def connectionType(connection):
     '''

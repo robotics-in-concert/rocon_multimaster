@@ -104,6 +104,20 @@ class Hub(object):
     ##########################################################################
 
     def registerGateway(self):
+        '''
+          Register a gateway with the hub. Note that you must have already
+          connected before calling this function.
+          
+          On registration, the hub will provide a unique identifier number
+          which will be appended to the suggested name of this gateway to 
+          ensure a unique id string and key for this gateway.
+          
+          @return: success or failure of the operation
+          @rtype: bool
+          
+          @todo - maybe merge with 'connect', or at the least check if it
+          is actually connected here first.
+        '''
         unique_num = self.server.incr(self.redis_keys['index'])
         self.redis_keys['name'] = self.createKey(self._name+str(unique_num))
         self.server.sadd(self.redis_keys['gatewaylist'],self.redis_keys['name'])
@@ -116,6 +130,12 @@ class Hub(object):
         return self.redis_keys['name']
 
     def unregisterGateway(self):
+        '''
+          Remove all gateway info from the hub.
+          
+          @return: success or failure of the operation
+          @rtype: bool
+        '''
         try:
             pipe = self.server.pipeline()
             topiclist = self.redis_keys['name'] +":topic"
@@ -143,6 +163,10 @@ class Hub(object):
            - topic : a triple { name, type, xmlrpc node uri }
            - service : a triple { name, rosrpc uri, xmlrpc node uri }
            - action : ???
+           
+          @param connection: representation of a connection (topic, service, action)
+          @type  connection: str
+          @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
         identifier = connectionTypeString(connection)
         if identifier not in ['topic', 'service']:  # action not yet implemented
@@ -153,7 +177,10 @@ class Hub(object):
     def unadvertise(self, connection):
         '''
           Removes a topic, service or action from the public interface.
-          Compare with 'advertise'.
+          
+          @param connection: representation of a connection (topic, service, action)
+          @type  connection: str
+          @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
         identifier = connectionTypeString(connection)
         if identifier not in ['topic', 'service']:  # action not yet implemented
