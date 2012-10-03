@@ -571,10 +571,6 @@ class GatewaySync(object):
             provider = msg[1]
             rest = msg[2:len(msg)]
 
-            if not self.validateWhiteList(provider):
-                print str(msg) + "couldn't pass the white list validation"
-                return
-
             if cmd == "flipouttopic":
                 self.requestForeignTopic(rest)
             elif cmd == "flipoutservice":
@@ -591,12 +587,6 @@ class GatewaySync(object):
                 print "error"
         except:
             print "Wrong Message : " + str(msg)
-
-    def validateWhiteList(self,provider):
-        # There is no validation method yet
-#print str(provider)
-
-        return True
 
     def getInfo(self):
         return self.unique_name
