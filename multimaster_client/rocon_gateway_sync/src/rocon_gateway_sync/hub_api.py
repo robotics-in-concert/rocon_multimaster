@@ -5,6 +5,7 @@
 #
 
 import json
+import collections
 import redis
 import threading
 import roslib; roslib.load_manifest('rocon_gateway_sync')
@@ -22,8 +23,6 @@ class RedisSubscriberThread(threading.Thread):
     '''
       Tunes into the redis channels that have been subscribed to and
       calls the apropriate callbacks.
-      
-      Note, the callbacks are from GatewaySync's processUpdate method.
     '''
     def __init__(self,pubsub,callback):
         threading.Thread.__init__(self)
@@ -79,7 +78,7 @@ class Hub(object):
         gateway_keys = self.getMembers(self.redis_keys['gatewaylist'])
         gateway_list = []
         for gateway in gateway_keys:
-            gateway_list.append(self.baseName(key))
+            gateway_list.append(self.baseName(gateway))
         return gateway_list
 
     def listPublicInterfaces(self):
@@ -124,7 +123,7 @@ class Hub(object):
         self.server.sadd(self.redis_keys['gatewaylist'],self.redis_keys['name'])
         self.pubsub.subscribe(self.redis_channels['update_topic'])
         self.pubsub.subscribe(self.redis_keys['name'])
-        self.subThread = RedisSubscriberThread(self.pubsub,self.callback)
+        self.subThread = RedisSubscriberThread(self.pubsub,self.processUpdate)
         self.subThread.start()
 
         return self.baseName(self.redis_keys['name'])
@@ -196,16 +195,41 @@ class Hub(object):
     def broadcastTopicUpdate(self,msg):
         self.server.publish(self.redis_channels['update_topic'],msg)
 
+    def processUpdate(self,msg):
+        '''
+          Used as a callback for incoming requests on redis pubsub channels.
+          Formats the message and sends the information to gateway_sync.
+        '''
+
+        try: 
+            contents = self.deserialize(msg)
+            cmd = contents[0]
+            provider = self.extractKey(contents[1])
+            info = contents[2]
+            self.callback(cmd, provider, info)
+        except:
+            rospy.logerr("Gateway : Unable to process message from foreign gateway")
 
     ##########################################################################
     # Flipping
     ##########################################################################
 
-    def flip(self,cmd,channel,list):
-        cmd = json.dumps([cmd, self.redis_keys['name'] ] + list)
-        channel = self.createKey(channel)
+    def flip(self,gateway,list):
+        data = ["flip", self.redis_keys['name'], list];
+        cmd = self.serialize(data)
+        gateway = self.createKey(gateway)
         try:
-            self.sendMessage(channel,cmd)
+            self.sendMessage(gateway,cmd)
+        except Exception as e:
+            return False
+        return True
+
+    def unflip(self,gateway,list):
+        data = ["unflip", self.redis_keys['name'], list];
+        cmd = self.serialize(data)
+        gateway = self.createKey(gateway)
+        try:
+            self.sendMessage(gateway,cmd)
         except Exception as e:
             return False
         return True
@@ -259,7 +283,7 @@ class Hub(object):
           Extract the specified redis key name from our pseudo redis database.
         '''
         if re.match('rocon:',key): # checks if leading rocon: is found
-            re.sub(r'rocon:','',key)
+            return re.sub(r'rocon:','',key)
         else:
             return key
     
@@ -269,3 +293,27 @@ class Hub(object):
           e.g. rocon:key:pirate24 -> pirate24
         '''
         return key.split(':')[-1]
+
+    ##########################################################################
+    # Redis serialization/deserialization Functions - should push out
+    ##########################################################################
+
+    def convert(self,data):
+        '''
+          Convert unicode to standard string (Not sure how necessary this is)
+          http://stackoverflow.com/questions/1254454/fastest-way-to-convert-a-dicts-keys-values-from-unicode-to-str
+        '''
+        if isinstance(data, unicode):
+            return str(data)
+        elif isinstance(data, collections.Mapping):
+            return dict(map(self.convert, data.iteritems()))
+        elif isinstance(data, collections.Iterable):
+            return type(data)(map(self.convert, data))
+        else:
+            return data
+
+    def serialize(self,data):
+        return json.dumps(data)
+
+    def deserialize(self,str_msg):
+        return self.convert(json.loads(str_msg))

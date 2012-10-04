@@ -18,7 +18,7 @@ import os
 import threading
 
 from .exceptions import GatewayError, GatewayException, ConnectionTypeError
-from .utils import Connection, connectionTypeString
+from .utils import Connection, connectionTypeString, connectionType
 
 class LocalMaster(rosgraph.Master):
 
@@ -78,11 +78,11 @@ class LocalMaster(rosgraph.Master):
     def registerTopic(self,topic,topictype,uri):
         try:
             if self.checkIfItisLocal(topic,uri,"topic"):
-                print "It is local topic"
+                rospy.logerr("Gateway : Topic triple available locally")
                 return False
        
             node_name = self.getAnonymousNodeName(topic)    
-            print "New node name = " + str(node_name)
+            rospy.logerr("Gateway : Starting new node [%s] for topic [%s]"%(node_name,topic))
 
             # Initialize if it is a new topic
             if topic not in self.pubs_uri.keys():
@@ -108,10 +108,10 @@ class LocalMaster(rosgraph.Master):
     def registerService(self,service,service_api,node_xmlrpc_uri):
         try:                                                  
             if self.checkIfItisLocal(service,node_xmlrpc_uri,"service"):
-                print "It is local service"
+                rospy.logerr("Gateway : Service triple available locally")
                 return False
             node_name = self.getAnonymousNodeName(service)    
-            print "New node name = " + str(node_name)
+            rospy.loginfo("Gateway : Starting new node [%s] for service [%s]"%(node_name,service))
 
             # Initialize if it is a new topic
             if service not in self.srvs_uri.keys():
@@ -132,6 +132,15 @@ class LocalMaster(rosgraph.Master):
             raise
 
         return True
+
+    def register(self,connection):
+        if connectionType(connection) == Connection.invalid:
+            raise ConnectionTypeError("trying to register an invalid connection type [%s]"%connection)
+        components = connection.split(',')
+        if connectionType(connection) == Connection.topic:
+            self.registerTopic(components[0],components[1],components[2])
+        elif connectionType(connection) == Connection.service:
+            self.registerService(components[0],components[1],components[2])
 
     def unregisterTopic(self,topic,topictype,node_uri):
         try:
@@ -166,6 +175,15 @@ class LocalMaster(rosgraph.Master):
             print "Failed in unregister Service"
             raise
         return True
+
+    def unregister(self,connection):
+        if connectionType(connection) == Connection.invalid:
+            raise ConnectionTypeError("trying to unregister an invalid connection type [%s]"%connection)
+        components = connection.split(',')
+        if connectionType(connection) == Connection.topic:
+            self.unregisterTopic(components[0],components[1],components[2])
+        elif connectionType(connection) == Connection.service:
+            self.unregisterService(components[0],components[1],components[2])
 
     def getAnonymousNodeName(self,topic):
         t = topic[1:len(topic)]

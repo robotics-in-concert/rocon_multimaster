@@ -89,22 +89,22 @@ class Gateway():
         self.callbacks["add_named_services"] = self.gateway_sync.addNamedServices
         self.callbacks["remove_named_services"] = self.gateway_sync.removeNamedServices
 
-        self.callbacks["register_foreign_topic"] = self.gateway_sync.requestForeignTopic
-        self.callbacks["unregister_foreign_topic"] = self.gateway_sync.unregisterForeignTopic
+        self.callbacks["register_foreign_topic"] = self.gateway_sync.pull
+        self.callbacks["unregister_foreign_topic"] = self.gateway_sync.unpull
 
-        self.callbacks["register_foreign_service"] = self.gateway_sync.requestForeignService
-        self.callbacks["unregister_foreign_service"] = self.gateway_sync.unregisterForeignService
+        self.callbacks["register_foreign_service"] = self.gateway_sync.pull
+        self.callbacks["unregister_foreign_service"] = self.gateway_sync.unpull
 
         self.callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
         self.callbacks["remove_all_public"] = self.gateway_sync.removeAllPublic
      
-        self.callbacks["flipout_topic"] = self.gateway_sync.flipoutTopic
-        self.callbacks["remove_flipped_topic"] = self.gateway_sync.removeFlippedTopic
+        self.callbacks["flipout_topic"] = self.gateway_sync.oldFlipWrapper
+        self.callbacks["remove_flipped_topic"] = self.gateway_sync.oldUnflipWrapper
         self.callbacks["add_named_flipped_topics"] = self.gateway_sync.addNamedFlippedTopics
         self.callbacks["remove_named_flipped_topics"] = self.gateway_sync.removeNamedFlippedTopics
 
-        self.callbacks["flipout_service"] = self.gateway_sync.flipoutService
-        self.callbacks["remove_flipped_service"] = self.gateway_sync.removeFlippedService
+        self.callbacks["flipout_service"] = self.gateway_sync.oldFlipWrapper
+        self.callbacks["remove_flipped_service"] = self.gateway_sync.oldUnflipWrapper
         self.callbacks["add_named_flipped_services"] = self.gateway_sync.addNamedFlippedServices
         self.callbacks["remove_named_flipped_services"] = self.gateway_sync.removeNamedFlippedServices
 
