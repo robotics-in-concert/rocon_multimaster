@@ -19,7 +19,7 @@ class WatcherThread(threading.Thread):
         self.master = gateway_sync.master
         self.cv = self.master.cv
         self.pubs = self.master.pubs_node
-        self.public_interface = self.master.public_interface
+        self.public_interface = gateway_sync.public_interface
     
         # dumped interface is a mapping of whitelist regex to actual topics as they
         # become available
@@ -54,7 +54,7 @@ class WatcherThread(threading.Thread):
         self.update("service",srvs)
 
     def update(self,identifier,list):
-        for string in self.public_interface[identifier]:
+        for string in self.public_interface.interface[identifier]:
             name, _, node_uri = string.split(",")
             still_exist = False
             try:
@@ -63,7 +63,7 @@ class WatcherThread(threading.Thread):
                 # all nodes are gone.
                 uris = [self.master.lookupNode(p) for p in llist[0]]
                 still_exist = node_uri in uris
-            except: 
+            except:
                 still_exist = False
               
             # if it is not exist anymore, remove it from public interface

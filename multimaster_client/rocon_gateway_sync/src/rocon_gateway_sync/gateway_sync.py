@@ -24,6 +24,7 @@ from .hub_api import Hub
 from .master_api import LocalMaster
 from .watcher_thread import WatcherThread
 from .exceptions import GatewayError, ConnectionTypeError
+from .public_interface import PublicInterface
 
 ##############################################################################
 # Gateway
@@ -46,6 +47,7 @@ class GatewaySync(object):
         self.master_uri = None
         self.is_connected = False
 
+        self.public_interface = PublicInterface()
         self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.master = LocalMaster()
         self.master_uri = self.master.getMasterUri()
@@ -71,7 +73,6 @@ class GatewaySync(object):
         try:
             self.hub.connect(ip,port)
             self.unique_name = self.hub.registerGateway()
-            print "Obtained unique name: " + self.unique_name
             self.is_connected = True
         except Exception as e:
             print str(e)
@@ -97,7 +98,7 @@ class GatewaySync(object):
             return False, []
         try:
             for l in list:
-                if self.master.addPublicInterface(l): # watching may repeatedly try and add, but return false if already present (not an error)
+                if self.public_interface.add(l): # watching may repeatedly try and add, but return false if already present (not an error)
                     self.hub.advertise(l) # can raise InvalidConnectionTypeError exceptions
                     rospy.loginfo("Gateway : added connection to the public interface [%s]"%l)
         except ConnectionTypeError as e: 
@@ -117,7 +118,7 @@ class GatewaySync(object):
             return False, []
         try:
             for l in list:
-                if self.master.removePublicInterface(l):
+                if self.public_interface.remove(l):
                     self.hub.unadvertise(l)
                     rospy.loginfo("Gateway : removed connection from the public interface [%s]"%l)
         except ConnectionTypeError as e: 
@@ -128,6 +129,10 @@ class GatewaySync(object):
         # Tho following command needs to be thought out a bit more
         # self.hub.broadcastTopicUpdate(json.dumps(['update','removing']))
         return True, []
+
+    ##########################################################################
+    # Flip Interface Methods
+    ##########################################################################
 
     def flip(self,gateways,list):
         '''
@@ -167,11 +172,20 @@ class GatewaySync(object):
             self.hub.unflip(gateway,list)
         return True, []
 
+    ##########################################################################
+    # Pulling Methods
+    ##########################################################################
+
     def pull(self,list):
         '''
-        Registers connections (topic/service/action) to a foreign gateway
+        Registers connections (topic/service/action) on a foreign gateway's
+        public interface with the local master.
+
+        @todo - this can probably be almost passed directly back and forth form
+        the master api itself.
 
         @param list : list of connection representations (usually stringified triples)
+        @type list of str
         '''
         try:
             for l in list:
@@ -184,9 +198,14 @@ class GatewaySync(object):
 
     def unpull(self,list):
         '''
-        Unregisters connections (topic/service/action) from a foreign gateway
+        Unregisters connections (topic/service/action) on a foreign gateway's
+        public interface with the local master.
+        
+        @todo - this can probably be almost passed directly back and forth form
+        the master api itself.
 
-        @param list : list of connection representations (usually stringified triples)
+        @param list : connection representations (usually stringified triples)
+        @type list of str
         '''
         try:
             for l in list:

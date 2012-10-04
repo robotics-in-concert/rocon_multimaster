@@ -21,10 +21,12 @@ from .exceptions import GatewayError, GatewayException, ConnectionTypeError
 from .utils import Connection, connectionTypeString, connectionType
 
 class LocalMaster(rosgraph.Master):
-
-    # xml rpc node
-    node = None
-    port = 0
+    '''
+      Representing a ros master (local ros master). Just contains a 
+      few utility methods for retrieving master related information as well
+      as handles for registering and unregistering connections that have 
+      been pulled or flipped in from another gateway.
+    '''
 
     def __init__(self):
         rosgraph.Master.__init__(self,rospy.get_name())
@@ -34,10 +36,11 @@ class LocalMaster(rosgraph.Master):
         self.pubs_node = {}
         self.srvs_uri = {}
         self.srvs_node = {}
-        self.public_interface = {}
-        self.public_interface["topic"] = []
-        self.public_interface["service"] = []
         self.cv = threading.Condition()
+
+    ##########################################################################
+    # Master utility methods
+    ##########################################################################
     
     def getMasterUri(self):
         return rosgraph.get_master_uri()
@@ -75,6 +78,37 @@ class LocalMaster(rosgraph.Master):
 
         return info
 
+    def getAnonymousNodeName(self,topic):
+        t = topic[1:len(topic)]
+        name = roslib.names.anonymous_name(t)
+        return name
+
+    def checkIfItisLocal(self,name,uri,identifier):
+        pubs, _1, srvs = self.getSystemState()
+    
+        if identifier == "topic":
+            for p in itertools.chain(*[l for x, l in pubs]):
+                uri_m = rostopic.get_api(self,p)
+                if uri_m == uri:
+                    return True
+        elif identifier == "service":
+            nodename = rosservice.get_service_node(name)
+        
+            if not nodename:
+                return False
+    
+            nodeuri = rosnode.get_api_uri(self,nodename)
+    
+            if nodeuri == uri:
+                return True
+        else:
+            print "Wrong Identifier in checkIfItisLocal"
+        return False
+
+    ##########################################################################
+    # Pull methods - register/unregister pulls/unpulls with local master
+    ##########################################################################
+    
     def registerTopic(self,topic,topictype,uri):
         try:
             if self.checkIfItisLocal(topic,uri,"topic"):
@@ -185,59 +219,10 @@ class LocalMaster(rosgraph.Master):
         elif connectionType(connection) == Connection.service:
             self.unregisterService(components[0],components[1],components[2])
 
-    def getAnonymousNodeName(self,topic):
-        t = topic[1:len(topic)]
-        name = roslib.names.anonymous_name(t)
-        return name
+    ##########################################################################
+    # Other
+    ##########################################################################
 
-    def checkIfItisLocal(self,name,uri,identifier):
-        pubs, _1, srvs = self.getSystemState()
-    
-        if identifier == "topic":
-            for p in itertools.chain(*[l for x, l in pubs]):
-                uri_m = rostopic.get_api(self,p)
-                if uri_m == uri:
-                    return True
-        elif identifier == "service":
-            nodename = rosservice.get_service_node(name)
-        
-            if not nodename:
-                return False
-    
-            nodeuri = rosnode.get_api_uri(self,nodename)
-    
-            if nodeuri == uri:
-                return True
-        else:
-            print "Wrong Identifier in checkIfItisLocal"
-        return False
-
-
-  # return false if it is already registered
-    def addPublicInterface(self,connection):
-      
-        identifier = connectionTypeString(connection)
-        if identifier not in ['topic', 'service']:  # action not yet implemented
-            raise ConnectionTypeError("trying to add an invalid connection type to the public interface [%s]"%connection)
-
-        if connection in self.public_interface[identifier]:
-            return False
-        else:
-            self.public_interface[identifier].append(connection)
-        return True
-
-    def removePublicInterface(self,connection):
-
-        identifier = connectionTypeString(connection)
-        if identifier not in ['topic', 'service']:  # action not yet implemented
-            raise ConnectionTypeError("trying to remove an invalid connection type from the public interface [%s]"%connection)
-
-        if not (connection in self.public_interface[identifier]):
-            return False
-        else:
-            self.public_interface[identifier].remove(connection)
-        return True
-    
     def clear(self):
         self.pubs_node = {}
         self.pubs_uri = {}

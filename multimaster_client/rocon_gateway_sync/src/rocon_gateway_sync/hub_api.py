@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env pythonupdate
 #       
 # License: BSD
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_sync/LICENSE 
@@ -273,7 +273,7 @@ class Hub(object):
         '''
           Root the specified redis key name in our pseudo redis database.
         '''
-        if re.match('rocon:',key): # checks if leading rocon: is found
+        if re.match('rocon:',key): # checks if leading rocon: is foundupdate
             return key
         else:
             return 'rocon:'+key
