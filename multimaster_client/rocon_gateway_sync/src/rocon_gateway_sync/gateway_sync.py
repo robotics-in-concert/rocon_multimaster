@@ -12,7 +12,6 @@ import socket
 import time
 import re
 import itertools
-import json
 
 import roslib; roslib.load_manifest('rocon_gateway_sync')
 import rospy
@@ -126,8 +125,89 @@ class GatewaySync(object):
             return False, []
         
         # inform other gateways of the change
-        self.hub.broadcastTopicUpdate(json.dumps(['update','removing']))
+        # Tho following command needs to be thought out a bit more
+        # self.hub.broadcastTopicUpdate(json.dumps(['update','removing']))
         return True, []
+
+    def flip(self,gateways,list):
+        '''
+        Flips a connection (topic/service/action) to a foreign gateway.
+
+        @param gateways : list of gateways to flip to (all if empty)
+        @param list : list of connection representations (usually stringified triples)
+        '''
+        if not self.is_connected:
+            rospy.logerr("Gateway : flip call failed [no hub connection].")
+            return False, []
+        if len(gateways) == 0:
+            gateways = self.hub.listGateways()
+            gateways = [x for x in gateways if x != self.unique_name]
+        for gateway in gateways:
+            if gateway == self.unique_name:
+                rospy.logerr("Gateway : cannot flip to self [%s]"%gateway)
+                continue
+            rospy.loginfo("Gateway : flipping connections %s to gateway [%s]"%(str(list),gateway))
+            self.hub.flip(gateway,list)
+        return True, [] 
+
+    def unflip(self,gateways,list):
+        '''
+        Removes flipped connection (topic/service/action) to a foreign gateway
+
+        @param gateways : list of gateways to flip to (all if empty)
+        @param list : list of connection representations (usually stringified triples)
+        '''
+        if not self.is_connected:
+            rospy.logerr("Gateway : unflip call failed [no hub connection].")
+            return False, []
+        if len(gateways) == 0:
+            gateways = self.hub.listGateways()
+        for gateway in gateways:
+            rospy.loginfo("Gateway : removing flipped connections [%s] to gateway [%s]"%(str(list),gateway))
+            self.hub.unflip(gateway,list)
+        return True, []
+
+    def pull(self,list):
+        '''
+        Registers connections (topic/service/action) to a foreign gateway
+
+        @param list : list of connection representations (usually stringified triples)
+        '''
+        try:
+            for l in list:
+                if self.master.register(l):
+                    rospy.loginfo("Gateway : adding foreign connection [%s]"%l)
+        except Exception as e: 
+            rospy.logerr("Gateway : %s"%str(e))
+            return False, []
+        return True, []
+
+    def unpull(self,list):
+        '''
+        Unregisters connections (topic/service/action) from a foreign gateway
+
+        @param list : list of connection representations (usually stringified triples)
+        '''
+        try:
+            for l in list:
+                if self.master.unregister(l):
+                    rospy.loginfo("Gateway : removed foreign connection [%s]"%l)
+        except Exception as e: 
+            rospy.logerr("Gateway : %s"%str(e))
+            return False, []
+        return True, []
+
+    def oldFlipWrapper(self,list):
+        num = int(list[0])
+        gateways = list[1:num+1]
+        flip_list = list[num+1:len(list)]
+        return self.flip(gateways,flip_list)
+
+    def oldUnflipWrapper(self,list):
+        num = int(list[0])
+        gateways = list[1:num+1]
+        unflip_list = list[num+1:len(list)]
+        return self.unflip(gateways,unflip_list)
        
     def addPublicTopicByName(self,topic):
         list = self.getTopicString([topic])
@@ -204,86 +284,6 @@ class GatewaySync(object):
         elif identifier == "service":
             self.removePublicServiceByName(name)
 
-    def requestForeignTopic(self,list): 
-
-        try:
-            for line in list:
-                topic, topictype, node_xmlrpc_uri = line.split(",")
-                topic = utils.reshapeTopic(topic)
-                node_xmlrpc_uri = utils.reshapeUri(node_xmlrpc_uri)
-                if self.master.registerTopic(topic,topictype,node_xmlrpc_uri):
-                    print "Adding foreign topic: " + line
-        except Exception as e:
-            print "In requestForeignTopic"
-            raise
-        
-        return True, []
-
-    def requestForeignService(self,list): 
-        try:
-            for line in list:
-                service, service_api, node_xmlrpc_uri = line.split(",")
-                service = utils.reshapeTopic(service)
-                service_api = utils.reshapeUri(service_api)
-                node_xmlrpc_uri = utils.reshapeUri(node_xmlrpc_uri)
-                if self.master.registerService(service,service_api,node_xmlrpc_uri):
-                    print "Adding foreign service: " + line
-        except Exception as e:
-            print "In requestForeignService"
-            raise
-        
-        return True, []
-
-    def unregisterForeignTopic(self,list):
-        try:
-            for line in list:
-                print line
-                topic, topictype, node_xmlrpc_uri = line.split(",")
-                topic = utils.reshapeTopic(topic)
-                node_xmlrpc_uri = utils.reshapeUri(node_xmlrpc_uri)
-                if self.master.unregisterTopic(topic,topictype,node_xmlrpc_uri):
-                    print "Removing foreign topic: " + line
-        except Exception as e:
-            print "In unregisterForeignTopic"
-            raise
-            
-        return True, []
-
-    def unregisterForeignService(self,list):
-        try:
-            for line in list:
-                service, service_api, node_xmlrpc_uri = line.split(",")
-                service = utils.reshapeTopic(service)
-                service_api = utils.reshapeUri(service_api)
-                node_xmlrpc_uri = utils.reshapeUri(node_xmlrpc_uri)
-                if self.master.unregisterService(service,service_api,node_xmlrpc_uri):
-                    print "Removing foreign service: " + line
-        except Exception as e:
-            print "In Unregister Foreign Service"
-            raise
-        
-        return True, []
-
-    def flipoutTopic(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping topics
-        try:
-            num = int(list[0])
-            channels = list[1:num+1]
-            topics = list[num+1:len(list)]
-            if num == 0 or len(topics) == 0:
-                return False, []
-
-            for chn in channels:
-                print "Flipping out topics: " + str(topics) + " to " + chn
-                self.hub.flip("flipouttopic",chn,topics)
-#                self.flipout("flipouttopic",chn,topics)
-        except:
-            return False, []
-
-        return True, []
-
     def addNamedFlippedTopics(self, list):
         # list[0] # of channel
         # list[1:list[0]] is channels
@@ -306,26 +306,7 @@ class GatewaySync(object):
             add_topic_triples = [x for x in topic_triples if x not in self.flipped_interface_list[client]]
             self.flipped_interface_list[client].update(set(add_topic_triples))
             topic_list = list(itertools.chain.from_iterable([[1, client], add_topic_triples]))
-            self.flipoutTopic(topic_list)
-
-    def removeFlippedTopic(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping topics
-        try:
-            num = int(list[0])
-            channels = list[1:num+1]
-            topics = list[num+1:len(list)]
-            if num == 0 or len(topics) == 0:
-                return False, []
-
-            for chn in channels:
-                print "Removing fipped out topics: " + str(topics) + " to " + chn
-                self.flipout("removeflippedtopic",chn,topics)
-        except:
-            return False, []
-
-        return True, []
+            self.flip(topic_list)
 
     def removeFlippedTopicByName(self,clients,name):
         topic_triples = self.getTopicString([name])
@@ -335,7 +316,7 @@ class GatewaySync(object):
             delete_topic_triples = [x for x in topic_triples if x in self.flipped_interface_list[client]]
             self.flipped_interface_list[client].difference_update(set(delete_topic_triples))
             topic_list = list(itertools.chain.from_iterable([[1, client], delete_topic_triples]))
-            self.removeFlippedTopic(topic_list)
+            self.unflip(topic_list)
 
     def removeNamedFlippedTopics(self,list):
         # list[0] # of channel
@@ -350,25 +331,6 @@ class GatewaySync(object):
                 self.flipped_topic_whitelist[chn].difference_update(set(topics))
         return True, []
 
-    def flipoutService(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping services
-        try:
-            num = int(list[0])
-            channels = list[1:num+1]
-            services = list[num+1:len(list)]
-            if num == 0 or len(services) == 0:
-                return False, []
-
-            for chn in channels:
-                print "Flipping out services: " + str(services) + " to " + chn
-                self.flipout("flipoutservice",chn,services)
-        except Exception as e:
-            print str(e)
-            return False, []
-        return True, []
-
     def addFlippedServiceByName(self,clients,name):
         service_triples = self.getServiceString([name])
         for client in clients:
@@ -377,7 +339,7 @@ class GatewaySync(object):
             add_service_triples = [x for x in service_triples if x not in self.flipped_interface_list[client]]
             self.flipped_interface_list[client].update(set(add_service_triples))
             service_list = list(itertools.chain.from_iterable([[1, client], add_service_triples]))
-            self.flipoutService(service_list)
+            self.flip(service_list)
 
     def addNamedFlippedServices(self, list):
         # list[0] # of channel
@@ -393,24 +355,6 @@ class GatewaySync(object):
             self.flipped_service_whitelist[chn].update(set(services))
         return True, []
 
-    def removeFlippedService(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping services
-        try:
-            num = int(list[0])
-            channels = list[1:num+1]
-            services = list[num+1:len(list)]
-            if num == 0 or len(services) == 0:
-                return False, []
-
-            for chn in channels:
-                print "Removing flipped out services: " + str(services) + " to " + chn
-                self.flipout("removeflippedservice",chn,services)
-        except Exception as e:
-            print str(e)
-            return False, []
-        return True, []
 
     def removeFlippedServiceByName(self,clients,name):
         service_triples = self.getServiceString([name])
@@ -420,7 +364,7 @@ class GatewaySync(object):
             delete_service_triples = [x for x in service_triples if x in self.flipped_interface_list[client]]
             self.flipped_interface_list[client].difference_update(set(delete_service_triples))
             service_list = list(itertools.chain.from_iterable([[1, client], delete_service_triples]))
-            self.removeFlippedService(service_list)
+            self.unflip(service_list)
 
     def removeNamedFlippedServices(self,list):
         # list[0] # of channel
@@ -549,34 +493,17 @@ class GatewaySync(object):
         self.hub.unregisterGateway()
         self.master.clear()
 
-    def processUpdate(self,msg):
+    def processUpdate(self,cmd,provider,info):
         '''
           Used as a callback for incoming requests on redis pubsub channels.
           It gets assigned to RedisManager.callback.
         '''
-
-        try:
-            msg = json.loads(msg)
-            cmd = msg[0]
-            provider = msg[1]
-            rest = msg[2:len(msg)]
-
-            if cmd == "flipouttopic":
-                self.requestForeignTopic(rest)
-            elif cmd == "flipoutservice":
-                self.requestForeignService(rest)
-            elif cmd == "removeflippedtopic":
-                self.unregisterForeignTopic(rest)
-            elif cmd == "removeflippedservice":
-                self.unregisterForeignService(rest)
-            elif cmd == "update":
-                # print "HERE"
-                # print str(rest)
-                pass
-            else:
-                print "error"
-        except:
-            print "Wrong Message : " + str(msg)
+        if cmd == "flip":
+            self.pull(info)
+        elif cmd == "unflip":
+            self.unpull(info)
+        else:
+            rospy.logerr("Gateway : Received unknown command [%s] from [%s]"%(cmd,provider))
 
     def getInfo(self):
         return self.unique_name
