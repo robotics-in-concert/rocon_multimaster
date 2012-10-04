@@ -112,23 +112,6 @@ class Gateway():
         self.callbacks["flip_all_public"] = self.gateway_sync.flipAllPublic
         self.callbacks["flip_list_only"] = self.gateway_sync.flipListOnly
 
-
-    def parse_params(self):
-        self.param['hub_uri'] = rospy.get_param('~hub_uri','')
-
-        self.param['whitelist'] = rospy.get_param('~whitelist',[])
-        self.param['blacklist'] = rospy.get_param('~blacklist',[])
-
-        # Local topics and services to register redis server
-        self.param['local_public_topic'] = rospy.get_param('~local_public_topic',[])
-        self.param['local_public_service'] = rospy.get_param('~local_public_service',[])
-
-        self.param['public_named_topics'] = rospy.get_param('~public_named_topics', '')
-        self.param['public_named_topics_blacklist'] = rospy.get_param('~public_named_topics_blacklist', '.*zeroconf.*,.*gateway.*,.*rosout.*,.*parameter_descriptions,.*parameter_updates,/tf')
-
-        self.param['public_named_services'] = rospy.get_param('~public_named_services', '')
-        self.param['public_named_services_blacklist'] = rospy.get_param('~public_named_services_blacklist', '.*zeroconf.*,.*gateway.*,.*get_loggers,.*set_logger_level')
-
     ##########################################################################
     # Ros Service Callbacks
     ##########################################################################
