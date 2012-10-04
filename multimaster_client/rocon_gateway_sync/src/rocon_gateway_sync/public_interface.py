@@ -24,6 +24,8 @@ class PublicInterface(object):
        * list of currently available connections to be shared
        * list of connections and filters that will be watched 
          and shared if they become available 
+      
+      Q) Filters should be in the form of whitelists/blacklists or just whitelists?
     '''
     def __init__(self):
         self.interface = {}
@@ -36,7 +38,7 @@ class PublicInterface(object):
 
     def add(self,connection):
         '''
-        Attempt to add a connection from the public interface.
+        Attempt to add a connection to the public interface. 
         
         @param connection : a stringified connection representation (usually a triple)
         @type str
@@ -74,3 +76,9 @@ class PublicInterface(object):
         else:
             self.interface[identifier].remove(connection)
         return True
+
+    ##########################################################################
+    # Filters
+    ##########################################################################
+
+    # ToDo

@@ -54,6 +54,7 @@ class WatcherThread(threading.Thread):
         self.update("service",srvs)
 
     def update(self,identifier,list):
+        # unadvertise from public interface if a topic disappears from the local master
         for string in self.public_interface.interface[identifier]:
             name, _, node_uri = string.split(",")
             still_exist = False
