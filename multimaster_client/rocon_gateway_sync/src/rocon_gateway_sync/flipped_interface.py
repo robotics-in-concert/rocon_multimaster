@@ -8,7 +8,7 @@
 # Imports
 ##############################################################################
 
-from .utils import Connection, connectionTypeString, connectionType
+from .utils import Connection, connectionTypeString
 
 ##############################################################################
 # Public Interface

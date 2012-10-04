@@ -7,7 +7,6 @@
 import roslib; roslib.load_manifest('rocon_gateway')
 import roslib.packages
 import rospy
-import yaml
 from gateway_comms.msg import Connection
 
 ###############################################################################
@@ -40,33 +39,4 @@ def rosParameters():
     # self.param['remote_service'] = rospy.get_param('~remote_service','')
 
     return param
-
-def parseConnectionsFromFile(file):
-    '''
-    Takes a YAML file supplied as a ROS parameter, and parses a list of
-    connection messages from it
-
-    @param file : absolute location of the file to parse
-    @type str
-    '''
-    connections = dict()
-    connections[Connection.PUBLISHER] = set()
-    connections[Connection.SUBSCRIBER] = set()
-    connections[Connection.SERVICE] = set()
-    connections[Connection.ACTION_SERVER] = set()
-    connections[Connection.ACTION_CLIENT] = set()
-    try:
-        stream = open(file, 'r')
-        list = yaml.load(stream)
-    except:
-        rospy.logerr('Gateway : Unable to load yaml from file [%s]'%file)
-        return connections
-
-    if list:
-        for l in list:
-            try:
-                connections[l['type']].add(tuple(l['list']))
-            except:
-                rospy.logerr('Gateway : Unable to parse item in file [%s]'%str(l))
-    return connections
 

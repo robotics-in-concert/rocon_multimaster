@@ -71,20 +71,21 @@ class WatcherThread(threading.Thread):
             if not still_exist:
                 self.gateway_sync.unadvertise([string])
 
-        # add/remove named interfaces to public list as necessary
-        for x in list:
-            name = x[0]
-            if self.gateway_sync.allowInterfaceInPublic(identifier, name):
-                # check if any new publishers are available
-                self.gateway_sync.addPublicInterfaceByName(identifier, name)
-                self.dumped_interface[identifier].add(name)
-            else:
-                # this interface has been dumped in the past, and is no longer needed
-                if name in self.dumped_interface[identifier]:
-                    self.gateway_sync.removePublicInterfaceByName(identifier, name)
-                    self.dumped_interface[identifier].remove(name)
+        # CURRENTLY DISABLED (work in progress)
+        # # add/remove named interfaces to public list as necessary
+        # for x in list:
+        #     name = x[0]
+        #     if self.gateway_sync.allowInterfaceInPublic(identifier, name):
+        #         # check if any new publishers are available
+        #         self.gateway_sync.addPublicInterfaceByName(identifier, name)
+        #         self.dumped_interface[identifier].add(name)
+        #     else:
+        #         # this interface has been dumped in the past, and is no longer needed
+        #         if name in self.dumped_interface[identifier]:
+        #             self.gateway_sync.removePublicInterfaceByName(identifier, name)
+        #             self.dumped_interface[identifier].remove(name)
   
-      # add/remove named interfaces to flipped list as necessary
+        # add/remove named interfaces to flipped list as necessary
         for x in list:
             name = x[0]
             clients, non_clients = self.gateway_sync.getFlippedClientList(identifier, name)
