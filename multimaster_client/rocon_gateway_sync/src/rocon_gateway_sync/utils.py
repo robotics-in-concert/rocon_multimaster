@@ -194,7 +194,7 @@ def removeFromConnectionList(list, subtractions):
     from subtractions are removed from the list.
     '''
     for connection_type in list:
-        list[connection_type] |= subtractions[connection_type]
+        list[connection_type] -= subtractions[connection_type]
 
 if __name__ == "__main__":
     '''
