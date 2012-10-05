@@ -11,10 +11,9 @@ import rocon_gateway
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 from zeroconf_comms.srv import *
-from rocon_gateway_sync import *
+from rocon_gateway import *
 from std_msgs.msg import String
 from urlparse import urlparse
-
 
 class Gateway():
     '''

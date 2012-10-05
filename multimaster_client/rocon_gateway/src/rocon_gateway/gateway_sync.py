@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_sync/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway/LICENSE 
 #
 
 ##############################################################################
@@ -13,7 +13,7 @@ import time
 import re
 import itertools
 
-import roslib; roslib.load_manifest('rocon_gateway_sync')
+import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph
 from std_msgs.msg import Empty
