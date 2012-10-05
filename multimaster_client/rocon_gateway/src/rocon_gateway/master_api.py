@@ -18,7 +18,7 @@ import os
 import threading
 
 from .exceptions import GatewayError, ConnectionTypeError
-from .utils import Connection, connectionTypeString, connectionType
+from .utils import Connection, connectionTypeString
 
 class LocalMaster(rosgraph.Master):
     '''
@@ -168,12 +168,12 @@ class LocalMaster(rosgraph.Master):
         return True
 
     def register(self,connection):
-        if connectionType(connection) == Connection.invalid:
+        if connectionTypeString(connection) == "invalid":
             raise ConnectionTypeError("trying to register an invalid connection type [%s]"%connection)
         components = connection.split(',')
-        if connectionType(connection) == Connection.topic:
+        if connectionTypeString(connection) == "topic":
             self.registerTopic(components[0],components[1],components[2])
-        elif connectionType(connection) == Connection.service:
+        elif connectionTypeString(connection) == "service":
             self.registerService(components[0],components[1],components[2])
 
     def unregisterTopic(self,topic,topictype,node_uri):
@@ -211,12 +211,12 @@ class LocalMaster(rosgraph.Master):
         return True
 
     def unregister(self,connection):
-        if connectionType(connection) == Connection.invalid:
+        if connectionTypeString(connection) == "invalid":
             raise ConnectionTypeError("trying to unregister an invalid connection type [%s]"%connection)
         components = connection.split(',')
-        if connectionType(connection) == Connection.topic:
+        if connectionTypeString(connection) == "topic":
             self.unregisterTopic(components[0],components[1],components[2])
-        elif connectionType(connection) == Connection.service:
+        elif connectionTypeString(connection) == "service":
             self.unregisterService(components[0],components[1],components[2])
 
     ##########################################################################

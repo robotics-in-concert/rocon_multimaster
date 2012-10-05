@@ -12,6 +12,7 @@ from gateway_comms.msg import *
 from gateway_comms.srv import *
 from zeroconf_comms.srv import *
 from rocon_gateway import *
+from rocon_gateway.utils import parseConnectionsFromFile
 from std_msgs.msg import String
 from urlparse import urlparse
 
@@ -47,20 +48,24 @@ class Gateway():
         zeroconf_add_listener_service = "zeroconf/add_listener"
         zeroconf_connection_service = "zeroconf/list_discovered_services"
 
-
         self.param = rocon_gateway.rosParameters()
         self.gateway_sync = GatewaySync(self.param['name']) # redis server (hub) and local ros master connections
         # Setup default public interface watchlist
         if self.param['default_public_interface'] != '':
             rospy.loginfo('Gateway : Parsing default public interface from file [%s]'%self.param['default_public_interface']);
-            default_public_interface = rocon_gateway.parseConnectionsFromFile(self.param['default_public_interface'])
+            default_public_interface = parseConnectionsFromFile(self.param['default_public_interface'])
             self.gateway_sync.setPublicWatchlist(default_public_interface)
         else:
             rospy.logwarn('Gateway : No default public interface provided!')
+
         # Setup default blacklist to use (when explicit blacklist not supplied
-        rospy.loginfo('Gateway : Parsing connection blacklist from file [%s]'%self.param['blacklist']);
-        blacklist = rocon_gateway.parseConnectionsFromFile(self.param['blacklist'])
-        self.gateway_sync.setDefaultBlacklist(blacklist)
+        if self.param['blacklist'] != '':
+            rospy.loginfo('Gateway : Parsing connection blacklist from file [%s]'%self.param['blacklist']);
+            blacklist = parseConnectionsFromFile(self.param['blacklist'])
+            self.gateway_sync.setDefaultBlacklist(blacklist)
+        else:
+            rospy.logwarn('Gateway : No default blacklist provided!')
+
         self.setupCallbacks()
 
         # Service Server for local node requests
@@ -88,15 +93,16 @@ class Gateway():
                     self._zeroconf = False
 
     def setupCallbacks(self):
-# Individual callbacks, directly hooked into the gateway sync
+
+        # Individual callbacks, directly hooked into the gateway sync
         self.gateway_services['advertise'] = rospy.Service('~advertise',Advertise,self.gateway_sync.advertise)
-        self.gateway_services['advertise_all'] = rospy.Service('~advertise_all',Advertise,self.gateway_sync.advertiseAll)        
+        self.gateway_services['advertise_all'] = rospy.Service('~advertise_all',AdvertiseAll,self.gateway_sync.advertiseAll)        
         
         self.callbacks["add_public_topic"] = self.gateway_sync.advertiseOld
         self.callbacks["add_public_service"] = self.gateway_sync.advertiseOld
         self.callbacks["remove_public_topic"] = self.gateway_sync.unadvertiseOld
         self.callbacks["remove_public_service"] = self.gateway_sync.unadvertiseOld
-        
+
         self.callbacks["register_foreign_topic"] = self.gateway_sync.pull
         self.callbacks["unregister_foreign_topic"] = self.gateway_sync.unpull
 

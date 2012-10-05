@@ -1,6 +1,7 @@
-- type: 'pub'
-  list: ['/chatter']
-- type: 'sub'
-  list: ['/chatter','/listener']
-- type: 'srv'
-  list: ['/add_two_ints']
+pub:
+  - ['/chatter']
+  - ['/chatter2']
+sub:
+  - ['/chatter','/listener']
+srv:
+  - ['add_two_ints']

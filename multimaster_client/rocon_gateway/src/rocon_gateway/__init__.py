@@ -15,4 +15,4 @@ __date__ = "2012-08-29"
 from .hub_api import resolveHub
 from .gateway_sync import GatewaySync
 from .zeroconf import resolveZeroconfAddress
-from .ros_parameters import rosParameters, parseConnectionsFromFile
+from .ros_parameters import rosParameters
