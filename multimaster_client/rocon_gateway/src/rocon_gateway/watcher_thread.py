@@ -47,8 +47,11 @@ class WatcherThread(threading.Thread):
         publishers, subscribers, services = self.master.getSystemState()
         actions = [] # todo : create and prune pubs/subs
         self._updateFlips(publishers, subscribers, services, actions)
+        
+        # (PK) ^ I've implemented functions to get action_server, action_client in the master api
 
         connections = self.master.getConnectionState()
+        print connections
         self._updatePublicInterface(connections)
 
     def _updateFlips(self, publishers, subscribers, services, actions):
