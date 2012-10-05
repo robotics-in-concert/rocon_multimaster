@@ -6,9 +6,7 @@
 
 import rospy
 import threading
-import rosmaster
-import rosnode
-import rosgraph
+from gateway_comms.msg import Connection
 
 class WatcherThread(threading.Thread):
 
@@ -21,13 +19,6 @@ class WatcherThread(threading.Thread):
         self.pubs = self.master.pubs_node
         self.public_interface = gateway.public_interface
     
-        # dumped interface is a mapping of whitelist regex to actual topics as they
-        # become available
-        self.dumped_interface = dict()
-        self.dumped_interface['topic'] = set()
-        self.dumped_interface['service'] = set()
-        self.start()
-
     def run(self):
         print "Thread Started"
         while not rospy.is_shutdown():
@@ -49,9 +40,10 @@ class WatcherThread(threading.Thread):
             print str(remotelist[master])
 
     def checkPublicInterfaces(self):
-        pubs, _, srvs = self.master.getSystemState() 
-        self.update("topic",pubs)
-        self.update("service",srvs)
+        pubs, subs, srvs = self.master.getSystemState() 
+        self.update(Connection.PUBLISHER,pubs)
+        self.update(Connection.SUBSCRIBER,subs)
+        self.update(Connection.SERVICE,srvs)
 
     def update(self,identifier,list):
         # unadvertise from public interface if a topic disappears from the local master
@@ -91,6 +83,8 @@ class WatcherThread(threading.Thread):
             clients, non_clients = self.gateway.getFlippedClientList(identifier, name)
             self.gateway.addFlippedInterfaceByName(identifier,clients,name)
             self.gateway.removeFlippedInterfaceByName(identifier,non_clients,name)
+
+        
 
 """
   polling thread should do...

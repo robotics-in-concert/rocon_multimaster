@@ -201,7 +201,6 @@ class Hub(object):
             raise ConnectionTypeError("trying to unadvertise an invalid connection type on the hub.")
         key = self.redis_keys['name']+":"+identifier
         self.removeMembers(key,connection)
-    
 
     ##########################################################################
     # Gateway-Gateway Communications

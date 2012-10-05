@@ -8,7 +8,7 @@
 # Imports
 ##############################################################################
 
-from .utils import Connection, connectionTypeString
+from gateway_comms.msg import Connection
 
 ##############################################################################
 # Public Interface
@@ -28,15 +28,18 @@ class PublicInterface(object):
       Q) Filters should be in the form of whitelists/blacklists or just whitelists?
     '''
     def __init__(self):
-        self.interface = {}
-        self.interface["topic"] = []       # later split into pub, sub
-        self.interface["service"] = []
+        self.interface = dict()
+        self.interface[Connection.PUBLISHER] = set()
+        self.interface[Connection.SUBSCRIBER] = set()
+        self.interface[Connection.SERVICE] = set()
+        self.interface[Connection.ACTION_SERVER] = set()
+        self.interface[Connection.ACTION_CLIENT] = set()
 
     ##########################################################################
     # Public Interfaces
     ##########################################################################
 
-    def add(self,connection):
+    def add(self,connection_type,connection):
         '''
         Attempt to add a connection to the public interface. 
         
@@ -44,19 +47,15 @@ class PublicInterface(object):
         @type str
         @return failure if already present, success otherwise
         @rtype bool
-        @raise ConenctionTypeError : if the stringified representation is invalid
         '''
-        identifier = connectionTypeString(connection)
-        if identifier not in ['topic', 'service']:  # action not yet implemented
-            raise ConnectionTypeError("trying to add an invalid connection type to the public interface [%s]"%connection)
 
-        if connection in self.interface[identifier]:
+        if connection in self.interface[connection_type]:
             return False
         else:
-            self.interface[identifier].append(connection)
+            self.interface[connection_type].add(connection)
         return True
 
-    def remove(self,connection):
+    def remove(self,connection_type,connection):
         '''
         Attempt to remove a connection from the public interface.
         
@@ -64,21 +63,11 @@ class PublicInterface(object):
         @type str
         @return failure if already present, success otherwise
         @rtype bool
-        @raise ConenctionTypeError : if the stringified representation is invalid
         '''
 
-        identifier = connectionTypeString(connection)
-        if identifier not in ['topic', 'service']:  # action not yet implemented
-            raise ConnectionTypeError("trying to remove an invalid connection type from the public interface [%s]"%connection)
-
-        if not (connection in self.interface[identifier]):
+        if not (connection in self.interface[connection_type]):
             return False
         else:
-            self.interface[identifier].remove(connection)
+            self.interface[connection_type].remove(connection)
         return True
 
-    ##########################################################################
-    # Filters
-    ##########################################################################
-
-    # ToDo
