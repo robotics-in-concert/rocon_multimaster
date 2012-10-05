@@ -78,6 +78,7 @@ class GatewaySync(object):
             self.hub.connect(ip,port)
             self.unique_name = self.hub.registerGateway()
             self.flipped_interface = FlippedInterface(self.unique_name)
+            print self.flipped_interface.flipped
             self.is_connected = True
         except Exception as e:
             print str(e)
