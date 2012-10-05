@@ -5,7 +5,10 @@
 #
 
 import roslib; roslib.load_manifest('rocon_gateway')
+import roslib.packages
 import rospy
+import yaml
+from gateway_comms.msg import Connection
 
 ###############################################################################
 # Functions
@@ -27,15 +30,43 @@ def rosParameters():
     param['name'] = rospy.get_param('~name','gateway')
 
     # Topics and services for pre-initialisation/configuration
-    param['local_public_topic'] = rospy.get_param('~local_public_topic',[])
-    param['local_public_service'] = rospy.get_param('~local_public_service',[])
-    param['public_named_topics'] = rospy.get_param('~public_named_topics', '')
-    param['public_named_topics_blacklist'] = rospy.get_param('~public_named_topics_blacklist', '.*zeroconf.*,.*gateway.*,.*rosout.*,.*parameter_descriptions,.*parameter_updates,/tf')
-    param['public_named_services'] = rospy.get_param('~public_named_services', '')
-    param['public_named_services_blacklist'] = rospy.get_param('~public_named_services_blacklist', '.*zeroconf.*,.*gateway.*,.*get_loggers,.*set_logger_level')
-    
+    param['default_public_interface'] = rospy.get_param('~default_public_interface', '')
+    param['blacklist'] = rospy.get_param('~blacklist', roslib.packages.get_pkg_dir('rocon_gateway') + '/param/default_blacklist.yaml')
+
+    # param['default_topics_blacklist'] = rospy.get_param('~default_topics_blacklist', '.*zeroconf.*,.*gateway.*,.*rosout.*,.*parameter_descriptions,.*parameter_updates,/tf')
+    # param['default_services_blacklist'] = rospy.get_param('~default_services_blacklist', '.*zeroconf.*,.*gateway.*,.*get_loggers,.*set_logger_level')
+        
     # Topics and services that need from remote server
     # self.param['remote_topic'] = rospy.get_param('~remote_topic','')
     # self.param['remote_service'] = rospy.get_param('~remote_service','')
 
     return param
+
+def parseConnectionsFromFile(file):
+    '''
+    Takes a YAML file supplied as a ROS parameter, and parses a list of
+    connection messages from it
+
+    @param file : absolute location of the file to parse
+    @type str
+    '''
+    connections = dict()
+    connections[Connection.PUBLISHER] = set()
+    connections[Connection.SUBSCRIBER] = set()
+    connections[Connection.SERVICE] = set()
+    connections[Connection.ACTION_SERVER] = set()
+    connections[Connection.ACTION_CLIENT] = set()
+    try:
+        stream = open(file, 'r')
+        list = yaml.load(stream)
+    except:
+        rospy.logerr('Gateway : Unable to load yaml from file [%s]'%file)
+        return connections
+
+    if list:
+        for l in list:
+            try:
+                connections[l['type']].add(tuple(l['list']))
+            except:
+                rospy.logerr('Gateway : Unable to parse item in file [%s]'%str(l))
+    return connections

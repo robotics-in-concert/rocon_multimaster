@@ -50,6 +50,17 @@ class Gateway():
 
         self.param = rocon_gateway.rosParameters()
         self.gateway_sync = GatewaySync(self.param['name']) # redis server (hub) and local ros master connections
+        # Setup default public interface watchlist
+        if self.param['default_public_interface'] != '':
+            rospy.loginfo('Gateway : Parsing default public interface from file [%s]'%self.param['default_public_interface']);
+            default_public_interface = rocon_gateway.parseConnectionsFromFile(self.param['default_public_interface'])
+            self.gateway_sync.setPublicWatchlist(default_public_interface)
+        else:
+            rospy.logwarn('Gateway : No default public interface provided!')
+        # Setup default blacklist to use (when explicit blacklist not supplied
+        rospy.loginfo('Gateway : Parsing connection blacklist from file [%s]'%self.param['blacklist']);
+        blacklist = rocon_gateway.parseConnectionsFromFile(self.param['blacklist'])
+        self.gateway_sync.setDefaultBlacklist(blacklist)
         self.setupCallbacks()
 
         # Service Server for local node requests
@@ -77,17 +88,15 @@ class Gateway():
                     self._zeroconf = False
 
     def setupCallbacks(self):
-        self.callbacks["add_public_topic"] = self.gateway_sync.advertise
-        self.callbacks["remove_public_topic"] = self.gateway_sync.unadvertise
-
-        self.callbacks["add_named_topics"] = self.gateway_sync.addNamedTopics
-        self.callbacks["remove_named_topics"] = self.gateway_sync.removeNamedTopics
-
-        self.callbacks["add_public_service"] = self.gateway_sync.advertise
-        self.callbacks["remove_public_service"] = self.gateway_sync.unadvertise
-        self.callbacks["add_named_services"] = self.gateway_sync.addNamedServices
-        self.callbacks["remove_named_services"] = self.gateway_sync.removeNamedServices
-
+# Individual callbacks, directly hooked into the gateway sync
+        self.gateway_services['advertise'] = rospy.Service('~advertise',Advertise,self.gateway_sync.advertise)
+        self.gateway_services['advertise_all'] = rospy.Service('~advertise_all',Advertise,self.gateway_sync.advertiseAll)        
+        
+        self.callbacks["add_public_topic"] = self.gateway_sync.advertiseOld
+        self.callbacks["add_public_service"] = self.gateway_sync.advertiseOld
+        self.callbacks["remove_public_topic"] = self.gateway_sync.unadvertiseOld
+        self.callbacks["remove_public_service"] = self.gateway_sync.unadvertiseOld
+        
         self.callbacks["register_foreign_topic"] = self.gateway_sync.pull
         self.callbacks["unregister_foreign_topic"] = self.gateway_sync.unpull
 
@@ -186,9 +195,8 @@ class Gateway():
             self.gateway_sync.clearServer()
         except Exception as e:
             print str(e)
-
-        print "Server cleared"
-
+        rospy.loginfo("Gateway : server cleared");
+    
     ##########################################################################
     # Connection Handlers
     ##########################################################################
@@ -268,31 +276,10 @@ class Gateway():
 
         # Once you get here, it is connected to redis server
         rospy.loginfo("Gateway : connected to hub [%s]."%self._hub_name) 
-        rospy.loginfo("Register default public topic/service")
-
-        # Add public topics and services
-        try:
-            self.gateway_sync.advertise(self.param['local_public_topic'])
-            self.gateway_sync.advertise(self.param['local_public_service'])
-        except Exception as e:
-            print str(e)
-            sys.exit(0)
-
-        # Add named public topics and services
-        if self.param['public_named_topics']:
-            self.gateway_sync.addNamedTopics(self.param['public_named_topics'].split(','))
-        if self.param['public_named_topics_blacklist']:
-            self.gateway_sync.public_topic_blacklist.extend(self.param['public_named_topics_blacklist'].split(','))
-        if self.param['public_named_services']:
-            self.gateway_sync.addNamedService(self.param['public_named_services'].split(','))
-        if self.param['public_named_services_blacklist']:
-            self.gateway_sync.public_service_blacklist.extend(self.param['public_named_services_blacklist'].split(','))
-
         rospy.spin()
 
         # When the node is going off, it should remove it's info from redis-server
         self.clearServer()
-        
 
 if __name__ == '__main__':
     

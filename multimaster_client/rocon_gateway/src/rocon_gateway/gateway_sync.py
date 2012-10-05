@@ -18,6 +18,11 @@ import rospy
 import rosgraph
 from std_msgs.msg import Empty
 
+# Ros Comms
+from gateway_comms.msg import Connection
+from gateway_comms.srv import AdvertiseResponse
+from gateway_comms.srv import AdvertiseAllResponse
+
 # Local imports
 import utils
 from .hub_api import Hub
@@ -55,11 +60,8 @@ class GatewaySync(object):
         # create a thread to clean-up unavailable topics
         self.watcher_thread = WatcherThread(self)
 
-        # create a whitelist of named topics and services for public
-        self.public_topic_whitelist = list()
-        self.public_topic_blacklist = list()
-        self.public_service_whitelist = list()
-        self.public_service_blacklist = list()
+        self._initializeWatchlists()
+        self._initializeBlacklists()
 
         # create a whitelist/blacklist of named topics and services for flipped
         self.flipped_topic_whitelist = dict()
@@ -83,7 +85,41 @@ class GatewaySync(object):
     # Public Interface Methods
     ##########################################################################
     
-    def advertise(self,list):
+    def advertise(self,request):
+        response = AdvertiseResponse()
+        # There is a problem below
+#        if not self.is_connected:
+#            rospy.logerr("Gateway : advertise call failed [no hub connection].")
+#            response.success = False
+#        else:
+#            try:
+#                for connection in request.watchlist:
+#                    if not request.cancel:
+#                        self._public_watchlist[connection.type].add(tuple(connection.list))
+#                    if request.cancel and :  <----- HERE
+#                        self._public_watchlist[connection.type].remove(tup
+#                response.success = True
+#            except Exception as e:
+#                rospy.logerr("Gateway : advertise call error [unable to parse connection %s]."%str(e))
+#                response.success = False
+#        for connection_type in self._public_watchlist:
+#            for l in self._public_watchlist[connection_type]:
+#                connection = Connection()
+#                connection.type = connection_type
+#                connection.list = list(l)
+#                response.watchlist.append(connection)
+        return response
+
+    def advertiseAll(self,request):
+        response = AdvertiseAllResponse()
+
+        pass
+
+    ##########################################################################
+    # Legacy advertisement functions (yes, they are 2 days older)
+    ##########################################################################
+
+    def advertiseOld(self, list):
         '''
         Adds a connection (topic/service/action) to the public
         interface.
@@ -98,15 +134,15 @@ class GatewaySync(object):
             return False, []
         try:
             for l in list:
-                if self.public_interface.add(l): # watching may repeatedly try and add, but return false if already present (not an error)
-                    self.hub.advertise(l) # can raise InvalidConnectionTypeError exceptions
+                if self.public_interface.addOld(l): # watching may repeatedly try and add, but return false if already present (not an error)
+                    self.hub.advertiseOld(l) # can raise InvalidConnectionTypeError exceptions
                     rospy.loginfo("Gateway : added connection to the public interface [%s]"%l)
         except ConnectionTypeError as e: 
             rospy.logerr("Gateway : %s"%str(e))
             return False, []
         return True, []
         
-    def unadvertise(self,list):
+    def unadvertiseOld(self,list):
         '''
         Removes a connection (topic/service/action) from the public
         interface.
@@ -118,8 +154,8 @@ class GatewaySync(object):
             return False, []
         try:
             for l in list:
-                if self.public_interface.remove(l):
-                    self.hub.unadvertise(l)
+                if self.public_interface.removeOld(l):
+                    self.hub.unadvertiseOld(l)
                     rospy.loginfo("Gateway : removed connection from the public interface [%s]"%l)
         except ConnectionTypeError as e: 
             rospy.logerr("Gateway : %s"%str(e))
@@ -215,6 +251,65 @@ class GatewaySync(object):
             rospy.logerr("Gateway : %s"%str(e))
             return False, []
         return True, []
+
+    ##########################################################################
+    # Watchlist/Blacklist modification methods
+    ##########################################################################
+
+    def _initializeWatchlists(self):
+        '''
+        Initializes all watchlists (public/flip/pull) with null sets. This
+        function is only used to initialize the vairable names, incase the 
+        gateway does not setup the default lists explicityly
+        '''
+        self._public_watchlist = dict()
+        self._public_watchlist[Connection.PUBLISHER] = set()
+        self._public_watchlist[Connection.SUBSCRIBER] = set()
+        self._public_watchlist[Connection.SERVICE] = set()
+        self._public_watchlist[Connection.ACTION_SERVER] = set()
+        self._public_watchlist[Connection.ACTION_CLIENT] = set()
+
+    def _initializeBlacklists(self):
+        '''
+        Initializes all blacklists (topics/services/actions) that can never be
+        advertised/flipped/pulled. A blacklist supplied in /pull_all, /flip_all,
+        /advertise_all will be in addition to this blacklist.
+        '''
+        self._default_blacklist = dict()
+        self._default_blacklist[Connection.PUBLISHER] = set()
+        self._default_blacklist[Connection.SUBSCRIBER] = set()
+        self._default_blacklist[Connection.SERVICE] = set()
+        self._default_blacklist[Connection.ACTION_SERVER] = set()
+        self._default_blacklist[Connection.ACTION_CLIENT] = set()
+
+        self._public_blacklist = dict()
+        self._public_blacklist[Connection.PUBLISHER] = set()
+        self._public_blacklist[Connection.SUBSCRIBER] = set()
+        self._public_blacklist[Connection.SERVICE] = set()
+        self._public_blacklist[Connection.ACTION_SERVER] = set()
+        self._public_blacklist[Connection.ACTION_CLIENT] = set()
+        
+    def setDefaultBlacklist(self, blacklist):
+        '''
+        Sets the default blacklists. This function should be called
+        during gateway initialization with blacklists provided through a
+        parameter file
+
+        @param blacklists : a pre-formatted blacklists dict, most likely from
+        @type dict of sets (over connection type) of tuples (individual connections)
+        '''
+        self._default_blacklist = blacklist
+
+    def setPublicWatchlist(self, watchlist):
+        '''
+        Sets the default blacklists. This function should be called
+        during gateway initialization with blacklists provided through a
+        parameter file
+
+        @param blacklists : a pre-formatted blacklists dict, most likely from
+        @type dict of sets (over connection type) of tuples (individual connections)
+        '''
+        self._public_watchlist = watchlist
 
     def oldFlipWrapper(self,list):
         num = int(list[0])
