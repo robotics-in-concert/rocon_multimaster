@@ -12,15 +12,15 @@
 # Flip
 ##############################################################################
 
-class FlipRule(object):
+class Flip(object):
     '''
       Holds a rule defining the properties for a single connection flip.
     '''
-    def __init__(self, gateway, type, name, node_name = None, remapped_name = None):
+    def __init__(self, gateway, type, name, node = None, remapped_name = None):
         self.gateway = gateway
         self.type = type
         self.name = name
-        self.node_name = node_name
+        self.node = node
         self.remapped_name = remapped_name
     
     # Need these for hashable containers (like sets), ugh!
@@ -34,10 +34,13 @@ class FlipRule(object):
         return not self.__eq__(other)
     
     def __hash__(self):
-        return hash(self.gateway) ^ hash(self.type) ^ hash(self.name) ^ hash(self.node_name) ^ hash(self.remapped_name)
+        return hash(self.gateway) ^ hash(self.type) ^ hash(self.name) ^ hash(self.node) ^ hash(self.remapped_name)
     
     def __repr__(self):
-        return '{ gateway: %s type: %s name: %s node name: %s remap: %s }'%(self.gateway,self.type,self.name, self.node_name, self.remapped_name)
+        return '{ gateway: %s type: %s name: %s node name: %s remap: %s }'%(self.gateway,self.type,self.name, self.node, self.remapped_name)
+    
+    def copy(self):
+        return Flip(self.gateway, self.type, self.name, self.node, self.remapped_name)
         
 class FlipPattern(object):
     '''
@@ -60,79 +63,89 @@ class FlippedInterface(object):
       (pubs/subs/services/actions) and rules controlling flips
       to other gateways. 
     '''
-    def __init__(self, namespace):
+    def __init__(self):
         '''
           Initialises the flipped interface.
-          
-          Note that the namespace is used as a default setting to root 
+        '''
+        self._namespace = "/" # namespace to root flips in
+        self.flipped = set() # set of currently flipped Flips
+        self.rules = set() # set of Flip rules
+        self.patterns = set()  # set of FlipPattern rules
+        
+    def setDefaultRootNamespace(self, namespace):
+        '''
+          The namespace is used as a default setting to root 
           flips in the remote gateway's workspace (helps avoid conflicts)
           when no remapping argument is provided.
           
           @param namespace : default namespace to root flipped connections into
           @type str
         '''
-        self.namespace = "/"+namespace
-        self.flipped = set() # set of currently flipped, connection string representations
-        self.rules = set() # set of FlipRule objects
-        self.patterns = set()  # set of FlipPattern objects
-        
-    def addRule(self, gateway, type, name, node_name, remapped_name):
+        self._namespace = "/"+namespace
+
+    def addRule(self, gateway, type, name, node, remapped_name):
         '''
           Generate the flip rule, taking care to provide a sensible
           default for the remapping (root it in this gateway's namespace
           on the remote system).
           
-          @param gateway, type, name, node_name, remapped_name
+          @param gateway, type, name, node, remapped_name
           @type str
           
-          @param type : must be a string constant from gateway_comms.msg.Connection
+          @param type : connection type
+          @type str : string constant from gateway_comms.msg.Connection
           
           @return the flip rule, or None if the rule already exists.
-          @rtype FlipRule || None
+          @rtype Flip || None
         '''
         if not remapped_name:
-            remapped_name = self.namespace + name
-        rule = FlipRule(gateway, type, name, node_name, remapped_name)
+            remapped_name = self._namespace + name
+        rule = Flip(gateway, type, name, node, remapped_name)
         if rule in self.rules:
             return None
         else:
             self.rules.add(rule)
             return rule
-        
-    def rulesByType(self):
-        sorted_watchlist = {}
-        sorted_watchlist[gateway_comms.Connection.PUBLISHER] = [] 
-        sorted_watchlist[gateway_comms.Connection.SUBSCRIBER] = [] 
-        sorted_watchlist[gateway_comms.Connection.SERVICE] = [] 
-        sorted_watchlist[gateway_comms.Connection.ACTION_CLIENT] = [] 
-        sorted_watchlist[gateway_comms.Connection.ACTION_SERVER] = []
-        return sorted_watchlist 
-    
-    def watchlistByGateway(self):
-        pass
-        
-    def addRule(self, gateway, type, name, node_name, remapped_name):
+
+    def matchesRule(self, type, name, node):
         '''
-          Generate the flip rule, taking care to provide a sensible
-          default for the remapping (root it in this gateway's namespace
-          on the remote system).
+          Checks if a local connection (obtained from master.getSystemState) matches a rule.
           
-          @param gateway, type, name, node_name, remapped_name
+          @param type : connection type
+          @type str : string constant from gateway_comms.msg.Connection
+          
+          @param name : fully qualified topic, service or action name
           @type str
           
-          @param type : must be a string constant from gateway_comms.msg.Connection
-          
-          @return the flip rule, or None if the rule already exists.
-          @rtype FlipRule || None
+          @param node : ros node name (coming from master.getSystemState)
+          @type str
         '''
-        if not remapped_name:
-            remapped_name = self.namespace + name
-        rule = FlipRule(gateway, type, name, node_name, remapped_name)
-        if rule in self.watchlist:
-            return None
-        else:
-            self.watchlist.add(rule)
-            return rule
+        matched_flip = None
+        for rule in self.rules:
+            if type == rule.type and name == rule.name:
+                if rule.node and node == rule.node:
+                    matched_flip = rule.copy()
+                    break
+                elif not rule.node:
+                    matched_flip = rule.copy()
+                    matched_flip.node = node
+                    break
+        return matched_flip
+                    
+    def isFlipped(self, type, name, node):
+        '''
+          Checks if this flip is currently flipped.
+          
+          @param type : connection type
+          @type str : string constant from gateway_comms.msg.Connection
+          
+          @return The flip rule if found, nothing otherwise
+          @rtype Flip || None
+        '''
+        for flip in self.flipped:
+            if type == flip.type and name == flip.name and node == flip.node:
+                return flip
+        return None
         
     ##########################################################################
     # Flipped Interfaces
@@ -146,56 +159,6 @@ class FlippedInterface(object):
 
 if __name__ == "__main__":
     
-    # Ugh, sets and hashes....!
-    flip1 = FlipRule("gateway1","publisher","/chatter", None,"/gateway1/chatter")
-    flip2 = FlipRule("gateway1","publisher","/chatter", None,"/gateway1/chatter")
-    
-    print ""
-    print flip1
-    print ""
-    print flip2
-    print ""
-    if flip1 == flip2:
-        print "eq"
-    else:
-        print "ne"
-    print ""
-    
-    flipped = set()
-    flipped.add(flip1)
-    for flip in flipped:
-        if flip == flip2:
-            print "bugger is the same"
-        else:
-            print "bugger is the same not"
-            print flip
-            print ""
-            print flip2
-    print ""
-    if flip2 in flipped:
-        print "already exists"
-    else:
-        print "does not exist"
-    print ""
-    flipped.add(flip2)
-    print flipped
-    print ""
-
-    str1 = "dude"
-    str2 = "dude"
-    if str1 == str2:
-        print "eq"
-    else:
-        print "ne"
-    print ""
-    
-    stringed = set()
-    stringed.add(str1)
-    if str2 in stringed:
-        print "already exists"
-    else:
-        print "does not exist"
-    print ""
-        
+    print "yeah" 
     
     
