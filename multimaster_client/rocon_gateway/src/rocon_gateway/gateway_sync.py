@@ -62,8 +62,8 @@ class GatewaySync(object):
         # create a thread to watch local connection states
         self.watcher_thread = WatcherThread(self)
 
-        self._initializeWatchlists()
-        self._initializeBlacklists()
+        # self._initializeWatchlists()
+        # self._initializeBlacklists()
 
         # create a whitelist/blacklist of named topics and services for flipped
         self.flipped_topic_whitelist = dict()
@@ -304,44 +304,45 @@ class GatewaySync(object):
     # Watchlist/Blacklist modification methods
     ##########################################################################
 
-    def _initializeWatchlists(self):
-        '''
-        Initializes all watchlists (public/flip/pull) with null sets. This
-        function is only used to initialize the vairable names, incase the 
-        gateway does not setup the default lists explicityly
-        '''
-        self._public_watchlist = utils.getEmptyConnectionList()
+    # (PK) MOVED TO PUBLIC INTERFACE
+    # def _initializeWatchlists(self):
+    #     '''
+    #     Initializes all watchlists (public/flip/pull) with null sets. This
+    #     function is only used to initialize the vairable names, incase the 
+    #     gateway does not setup the default lists explicityly
+    #     '''
+    #     self._public_watchlist = utils.getEmptyConnectionList()
 
-    def _initializeBlacklists(self):
-        '''
-        Initializes all blacklists (topics/services/actions) that can never be
-        advertised/flipped/pulled. A blacklist supplied in /pull_all, /flip_all,
-        /advertise_all will be in addition to this blacklist.
-        '''
-        self._default_blacklist = utils.getEmptyConnectionList()
-        self._public_blacklist = utils.getEmptyConnectionList()
-        
-    def setDefaultBlacklist(self, blacklist):
-        '''
-        Sets the default blacklists. This function should be called
-        during gateway initialization with blacklists provided through a
-        parameter file
+    # def _initializeBlacklists(self):
+    #     '''
+    #     Initializes all blacklists (topics/services/actions) that can never be
+    #     advertised/flipped/pulled. A blacklist supplied in /pull_all, /flip_all,
+    #     /advertise_all will be in addition to this blacklist.
+    #     '''
+    #     self._default_blacklist = utils.getEmptyConnectionList()
+    #     self._public_blacklist = utils.getEmptyConnectionList()
+    #     
+    # def setDefaultBlacklist(self, blacklist):
+    #     '''
+    #     Sets the default blacklists. This function should be called
+    #     during gateway initialization with blacklists provided through a
+    #     parameter file
 
-        @param blacklists : a pre-formatted blacklists dict, most likely from
-        @type dict of sets of tuples
-        '''
-        self._default_blacklist = blacklist
+    #     @param blacklists : a pre-formatted blacklists dict, most likely from
+    #     @type dict of sets of tuples
+    #     '''
+    #     self._default_blacklist = blacklist
 
-    def setPublicWatchlist(self, watchlist):
-        '''
-        Sets the default blacklists. This function should be called
-        during gateway initialization with blacklists provided through a
-        parameter file
+    # def setPublicWatchlist(self, watchlist):
+    #     '''
+    #     Sets the default blacklists. This function should be called
+    #     during gateway initialization with blacklists provided through a
+    #     parameter file
 
-        @param blacklists : a pre-formatted blacklists dict, most likely from
-        @type dict of sets of tuples
-        '''
-        self._public_watchlist = watchlist
+    #     @param blacklists : a pre-formatted blacklists dict, most likely from
+    #     @type dict of sets of tuples
+    #     '''
+    #     self._public_watchlist = watchlist
 
     def oldFlipWrapper(self,list):
         num = int(list[0])

@@ -103,7 +103,8 @@ class PublicInterface(object):
       Q) Filters should be in the form of whitelists/blacklists or just whitelists?
     '''
     def __init__(self):
-        self._rules = set()
+        self._public = set()
+        self._watchlist = set()
         self._default_blacklisted_rules = set()
         self._blacklisted_rules = self._default_blacklisted_rules
 
@@ -111,7 +112,7 @@ class PublicInterface(object):
     # Public Interfaces
     ##########################################################################
 
-    def add(self,rule):
+    def addRule(self,rule):
         '''
         Attempt to add a connection to the public interface. 
         
@@ -120,13 +121,13 @@ class PublicInterface(object):
         @return True if the rule was added, False if the rule exists already
         @rtype bool
         '''
-        if rule in self._rules:
+        if rule in self._watchlist:
             return False
         else:
-            self._rules.add(rule)
+            self._watchlist.add(rule)
         return True
 
-    def remove(self,rule):
+    def removeRule(self,rule):
         '''
         Attempt to remove a connection from the public interface.
         
@@ -135,19 +136,19 @@ class PublicInterface(object):
         @return True if the rule was removed, False if rule did not exist
         @rtype bool
         '''
-        if rule not in self._rules:
+        if rule not in self._watchlist:
             return False
         else:
-            self._rules.remove(rule)
+            self._watchlist.remove(rule)
         return True
 
     def allowAll(self, blacklist = None):
         '''
         Allow all rules apart from the ones in the blacklist
         '''
-        self._rules = set()
+        self._watchlist = set()
         for connection in utils.getConnectionTypes():
-            self._rules.add(connection,'.*')
+            self._watchlist.add(connection,'.*')
         self._blacklisted_rules = copy.deepcopy(self._default_blacklisted_rules)
         self._blacklisted_rules |= blacklist
 
@@ -156,7 +157,21 @@ class PublicInterface(object):
         Disallow all rules
         '''
         self.rules = set()
-        self._blacklisted_rules = self._default_blacklisted_rules 
+        self._blacklisted_rules = self._default_blacklisted_rules
+
+    def add(self,connection):
+        if connection in self._public:
+            return False
+        else:
+            self._public.add(connection)
+        return True
+
+    def remove(self,connection):
+        if connection not in self._public:
+            return False
+        else:
+            self._public.remove(connection)
+        return True
 
     ##########################################################################
     # File operations
@@ -182,7 +197,7 @@ class PublicInterface(object):
         return True;
 
     def parseDefaultRulesFromFile(self,file):
-        if self._parseRulesFromFile(self._rules,file):
+        if self._parseRulesFromFile(self._watchlist,file):
             rospy.loginfo('Gateway : Default public interface parsed from yaml file [%s]'%file)
             return True
         else:
@@ -214,8 +229,13 @@ class PublicInterface(object):
                 return None
 
     def matchesRule(self,type,name,node):
-        rule = self._matchAgainstRuleList(self._rules)
+        rule = self._matchAgainstRuleList(self._watchlist)
         if rule and self._matchAgainstRuleList(self._blacklisted_rules):
             rule = None
         return rule
+
+    def isPublic(self,connection):
+        return connection in self._public
+
+
 

@@ -46,8 +46,10 @@ class WatcherThread(threading.Thread):
         '''
         publishers, subscribers, services = self.master.getSystemState()
         actions = [] # todo : create and prune pubs/subs
-        self._updatePublicInterface(publishers, subscribers, services, actions)
         self._updateFlips(publishers, subscribers, services, actions)
+
+        connections = self.master.getConnectionState()
+        self._updatePublicInterface(connections)
 
     def _updateFlips(self, publishers, subscribers, services, actions):
         '''
@@ -82,7 +84,23 @@ class WatcherThread(threading.Thread):
         
         # 2) compare with currently flipped interfaces checking for one that has disappeared
         disappeared_flips = self.flipped_interface.flipped - existing_flips
-         
+
+    def _updatePublicInterface(self, connections):
+        '''
+          Process the list of local connections and check against 
+          the current rules and patterns for flips. If a connection 
+          has become (un)available take appropriate action.
+          
+          @param connections
+          @type dictionary of connections: 
+        '''
+
+        # for connection_type in connections:
+        #     existing_public = connections[connection_type] & selfset()
+        #     new_public = set()
+        #     for connection in connections[connection_type]:
+        #         public = 
+        pass
     
     def update(self, type, connections):
         # CURRENTLY DISABLED (work in progress)

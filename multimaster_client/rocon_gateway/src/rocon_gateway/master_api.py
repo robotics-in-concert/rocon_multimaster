@@ -16,9 +16,11 @@ import itertools
 import socket
 import os
 import threading
+import re
 
 from .exceptions import GatewayError, ConnectionTypeError
-from .utils import Connection, connectionTypeString
+from .utils import Connection
+from gateway_comms.msg import Connection as ConnectionMsg
 
 class LocalMaster(rosgraph.Master):
     '''
@@ -45,38 +47,92 @@ class LocalMaster(rosgraph.Master):
     def _getMasterUri(self):
         return rosgraph.get_master_uri()
 
-    def getTopicInfo(self,topic):
-        infolist = []
-        topictype, _1, _2 = rostopic.get_topic_type(topic)
-        try:
-            pubs, _1, _2 = self.getSystemState()
-            pubs = [x for x in pubs if x[0] == topic]
+    def _isTopicNodeInList(self,topic,node,list):
+        # check if cancel available
+        available = False
+        for candidate in list:
+            if candidate[0] == topic and node in candidate[1]:
+                available = True
+                break
+        return available
 
-            if not pubs:
-                raise Exception("Unknown topic %s"%topic)
+    def _getActions(self, pubs, subs):
 
-            for p in itertools.chain(*[l for x, l in pubs]):
-                info = topictype + "," + self.lookupNode(p)
-                infolist.append(info)
-      
-        except Exception as e:
-            print str(e)
-            raise e
+        actions = []
+        for goal_candidate in pubs:
+            if re.search('goal$', goal_candidate[0]):
+                # goal found, extract base topic
+                base_topic = re.sub('goal$','',goal_candidate[0])
+                nodes = goal_candidate[1]
+                action_nodes = []
 
-        return infolist
+                # there may be multiple nodes -- for each node search for the other topics
+                for node in nodes:
+                    is_action = True
+                    is_action &= self._isTopicNodeInList(base_topic + 'cancel',node,pubs)
+                    is_action &= self._isTopicNodeInList(base_topic + 'status',node,subs)
+                    is_action &= self._isTopicNodeInList(base_topic + 'feedback',node,subs)
+                    is_action &= self._isTopicNodeInList(base_topic + 'result',node,subs)
 
-    def getServiceInfo(self,service):
-        try:
-            info = ""
-            srvuri = rosservice.get_service_uri(service)
-            nodename = rosservice.get_service_node(service)
-            nodeuri = rosnode.get_api_uri(self,nodename)
-            info = srvuri + "," + nodeuri
-        except Exception as e:
-            print "Error in getServiceInfo"
-            raise e
+                    if is_action:
+                        action_nodes.append(node)
 
-        return info
+                if len(action_nodes) != 0:
+                    # yay! an action has been found
+                    actions.append([base_topic, action_nodes])
+        return actions
+
+    def getActionServers(self):
+        publishers, subscribers, _ = self.getSystemState()
+        return self._getActions(subscribers,publishers)
+
+    def getActionClients(self):
+        publishers, subscribers, _ = self.getSystemState()
+        return self._getActions(publishers,subscribers)
+
+    def getConnectionsFromPubSubList(self,list,type):
+        connections = []
+        for topic in list:
+            topic_name = topic[0]
+            topic_type = rostopic.get_topic_type(topic_name)
+            nodes = topic[1]
+            for node in nodes:
+                node_uri = self.lookupNode(node)
+                connections.append(Connection(type,topic_name,node_uri,None,topic_type))
+
+    def getConnectionsFromActionList(self,list,type):
+        connections = []
+        for action in list:
+            action_name = action[0]
+            goal_topic = action_name + 'goal'
+            goal_topic_type = rostopic.get_topic_type(goal_topic)
+            topic_type = re.sub('ActionGoal$', goal_topic_type) #Base type for action
+            nodes = action[1]
+            for node in nodes:
+                node_uri = self.lookupNode(node)
+                connections.append(Connection(type,action_name,node_uri,None,topic_type))
+
+    def getConnectionsFromServiceList(self,list,type):
+        connections = []
+        for service in list:
+            service_name = service[0]
+            service_uri = rosservice.get_service_uri(service_name)
+            nodes = service[1]
+            for node in nodes:
+                node_uri = self.lookupNode(node)
+                connections.append(Connection(type,service_name,node_uri,service_uri,None))
+
+    def getConnectionState(self):
+        connections = {}
+        publishers, subscribers, services = self.getSystemState()
+        action_servers = self.getActionServers()
+        action_clients = self.getActionClients()
+        connections[ConnectionMsg.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, ConnectionMsg.PUBLISHER)
+        connections[ConnectionMsg.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, ConnectionMsg.SUBSCRIBER)
+        connections[ConnectionMsg.SERVICE] = self.getConnectionsFromServiceList(services, ConnectionMsg.SERVICE)
+        connections[ConnectionMsg.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, ConnectionMsg.ACTION_SERVER)
+        connections[ConnectionMsg.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, ConnectionMsg.ACTION_CLIENT)
+        return connections
 
     def _getAnonymousNodeName(self,topic):
         t = topic[1:len(topic)]
@@ -121,7 +177,6 @@ class LocalMaster(rosgraph.Master):
             # Initialize if it is a new topic
             if topic not in self.pubs_uri.keys():
                 self.pubs_uri[topic] = [] 
-        
         
             self.cv.acquire()
             if uri  not in self.pubs_uri[topic]:
@@ -168,13 +223,15 @@ class LocalMaster(rosgraph.Master):
         return True
 
     def register(self,connection):
-        if connectionTypeString(connection) == "invalid":
-            raise ConnectionTypeError("trying to register an invalid connection type [%s]"%connection)
-        components = connection.split(',')
-        if connectionTypeString(connection) == "topic":
-            self.registerTopic(components[0],components[1],components[2])
-        elif connectionTypeString(connection) == "service":
-            self.registerService(components[0],components[1],components[2])
+        # (piyushk) commented out - will have explicit conn type
+        # if connectionTypeString(connection) == "invalid":
+        #     raise ConnectionTypeError("trying to register an invalid connection type [%s]"%connection)
+        # components = connection.split(',')
+        # if connectionTypeString(connection) == "topic":
+        #     self.registerTopic(components[0],components[1],components[2])
+        # elif connectionTypeString(connection) == "service":
+        #     self.registerService(components[0],components[1],components[2])
+        pass
 
     def unregisterTopic(self,topic,topictype,node_uri):
         try:
@@ -211,13 +268,15 @@ class LocalMaster(rosgraph.Master):
         return True
 
     def unregister(self,connection):
-        if connectionTypeString(connection) == "invalid":
-            raise ConnectionTypeError("trying to unregister an invalid connection type [%s]"%connection)
-        components = connection.split(',')
-        if connectionTypeString(connection) == "topic":
-            self.unregisterTopic(components[0],components[1],components[2])
-        elif connectionTypeString(connection) == "service":
-            self.unregisterService(components[0],components[1],components[2])
+        # (piyushk) commented out - will have explicit conn type
+        # if connectionTypeString(connection) == "invalid":
+        #     raise ConnectionTypeError("trying to unregister an invalid connection type [%s]"%connection)
+        # components = connection.split(',')
+        # if connectionTypeString(connection) == "topic":
+        #     self.unregisterTopic(components[0],components[1],components[2])
+        # elif connectionTypeString(connection) == "service":
+        #     self.unregisterService(components[0],components[1],components[2])
+        pass
 
     ##########################################################################
     # Other

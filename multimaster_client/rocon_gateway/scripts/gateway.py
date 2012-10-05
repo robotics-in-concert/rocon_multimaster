@@ -12,7 +12,6 @@ from gateway_comms.msg import *
 from gateway_comms.srv import *
 from zeroconf_comms.srv import *
 from rocon_gateway import *
-from rocon_gateway.utils import parseConnectionsFromFile
 from std_msgs.msg import String
 from urlparse import urlparse
 
@@ -51,20 +50,20 @@ class Gateway():
         self.param = rocon_gateway.rosParameters()
         self.gateway_sync = GatewaySync(self.param['name']) # redis server (hub) and local ros master connections
         # Setup default public interface watchlist
-        if self.param['default_public_interface'] != '':
-            rospy.loginfo('Gateway : Parsing default public interface from file [%s]'%self.param['default_public_interface']);
-            default_public_interface = parseConnectionsFromFile(self.param['default_public_interface'])
-            self.gateway_sync.setPublicWatchlist(default_public_interface)
-        else:
-            rospy.logwarn('Gateway : No default public interface provided!')
+        # if self.param['default_public_interface'] != '':
+        #     rospy.loginfo('Gateway : Parsing default public interface from file [%s]'%self.param['default_public_interface']);
+        #     default_public_interface = parseConnectionsFromFile(self.param['default_public_interface'])
+        #     self.gateway_sync.setPublicWatchlist(default_public_interface)
+        # else:
+        #     rospy.logwarn('Gateway : No default public interface provided!')
 
-        # Setup default blacklist to use (when explicit blacklist not supplied
-        if self.param['blacklist'] != '':
-            rospy.loginfo('Gateway : Parsing connection blacklist from file [%s]'%self.param['blacklist']);
-            blacklist = parseConnectionsFromFile(self.param['blacklist'])
-            self.gateway_sync.setDefaultBlacklist(blacklist)
-        else:
-            rospy.logwarn('Gateway : No default blacklist provided!')
+        # # Setup default blacklist to use (when explicit blacklist not supplied
+        # if self.param['blacklist'] != '':
+        #     rospy.loginfo('Gateway : Parsing connection blacklist from file [%s]'%self.param['blacklist']);
+        #     blacklist = parseConnectionsFromFile(self.param['blacklist'])
+        #     self.gateway_sync.setDefaultBlacklist(blacklist)
+        # else:
+        #     rospy.logwarn('Gateway : No default blacklist provided!')
 
         self.setupCallbacks()
 
@@ -101,11 +100,6 @@ class Gateway():
         self.gateway_services['flip_pattern'] = rospy.Service('~flip_pattern',FlipPattern,self.gateway_sync.rosServiceFlipPattern)        
         self.gateway_services['flip_all'] = rospy.Service('~flip_all',FlipAll,self.gateway_sync.rosServiceFlipAll)        
         
-        self.callbacks["add_public_topic"] = self.gateway_sync.advertiseOld
-        self.callbacks["add_public_service"] = self.gateway_sync.advertiseOld
-        self.callbacks["remove_public_topic"] = self.gateway_sync.unadvertiseOld
-        self.callbacks["remove_public_service"] = self.gateway_sync.unadvertiseOld
-
         self.callbacks["register_foreign_topic"] = self.gateway_sync.pull
         self.callbacks["unregister_foreign_topic"] = self.gateway_sync.unpull
 
