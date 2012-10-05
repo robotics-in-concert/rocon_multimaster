@@ -46,13 +46,14 @@ def reshapeTopic(t):
 # Connections - usually our wierd triple style string representations.
 ##############################################################################
 
-class Connection(object):
+class Connection(ConnectionMsg):
     '''
       Hashable wrapper around the connection message 
     '''
-    def __init__(self, type, name, uri, service_api = None, topic_type = None):
+    def __init__(self, type, name, node, uri, service_api = None, topic_type = None):
         self.type = type
         self.name = name
+        self.node = node
         self.uri = uri
         if not service_api:
             service_api = ''
@@ -72,13 +73,13 @@ class Connection(object):
         return not self.__eq__(other)
     
     def __hash__(self):
-        return hash(self.type) ^ hash(self.name) ^ hash(self.uri) ^ hash(self.service_api) ^ hash(self.topic_type)
+        return hash(self.type) ^ hash(self.name) ^ hash(self.node) ^ hash(self.uri) ^ hash(self.service_api) ^ hash(self.topic_type)
     
     def __repr__(self):
-        if type == ConnectionMsg.SERVICE:
-            return '{ %s name: %s service_api %s node_uri %s }'%(self.type,self.name,self.service_api,self.uri)
+        if self.type == ConnectionMsg.SERVICE:
+            return '{%s, name: %s, node: %s, service_api: %s, node_uri: %s}'%(self.type,self.name,self.node,self.service_api,self.uri)
         else:
-            return '{ %s name: %s topic_type %s node_uri %s }'%(self.type,self.name,self.topic_type,self.uri)
+            return '{%s, name: %s, node: %s, topic_type: %s, node_uri: %s}'%(self.type,self.name,self.node,self.topic_type,self.uri)
 
     # def serializeJson(self):
     #     data = [self.type,self.name,self.uri,self.service_api,self.topic_type]

@@ -95,10 +95,12 @@ class LocalMaster(rosgraph.Master):
         for topic in list:
             topic_name = topic[0]
             topic_type = rostopic.get_topic_type(topic_name)
+            topic_type = topic_type[0]
             nodes = topic[1]
             for node in nodes:
                 node_uri = self.lookupNode(node)
-                connections.append(Connection(type,topic_name,node_uri,None,topic_type))
+                connections.append(Connection(type,topic_name,node,node_uri,None,topic_type))
+        return connections
 
     def getConnectionsFromActionList(self,list,type):
         connections = []
@@ -106,11 +108,12 @@ class LocalMaster(rosgraph.Master):
             action_name = action[0]
             goal_topic = action_name + 'goal'
             goal_topic_type = rostopic.get_topic_type(goal_topic)
-            topic_type = re.sub('ActionGoal$', goal_topic_type) #Base type for action
+            topic_type = re.sub('ActionGoal$', goal_topic_type[0]) #Base type for action
             nodes = action[1]
             for node in nodes:
                 node_uri = self.lookupNode(node)
-                connections.append(Connection(type,action_name,node_uri,None,topic_type))
+                connections.append(Connection(type,action_name,node,node_uri,None,topic_type))
+        return connections
 
     def getConnectionsFromServiceList(self,list,type):
         connections = []
@@ -120,7 +123,8 @@ class LocalMaster(rosgraph.Master):
             nodes = service[1]
             for node in nodes:
                 node_uri = self.lookupNode(node)
-                connections.append(Connection(type,service_name,node_uri,service_uri,None))
+                connections.append(Connection(type,service_name,node,node_uri,service_uri,None))
+        return connections
 
     def getConnectionState(self):
         connections = {}

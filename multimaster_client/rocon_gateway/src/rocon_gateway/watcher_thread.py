@@ -92,15 +92,21 @@ class WatcherThread(threading.Thread):
           has become (un)available take appropriate action.
           
           @param connections
-          @type dictionary of connections: 
+          @type dictionary of connections 
         '''
 
-        # for connection_type in connections:
-        #     existing_public = connections[connection_type] & selfset()
-        #     new_public = set()
-        #     for connection in connections[connection_type]:
-        #         public = 
-        pass
+        for connection_type in connections:
+            allowed_connections = self.public_interface.allowedConnections(connections[connection_type])
+            
+            # this has both connections that have disappeared or are no longer allowed
+            unadvertise_connections = self.public_interface.public - allowed_connections
+            advertise_new_connections = allowed_connections - self.public_interface.public
+
+            for connection in advertise_new_connections:
+                self.gateway.advertiseConnection(connection)
+
+            for connection in unadvertise_connections:
+                self.gateway.unadvertiseConnection(connection)
     
     def update(self, type, connections):
         # CURRENTLY DISABLED (work in progress)

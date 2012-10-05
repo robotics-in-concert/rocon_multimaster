@@ -103,10 +103,11 @@ class PublicInterface(object):
       Q) Filters should be in the form of whitelists/blacklists or just whitelists?
     '''
     def __init__(self):
-        self._public = set()
         self._watchlist = set()
         self._default_blacklisted_rules = set()
         self._blacklisted_rules = self._default_blacklisted_rules
+
+        self.public = set()
 
     ##########################################################################
     # Public Interfaces
@@ -160,17 +161,17 @@ class PublicInterface(object):
         self._blacklisted_rules = self._default_blacklisted_rules
 
     def add(self,connection):
-        if connection in self._public:
+        if connection in self.public:
             return False
         else:
-            self._public.add(connection)
+            self.public.add(connection)
         return True
 
     def remove(self,connection):
-        if connection not in self._public:
+        if connection not in self.public:
             return False
         else:
-            self._public.remove(connection)
+            self.public.remove(connection)
         return True
 
     ##########################################################################
@@ -229,13 +230,12 @@ class PublicInterface(object):
                 return None
 
     def matchesRule(self,type,name,node):
-        rule = self._matchAgainstRuleList(self._watchlist)
-        if rule and self._matchAgainstRuleList(self._blacklisted_rules):
+        rule = self._matchAgainstRuleList(self._watchlist,type,name,node)
+        if rule and self._matchAgainstRuleList(self._blacklisted_rules,type,name,node):
             rule = None
         return rule
 
-    def isPublic(self,connection):
-        return connection in self._public
-
+    def allowedConnections(self, connections):
+        return set([connection for connection in connections if self.matchesRule(connection.type,connection.name,connection.node)])
 
 

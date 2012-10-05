@@ -182,20 +182,16 @@ class GatewaySync(object):
         return response
 
     ##########################################################################
-    # Legacy advertisement functions (yes, they are 2 days older)
-    # These will be used later on to setup individual tuple information on the
-    # server
+    # Public Interface method
     ##########################################################################
 
-    def advertiseConnection(self,connection_type,connection):
+    def advertiseConnection(self,connection):
         '''
         Adds a connection (topic/service/action) to the public interface.
         
         - adds to the public interface list
         - adds to the hub so it can be pulled by remote gateways
         
-        @param connection_type : type of connection (pub,sub,srv,ac,as)
-        @type str
         @param connection : tuple containing connection information
         @type tuple
         '''
@@ -203,23 +199,21 @@ class GatewaySync(object):
             rospy.logerr("Gateway : advertise connection call failed [no hub connection].")
             return False
         try:
-            if self.public_interface.add(connection_type,connection):
-                self.hub.advertise(connection_type,connection)
-                rospy.loginfo("Gateway : added connection to the public interface [%s: %s]"%(connection_type, connection))
+            if self.public_interface.add(connection):
+                self.hub.advertise(connection)
+                rospy.loginfo("Gateway : added connection to the public interface [%s]"%connection)
         except Exception as e: 
             rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
             return False
         return True
 
-    def unadvertiseConnection(self,connection_type,connection):
+    def unadvertiseConnection(self,connection):
         '''
         Removes a connection (topic/service/action) to the public interface.
         
         - remove the public interface list
         - remove the connection from the hub, the hub announces the removal
         
-        @param connection_type : type of connection (pub,sub,srv,ac,as)
-        @type str
         @param connection : tuple containing connection information
         @type tuple
         '''
@@ -227,9 +221,9 @@ class GatewaySync(object):
             rospy.logerr("Gateway : advertise call failed [no hub connection].")
             return False
         try:
-            if self.public_interface.remove(connection_type,connection):
-                self.hub.unadvertise(connection_type,connection)
-                rospy.loginfo("Gateway : added connection to the public interface [%s: %s]"%(connection_type, connection))
+            if self.public_interface.remove(connection):
+                self.hub.unadvertise(connection)
+                rospy.loginfo("Gateway : added connection to the public interface [%s: %s]"%connection)
         except Exception as e: 
             rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
             return False
