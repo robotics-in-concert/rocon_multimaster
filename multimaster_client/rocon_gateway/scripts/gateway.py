@@ -115,20 +115,6 @@ class Gateway():
         self.callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
         self.callbacks["remove_all_public"] = self.gateway_sync.removeAllPublic
      
-        self.callbacks["flipout_topic"] = self.gateway_sync.oldFlipWrapper
-        self.callbacks["remove_flipped_topic"] = self.gateway_sync.oldUnflipWrapper
-        self.callbacks["add_named_flipped_topics"] = self.gateway_sync.addNamedFlippedTopics
-        self.callbacks["remove_named_flipped_topics"] = self.gateway_sync.removeNamedFlippedTopics
-
-        self.callbacks["flipout_service"] = self.gateway_sync.oldFlipWrapper
-        self.callbacks["remove_flipped_service"] = self.gateway_sync.oldUnflipWrapper
-        self.callbacks["add_named_flipped_services"] = self.gateway_sync.addNamedFlippedServices
-        self.callbacks["remove_named_flipped_services"] = self.gateway_sync.removeNamedFlippedServices
-
-        self.callbacks["flip_all"] = self.gateway_sync.flipAll
-        self.callbacks["flip_all_public"] = self.gateway_sync.flipAllPublic
-        self.callbacks["flip_list_only"] = self.gateway_sync.flipListOnly
-
     ##########################################################################
     # Ros Service Callbacks
     ##########################################################################

@@ -13,6 +13,9 @@
 ##############################################################################
 
 class FlipRule(object):
+    '''
+      Holds a rule defining the properties for a single connection flip.
+    '''
     def __init__(self, gateway, type, name, node_name = None, remapped_name = None):
         self.gateway = gateway
         self.type = type
@@ -20,15 +23,16 @@ class FlipRule(object):
         self.node_name = node_name
         self.remapped_name = remapped_name
     
+    # Need these for hashable containers (like sets), ugh!
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.__dict__ == other.__dict__
         else:
             return False
+    
     def __ne__(self, other):
         return not self.__eq__(other)
     
-    # Need this for hashable containers (like sets), ugh!
     def __hash__(self):
         return hash(self.gateway) ^ hash(self.type) ^ hash(self.name) ^ hash(self.node_name) ^ hash(self.remapped_name)
     
@@ -36,6 +40,10 @@ class FlipRule(object):
         return '{ gateway: %s type: %s name: %s node name: %s remap: %s }'%(self.gateway,self.type,self.name, self.node_name, self.remapped_name)
         
 class FlipPattern(object):
+    '''
+      Holds a rule defining the properties for flips generated from a 
+      single regex based connection name pattern.
+    '''
     def __init__(self, type, regex, remapped_namespace = None):
         self.gateway = gateway
         self.type = type
@@ -48,22 +56,50 @@ class FlipPattern(object):
 
 class FlippedInterface(object):
     '''
-      The flipped interface is the set of connections (pubs/subs/services/actions)
-      that are flipped to other gateways.
+      The flipped interface is the set of connections 
+      (pubs/subs/services/actions) and rules controlling flips
+      to other gateways. 
     '''
     def __init__(self, namespace):
         '''
           Initialises the flipped interface.
           
-          @param namespace : default namespace to root flipped connections into if no remapping rule is provided.
+          Note that the namespace is used as a default setting to root 
+          flips in the remote gateway's workspace (helps avoid conflicts)
+          when no remapping argument is provided.
+          
+          @param namespace : default namespace to root flipped connections into
           @type str
         '''
         self.namespace = "/"+namespace
-        self.interface = {}
-        self.watchlist = set()
-        self.patterns = set()
-
-    def watchlistByType(self):
+        self.flipped = set() # set of currently flipped, connection string representations
+        self.rules = set() # set of FlipRule objects
+        self.patterns = set()  # set of FlipPattern objects
+        
+    def addRule(self, gateway, type, name, node_name, remapped_name):
+        '''
+          Generate the flip rule, taking care to provide a sensible
+          default for the remapping (root it in this gateway's namespace
+          on the remote system).
+          
+          @param gateway, type, name, node_name, remapped_name
+          @type str
+          
+          @param type : must be a string constant from gateway_comms.msg.Connection
+          
+          @return the flip rule, or None if the rule already exists.
+          @rtype FlipRule || None
+        '''
+        if not remapped_name:
+            remapped_name = self.namespace + name
+        rule = FlipRule(gateway, type, name, node_name, remapped_name)
+        if rule in self.rules:
+            return None
+        else:
+            self.rules.add(rule)
+            return rule
+        
+    def rulesByType(self):
         sorted_watchlist = {}
         sorted_watchlist[gateway_comms.Connection.PUBLISHER] = [] 
         sorted_watchlist[gateway_comms.Connection.SUBSCRIBER] = [] 
@@ -73,12 +109,6 @@ class FlippedInterface(object):
         return sorted_watchlist 
     
     def watchlistByGateway(self):
-        pass
-
-    def patternlistByType(self, type):
-        pass
-    
-    def patternlistByGateway(self):
         pass
         
     def addRule(self, gateway, type, name, node_name, remapped_name):
