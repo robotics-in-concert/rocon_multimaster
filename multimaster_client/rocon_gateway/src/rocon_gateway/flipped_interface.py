@@ -63,22 +63,26 @@ class FlippedInterface(object):
       (pubs/subs/services/actions) and rules controlling flips
       to other gateways. 
     '''
-    def __init__(self, namespace):
+    def __init__(self):
         '''
           Initialises the flipped interface.
-          
-          Note that the namespace is used as a default setting to root 
+        '''
+        self._namespace = "/" # namespace to root flips in
+        self.flipped = set() # set of currently flipped Flips
+        self.rules = set() # set of Flip rules
+        self.patterns = set()  # set of FlipPattern rules
+        
+    def setDefaultRootNamespace(self, namespace):
+        '''
+          The namespace is used as a default setting to root 
           flips in the remote gateway's workspace (helps avoid conflicts)
           when no remapping argument is provided.
           
           @param namespace : default namespace to root flipped connections into
           @type str
         '''
-        self.namespace = "/"+namespace
-        self.flipped = set() # set of currently flipped Flips
-        self.rules = set() # set of Flip rules
-        self.patterns = set()  # set of FlipPattern rules
-        
+        self._namespace = "/"+namespace
+
     def addRule(self, gateway, type, name, node, remapped_name):
         '''
           Generate the flip rule, taking care to provide a sensible
@@ -95,7 +99,7 @@ class FlippedInterface(object):
           @rtype Flip || None
         '''
         if not remapped_name:
-            remapped_name = self.namespace + name
+            remapped_name = self._namespace + name
         rule = Flip(gateway, type, name, node, remapped_name)
         if rule in self.rules:
             return None

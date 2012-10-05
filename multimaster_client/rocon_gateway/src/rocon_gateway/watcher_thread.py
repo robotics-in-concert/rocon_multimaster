@@ -24,7 +24,7 @@ class WatcherThread(threading.Thread):
         self.pubs = self.master.pubs_node
         self.public_interface = gateway.public_interface
         self.flipped_interface = gateway.flipped_interface
-        
+
     
         # CURRENTLY DISABLED (work in progress)
         # dumped interface is a mapping of whitelist regex to actual topics as they
@@ -55,7 +55,7 @@ class WatcherThread(threading.Thread):
         '''
         publishers, subscribers, services = self.master.getSystemState()
         actions = [] # todo : create and prune pubs/subs
-        #self._updateFlips(publishers, subscribers, services, actions)
+        self._updateFlips(publishers, subscribers, services, actions)
 
     def _updateFlips(self, publishers, subscribers, services, actions):
         '''

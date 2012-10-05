@@ -262,12 +262,12 @@ class Gateway():
     def spin(self):
         previously_found_hubs = []
         while not rospy.is_shutdown() and not self.gateway_sync.is_connected:
+            rospy.sleep(1.0)
             if self._zeroconf:
                 self.scanForZeroconfHubs(previously_found_hubs)
             else:
                 rospy.logdebug("Gateway : waiting for hub uri input.")
                 pass # add ip connect here
-            rospy.sleep(3.0)
 
         # Once you get here, it is connected to redis server
         rospy.loginfo("Gateway : connected to hub [%s][%s]."%(self.gateway_sync.unique_name,self._hub_name)) 

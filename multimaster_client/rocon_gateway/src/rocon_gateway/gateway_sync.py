@@ -54,12 +54,12 @@ class GatewaySync(object):
         self.unresolved_name = name # This gets used to build unique names after connection to the hub
         self.unique_name = None # single string value set after hub connection (note: it is not a redis rocon:: rooted key!)
         self.is_connected = False
-        self.flipped_interface = None # Initalise this on connection (needs unique namespace hint)
+        self.flipped_interface = FlippedInterface() # Initalise the unique namespace hint for this upon connection later
         self.public_interface = PublicInterface()
         self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.master = LocalMaster()
 
-        # create a thread to clean-up unavailable topics
+        # create a thread to watch local connection states
         self.watcher_thread = WatcherThread(self)
 
         self._initializeWatchlists()
@@ -77,8 +77,7 @@ class GatewaySync(object):
         try:
             self.hub.connect(ip,port)
             self.unique_name = self.hub.registerGateway()
-            self.flipped_interface = FlippedInterface(self.unique_name)
-            print self.flipped_interface.flipped
+            self.flipped_interface.setDefaultRootNamespace(self.unique_name)
             self.is_connected = True
         except Exception as e:
             print str(e)
@@ -141,14 +140,11 @@ class GatewaySync(object):
             rospy.logerr("Gateway : no hub connection."%gateway_comms.msg.Result.NO_HUB_CONNECTION)
             response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
             response.error_message = "no hub connection" 
-            
-            return response
-        if request.gateway == self.unique_name:
-            rospy.logerr("Gateway : gateway cannot flip to itself."%gateway_comms.msg.Result.NO_FLIP_TO_SELF)
+        elif request.gateway == self.unique_name:
+            rospy.logerr("Gateway : gateway cannot flip to itself.")
             response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
             response.error_message = "gateway cannot flip to itself" 
-
-        if not request.cancel:
+        elif not request.cancel:
             flip = self.flipped_interface.addRule(request.gateway, request.type, request.name, request.node_name, request.remapped_name)
             if flip:
                 rospy.loginfo("Gateway : flipping to gateway %s [%s->%s]"%(flip.gateway,flip.name,flip.remapped_name))
@@ -158,7 +154,7 @@ class GatewaySync(object):
                 rospy.logerr("Gateway : flip rule already exists [%s:%s->%s]"%(request.gateway,request.name,request.remapped_name))
                 response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                 response.error_message = "flip rule already exists ["+request.gateway+":"+request.name+"->"+request.remapped_name+"]"
-        else:
+        else: # request.cancel
             # unflip handling
             pass  
         return response
