@@ -97,6 +97,9 @@ class Gateway():
         # Individual callbacks, directly hooked into the gateway sync
         self.gateway_services['advertise'] = rospy.Service('~advertise',Advertise,self.gateway_sync.advertise)
         self.gateway_services['advertise_all'] = rospy.Service('~advertise_all',AdvertiseAll,self.gateway_sync.advertiseAll)        
+        self.gateway_services['flip'] = rospy.Service('~flip',Flip,self.gateway_sync.rosServiceFlip)        
+        self.gateway_services['flip_pattern'] = rospy.Service('~flip_pattern',FlipPattern,self.gateway_sync.rosServiceFlipPattern)        
+        self.gateway_services['flip_all'] = rospy.Service('~flip_all',FlipAll,self.gateway_sync.rosServiceFlipAll)        
         
         self.callbacks["add_public_topic"] = self.gateway_sync.advertiseOld
         self.callbacks["add_public_service"] = self.gateway_sync.advertiseOld

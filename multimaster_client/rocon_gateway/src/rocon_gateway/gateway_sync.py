@@ -33,6 +33,7 @@ from .hub_api import Hub
 from .master_api import LocalMaster
 from .watcher_thread import WatcherThread
 from .exceptions import GatewayError, ConnectionTypeError
+from .flipped_interface import FlippedInterface
 from .public_interface import PublicInterface
 
 ##############################################################################
@@ -57,6 +58,7 @@ class GatewaySync(object):
         self.is_connected = False
 
         self.public_interface = PublicInterface()
+        self.flipped_interface = FlippedInterface()
         self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.master = LocalMaster()
         self.master_uri = self.master.getMasterUri()
@@ -86,7 +88,7 @@ class GatewaySync(object):
         return True
 
     ##########################################################################
-    # Public Interface Methods
+    # Ros Service Callbacks
     ##########################################################################
 
     def advertise(self,request):
@@ -122,6 +124,40 @@ class GatewaySync(object):
             except Exception as e:
                 rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
         return success, utils.connectionMsgListFromConnections(self._public_blacklist)
+
+    def rosServiceFlip(self,request):
+        '''
+          Puts a single connection on a watchlist and (un)flips it to a particular 
+          gateway when it becomes (un)available. Note that this can also
+          completely reconfigure the fully qualified name for the connection when 
+          flipping (remapping). If not specified, it will simply reroot connection
+          under <unique_gateway_name>.
+          
+          @param request
+          @type gateway_comms.FlipRequest
+        '''
+        response = FlipResponse()
+        response.success = True
+        return response
+
+    def rosServiceFlipPattern(self,request):
+        '''
+          Puts regex patterns on a watchlist and (un)flips them on a particular
+          gateway when they become (un)available. Note that this cannot remap, 
+          but can optionally reroot connections under a configurable namespace (default is 
+          <unique_gateway_name>). 
+          
+          @param request
+          @type gateway_comms.FlipPatternRequest
+        '''
+        response = FlipPatternResponse()
+        response.success = True
+        return response
+
+    def rosServiceFlipAll(self,request):
+        response = FlipAllResponse()
+        response.success = True
+        return response
 
     ##########################################################################
     # Legacy advertisement functions (yes, they are 2 days older)
