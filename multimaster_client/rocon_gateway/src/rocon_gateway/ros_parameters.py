@@ -7,7 +7,6 @@
 import roslib; roslib.load_manifest('rocon_gateway')
 import roslib.packages
 import rospy
-from gateway_comms.msg import Connection
 
 ###############################################################################
 # Functions
@@ -28,12 +27,13 @@ def rosParameters():
     # Gateway
     param['name'] = rospy.get_param('~name','gateway')
 
+    # Topics and services for pre-initialisation/configuration
     param['default_public_interface'] = rospy.get_param('~default_public_interface', '')
     param['blacklist'] = rospy.get_param('~blacklist', roslib.packages.get_pkg_dir('rocon_gateway') + '/param/default_blacklist.yaml')
 
     # param['default_topics_blacklist'] = rospy.get_param('~default_topics_blacklist', '.*zeroconf.*,.*gateway.*,.*rosout.*,.*parameter_descriptions,.*parameter_updates,/tf')
     # param['default_services_blacklist'] = rospy.get_param('~default_services_blacklist', '.*zeroconf.*,.*gateway.*,.*get_loggers,.*set_logger_level')
-    
+
     # Topics and services that need from remote server
     # self.param['remote_topic'] = rospy.get_param('~remote_topic','')
     # self.param['remote_service'] = rospy.get_param('~remote_service','')

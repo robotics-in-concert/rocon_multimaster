@@ -1,14 +1,14 @@
 #!/usr/bin/env pythonupdate
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_sync/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway/LICENSE 
 #
 
 import json
 import collections
 import redis
 import threading
-import roslib; roslib.load_manifest('rocon_gateway_sync')
+import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import re
 
@@ -16,7 +16,22 @@ from .exceptions import GatewayError, ConnectionTypeError
 from .utils import Connection, connectionTypeString
 
 ###############################################################################
-# Classes
+# Utility Functions
+###############################################################################
+
+def resolveHub(ip, port):
+    '''
+      Pings the hub for identification. We currently use this to check
+      against the gateway whitelist/blacklists to determine if a connection
+      should proceed or not.
+      
+      @return string - hub name
+    '''
+    r = redis.Redis()
+    return r.get("rocon:hub:name") # perhaps should store all key names somewhere central
+    
+###############################################################################
+# Redis Callback Handler
 ###############################################################################
 
 class RedisSubscriberThread(threading.Thread):
@@ -198,7 +213,7 @@ class Hub(object):
     def processUpdate(self,msg):
         '''
           Used as a callback for incoming requests on redis pubsub channels.
-          Formats the message and sends the information to gateway_sync.
+          Formats the message and sends the information to gateway.
         '''
 
         try: 

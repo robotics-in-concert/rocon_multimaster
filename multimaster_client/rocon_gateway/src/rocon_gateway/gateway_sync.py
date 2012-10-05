@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_sync/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway/LICENSE 
 #
 
 ##############################################################################
@@ -14,10 +14,15 @@ import re
 import itertools
 import copy
 
-import roslib; roslib.load_manifest('rocon_gateway_sync')
+import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph
 from std_msgs.msg import Empty
+
+# Ros Comms
+from gateway_comms.msg import Connection
+from gateway_comms.srv import AdvertiseResponse
+from gateway_comms.srv import AdvertiseAllResponse
 
 # Local imports
 from gateway_comms.msg import Connection
@@ -139,8 +144,8 @@ class GatewaySync(object):
             return False, []
         try:
             for l in list:
-                if self.public_interface.add(l): # watching may repeatedly try and add, but return false if already present (not an error)
-                    self.hub.advertise(l) # can raise InvalidConnectionTypeError exceptions
+                if self.public_interface.addOld(l): # watching may repeatedly try and add, but return false if already present (not an error)
+                    self.hub.advertiseOld(l) # can raise InvalidConnectionTypeError exceptions
                     rospy.loginfo("Gateway : added connection to the public interface [%s]"%l)
         except ConnectionTypeError as e: 
             rospy.logerr("Gateway : %s"%str(e))
@@ -159,8 +164,8 @@ class GatewaySync(object):
             return False, []
         try:
             for l in list:
-                if self.public_interface.remove(l):
-                    self.hub.unadvertise(l)
+                if self.public_interface.removeOld(l):
+                    self.hub.unadvertiseOld(l)
                     rospy.loginfo("Gateway : removed connection from the public interface [%s]"%l)
         except ConnectionTypeError as e: 
             rospy.logerr("Gateway : %s"%str(e))

@@ -12,6 +12,7 @@ __maintainer__ = "Daniel Stonier"
 __email__ = "d.stonier@gmail.com"
 __date__ = "2012-08-29"
 
-from .hub import resolveHub
+from .hub_api import resolveHub
+from .gateway_sync import GatewaySync
 from .zeroconf import resolveZeroconfAddress
 from .ros_parameters import rosParameters

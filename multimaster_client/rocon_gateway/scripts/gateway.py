@@ -11,11 +11,10 @@ import rocon_gateway
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 from zeroconf_comms.srv import *
-from rocon_gateway_sync import *
-from rocon_gateway_sync.utils import parseConnectionsFromFile
+from rocon_gateway import *
+from rocon_gateway.utils import parseConnectionsFromFile
 from std_msgs.msg import String
 from urlparse import urlparse
-
 
 class Gateway():
     '''
@@ -97,8 +96,8 @@ class Gateway():
 
         # Individual callbacks, directly hooked into the gateway sync
         self.gateway_services['advertise'] = rospy.Service('~advertise',Advertise,self.gateway_sync.advertise)
-        self.gateway_services['advertise_all'] = rospy.Service('~advertise_all',Advertise,self.gateway_sync.advertiseAll)
-
+        self.gateway_services['advertise_all'] = rospy.Service('~advertise_all',AdvertiseAll,self.gateway_sync.advertiseAll)        
+        
         self.callbacks["add_public_topic"] = self.gateway_sync.advertiseOld
         self.callbacks["add_public_service"] = self.gateway_sync.advertiseOld
         self.callbacks["remove_public_topic"] = self.gateway_sync.unadvertiseOld
@@ -202,9 +201,8 @@ class Gateway():
             self.gateway_sync.clearServer()
         except Exception as e:
             print str(e)
-
-        rospy.loginfo("Gateway : Server cleared");
-
+        rospy.loginfo("Gateway : server cleared");
+    
     ##########################################################################
     # Connection Handlers
     ##########################################################################

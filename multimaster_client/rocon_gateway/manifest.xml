@@ -12,7 +12,6 @@
   <depend package="roslib"/>
   <depend package="zeroconf_comms"/>
   <depend package="zeroconf_avahi"/>
-  <depend package="rocon_gateway_sync"/>
   <depend package="gateway_comms"/>
 
 </package>

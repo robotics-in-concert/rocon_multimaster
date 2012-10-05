@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_sync/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway/LICENSE 
 #
 
-import roslib; roslib.load_manifest('rocon_gateway_sync')
+import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph.masterapi
 import time
@@ -17,7 +17,7 @@ import socket
 import os
 import threading
 
-from .exceptions import GatewayError, GatewayException, ConnectionTypeError
+from .exceptions import GatewayError, ConnectionTypeError
 from .utils import Connection, connectionTypeString
 
 class LocalMaster(rosgraph.Master):
