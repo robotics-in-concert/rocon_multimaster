@@ -13,6 +13,7 @@
   <depend package="zeroconf_comms"/>
   <depend package="zeroconf_avahi"/>
   <depend package="gateway_comms"/>
+  <depend package="redis"/>
 
 </package>
 

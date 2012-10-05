@@ -20,19 +20,19 @@ import rosgraph
 from std_msgs.msg import Empty
 
 # Ros Comms
+import gateway_comms.msg
+import gateway_comms.srv
 from gateway_comms.msg import Connection
 from gateway_comms.srv import AdvertiseResponse
 from gateway_comms.srv import AdvertiseAllResponse
 
 # Local imports
-from gateway_comms.msg import Connection
-from gateway_comms.srv import AdvertiseResponse
-from gateway_comms.srv import AdvertiseAllResponse
 import utils
 from .hub_api import Hub
 from .master_api import LocalMaster
 from .watcher_thread import WatcherThread
 from .exceptions import GatewayError, ConnectionTypeError
+from .flipped_interface import FlippedInterface
 from .public_interface import PublicInterface
 
 ##############################################################################
@@ -55,7 +55,7 @@ class GatewaySync(object):
         self.unique_name = None # single string value set after hub connection (note: it is not a redis rocon:: rooted key!)
         self.master_uri = None
         self.is_connected = False
-
+        self.flipped_interface = None # Initalise this on connection (needs unique namespace hint)
         self.public_interface = PublicInterface()
         self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.master = LocalMaster()
@@ -79,6 +79,7 @@ class GatewaySync(object):
         try:
             self.hub.connect(ip,port)
             self.unique_name = self.hub.registerGateway()
+            self.flipped_interface = FlippedInterface(self.unique_name)
             self.is_connected = True
         except Exception as e:
             print str(e)
@@ -86,7 +87,7 @@ class GatewaySync(object):
         return True
 
     ##########################################################################
-    # Public Interface Methods
+    # Ros Service Callbacks
     ##########################################################################
 
     def advertise(self,request):
@@ -116,6 +117,74 @@ class GatewaySync(object):
         except Exception as e:
             rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
         return success, utils.connectionMsgListFromConnections(self._public_blacklist)
+
+    def rosServiceFlip(self,request):
+        '''
+          Puts a single connection on a watchlist and (un)flips it to a particular 
+          gateway when it becomes (un)available. Note that this can also
+          completely reconfigure the fully qualified name for the connection when 
+          flipping (remapping). If not specified, it will simply reroot connection
+          under <unique_gateway_name>.
+          
+          @param request
+          @type gateway_comms.srv.FlipRequest
+          @return service response
+          @rtype gateway_comms.srv.FlipResponse
+        '''
+        response = gateway_comms.srv.FlipResponse()
+        if not self.is_connected:
+            rospy.logerr("Gateway : no hub connection."%gateway_comms.msg.Result.NO_HUB_CONNECTION)
+            response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
+            response.error_message = "no hub connection" 
+            
+            return response
+        if request.gateway == self.unique_name:
+            rospy.logerr("Gateway : gateway cannot flip to itself."%gateway_comms.msg.Result.NO_FLIP_TO_SELF)
+            response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
+            response.error_message = "gateway cannot flip to itself" 
+
+        if not request.cancel:
+            flip = self.flipped_interface.addRule(request.gateway, request.type, request.name, request.node_name, request.remapped_name)
+            if flip:
+                rospy.loginfo("Gateway : flipping to gateway %s [%s->%s]"%(flip.gateway,flip.name,flip.remapped_name))
+                response.result = gateway_comms.msg.Result.SUCCESS
+                # watcher thread will look after this from here
+            else:
+                rospy.logerr("Gateway : flip rule already exists [%s:%s->%s]"%(request.gateway,request.name,request.remapped_name))
+                response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                response.error_message = "flip rule already exists ["+request.gateway+":"+request.name+"->"+request.remapped_name+"]"
+        else:
+            # unflip handling
+            pass  
+        return response
+
+    def rosServiceFlipPattern(self,request):
+        '''
+          Puts regex patterns on a watchlist and (un)flips them on a particular
+          gateway when they become (un)available. Note that this cannot remap, 
+          but can optionally reroot connections under a configurable namespace (default is 
+          <unique_gateway_name>). 
+          
+          @param request
+          @type gateway_comms.srv.FlipPatternRequest
+          @return service response
+          @rtype gateway_comms.srv.FlipPatternResponse
+        '''
+        response = gateway_comms.srv.FlipPatternResponse()
+        return response
+
+    def rosServiceFlipAll(self,request):
+        '''
+          Flips everything except a specified blacklist to a particular gateway,
+          or if the cancel flag is set, clears all flips to that gateway.
+          
+          @param request
+          @type gateway_comms.srv.FlipAllRequest
+          @return service response
+          @rtype gateway_comms.srv.FlipAllResponse
+        '''
+        response = FlipAllResponse()
+        return response
 
     ##########################################################################
     # Legacy advertisement functions (yes, they are 2 days older)
@@ -172,46 +241,25 @@ class GatewaySync(object):
         return True
 
     ##########################################################################
-    # Flip Interface Methods
+    # Flip Interface Methods [Depracating]
     ##########################################################################
 
-    def flip(self,gateways,list):
-        '''
-        Flips a connection (topic/service/action) to a foreign gateway.
-
-        @param gateways : list of gateways to flip to (all if empty)
-        @param list : list of connection representations (usually stringified triples)
-        '''
-        if not self.is_connected:
-            rospy.logerr("Gateway : flip call failed [no hub connection].")
-            return False, []
-        if len(gateways) == 0:
-            gateways = self.hub.listGateways()
-            gateways = [x for x in gateways if x != self.unique_name]
-        for gateway in gateways:
-            if gateway == self.unique_name:
-                rospy.logerr("Gateway : cannot flip to self [%s]"%gateway)
-                continue
-            rospy.loginfo("Gateway : flipping connections %s to gateway [%s]"%(str(list),gateway))
-            self.hub.flip(gateway,list)
-        return True, [] 
-
-    def unflip(self,gateways,list):
-        '''
-        Removes flipped connection (topic/service/action) to a foreign gateway
-
-        @param gateways : list of gateways to flip to (all if empty)
-        @param list : list of connection representations (usually stringified triples)
-        '''
-        if not self.is_connected:
-            rospy.logerr("Gateway : unflip call failed [no hub connection].")
-            return False, []
-        if len(gateways) == 0:
-            gateways = self.hub.listGateways()
-        for gateway in gateways:
-            rospy.loginfo("Gateway : removing flipped connections [%s] to gateway [%s]"%(str(list),gateway))
-            self.hub.unflip(gateway,list)
-        return True, []
+#    def unflip(self,gateways,list):
+#        '''
+#        Removes flipped connection (topic/service/action) to a foreign gateway
+#
+#        @param gateways : list of gateways to flip to (all if empty)
+#        @param list : list of connection representations (usually stringified triples)
+#        '''
+#        if not self.is_connected:
+#            rospy.logerr("Gateway : unflip call failed [no hub connection].")
+#            return False, []
+#        if len(gateways) == 0:
+#            gateways = self.hub.listGateways()
+#        for gateway in gateways:
+#            rospy.loginfo("Gateway : removing flipped connections [%s] to gateway [%s]"%(str(list),gateway))
+#            self.hub.unflip(gateway,list)
+#        return True, []
 
     ##########################################################################
     # Pulling Methods
@@ -387,146 +435,177 @@ class GatewaySync(object):
         elif identifier == "service":
             self.removePublicServiceByName(name)
 
-    def addNamedFlippedTopics(self, list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping topics
-        num = int(list[0])
-        channels = list[1:num+1]
-        topics = list[num+1:len(list)]
-        print "Adding named topics to flip: " + str(list)
-        for chn in channels:
-            if chn not in self.flipped_topic_whitelist:
-                self.flipped_topic_whitelist[chn] = set()
-            self.flipped_topic_whitelist[chn].update(set(topics))
-        return True, []
-
-    def addFlippedTopicByName(self,clients,name):
-        topic_triples = self.getTopicString([name])
-        for client in clients:
-            if client not in self.flipped_interface_list:
-                self.flipped_interface_list[client] = set()
-            add_topic_triples = [x for x in topic_triples if x not in self.flipped_interface_list[client]]
-            self.flipped_interface_list[client].update(set(add_topic_triples))
-            topic_list = list(itertools.chain.from_iterable([[1, client], add_topic_triples]))
-            self.flip(topic_list)
-
-    def removeFlippedTopicByName(self,clients,name):
-        topic_triples = self.getTopicString([name])
-        for client in clients:
-            if client not in self.flipped_interface_list:
-                continue
-            delete_topic_triples = [x for x in topic_triples if x in self.flipped_interface_list[client]]
-            self.flipped_interface_list[client].difference_update(set(delete_topic_triples))
-            topic_list = list(itertools.chain.from_iterable([[1, client], delete_topic_triples]))
-            self.unflip(topic_list)
-
-    def removeNamedFlippedTopics(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping topics
-        num = int(list[0])
-        channels = list[1:num+1]
-        topics = list[num+1:len(list)]
-        print "removing named topics from flip: " + str(list)
-        for chn in channels:
-            if chn in self.flipped_topic_whitelist:
-                self.flipped_topic_whitelist[chn].difference_update(set(topics))
-        return True, []
-
-    def addFlippedServiceByName(self,clients,name):
-        service_triples = self.getServiceString([name])
-        for client in clients:
-            if client not in self.flipped_interface_list:
-                self.flipped_interface_list[client] = set()
-            add_service_triples = [x for x in service_triples if x not in self.flipped_interface_list[client]]
-            self.flipped_interface_list[client].update(set(add_service_triples))
-            service_list = list(itertools.chain.from_iterable([[1, client], add_service_triples]))
-            self.flip(service_list)
-
-    def addNamedFlippedServices(self, list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping services
-        num = int(list[0])
-        channels = list[1:num+1]
-        services = list[num+1:len(list)]
-        print "Adding named services to flip: " + str(list)
-        for chn in channels:
-            if chn not in self.flipped_service_whitelist:
-                self.flipped_service_whitelist[chn] = set()
-            self.flipped_service_whitelist[chn].update(set(services))
-        return True, []
-
-
-    def removeFlippedServiceByName(self,clients,name):
-        service_triples = self.getServiceString([name])
-        for client in clients:
-            if client not in self.flipped_interface_list:
-                continue
-            delete_service_triples = [x for x in service_triples if x in self.flipped_interface_list[client]]
-            self.flipped_interface_list[client].difference_update(set(delete_service_triples))
-            service_list = list(itertools.chain.from_iterable([[1, client], delete_service_triples]))
-            self.unflip(service_list)
-
-    def removeNamedFlippedServices(self,list):
-        # list[0] # of channel
-        # list[1:list[0]] is channels
-        # rest of them are fliping services
-        num = int(list[0])
-        channels = list[1:num+1]
-        services = list[num+1:len(list)]
-        print "removing named services from flip: " + str(list)
-        for chn in channels:
-            if chn in self.flipped_service_whitelist:
-                self.flipped_service_whitelist[chn].difference_update(set(services))
-        return True, []
-
-    def addFlippedInterfaceByName(self,identifier,clients,name):
-        if identifier == 'topic':
-            self.addFlippedTopicByName(clients,name)
-        elif identifier == 'service':
-            self.addFlippedServiceByName(clients,name)
-
-    def removeFlippedInterfaceByName(self,identifier,clients,name):
-        if identifier == 'topic':
-            self.removeFlippedTopicByName(clients,name)
-        elif identifier == 'service':
-            self.removeFlippedServiceByName(clients,name)
-
-    def flipAll(self,list):
-        #list is channels
-        for chn in list:
-            if chn not in self.flipped_topic_whitelist:
-              self.flipped_topic_whitelist[chn] = set()
-            if chn not in self.flipped_service_whitelist:
-              self.flipped_service_whitelist[chn] = set()
-            self.flipped_topic_whitelist[chn].add('.*')
-            self.flipped_service_whitelist[chn].add('.*')
-            if chn in self.flip_public_topics:
-                self.flip_public_topics.remove(chn)
-        return True, []
-
-    def flipAllPublic(self,list):
-        #list is channels
-        for chn in list:
-            if chn in self.flipped_topic_whitelist:
-              self.flipped_topic_whitelist[chn].difference_update(set(['.*']))
-            if chn in self.flipped_service_whitelist:
-              self.flipped_service_whitelist[chn].difference_update(set(['.*']))
-            self.flip_public_topics.add(chn)
-        return True, []
-
-    def flipListOnly(self,list):
-        #list is channels
-        for chn in list:
-            if chn in self.flipped_topic_whitelist:
-              self.flipped_topic_whitelist[chn].difference_update(set(['.*']))
-            if chn in self.flipped_service_whitelist:
-              self.flipped_service_whitelist[chn].difference_update(set(['.*']))
-            if chn in self.flip_public_topics:
-                self.flip_public_topics.remove(chn)
-        return True, []
+    ##########################################################################
+    # Old flip logic - depracating
+    ##########################################################################
+#    def addNamedFlippedTopics(self, list):
+#        # list[0] # of channel
+#        # list[1:list[0]] is channels
+#        # rest of them are fliping topics
+#        num = int(list[0])
+#        channels = list[1:num+1]
+#        topics = list[num+1:len(list)]
+#        print "Adding named topics to flip: " + str(list)
+#        for chn in channels:
+#            if chn not in self.flipped_topic_whitelist:
+#                self.flipped_topic_whitelist[chn] = set()
+#            self.flipped_topic_whitelist[chn].update(set(topics))
+#        return True, []
+#
+#    def addFlippedTopicByName(self,clients,name):
+#        topic_triples = self.getTopicString([name])
+#        for client in clients:
+#            if client not in self.flipped_interface_list:
+#                self.flipped_interface_list[client] = set()
+#            add_topic_triples = [x for x in topic_triples if x not in self.flipped_interface_list[client]]
+#            self.flipped_interface_list[client].update(set(add_topic_triples))
+#            topic_list = list(itertools.chain.from_iterable([[1, client], add_topic_triples]))
+#            self.flip(topic_list)
+#
+#    def removeFlippedTopicByName(self,clients,name):
+#        topic_triples = self.getTopicString([name])
+#        for client in clients:
+#            if client not in self.flipped_interface_list:
+#                continue
+#            delete_topic_triples = [x for x in topic_triples if x in self.flipped_interface_list[client]]
+#            self.flipped_interface_list[client].difference_update(set(delete_topic_triples))
+#            topic_list = list(itertools.chain.from_iterable([[1, client], delete_topic_triples]))
+#            self.unflip(topic_list)
+#
+#    def removeNamedFlippedTopics(self,list):
+#        # list[0] # of channel
+#        # list[1:list[0]] is channels
+#        # rest of them are fliping topics
+#        num = int(list[0])
+#        channels = list[1:num+1]
+#        topics = list[num+1:len(list)]
+#        print "removing named topics from flip: " + str(list)
+#        for chn in channels:
+#            if chn in self.flipped_topic_whitelist:
+#                self.flipped_topic_whitelist[chn].difference_update(set(topics))
+#        return True, []
+#
+#    def addFlippedServiceByName(self,clients,name):
+#        service_triples = self.getServiceString([name])
+#        for client in clients:
+#            if client not in self.flipped_interface_list:
+#                self.flipped_interface_list[client] = set()
+#            add_service_triples = [x for x in service_triples if x not in self.flipped_interface_list[client]]
+#            self.flipped_interface_list[client].update(set(add_service_triples))
+#            service_list = list(itertools.chain.from_iterable([[1, client], add_service_triples]))
+#            self.flip(service_list)
+#
+#    def addNamedFlippedServices(self, list):
+#        # list[0] # of channel
+#        # list[1:list[0]] is channels
+#        # rest of them are fliping services
+#        num = int(list[0])
+#        channels = list[1:num+1]
+#        services = list[num+1:len(list)]
+#        print "Adding named services to flip: " + str(list)
+#        for chn in channels:
+#            if chn not in self.flipped_service_whitelist:
+#                self.flipped_service_whitelist[chn] = set()
+#            self.flipped_service_whitelist[chn].update(set(services))
+#        return True, []
+#
+#
+#    def removeFlippedServiceByName(self,clients,name):
+#        service_triples = self.getServiceString([name])
+#        for client in clients:
+#            if client not in self.flipped_interface_list:
+#                continue
+#            delete_service_triples = [x for x in service_triples if x in self.flipped_interface_list[client]]
+#            self.flipped_interface_list[client].difference_update(set(delete_service_triples))
+#            service_list = list(itertools.chain.from_iterable([[1, client], delete_service_triples]))
+#            self.unflip(service_list)
+#
+#    def removeNamedFlippedServices(self,list):
+#        # list[0] # of channel
+#        # list[1:list[0]] is channels
+#        # rest of them are fliping services
+#        num = int(list[0])
+#        channels = list[1:num+1]
+#        services = list[num+1:len(list)]
+#        print "removing named services from flip: " + str(list)
+#        for chn in channels:
+#            if chn in self.flipped_service_whitelist:
+#                self.flipped_service_whitelist[chn].difference_update(set(services))
+#        return True, []
+#
+#    def addFlippedInterfaceByName(self,identifier,clients,name):
+#        if identifier == 'topic':
+#            self.addFlippedTopicByName(clients,name)
+#        elif identifier == 'service':
+#            self.addFlippedServiceByName(clients,name)
+#
+#    def removeFlippedInterfaceByName(self,identifier,clients,name):
+#        if identifier == 'topic':
+#            self.removeFlippedTopicByName(clients,name)
+#        elif identifier == 'service':
+#            self.removeFlippedServiceByName(clients,name)
+#
+#    def flipAll(self,list):
+#        #list is channels
+#        for chn in list:
+#            if chn not in self.flipped_topic_whitelist:
+#              self.flipped_topic_whitelist[chn] = set()
+#            if chn not in self.flipped_service_whitelist:
+#              self.flipped_service_whitelist[chn] = set()
+#            self.flipped_topic_whitelist[chn].add('.*')
+#            self.flipped_service_whitelist[chn].add('.*')
+#            if chn in self.flip_public_topics:
+#                self.flip_public_topics.remove(chn)
+#        return True, []
+#
+#    def flipAllPublic(self,list):
+#        #list is channels
+#        for chn in list:
+#            if chn in self.flipped_topic_whitelist:
+#              self.flipped_topic_whitelist[chn].difference_update(set(['.*']))
+#            if chn in self.flipped_service_whitelist:
+#              self.flipped_service_whitelist[chn].difference_update(set(['.*']))
+#            self.flip_public_topics.add(chn)
+#        return True, []
+#
+#    def flipListOnly(self,list):
+#        #list is channels
+#        for chn in list:
+#            if chn in self.flipped_topic_whitelist:
+#              self.flipped_topic_whitelist[chn].difference_update(set(['.*']))
+#            if chn in self.flipped_service_whitelist:
+#              self.flipped_service_whitelist[chn].difference_update(set(['.*']))
+#            if chn in self.flip_public_topics:
+#                self.flip_public_topics.remove(chn)
+#        return True, []
+#
+#    def allowInterfaceInFlipped(self,identifier,client,name):
+#        #print '  testing ' + identifier + ': ' + name + ' for ' + client
+#        if client in self.flip_public_topics:
+#          #print '    client in public list'
+#          return self.allowInterfaceInPublic(identifier,name)
+#
+#        if identifier == 'topic':
+#            if client not in self.flipped_topic_whitelist:
+#                return False
+#            whitelist = self.flipped_topic_whitelist[client]
+#            blacklist = self.public_topic_blacklist
+#        else:
+#            if client not in self.flipped_service_whitelist:
+#                return False
+#            whitelist = self.flipped_service_whitelist[client]
+#            blacklist = self.public_service_blacklist
+#        return self.allowInterface(name,whitelist,blacklist)
+#    def getFlippedClientList(self,identifier,name):
+#        list = self.hub.listPublicInterfaces()
+#        allowed_clients = []
+#        not_allowed_clients = []
+#        for chn in list:
+#            if self.allowInterfaceInFlipped(identifier,chn,name):
+#                allowed_clients.append(chn)
+#            else:
+#                not_allowed_clients.append(chn)
+#        return [allowed_clients, not_allowed_clients]
 
     def makeAllPublic(self,list):
         print "Dumping all non-blacklisted interfaces"
@@ -562,35 +641,6 @@ class GatewaySync(object):
             whitelist = self.public_service_whitelist
             blacklist = self.public_service_blacklist
         return self.allowInterface(name,whitelist,blacklist)
-
-    def allowInterfaceInFlipped(self,identifier,client,name):
-        #print '  testing ' + identifier + ': ' + name + ' for ' + client
-        if client in self.flip_public_topics:
-          #print '    client in public list'
-          return self.allowInterfaceInPublic(identifier,name)
-
-        if identifier == 'topic':
-            if client not in self.flipped_topic_whitelist:
-                return False
-            whitelist = self.flipped_topic_whitelist[client]
-            blacklist = self.public_topic_blacklist
-        else:
-            if client not in self.flipped_service_whitelist:
-                return False
-            whitelist = self.flipped_service_whitelist[client]
-            blacklist = self.public_service_blacklist
-        return self.allowInterface(name,whitelist,blacklist)
-
-    def getFlippedClientList(self,identifier,name):
-        list = self.hub.listPublicInterfaces()
-        allowed_clients = []
-        not_allowed_clients = []
-        for chn in list:
-            if self.allowInterfaceInFlipped(identifier,chn,name):
-                allowed_clients.append(chn)
-            else:
-                not_allowed_clients.append(chn)
-        return [allowed_clients, not_allowed_clients]
 
     def clearServer(self):
         self.hub.unregisterGateway()

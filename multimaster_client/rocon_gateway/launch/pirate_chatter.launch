@@ -1,0 +1,13 @@
+<!--
+  Works with rocon_gateway_hub/pirate.launch - uses a non-default hub
+  name so we can test hubs in parallel. 
+-->
+<launch>
+  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen"/>
+
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
+    <rosparam param="hub_whitelist">['Pirate Hub']</rosparam>
+  </node>
+  <node pkg="roscpp_tutorials" type="talker" name="talker"/>
+</launch>

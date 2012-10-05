@@ -97,6 +97,9 @@ class Gateway():
         # Individual callbacks, directly hooked into the gateway sync
         self.gateway_services['advertise'] = rospy.Service('~advertise',Advertise,self.gateway_sync.advertise)
         self.gateway_services['advertise_all'] = rospy.Service('~advertise_all',AdvertiseAll,self.gateway_sync.advertiseAll)        
+        self.gateway_services['flip'] = rospy.Service('~flip',Flip,self.gateway_sync.rosServiceFlip)        
+        self.gateway_services['flip_pattern'] = rospy.Service('~flip_pattern',FlipPattern,self.gateway_sync.rosServiceFlipPattern)        
+        self.gateway_services['flip_all'] = rospy.Service('~flip_all',FlipAll,self.gateway_sync.rosServiceFlipAll)        
         
         self.callbacks["add_public_topic"] = self.gateway_sync.advertiseOld
         self.callbacks["add_public_service"] = self.gateway_sync.advertiseOld
@@ -112,20 +115,6 @@ class Gateway():
         self.callbacks["make_all_public"] = self.gateway_sync.makeAllPublic
         self.callbacks["remove_all_public"] = self.gateway_sync.removeAllPublic
      
-        self.callbacks["flipout_topic"] = self.gateway_sync.oldFlipWrapper
-        self.callbacks["remove_flipped_topic"] = self.gateway_sync.oldUnflipWrapper
-        self.callbacks["add_named_flipped_topics"] = self.gateway_sync.addNamedFlippedTopics
-        self.callbacks["remove_named_flipped_topics"] = self.gateway_sync.removeNamedFlippedTopics
-
-        self.callbacks["flipout_service"] = self.gateway_sync.oldFlipWrapper
-        self.callbacks["remove_flipped_service"] = self.gateway_sync.oldUnflipWrapper
-        self.callbacks["add_named_flipped_services"] = self.gateway_sync.addNamedFlippedServices
-        self.callbacks["remove_named_flipped_services"] = self.gateway_sync.removeNamedFlippedServices
-
-        self.callbacks["flip_all"] = self.gateway_sync.flipAll
-        self.callbacks["flip_all_public"] = self.gateway_sync.flipAllPublic
-        self.callbacks["flip_list_only"] = self.gateway_sync.flipListOnly
-
     ##########################################################################
     # Ros Service Callbacks
     ##########################################################################
@@ -281,7 +270,7 @@ class Gateway():
             rospy.sleep(3.0)
 
         # Once you get here, it is connected to redis server
-        rospy.loginfo("Gateway : connected to hub [%s]."%self._hub_name) 
+        rospy.loginfo("Gateway : connected to hub [%s][%s]."%(self.gateway_sync.unique_name,self._hub_name)) 
         rospy.spin()
 
         # When the node is going off, it should remove it's info from redis-server

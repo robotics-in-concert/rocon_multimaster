@@ -9,7 +9,9 @@ import threading
 from gateway_comms.msg import Connection
 
 class WatcherThread(threading.Thread):
-
+    '''
+    '''
+    
     def __init__(self,gateway):
         # init thread
         threading.Thread.__init__(self)
@@ -19,51 +21,65 @@ class WatcherThread(threading.Thread):
         self.pubs = self.master.pubs_node
         self.public_interface = gateway.public_interface
     
+        self.start()
+
     def run(self):
-        print "Thread Started"
         while not rospy.is_shutdown():
             self.cv.acquire()
 
-            # self.checkRemoteList()
             if self.gateway.is_connected: 
-                # 1. Check all remove interfaces are still in redis server, if it is gone, unregister it 
-                #self.pollServer()
-                # 2. Check all local public interfaces are still valid
-                self.checkPublicInterfaces()
+                self._checkLocalConnections()
             self.cv.release()
             rospy.sleep(3.0)
 
-    def pollServer(self):
-        remotelist = self.gateway.getRemoteLists()
+    def _checkLocalConnections(self):
+        '''
+          Checks the local master and collates a list of all
+          current connections. We use this to check against all 
+          our rules to determine whether any connections have
+          become available or unavailable since the last lookup.
+          
+          @todo : prune pubs and subs and collate action client 
+                  and server lists  
+        '''
+        publishers, subscribers, services = self.master.getSystemState()
+        actions = [] # todo : create and prune pubs/subs
+        self._updatePublicInterface(publishers, subscribers, services, actions)
+        self._updateFlips(publishers, subscribers, services, actions)
 
-        for master in remotelist:
-            print str(remotelist[master])
-
-    def checkPublicInterfaces(self):
-        pubs, subs, srvs = self.master.getSystemState() 
-        self.update(Connection.PUBLISHER,pubs)
-        self.update(Connection.SUBSCRIBER,subs)
-        self.update(Connection.SERVICE,srvs)
-
-    def update(self,identifier,list):
-        # unadvertise from public interface if a topic disappears from the local master
-        for string in self.public_interface.interface[identifier]:
-            name, _, node_uri = string.split(",")
-            still_exist = False
-            try:
-                llist = [x[1] for x in list if x[0] == name]
-  
-                # all nodes are gone.
-                uris = [self.master.lookupNode(p) for p in llist[0]]
-                still_exist = node_uri in uris
-            except:
-                still_exist = False
-              
-            # if it is not exist anymore, remove it from public interface
-            if not still_exist:
-                self.gateway.unadvertise([string])
-
+    def _updateFlips(self, publishers, subscribers, services, actions):
+        '''
+          Process the list of local connections and check against 
+          the current rules and patterns for flips. If a connection 
+          has become (un)available take appropriate action.
+          
+          @param publishers, subscribers, services, actions
+          @type list of ??? : 
+        '''
+        # 0) prune rules/patterns that apply to gateways no longer on the hub
+        # 1) compare with currently flipped interfaces checking for one that has disappeared
+        # 2) compare with non-active flip rules, flip if there's a hit
+        pass
+    
+    def update(self, type, connections):
         # CURRENTLY DISABLED (work in progress)
+        # unadvertise from public interface if a topic disappears from the local master
+        # for string in self.public_interface.interface[identifier]:
+        #     name, _, node_uri = string.split(",")
+        #     still_exist = False
+        #     try:
+        #         llist = [x[1] for x in list if x[0] == name]
+        #
+        #         # all nodes are gone.
+        #         uris = [self.master.lookupNode(p) for p in llist[0]]
+        #         still_exist = node_uri in uris
+        #     except:
+        #         still_exist = False
+        #       
+        #     # if it is not exist anymore, remove it from public interface
+        #     if not still_exist:
+        #         self.gateway.unadvertise([string])
+        #
         # # add/remove named interfaces to public list as necessary
         # for x in list:
         #     name = x[0]
@@ -77,17 +93,11 @@ class WatcherThread(threading.Thread):
         #             self.gateway.removePublicInterfaceByName(identifier, name)
         #             self.dumped_interface[identifier].remove(name)
   
+        # DJS: CURRENTLY DISABLED (work in progress)
         # add/remove named interfaces to flipped list as necessary
-        for x in list:
-            name = x[0]
-            clients, non_clients = self.gateway.getFlippedClientList(identifier, name)
-            self.gateway.addFlippedInterfaceByName(identifier,clients,name)
-            self.gateway.removeFlippedInterfaceByName(identifier,non_clients,name)
-
-        
-
-"""
-  polling thread should do...
-  1. unregister the unavailable remote topics/services
-  2. remove the unavailable topics/services from public list
-"""
+        # for x in list:
+        #     name = x[0]
+        #     clients, non_clients = self.gateway.getFlippedClientList(identifier, name)
+        #     self.gateway.addFlippedInterfaceByName(identifier,clients,name)
+        #     self.gateway.removeFlippedInterfaceByName(identifier,non_clients,name)
+        pass
