@@ -53,13 +53,11 @@ class GatewaySync(object):
     def __init__(self, name):
         self.unresolved_name = name # This gets used to build unique names after connection to the hub
         self.unique_name = None # single string value set after hub connection (note: it is not a redis rocon:: rooted key!)
-        self.master_uri = None
         self.is_connected = False
         self.flipped_interface = None # Initalise this on connection (needs unique namespace hint)
         self.public_interface = PublicInterface()
         self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.master = LocalMaster()
-        self.master_uri = self.master.getMasterUri()
 
         # create a thread to clean-up unavailable topics
         self.watcher_thread = WatcherThread(self)

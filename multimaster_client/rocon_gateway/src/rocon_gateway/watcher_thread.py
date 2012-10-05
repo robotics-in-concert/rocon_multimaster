@@ -53,7 +53,7 @@ class WatcherThread(threading.Thread):
         '''
         publishers, subscribers, services = self.master.getSystemState()
         actions = [] # todo : create and prune pubs/subs
-        _updateFlips(publishers, subscribers, services, actions)
+        self._updateFlips(publishers, subscribers, services, actions)
 
     def _updateFlips(self, publishers, subscribers, services, actions):
         '''
@@ -65,9 +65,15 @@ class WatcherThread(threading.Thread):
           @type list of ??? : 
         '''
         # 0) prune rules/patterns that apply to gateways no longer on the hub
+        for topic, node_list in publishers:
+            #print "Topic: %s"%topic
+            #print "Nodelist:"
+            for node in node_list:
+                #print("  %s"%node)
+                pass
+            
         # 1) compare with currently flipped interfaces checking for one that has disappeared
         # 2) compare with non-active flip rules, flip if there's a hit
-        pass
     
     def update(self, type, connections):
         # CURRENTLY DISABLED (work in progress)

@@ -42,7 +42,7 @@ class LocalMaster(rosgraph.Master):
     # Master utility methods
     ##########################################################################
     
-    def getMasterUri(self):
+    def _getMasterUri(self):
         return rosgraph.get_master_uri()
 
     def getTopicInfo(self,topic):
@@ -78,12 +78,12 @@ class LocalMaster(rosgraph.Master):
 
         return info
 
-    def getAnonymousNodeName(self,topic):
+    def _getAnonymousNodeName(self,topic):
         t = topic[1:len(topic)]
         name = roslib.names.anonymous_name(t)
         return name
 
-    def checkIfItisLocal(self,name,uri,identifier):
+    def _checkIfItisLocal(self,name,uri,identifier):
         pubs, _1, srvs = self.getSystemState()
     
         if identifier == "topic":
@@ -111,11 +111,11 @@ class LocalMaster(rosgraph.Master):
     
     def registerTopic(self,topic,topictype,uri):
         try:
-            if self.checkIfItisLocal(topic,uri,"topic"):
+            if self._checkIfItisLocal(topic,uri,"topic"):
                 rospy.logerr("Gateway : Topic triple available locally")
                 return False
        
-            node_name = self.getAnonymousNodeName(topic)    
+            node_name = self._getAnonymousNodeName(topic)    
             rospy.logerr("Gateway : Starting new node [%s] for topic [%s]"%(node_name,topic))
 
             # Initialize if it is a new topic
@@ -141,10 +141,10 @@ class LocalMaster(rosgraph.Master):
 
     def registerService(self,service,service_api,node_xmlrpc_uri):
         try:                                                  
-            if self.checkIfItisLocal(service,node_xmlrpc_uri,"service"):
+            if self._checkIfItisLocal(service,node_xmlrpc_uri,"service"):
                 rospy.logerr("Gateway : Service triple available locally")
                 return False
-            node_name = self.getAnonymousNodeName(service)    
+            node_name = self._getAnonymousNodeName(service)    
             rospy.loginfo("Gateway : Starting new node [%s] for service [%s]"%(node_name,service))
 
             # Initialize if it is a new topic
