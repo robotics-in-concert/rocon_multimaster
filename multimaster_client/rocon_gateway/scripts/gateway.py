@@ -284,7 +284,7 @@ class Gateway():
             rospy.sleep(3.0)
 
         # Once you get here, it is connected to redis server
-        rospy.loginfo("Gateway : connected to hub [%s]."%self._hub_name) 
+        rospy.loginfo("Gateway : connected to hub [%s][%s]."%(self.gateway_sync.unique_name,self._hub_name)) 
         rospy.spin()
 
         # When the node is going off, it should remove it's info from redis-server

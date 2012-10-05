@@ -20,14 +20,13 @@ import rosgraph
 from std_msgs.msg import Empty
 
 # Ros Comms
+import gateway_comms.msg
+import gateway_comms.srv
 from gateway_comms.msg import Connection
 from gateway_comms.srv import AdvertiseResponse
 from gateway_comms.srv import AdvertiseAllResponse
 
 # Local imports
-from gateway_comms.msg import Connection
-from gateway_comms.srv import AdvertiseResponse
-from gateway_comms.srv import AdvertiseAllResponse
 import utils
 from .hub_api import Hub
 from .master_api import LocalMaster
@@ -56,9 +55,8 @@ class GatewaySync(object):
         self.unique_name = None # single string value set after hub connection (note: it is not a redis rocon:: rooted key!)
         self.master_uri = None
         self.is_connected = False
-
+        self.flipped_interface = None # Initalise this on connection (needs unique namespace hint)
         self.public_interface = PublicInterface()
-        self.flipped_interface = FlippedInterface()
         self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.master = LocalMaster()
         self.master_uri = self.master.getMasterUri()
@@ -81,6 +79,7 @@ class GatewaySync(object):
         try:
             self.hub.connect(ip,port)
             self.unique_name = self.hub.registerGateway()
+            self.flipped_interface = FlippedInterface(self.unique_name)
             self.is_connected = True
         except Exception as e:
             print str(e)
@@ -134,10 +133,32 @@ class GatewaySync(object):
           under <unique_gateway_name>.
           
           @param request
-          @type gateway_comms.FlipRequest
+          @type gateway_comms.srv.FlipRequest
+          @return service response
+          @rtype gateway_comms.srv.FlipResponse
         '''
-        response = FlipResponse()
-        response.success = True
+        response = gateway_comms.srv.FlipResponse()
+        if not self.is_connected:
+            rospy.logerr("Gateway : no hub connection."%gateway_comms.msg.Result.NO_HUB_CONNECTION)
+            response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
+            response.error_message = "no hub connection" 
+            
+            return response
+        if request.gateway == self.unique_name:
+            rospy.logerr("Gateway : gateway cannot flip to itself."%gateway_comms.msg.Result.NO_FLIP_TO_SELF)
+            response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
+            response.error_message = "gateway cannot flip to itself" 
+
+        flip = self.flipped_interface.addRule(request.gateway, request.type, request.name, request.node_name, request.remapped_name)
+        if flip:
+            rospy.loginfo("Gateway : flipping to gateway %s [%s->%s]"%(flip.gateway,flip.name,flip.remapped_name))
+            response.result = gateway_comms.msg.Result.SUCCESS
+            # expound on this
+            # self.hub.flip(gateway,list)
+        else:
+            rospy.logerr("Gateway : flip rule already exists [%s:%s->%s]"%(request.gateway,request.name,request.remapped_name))
+            response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+            response.error_message = "flip rule already exists ["+request.gateway+":"+request.name+"->"+request.remapped_name+"]" 
         return response
 
     def rosServiceFlipPattern(self,request):
@@ -148,15 +169,24 @@ class GatewaySync(object):
           <unique_gateway_name>). 
           
           @param request
-          @type gateway_comms.FlipPatternRequest
+          @type gateway_comms.srv.FlipPatternRequest
+          @return service response
+          @rtype gateway_comms.srv.FlipPatternResponse
         '''
-        response = FlipPatternResponse()
-        response.success = True
+        response = gateway_comms.srv.FlipPatternResponse()
         return response
 
     def rosServiceFlipAll(self,request):
+        '''
+          Flips everything except a specified blacklist to a particular gateway,
+          or if the cancel flag is set, clears all flips to that gateway.
+          
+          @param request
+          @type gateway_comms.srv.FlipAllRequest
+          @return service response
+          @rtype gateway_comms.srv.FlipAllResponse
+        '''
         response = FlipAllResponse()
-        response.success = True
         return response
 
     ##########################################################################
