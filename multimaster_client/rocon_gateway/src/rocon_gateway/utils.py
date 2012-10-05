@@ -196,6 +196,9 @@ def removeFromConnectionList(list, subtractions):
     for connection_type in list:
         list[connection_type] -= subtractions[connection_type]
 
+    def getConnectionTypes(self):
+        return [Connection.PUBLISHER, Connection.SUBSCRIBER, Connection.SERVICE, Connection.ACTION_SERVER, Connection.ACTION_CLIENT]
+
 if __name__ == "__main__":
     '''
       For testing.
