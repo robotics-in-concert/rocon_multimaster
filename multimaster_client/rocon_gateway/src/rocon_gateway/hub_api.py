@@ -62,10 +62,10 @@ class Hub(object):
         self.callback = pubsubcallback
         self.redis_keys = {}
         #self.redis_keys['name'] = '' # it's a unique id generated later when connecting
-        self.redis_keys['index'] = self.createKey('hub:index') # used for uniquely id'ing the gateway (client)
-        self.redis_keys['gatewaylist'] = self.createKey('gatewaylist')
+        self.redis_keys['index'] = self._createKey('hub:index') # used for uniquely id'ing the gateway (client)
+        self.redis_keys['gatewaylist'] = self._createKey('gatewaylist')
         self.redis_channels = {}
-        self.redis_channels['update_topic'] = self.createKey('update')
+        self.redis_channels['update_topic'] = self._createKey('update')
         
     ##########################################################################
     # Hub
@@ -89,7 +89,7 @@ class Hub(object):
         gateway_keys = self.getMembers(self.redis_keys['gatewaylist'])
         gateway_list = []
         for gateway in gateway_keys:
-            gateway_list.append(self.baseName(gateway))
+            gateway_list.append(self._baseName(gateway))
         return gateway_list
 
     def listPublicInterfaces(self):
@@ -99,7 +99,7 @@ class Hub(object):
         public_interfaces = {}
         gateway_keys = self.getMembers(self.redis_keys['gatewaylist'])
         for gateway_key in gateway_keys:
-            gateway = self.baseName(gateway_key)
+            gateway = self._baseName(gateway_key)
             public_interfaces[gateway] = {}
             # get public topic list of this master
             key = gateway_key +":topic"
@@ -130,14 +130,14 @@ class Hub(object):
           is actually connected here first.
         '''
         unique_num = self.server.incr(self.redis_keys['index'])
-        self.redis_keys['name'] = self.createKey(self._name+str(unique_num))
+        self.redis_keys['name'] = self._createKey(self._name+str(unique_num))
         self.server.sadd(self.redis_keys['gatewaylist'],self.redis_keys['name'])
         self.pubsub.subscribe(self.redis_channels['update_topic'])
         self.pubsub.subscribe(self.redis_keys['name'])
         self.subThread = RedisSubscriberThread(self.pubsub,self.processUpdate)
         self.subThread.start()
 
-        return self.baseName(self.redis_keys['name'])
+        return self._baseName(self.redis_keys['name'])
 
     def unregisterGateway(self):
         '''
@@ -214,7 +214,7 @@ class Hub(object):
         try: 
             contents = self.deserialize(msg)
             cmd = contents[0]
-            provider = self.extractKey(contents[1])
+            provider = self._extractKey(contents[1])
             info = contents[2]
             self.callback(cmd, provider, info)
         except:
@@ -227,9 +227,8 @@ class Hub(object):
     def flip(self,gateway,list):
         data = ["flip", self.redis_keys['name'], list];
         cmd = utils.serialize(data)
-        gateway = self.createKey(gateway)
         try:
-            self.sendMessage(gateway,cmd)
+            self.sendMessage(self._createKey(gateway),cmd)
         except Exception as e:
             return False
         return True
@@ -237,9 +236,8 @@ class Hub(object):
     def unflip(self,gateway,list):
         data = ["unflip", self.redis_keys['name'], list];
         cmd = utils.serialize(data)
-        gateway = self.createKey(gateway)
         try:
-            self.sendMessage(gateway,cmd)
+            self.sendMessage(self._createKey(gateway),cmd)
         except Exception as e:
             return False
         return True
@@ -279,7 +277,7 @@ class Hub(object):
     # Redis Key Manipulation Functions - not class related, should push out
     ##########################################################################
     
-    def createKey(self,key):
+    def _createKey(self,key):
         '''
           Root the specified redis key name in our pseudo redis database.
         '''
@@ -288,7 +286,7 @@ class Hub(object):
         else:
             return 'rocon:'+key
     
-    def extractKey(self,key):
+    def _extractKey(self,key):
         '''
           Extract the specified redis key name from our pseudo redis database.
         '''
@@ -297,7 +295,7 @@ class Hub(object):
         else:
             return key
     
-    def baseName(self,key):
+    def _baseName(self,key):
         '''
           Extract the base name (i.e. last value) from the key.
           e.g. rocon:key:pirate24 -> pirate24
