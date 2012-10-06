@@ -1,5 +1,6 @@
 <!--
-  Works with rocon_gateway_hub/hub.launch. 
+  Works with rocon_gateway_hub/hub.launch on the same machine
+  (different ROS_MASTER_URI). 
   
   This one has no auto-discovery mode. Instead it uses manual direct
   configuration with the typical default settings for a local ubuntu 

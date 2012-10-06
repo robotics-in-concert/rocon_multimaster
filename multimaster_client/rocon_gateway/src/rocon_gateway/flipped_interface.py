@@ -8,50 +8,39 @@
 # Imports
 ##############################################################################
 
+import roslib; roslib.load_manifest('rocon_gateway')
+from gateway_comms.msg import Connection, FlipRule
+import copy
+
+# Local imports
+import utils
+
 ##############################################################################
-# Flip
+# Functions
 ##############################################################################
 
-class Flip(object):
+def flipRuleExists(flip_rule, flip_rules):
     '''
-      Holds a rule defining the properties for a single connection flip.
+      Checks that the flip rule doesn't already exist in the list of flip
+      rules (which can represent the flipped interface or the rules themselves).
+      
+      @param flip_rule : the rule to search for
+      @type FlipRule
+      
+      @param flip_rules : list of FlipRule objects (flipped_interface[xxx] or rules[xxx]
+      @type list : list of FlipRule objects
+      
+      @return true if the flip rule exists, false otherwise
+      @rtype bool
     '''
-    def __init__(self, gateway, type, name, node = None, remapped_name = None):
-        self.gateway = gateway
-        self.type = type
-        self.name = name
-        self.node = node
-        self.remapped_name = remapped_name
-    
-    # Need these for hashable containers (like sets), ugh!
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.__dict__ == other.__dict__
-        else:
-            return False
-    
-    def __ne__(self, other):
-        return not self.__eq__(other)
-    
-    def __hash__(self):
-        return hash(self.gateway) ^ hash(self.type) ^ hash(self.name) ^ hash(self.node) ^ hash(self.remapped_name)
-    
-    def __repr__(self):
-        return '{ gateway: %s type: %s name: %s node name: %s remap: %s }'%(self.gateway,self.type,self.name, self.node, self.remapped_name)
-    
-    def copy(self):
-        return Flip(self.gateway, self.type, self.name, self.node, self.remapped_name)
-        
-class FlipPattern(object):
-    '''
-      Holds a rule defining the properties for flips generated from a 
-      single regex based connection name pattern.
-    '''
-    def __init__(self, type, regex, remapped_namespace = None):
-        self.gateway = gateway
-        self.type = type
-        self.regex = regex
-        self.remapped_namespace = remapped_namespace
+    for rule in flip_rules:
+        if rule.gateway         == flip_rule.gateway and \
+           rule.remapped_name   == flip_rule.remapped_name and \
+           rule.connection.name == flip_rule.connection.name and \
+           rule.connection.node == flip_rule.connection.node:
+            return True
+    return False
+          
 
 ##############################################################################
 # Flipped Interface
@@ -68,9 +57,9 @@ class FlippedInterface(object):
           Initialises the flipped interface.
         '''
         self._namespace = "/" # namespace to root flips in
-        self.flipped = set() # set of currently flipped Flips
-        self.rules = set() # set of Flip rules
-        self.patterns = set()  # set of FlipPattern rules
+        self.flipped = utils.createEmptyConnectionTypeDictionary()  # keys are connection_types, elements are lists of FlipRule objects 
+        self.rules = utils.createEmptyConnectionTypeDictionary()    # keys are connection_types, elements are lists of FlipRule objects 
+        self.patterns = utils.createEmptyConnectionTypeDictionary() # keys are connection_types, elements are lists of FlipPattern objects 
         
     def setDefaultRootNamespace(self, namespace):
         '''
@@ -83,7 +72,7 @@ class FlippedInterface(object):
         '''
         self._namespace = "/"+namespace
 
-    def addRule(self, gateway, type, name, node, remapped_name):
+    def addRule(self, flip_rule):
         '''
           Generate the flip rule, taking care to provide a sensible
           default for the remapping (root it in this gateway's namespace
@@ -98,18 +87,22 @@ class FlippedInterface(object):
           @return the flip rule, or None if the rule already exists.
           @rtype Flip || None
         '''
-        if not remapped_name:
-            remapped_name = self._namespace + name
-        rule = Flip(gateway, type, name, node, remapped_name)
-        if rule in self.rules:
+        if not flip_rule.remapped_name:
+            flip_rule.remapped_name = self._namespace + flip_rule.connection.name
+        if flipRuleExists(flip_rule, self.rules[flip_rule.connection.type]):
             return None
         else:
-            self.rules.add(rule)
-            return rule
+            self.rules[flip_rule.connection.type].append(flip_rule)
+            return flip_rule
 
     def matchesRule(self, type, name, node):
         '''
-          Checks if a local connection (obtained from master.getSystemState) matches a rule.
+          Checks if a local connection (obtained from master.getSystemState) 
+          is a suitable association with any of the rules. This can
+          return multiple matches, since the same local connection 
+          properties can be multiply flipped to different remote gateways.
+            
+          Used in the watcher thread.
           
           @param type : connection type
           @type str : string constant from gateway_comms.msg.Connection
@@ -119,46 +112,59 @@ class FlippedInterface(object):
           
           @param node : ros node name (coming from master.getSystemState)
           @type str
+          
+          @return all the flip rules that match this local connection
+          @return list of FlipRule copied objects from self.rules
         '''
-        matched_flip = None
-        for rule in self.rules:
-            if type == rule.type and name == rule.name:
-                if rule.node and node == rule.node:
-                    matched_flip = rule.copy()
-                    break
-                elif not rule.node:
-                    matched_flip = rule.copy()
-                    matched_flip.node = node
-                    break
-        return matched_flip
+        matched_flip_rules = []
+        for rule in self.rules[type]:
+            if name == rule.connection.name:
+                if rule.connection.node and node == rule.connection.node:
+                    matched_flip_rules.append(copy.deepcopy(rule))
+                elif not rule.connection.node:
+                    matched_flip = copy.deepcopy(rule)
+                    matched_flip.connection.node = node
+                    matched_flip_rules.append(matched_flip)
+        return matched_flip_rules
                     
     def isFlipped(self, type, name, node):
         '''
-          Checks if this flip is currently flipped.
+          Checks if a local connection (obtained from master.getSystemState)
+          is currently flipped and returns a list of the flipped instances
+          (note that the same local connection may be multiply flipped
+          to different remote gateways). 
+          
+          Used in the watcher thread. 
           
           @param type : connection type
           @type str : string constant from gateway_comms.msg.Connection
           
-          @return The flip rule if found, nothing otherwise
-          @rtype Flip || None
+          @return all the flips that originate from this local connection
+          @rtype list : list of FlipRule copied objects from self.flipped 
         '''
-        for flip in self.flipped:
-            if type == flip.type and name == flip.name and node == flip.node:
-                return flip
-        return None
+        matched_flips = []
+        for flip in self.flipped[type]:
+            if name == flip.connection.name and node == flip.connection.node:
+                matched_flips.append(copy.deepcopy(flip))
+        return matched_flips
         
     ##########################################################################
-    # Flipped Interfaces
+    # Utilities
     ##########################################################################
-
-    ##########################################################################
-    # Filters
-    ##########################################################################
-
-    # ToDo
-
+    
 if __name__ == "__main__":
     
-    print "yeah" 
-    
-    
+    flips = []
+    dudes = ["dude","dudette"]
+    if flips:
+        print "true"
+    else:
+        print "false"
+    print ""
+    flips.extend(dudes)
+    print dudes
+    print flips
+    if flips:
+        print "true"
+    else:
+        print "false"

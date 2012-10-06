@@ -20,7 +20,7 @@ import re
 
 from .exceptions import GatewayError, ConnectionTypeError
 from .utils import Connection
-from gateway_comms.msg import Connection as ConnectionMsg
+from gateway_comms.msg import Connection
 
 class LocalMaster(rosgraph.Master):
     '''
@@ -32,7 +32,6 @@ class LocalMaster(rosgraph.Master):
 
     def __init__(self):
         rosgraph.Master.__init__(self,rospy.get_name())
-        rospy.loginfo("Gateway: initialising ros manager")
     
         self.pubs_uri = {}
         self.pubs_node = {}
@@ -131,11 +130,11 @@ class LocalMaster(rosgraph.Master):
         publishers, subscribers, services = self.getSystemState()
         action_servers = self.getActionServers()
         action_clients = self.getActionClients()
-        connections[ConnectionMsg.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, ConnectionMsg.PUBLISHER)
-        connections[ConnectionMsg.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, ConnectionMsg.SUBSCRIBER)
-        connections[ConnectionMsg.SERVICE] = self.getConnectionsFromServiceList(services, ConnectionMsg.SERVICE)
-        connections[ConnectionMsg.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, ConnectionMsg.ACTION_SERVER)
-        connections[ConnectionMsg.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, ConnectionMsg.ACTION_CLIENT)
+        connections[Connection.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, Connection.PUBLISHER)
+        connections[Connection.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, Connection.SUBSCRIBER)
+        connections[Connection.SERVICE] = self.getConnectionsFromServiceList(services, Connection.SERVICE)
+        connections[Connection.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, Connection.ACTION_SERVER)
+        connections[Connection.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, Connection.ACTION_CLIENT)
         return connections
 
     def _getAnonymousNodeName(self,topic):

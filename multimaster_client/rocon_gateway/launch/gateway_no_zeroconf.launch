@@ -1,0 +1,11 @@
+<!--
+  Works with rocon_gateway_hub/hub.launch. 
+  
+  This one has no auto-discovery mode. Use the /gateway/connect_hub 
+  service to provide a uri for connection.
+-->
+<launch>
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
+  </node>
+</launch>
