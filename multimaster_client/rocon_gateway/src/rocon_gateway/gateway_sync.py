@@ -131,7 +131,7 @@ class GatewaySync(object):
         '''
         response = gateway_comms.srv.FlipResponse()
         if not self.is_connected:
-            rospy.logerr("Gateway : no hub connection."%gateway_comms.msg.Result.NO_HUB_CONNECTION)
+            rospy.logerr("Gateway : no hub connection, aborting flip.")
             response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
             response.error_message = "no hub connection" 
         elif request.flip_rule.gateway == self.unique_name:
