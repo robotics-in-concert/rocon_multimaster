@@ -118,9 +118,12 @@ class Gateway():
             response.name = self.gateway_sync.unique_name
         else:
             response.name = self.gateway_sync.unresolved_name
-        response.public_interface.topics = self.gateway_sync.master.public_interface['topic']
-        response.public_interface.services = self.gateway_sync.master.public_interface['service']
+        for connection_type in rocon_gateway.connection_types:
+            response.flipped_connections.extend(self.gateway_sync.flipped_interface.flipped[connection_type])
+            response.flip_rules.extend(self.gateway_sync.flipped_interface.rules[connection_type])
+            #response.flip_patterns.extend(self.gateway_sync.flipped_interface.patterns[connection_type])
         return response
+    
 
     #############################################
     # Hub Connection Methods

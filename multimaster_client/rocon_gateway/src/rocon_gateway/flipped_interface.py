@@ -57,9 +57,9 @@ class FlippedInterface(object):
           Initialises the flipped interface.
         '''
         self._namespace = "/" # namespace to root flips in
-        self.flipped = utils.createEmptyConnectionTypeDictionary() # keys are connection_types, elements are lists of FlipRule objects 
-        self.rules = utils.createEmptyConnectionTypeDictionary()
-        self.patterns = utils.createEmptyConnectionTypeDictionary()
+        self.flipped = utils.createEmptyConnectionTypeDictionary()  # keys are connection_types, elements are lists of FlipRule objects 
+        self.rules = utils.createEmptyConnectionTypeDictionary()    # keys are connection_types, elements are lists of FlipRule objects 
+        self.patterns = utils.createEmptyConnectionTypeDictionary() # keys are connection_types, elements are lists of FlipPattern objects 
         
     def setDefaultRootNamespace(self, namespace):
         '''
