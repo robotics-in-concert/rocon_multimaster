@@ -12,7 +12,7 @@ import rospy
 # Functions
 ###############################################################################
 
-def rosParameters():
+def setupRosParameters():
     '''
     Returns the gateway parameters from the ros param server.
     Most of these should be fairly self explanatory.

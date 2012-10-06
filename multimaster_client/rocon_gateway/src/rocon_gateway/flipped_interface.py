@@ -8,6 +8,9 @@
 # Imports
 ##############################################################################
 
+import roslib; roslib.load_manifest('rocon_gateway')
+from gateway_comms.msg import Connection
+
 ##############################################################################
 # Flip
 ##############################################################################
@@ -159,6 +162,14 @@ class FlippedInterface(object):
 
 if __name__ == "__main__":
     
-    print "yeah" 
-    
-    
+    dudes = {}
+    if dudes:
+        print "dudes is true"
+    else:
+        print "dudes is false"
+    dudes["Jim"] = "Fool"
+    if dudes:
+        print "dudes is true"
+    else:
+        print "dudes is false"
+    print "dude" 
