@@ -8,10 +8,9 @@
 # Imports
 ##############################################################################
 
-import re
-import yaml
-import rospy
-from gateway_comms.msg import Connection
+import json
+import collections
+from gateway_comms.msg import Connection as ConnectionMsg
 
 ##############################################################################
 # Ros string utilities
@@ -47,171 +46,82 @@ def reshapeTopic(t):
 # Connections - usually our wierd triple style string representations.
 ##############################################################################
 
-def enum(*sequential, **named):
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    return type('Enum', (), enums)
-
-ConnectionEnum = enum('topic','service','action', 'invalid')
-ConnectionStrings = ['topic','service','action', 'invalid']
-
-def connectionType(connection):
+class Connection(ConnectionMsg):
     '''
-      Checks a connection string representation to determine if it is a 
-      topic, service or action. Topic types are always represented by a triple:
-      
-       - topic    { name, type, xmlrpc node uri }
-                  { /chatter,std_msgs/String,http://snorriheim:35403/ }
-       - service  { name, rosrpc uri, xmlrpc node uri }
-                  { /add_two_ints,rosrpc://snorriheim:59822,http://snorriheim:34035/ }
-       - action   ???
-        
-      @param connection : the string representation for a connection 
+      Hashable wrapper around the connection message 
     '''
-    components = connection.split(',')
-    if len( components ) < 2: 
-        return ConnectionEnum.invalid
-    if re.match('rosrpc',components[1]):
-        return ConnectionEnum.service
-    if re.match('http://',components[2]):
-        return ConnectionEnum.topic
-    # action not implemented yet
-    return ConnectionEnum.invalid
-
-def connectionTypeString(connection):
-    '''
-      Checks a connection string representation to determine if it is a 
-      topic, service or action. Returns a string representation of the type.
-      
-                { "topic", "service", "action", "invalid" }
-        
-      @param connection : the string representation for a connection
-      @return string : the string representation for the connection type. 
-    '''
-    return ConnectionStrings[connectionType(connection)] 
-
-def getEmptyConnectionList():
-    '''
-    Supplies a empty watchlist/blacklist. The watchlist/blacklist is designed
-    as a dictionary over connection types. Each value inside the dictionary is
-    a unique set of tuples of connection information
-
-    @return connections: empty watchlist/blacklist
-    @type dict of sets of tuples
-    '''
-    connections = dict()
-    connections[Connection.PUBLISHER] = set()
-    connections[Connection.SUBSCRIBER] = set()
-    connections[Connection.SERVICE] = set()
-    connections[Connection.ACTION_SERVER] = set()
-    connections[Connection.ACTION_CLIENT] = set()
-    return connections
-
-def getAllAllowedConnectionList():
-    '''
-    Returns a connection list where everything is allowed for every connection
-    type. Useful for *_all requests. A '.*' regex filter is put in for every
-    connection type
-
-    @return connections: connectionlist with 
-    @type dict of sets of tuples
-    '''
-    connections = dict()
-    connections[Connection.PUBLISHER] = set(('.*',))
-    connections[Connection.SUBSCRIBER] = set(('.*',))
-    connections[Connection.SERVICE] = set(('.*',))
-    connections[Connection.ACTION_SERVER] = set(('.*',))
-    connections[Connection.ACTION_CLIENT] = set(('.*',))
-    return connections
-        
-def parseConnectionsFromFile(file):
-    '''
-    Takes a YAML file , and parses a list of connection tuples and type from it
-
-    @param file : absolute location of the file to parse
-    @type str
-    @return connections: parsed watchlist/blacklist
-    @type dict of sets of tuples
-    '''
-    connections = getEmptyConnectionList()
-    try:
-        stream = open(file, 'r')
-        list = yaml.load(stream)
-    except:
-        rospy.logerr('Gateway : Unable to load yaml from file [%s]'%file)
-        return connections
-
-    try:
-        for connection_type in list:
-            for l in list[connection_type]: 
-                connections[connection_type].add(tuple(l))
-    except Exception as e:
-        rospy.logerr('Gateway : Unable to parse item in yaml file [%s]'%str(e))
-    return connections
-
-def connectionsFromConnectionMsgList(msg_list):
-    '''
-    Converts a list of gateway_comms/Connection messages to the internal easily
-    indexable format
-
-    @param msg_list: list of Connection msgs
-    @return connections: parsed watchlist/blacklist
-    @type dict of sets of tuples
-    '''
-    connections = getEmptyConnectionList()
-    for connection in msg_list:
-        connections[connection.type].add(tuple(connection.list))
-    return connections
-
-def connectionMsgListFromConnections(connections):
-    '''
-    Converts the internal easily indexable connectionlist format into a list of
-    connection messages
-
-    @param connections: parsed watchlist/blacklist
-    @type dict of sets of tuples
-    @return msg_list: list of Connection msgs
-    '''
-    msg_list = []
-    for connection_type in connections:
-        for l in connections[connection_type]:
-            connection = Connection()
-            connection.type = connection_type
-            connection.list = list(l)
-            msg_list.append(connection)
-    return msg_list
-
-def addToConnectionList(list, additions):
-    '''
-    Performs a set update for each individual connection type. Tuples from 
-    additions are added to the list.
-    '''
-    for connection_type in list:
-        list[connection_type] |= additions[connection_type]
-
-def removeFromConnectionList(list, subtractions):
-    '''
-    Performs a set difference update for each individual connection type. Tuples 
-    from subtractions are removed from the list.
-    '''
-    for connection_type in list:
-        list[connection_type] -= subtractions[connection_type]
-
-if __name__ == "__main__":
-    '''
-      For testing.
-    '''
-    if connectionType('/chatter,std_msgs/String,http://snorriheim:35403/') == ConnectionEnum.topic:
-        print "topic"
-    else:
-        print "not topic"
-    if connectionType('/add_two_ints,rosrpc://snorriheim:59822,http://snorriheim:34035/') == ConnectionEnum.service:
-        print "service"
-    else:
-        print "not service"
+    def __init__(self, type, name, node, uri, service_api = None, topic_type = None):
+        self.type = type
+        self.name = name
+        self.node = node
+        self.uri = uri
+        if not service_api:
+            service_api = ''
+        self.service_api = service_api
+        if not topic_type:
+            topic_type = ''
+        self.topic_type = topic_type
     
-    print connectionTypeString('/chatter,std_msgs/String,http://snorriheim:35403/')
-    print connectionTypeString('/add_two_ints,rosrpc://snorriheim:59822,http://snorriheim:34035/')
-    print connectionTypeString('/add_two_ints,snorriheim:59822,snorriheim:34035/')
+    # Need these for hashable containers (like sets), ugh!
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
     
-    dudette="dudette"
-    raise Exception("dude %s"%dudette)
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    
+    def __hash__(self):
+        return hash(self.type) ^ hash(self.name) ^ hash(self.node) ^ hash(self.uri) ^ hash(self.service_api) ^ hash(self.topic_type)
+    
+    def __repr__(self):
+        if self.type == ConnectionMsg.SERVICE:
+            return '{%s, name: %s, node: %s, service_api: %s, node_uri: %s}'%(self.type,self.name,self.node,self.service_api,self.uri)
+        else:
+            return '{%s, name: %s, node: %s, topic_type: %s, node_uri: %s}'%(self.type,self.name,self.node,self.topic_type,self.uri)
+
+    # def serializeJson(self):
+    #     data = [self.type,self.name,self.uri,self.service_api,self.topic_type]
+    #     return serialize(data)
+
+    # def deserializeJson(self, string):
+    #     data = deserialize(string)
+    #     self.type = data[0]
+    #     self.name = data[1]
+    #     self.uri = data[2]
+    #     self.service_api = data[3]
+    #     self.topic_type = data[4]
+
+def getConnectionTypes(self):
+    connection_types = []
+    connection_types.append(ConnectionMsg.PUBLISHER);
+    connection_types.append(ConnectionMsg.SUBSCRIBER);
+    connection_types.append(ConnectionMsg.SERVICE);
+    connection_types.append(ConnectionMsg.ACTION_SERVER);
+    connection_types.append(ConnectionMsg.ACTION_CLIENT);
+    return connection_types
+
+##########################################################################
+# Json serialization/deserialization Functions
+##########################################################################
+
+def convert(data):
+    '''
+      Convert unicode to standard string (Not sure how necessary this is)
+      http://stackoverflow.com/questions/1254454/fastest-way-to-convert-a-dicts-keys-values-from-unicode-to-str
+    '''
+    if isinstance(data, unicode):
+        return str(data)
+    elif isinstance(data, collections.Mapping):
+        return dict(map(convert, data.iteritems()))
+    elif isinstance(data, collections.Iterable):
+        return type(data)(map(convert, data))
+    else:
+        return data
+
+def serialize(data):
+    return json.dumps(data)
+
+def deserialize(str_msg):
+    return convert(json.loads(str_msg))

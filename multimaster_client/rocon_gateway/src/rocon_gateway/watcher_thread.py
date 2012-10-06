@@ -6,9 +6,6 @@
 
 import rospy
 import threading
-import rosmaster
-import rosnode
-import rosgraph
 from gateway_comms.msg import Connection
 
 class WatcherThread(threading.Thread):
@@ -26,12 +23,6 @@ class WatcherThread(threading.Thread):
         self.flipped_interface = gateway.flipped_interface
 
     
-        # CURRENTLY DISABLED (work in progress)
-        # dumped interface is a mapping of whitelist regex to actual topics as they
-        # become available
-        # self.dumped_interface = dict()
-        # self.dumped_interface['topic'] = set()
-        # self.dumped_interface['service'] = set()
         self.start()
 
     def run(self):
@@ -56,6 +47,11 @@ class WatcherThread(threading.Thread):
         publishers, subscribers, services = self.master.getSystemState()
         actions = [] # todo : create and prune pubs/subs
         self._updateFlips(publishers, subscribers, services, actions)
+        
+        # (PK) ^ I've implemented functions to get action_server, action_client in the master api
+
+        connections = self.master.getConnectionState()
+        self._updatePublicInterface(connections)
 
     def _updateFlips(self, publishers, subscribers, services, actions):
         '''
@@ -90,7 +86,29 @@ class WatcherThread(threading.Thread):
         
         # 2) compare with currently flipped interfaces checking for one that has disappeared
         disappeared_flips = self.flipped_interface.flipped - existing_flips
-         
+
+    def _updatePublicInterface(self, connections):
+        '''
+          Process the list of local connections and check against 
+          the current rules and patterns for flips. If a connection 
+          has become (un)available take appropriate action.
+          
+          @param connections
+          @type dictionary of connections 
+        '''
+
+        for connection_type in connections:
+            allowed_connections = self.public_interface.allowedConnections(connections[connection_type])
+            
+            # this has both connections that have disappeared or are no longer allowed
+            unadvertise_connections = self.public_interface.public - allowed_connections
+            advertise_new_connections = allowed_connections - self.public_interface.public
+
+            for connection in advertise_new_connections:
+                self.gateway.advertiseConnection(connection)
+
+            for connection in unadvertise_connections:
+                self.gateway.unadvertiseConnection(connection)
     
     def update(self, type, connections):
         # CURRENTLY DISABLED (work in progress)
@@ -132,4 +150,3 @@ class WatcherThread(threading.Thread):
         #     self.gateway.addFlippedInterfaceByName(identifier,clients,name)
         #     self.gateway.removeFlippedInterfaceByName(identifier,non_clients,name)
         pass
-

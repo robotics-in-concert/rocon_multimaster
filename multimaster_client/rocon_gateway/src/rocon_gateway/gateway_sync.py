@@ -62,8 +62,8 @@ class GatewaySync(object):
         # create a thread to watch local connection states
         self.watcher_thread = WatcherThread(self)
 
-        self._initializeWatchlists()
-        self._initializeBlacklists()
+        # self._initializeWatchlists()
+        # self._initializeBlacklists()
 
         # create a whitelist/blacklist of named topics and services for flipped
         self.flipped_topic_whitelist = dict()
@@ -90,36 +90,30 @@ class GatewaySync(object):
 
     def advertise(self,request):
         success = False
-        if not self.is_connected:
-            rospy.logerr("Gateway : advertise call failed [no hub connection].")
-        else:
-            try:
-                watchlist = utils.connectionsFromConnectionMsgList(request.watchlist)
-                if not request.cancel:
-                    utils.addToConnectionList(self._public_watchlist, watchlist)
-                else:
-                    utils.removeFromConnectionList(self._public_watchlist, watchlist)
-                success = True
-            except Exception as e:
-                rospy.logerr("Gateway : advertise call error [%s]."%str(e))
+        try:
+            watchlist = utils.connectionsFromConnectionMsgList(request.watchlist)
+            if not request.cancel:
+                utils.addToConnectionList(self._public_watchlist, watchlist)
+            else:
+                utils.removeFromConnectionList(self._public_watchlist, watchlist)
+            success = True
+        except Exception as e:
+            rospy.logerr("Gateway : advertise call error [%s]."%str(e))
         return success, utils.connectionMsgListFromConnections(self._public_watchlist)
 
     def advertiseAll(self,request):
         success = False
-        if not self.is_connected:
-            rospy.logerr("Gateway : advertise all call failed [no hub connection].")
-        else:
-            try:
-                blacklist = utils.connectionsFromConnectionMsgList(request.blacklist)
-                if not request.cancel:
-                    self._public_blacklist = copy.deepcopy(self._default_blacklist)
-                    utils.addToConnectionList(self._public_blacklist, blacklist)
-                    self._public_whitelist = utils.getAllAllowedConnectionList()
-                else:
-                    self._public_whitelist = utils.getEmptyConnectionList()
-                success = True
-            except Exception as e:
-                rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
+        try:
+            blacklist = utils.connectionsFromConnectionMsgList(request.blacklist)
+            if not request.cancel:
+                self._public_blacklist = copy.deepcopy(self._default_blacklist)
+                utils.addToConnectionList(self._public_blacklist, blacklist)
+                self._public_whitelist = utils.getAllAllowedConnectionList()
+            else:
+                self._public_whitelist = utils.getEmptyConnectionList()
+            success = True
+        except Exception as e:
+            rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
         return success, utils.connectionMsgListFromConnections(self._public_blacklist)
 
     def rosServiceFlip(self,request):
@@ -188,57 +182,52 @@ class GatewaySync(object):
         return response
 
     ##########################################################################
-    # Legacy advertisement functions (yes, they are 2 days older)
-    # These will be used later on to setup individual tuple information on the
-    # server
+    # Public Interface method
     ##########################################################################
 
-    def advertiseOld(self,list):
+    def advertiseConnection(self,connection):
         '''
-        Adds a connection (topic/service/action) to the public
-        interface.
+        Adds a connection (topic/service/action) to the public interface.
         
-        - adds to the ros manager so it can watch for changes
+        - adds to the public interface list
         - adds to the hub so it can be pulled by remote gateways
         
-        @param list : list of connection representations (usually triples)
+        @param connection : tuple containing connection information
+        @type tuple
+        '''
+        if not self.is_connected:
+            rospy.logerr("Gateway : advertise connection call failed [no hub connection].")
+            return False
+        try:
+            if self.public_interface.add(connection):
+                self.hub.advertise(connection)
+                rospy.loginfo("Gateway : added connection to the public interface [%s]"%connection)
+        except Exception as e: 
+            rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
+            return False
+        return True
+
+    def unadvertiseConnection(self,connection):
+        '''
+        Removes a connection (topic/service/action) to the public interface.
+        
+        - remove the public interface list
+        - remove the connection from the hub, the hub announces the removal
+        
+        @param connection : tuple containing connection information
+        @type tuple
         '''
         if not self.is_connected:
             rospy.logerr("Gateway : advertise call failed [no hub connection].")
-            return False, []
+            return False
         try:
-            for l in list:
-                if self.public_interface.addOld(l): # watching may repeatedly try and add, but return false if already present (not an error)
-                    self.hub.advertiseOld(l) # can raise InvalidConnectionTypeError exceptions
-                    rospy.loginfo("Gateway : added connection to the public interface [%s]"%l)
-        except ConnectionTypeError as e: 
-            rospy.logerr("Gateway : %s"%str(e))
-            return False, []
-        return True, []
-
-    def unadvertiseOld(self,list):
-        '''
-        Removes a connection (topic/service/action) from the public
-        interface.
-        
-        @param list : list of connection representations (usually stringified triples)
-        '''
-        if not self.is_connected:
-            rospy.logerr("Gateway : unadvertise call failed [no hub connection].")
-            return False, []
-        try:
-            for l in list:
-                if self.public_interface.removeOld(l):
-                    self.hub.unadvertiseOld(l)
-                    rospy.loginfo("Gateway : removed connection from the public interface [%s]"%l)
-        except ConnectionTypeError as e: 
-            rospy.logerr("Gateway : %s"%str(e))
-            return False, []
-        
-        # inform other gateways of the change
-        # Tho following command needs to be thought out a bit more
-        # self.hub.broadcastTopicUpdate(json.dumps(['update','removing']))
-        return True, []
+            if self.public_interface.remove(connection):
+                self.hub.unadvertise(connection)
+                rospy.loginfo("Gateway : added connection to the public interface [%s: %s]"%connection)
+        except Exception as e: 
+            rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
+            return False
+        return True
 
     ##########################################################################
     # Flip Interface Methods [Depracating]
@@ -309,44 +298,45 @@ class GatewaySync(object):
     # Watchlist/Blacklist modification methods
     ##########################################################################
 
-    def _initializeWatchlists(self):
-        '''
-        Initializes all watchlists (public/flip/pull) with null sets. This
-        function is only used to initialize the vairable names, incase the 
-        gateway does not setup the default lists explicityly
-        '''
-        self._public_watchlist = utils.getEmptyConnectionList()
+    # (PK) MOVED TO PUBLIC INTERFACE
+    # def _initializeWatchlists(self):
+    #     '''
+    #     Initializes all watchlists (public/flip/pull) with null sets. This
+    #     function is only used to initialize the vairable names, incase the 
+    #     gateway does not setup the default lists explicityly
+    #     '''
+    #     self._public_watchlist = utils.getEmptyConnectionList()
 
-    def _initializeBlacklists(self):
-        '''
-        Initializes all blacklists (topics/services/actions) that can never be
-        advertised/flipped/pulled. A blacklist supplied in /pull_all, /flip_all,
-        /advertise_all will be in addition to this blacklist.
-        '''
-        self._default_blacklist = utils.getEmptyConnectionList()
-        self._public_blacklist = utils.getEmptyConnectionList()
-        
-    def setDefaultBlacklist(self, blacklist):
-        '''
-        Sets the default blacklists. This function should be called
-        during gateway initialization with blacklists provided through a
-        parameter file
+    # def _initializeBlacklists(self):
+    #     '''
+    #     Initializes all blacklists (topics/services/actions) that can never be
+    #     advertised/flipped/pulled. A blacklist supplied in /pull_all, /flip_all,
+    #     /advertise_all will be in addition to this blacklist.
+    #     '''
+    #     self._default_blacklist = utils.getEmptyConnectionList()
+    #     self._public_blacklist = utils.getEmptyConnectionList()
+    #     
+    # def setDefaultBlacklist(self, blacklist):
+    #     '''
+    #     Sets the default blacklists. This function should be called
+    #     during gateway initialization with blacklists provided through a
+    #     parameter file
 
-        @param blacklists : a pre-formatted blacklists dict, most likely from
-        @type dict of sets of tuples
-        '''
-        self._default_blacklist = blacklist
+    #     @param blacklists : a pre-formatted blacklists dict, most likely from
+    #     @type dict of sets of tuples
+    #     '''
+    #     self._default_blacklist = blacklist
 
-    def setPublicWatchlist(self, watchlist):
-        '''
-        Sets the default blacklists. This function should be called
-        during gateway initialization with blacklists provided through a
-        parameter file
+    # def setPublicWatchlist(self, watchlist):
+    #     '''
+    #     Sets the default blacklists. This function should be called
+    #     during gateway initialization with blacklists provided through a
+    #     parameter file
 
-        @param blacklists : a pre-formatted blacklists dict, most likely from
-        @type dict of sets of tuples
-        '''
-        self._public_watchlist = watchlist
+    #     @param blacklists : a pre-formatted blacklists dict, most likely from
+    #     @type dict of sets of tuples
+    #     '''
+    #     self._public_watchlist = watchlist
 
     def oldFlipWrapper(self,list):
         num = int(list[0])

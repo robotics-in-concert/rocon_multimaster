@@ -4,16 +4,12 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway/LICENSE 
 #
 
-import json
-import collections
 import redis
 import threading
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import re
-
-from .exceptions import GatewayError, ConnectionTypeError
-from .utils import Connection, connectionTypeString
+import utils
 
 ###############################################################################
 # Utility Functions
@@ -32,7 +28,7 @@ def resolveHub(ip, port):
     
 ###############################################################################
 # Redis Callback Handler
-###############################################################################
+##############################################################################
 
 class RedisSubscriberThread(threading.Thread):
     '''
@@ -201,7 +197,6 @@ class Hub(object):
             raise ConnectionTypeError("trying to unadvertise an invalid connection type on the hub.")
         key = self.redis_keys['name']+":"+identifier
         self.removeMembers(key,connection)
-    
 
     ##########################################################################
     # Gateway-Gateway Communications
@@ -231,7 +226,7 @@ class Hub(object):
 
     def flip(self,gateway,list):
         data = ["flip", self.redis_keys['name'], list];
-        cmd = self.serialize(data)
+        cmd = utils.serialize(data)
         gateway = self.createKey(gateway)
         try:
             self.sendMessage(gateway,cmd)
@@ -241,7 +236,7 @@ class Hub(object):
 
     def unflip(self,gateway,list):
         data = ["unflip", self.redis_keys['name'], list];
-        cmd = self.serialize(data)
+        cmd = utils.serialize(data)
         gateway = self.createKey(gateway)
         try:
             self.sendMessage(gateway,cmd)
@@ -309,26 +304,3 @@ class Hub(object):
         '''
         return key.split(':')[-1]
 
-    ##########################################################################
-    # Redis serialization/deserialization Functions - should push out
-    ##########################################################################
-
-    def convert(self,data):
-        '''
-          Convert unicode to standard string (Not sure how necessary this is)
-          http://stackoverflow.com/questions/1254454/fastest-way-to-convert-a-dicts-keys-values-from-unicode-to-str
-        '''
-        if isinstance(data, unicode):
-            return str(data)
-        elif isinstance(data, collections.Mapping):
-            return dict(map(self.convert, data.iteritems()))
-        elif isinstance(data, collections.Iterable):
-            return type(data)(map(self.convert, data))
-        else:
-            return data
-
-    def serialize(self,data):
-        return json.dumps(data)
-
-    def deserialize(self,str_msg):
-        return self.convert(json.loads(str_msg))
