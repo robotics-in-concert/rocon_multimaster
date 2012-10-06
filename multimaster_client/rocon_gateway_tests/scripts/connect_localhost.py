@@ -6,8 +6,8 @@
 
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
-from gateway_comms.msg import *
-from gateway_comms.srv import *
+import gateway_comms.srv
+from gateway_comms.srv import ConnectHub
 import argparse
 
 """
@@ -19,29 +19,25 @@ import argparse
 
 if __name__ == '__main__':
 
-  parser = argparse.ArgumentParser(description='Flip /chatter to a remote gateway')
-  parser.add_argument("gateway", help="gateway string identifier", type=str)
+  parser = argparse.ArgumentParser(description='Make a connection to a localhost hub by service call')
+#  parser.add_argument("gateway", help="gateway string identifier", type=str)
 #  parser.add_argument('-c','--clients',metavar='<Client name>',type=str,nargs='+',help='Client\'s unique name on hub')
 #  parser.add_argument('-m','--message',metavar='<Topic triple>',type=str,nargs='+',help='<Topic triple>="<topic name>,<topic type>,<node uri>"')
-  args = parser.parse_args()
+#  args = parser.parse_args()
 
-  rospy.init_node('flip_publisher')
+  rospy.init_node('connect_localhost')
 
-  flip = rospy.ServiceProxy('/gateway/flip',Flip)
+  connect = rospy.ServiceProxy('/gateway/connect_hub',ConnectHub)
   
   # Form a request message
-  req = FlipRequest() 
-  req.flip_rule.connection.name = "/chatter"
-  req.flip_rule.connection.type = gateway_comms.msg.Connection.PUBLISHER
-  req.flip_rule.target_gateway = args.gateway
-  #req.node_name = "talker"
-  #req.remapped_name = "dude"
+  req = gateway_comms.srv.ConnectHubRequest() 
+  req.uri = "http://localhost:6379"
   print ""
   print "== Request =="
   print ""
   print req
   print ""
-  resp = flip(req)
+  resp = connect(req)
   print "== Response =="
   print ""
   print resp

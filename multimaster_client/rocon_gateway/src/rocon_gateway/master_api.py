@@ -32,7 +32,6 @@ class LocalMaster(rosgraph.Master):
 
     def __init__(self):
         rosgraph.Master.__init__(self,rospy.get_name())
-        rospy.loginfo("Gateway: initialising ros manager")
     
         self.pubs_uri = {}
         self.pubs_node = {}
