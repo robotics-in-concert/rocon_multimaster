@@ -89,17 +89,21 @@ class GatewaySync(object):
     ##########################################################################
 
     def advertise(self,request):
-        success = False
+        result = gateway_comms.msg.Result.SUCCESS
         try:
-            watchlist = utils.connectionsFromConnectionMsgList(request.watchlist)
             if not request.cancel:
-                utils.addToConnectionList(self._public_watchlist, watchlist)
+                if not self.public_interface.addRule(request.rule):
+                    result = gateway_comms.msg.Result.ADVERTISEMENT_EXISTS
             else:
-                utils.removeFromConnectionList(self._public_watchlist, watchlist)
-            success = True
+                if not self.public_interface.removeRule(request.rule):
+                    result = gateway_comms.msg.Result.ADVERTISEMENT_NOT_FOUND
         except Exception as e:
             rospy.logerr("Gateway : advertise call error [%s]."%str(e))
-        return success, utils.connectionMsgListFromConnections(self._public_watchlist)
+            result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
+           
+        #wait for a manual update?
+        rospy.sleep(5.0)
+        return result, self.public_interface.getWatchlistMsg(), list(self.public_interface.public)
 
     def advertiseAll(self,request):
         success = False
@@ -182,7 +186,7 @@ class GatewaySync(object):
         return response
 
     ##########################################################################
-    # Public Interface method
+    # Public Interface methods
     ##########################################################################
 
     def advertiseConnection(self,connection):
@@ -200,8 +204,8 @@ class GatewaySync(object):
             return False
         try:
             if self.public_interface.add(connection):
-                self.hub.advertise(connection)
-                rospy.loginfo("Gateway : added connection to the public interface [%s]"%connection)
+                #self.hub.advertise(connection)
+                pass
         except Exception as e: 
             rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
             return False
@@ -222,8 +226,8 @@ class GatewaySync(object):
             return False
         try:
             if self.public_interface.remove(connection):
-                self.hub.unadvertise(connection)
-                rospy.loginfo("Gateway : added connection to the public interface [%s: %s]"%connection)
+                #self.hub.unadvertise(connection)
+                pass
         except Exception as e: 
             rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
             return False

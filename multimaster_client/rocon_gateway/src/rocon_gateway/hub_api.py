@@ -178,11 +178,12 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        identifier = connectionTypeString(connection)
-        if identifier not in ['topic', 'service']:  # action not yet implemented
-            raise ConnectionTypeError("trying to advertise an invalid connection type on the hub [%s]"%connection)
-        key = self.redis_keys['name']+":"+identifier
-        self.addMembers(key,connection)
+        # identifier = connectionTypeString(connection)
+        # if identifier not in ['topic', 'service']:  # action not yet implemented
+        #     raise ConnectionTypeError("trying to advertise an invalid connection type on the hub [%s]"%connection)
+        # key = self.redis_keys['name']+":"+identifier
+        # self.addMembers(key,connection)
+        pass
     
     def unadvertise(self, connection):
         '''
@@ -192,11 +193,12 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        identifier = connectionTypeString(connection)
-        if identifier not in ['topic', 'service']:  # action not yet implemented
-            raise ConnectionTypeError("trying to unadvertise an invalid connection type on the hub.")
-        key = self.redis_keys['name']+":"+identifier
-        self.removeMembers(key,connection)
+        # identifier = connectionTypeString(connection)
+        # if identifier not in ['topic', 'service']:  # action not yet implemented
+        #     raise ConnectionTypeError("trying to unadvertise an invalid connection type on the hub.")
+        # key = self.redis_keys['name']+":"+identifier
+        # self.removeMembers(key,connection)
+        pass
 
     ##########################################################################
     # Gateway-Gateway Communications

@@ -118,13 +118,15 @@ class PublicInterface(object):
         Attempt to add a connection to the public interface. 
         
         @param rule : a rule parsed from the advertise call
-        @type PublicRule
+        @type gateway_comms.msg.PublicRule
         @return True if the rule was added, False if the rule exists already
         @rtype bool
         '''
+        rule = PublicRule.fromMessage(rule)
         if rule in self._watchlist:
             return False
         else:
+            rospy.loginfo("Gateway : advertising %s"%rule)
             self._watchlist.add(rule)
         return True
 
@@ -137,10 +139,12 @@ class PublicInterface(object):
         @return True if the rule was removed, False if rule did not exist
         @rtype bool
         '''
+        rule = PublicRule.fromMessage(rule)
         if rule not in self._watchlist:
             return False
         else:
             self._watchlist.remove(rule)
+            rospy.loginfo("Gateway : removing advertisement of [%s]"%rule)
         return True
 
     def allowAll(self, blacklist = None):
@@ -164,6 +168,7 @@ class PublicInterface(object):
         if connection in self.public:
             return False
         else:
+            rospy.loginfo("Gateway : adding connection to public interface %s"%connection)
             self.public.add(connection)
         return True
 
@@ -171,8 +176,19 @@ class PublicInterface(object):
         if connection not in self.public:
             return False
         else:
+            rospy.loginfo("Gateway : removing connection from public interface %s"%connection)
             self.public.remove(connection)
         return True
+
+    ##########################################################################
+    # Message getters
+    ##########################################################################
+
+    def getWatchlistMsg(self):
+        return PublicRule.fromRuleListToMessageList(self._watchlist)
+
+    def getBlacklistMsg(self):
+        return PublicRule.fromRuleListToMessageList(self._blacklist)
 
     ##########################################################################
     # File operations

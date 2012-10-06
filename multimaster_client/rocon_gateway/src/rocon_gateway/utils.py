@@ -75,11 +75,14 @@ class Connection(ConnectionMsg):
     def __hash__(self):
         return hash(self.type) ^ hash(self.name) ^ hash(self.node) ^ hash(self.uri) ^ hash(self.service_api) ^ hash(self.topic_type)
     
-    def __repr__(self):
+    def __str__(self):
         if self.type == ConnectionMsg.SERVICE:
             return '{%s, name: %s, node: %s, service_api: %s, node_uri: %s}'%(self.type,self.name,self.node,self.service_api,self.uri)
         else:
             return '{%s, name: %s, node: %s, topic_type: %s, node_uri: %s}'%(self.type,self.name,self.node,self.topic_type,self.uri)
+
+    def __repr__(self):
+        return self.__str__()
 
     # def serializeJson(self):
     #     data = [self.type,self.name,self.uri,self.service_api,self.topic_type]
@@ -93,7 +96,7 @@ class Connection(ConnectionMsg):
     #     self.service_api = data[3]
     #     self.topic_type = data[4]
 
-def getConnectionTypes(self):
+def getConnectionTypes():
     connection_types = []
     connection_types.append(ConnectionMsg.PUBLISHER);
     connection_types.append(ConnectionMsg.SUBSCRIBER);

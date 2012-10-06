@@ -101,8 +101,9 @@ class WatcherThread(threading.Thread):
             allowed_connections = self.public_interface.allowedConnections(connections[connection_type])
             
             # this has both connections that have disappeared or are no longer allowed
-            unadvertise_connections = self.public_interface.public - allowed_connections
-            advertise_new_connections = allowed_connections - self.public_interface.public
+            public_connections = set([x for x in self.public_interface.public if x.type == connection_type])
+            advertise_new_connections = allowed_connections - public_connections
+            unadvertise_connections = public_connections - allowed_connections
 
             for connection in advertise_new_connections:
                 self.gateway.advertiseConnection(connection)
