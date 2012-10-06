@@ -33,7 +33,7 @@ if __name__ == '__main__':
   req = FlipRequest() 
   req.flip_rule.connection.name = "/chatter"
   req.flip_rule.connection.type = gateway_comms.msg.Connection.PUBLISHER
-  req.flip_rule.target_gateway = args.gateway
+  req.flip_rule.gateway = args.gateway
   #req.node_name = "talker"
   #req.remapped_name = "dude"
   print ""

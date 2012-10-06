@@ -62,22 +62,19 @@ class WatcherThread(threading.Thread):
           @param publishers, subscribers, services, actions
           @type list of ??? : 
         '''
+        diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
         # 0) prune rules/patterns that apply to gateways no longer on the hub
-        existing_flips = set()
-        new_flips = set()
+        existing_flips = []
+        new_flips = []
         for topic, node_list in publishers:
             #print "Topic: %s"%topic
             #print "Nodelist:"
             for node in node_list:
-                flip = self.flipped_interface.isFlipped(Connection.PUBLISHER,topic,node)
-                if flip:
-                    existing_flips.add(flip)
-                else:
-                    # check rules
-                    matched_flip = self.flipped_interface.matchesRule(Connection.PUBLISHER,topic,node)
-                    if matched_flip:
-                        new_flips.add(matched_flip)
-                    # check patterns
+                matched_flips = self.flipped_interface.isFlipped(Connection.PUBLISHER,topic,node)
+                matched_flip_rules = self.flipped_interface.matchesRule(Connection.PUBLISHER,topic,node)
+                existing_flips.extend(matched_flips)
+                new_flips.extend(diff(matched_flip_rules,matched_flips))
+                # check patterns
                 
         # 1) compare with non-active flip rules & patterns, flip if there's a hit
         for flip in new_flips:
@@ -85,7 +82,7 @@ class WatcherThread(threading.Thread):
             continue
         
         # 2) compare with currently flipped interfaces checking for one that has disappeared
-        disappeared_flips = self.flipped_interface.flipped - existing_flips
+        need_to_be_dropped_flips = diff(self.flipped_interface.flipped, existing_flips)
 
     def _updatePublicInterface(self, connections):
         '''

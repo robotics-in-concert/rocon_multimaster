@@ -10,7 +10,14 @@
 
 import json
 import collections
-from gateway_comms.msg import Connection as ConnectionMsg
+#from gateway_comms.msg import Connection as ConnectionMsg
+from gateway_comms.msg import Connection
+
+##############################################################################
+# Constants
+##############################################################################
+
+connection_types = frozenset([Connection.PUBLISHER, Connection.SUBSCRIBER, Connection.SERVICE, Connection.ACTION_CLIENT, Connection.ACTION_SERVER])
 
 ##############################################################################
 # Ros string utilities
@@ -46,40 +53,40 @@ def reshapeTopic(t):
 # Connections - usually our wierd triple style string representations.
 ##############################################################################
 
-class Connection(ConnectionMsg):
-    '''
-      Hashable wrapper around the connection message 
-    '''
-    def __init__(self, type, name, node, uri, service_api = None, topic_type = None):
-        self.type = type
-        self.name = name
-        self.node = node
-        self.uri = uri
-        if not service_api:
-            service_api = ''
-        self.service_api = service_api
-        if not topic_type:
-            topic_type = ''
-        self.topic_type = topic_type
-    
-    # Need these for hashable containers (like sets), ugh!
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.__dict__ == other.__dict__
-        else:
-            return False
-    
-    def __ne__(self, other):
-        return not self.__eq__(other)
-    
-    def __hash__(self):
-        return hash(self.type) ^ hash(self.name) ^ hash(self.node) ^ hash(self.uri) ^ hash(self.service_api) ^ hash(self.topic_type)
-    
-    def __repr__(self):
-        if self.type == ConnectionMsg.SERVICE:
-            return '{%s, name: %s, node: %s, service_api: %s, node_uri: %s}'%(self.type,self.name,self.node,self.service_api,self.uri)
-        else:
-            return '{%s, name: %s, node: %s, topic_type: %s, node_uri: %s}'%(self.type,self.name,self.node,self.topic_type,self.uri)
+#class Connection(ConnectionMsg):
+#    '''
+#      Hashable wrapper around the connection message 
+#    '''
+#    def __init__(self, type, name, node, uri, service_api = None, topic_type = None):
+#        self.type = type
+#        self.name = name
+#        self.node = node
+#        self.uri = uri
+#        if not service_api:
+#            service_api = ''
+#        self.service_api = service_api
+#        if not topic_type:
+#            topic_type = ''
+#        self.topic_type = topic_type
+#    
+#    # Need these for hashable containers (like sets), ugh!
+#    def __eq__(self, other):
+#        if isinstance(other, self.__class__):
+#            return self.__dict__ == other.__dict__
+#        else:
+#            return False
+#    
+#    def __ne__(self, other):
+#        return not self.__eq__(other)
+#    
+#    def __hash__(self):
+#        return hash(self.type) ^ hash(self.name) ^ hash(self.node) ^ hash(self.uri) ^ hash(self.service_api) ^ hash(self.topic_type)
+#    
+#    def __repr__(self):
+#        if self.type == ConnectionMsg.SERVICE:
+#            return '{%s, name: %s, node: %s, service_api: %s, node_uri: %s}'%(self.type,self.name,self.node,self.service_api,self.uri)
+#        else:
+#            return '{%s, name: %s, node: %s, topic_type: %s, node_uri: %s}'%(self.type,self.name,self.node,self.topic_type,self.uri)
 
     # def serializeJson(self):
     #     data = [self.type,self.name,self.uri,self.service_api,self.topic_type]
@@ -125,3 +132,17 @@ def serialize(data):
 
 def deserialize(str_msg):
     return convert(json.loads(str_msg))
+
+##########################################################################
+# Other Utilities
+##########################################################################
+
+def createEmptyConnectionTypeDictionary():
+    '''
+      Used to initialise a dictionary with connection type keys 
+      and empty lists. 
+    '''
+    dic = {}
+    for type in connection_types:
+        dic[type] = []
+    return dic

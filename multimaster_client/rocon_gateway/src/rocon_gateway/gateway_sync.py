@@ -134,19 +134,14 @@ class GatewaySync(object):
             rospy.logerr("Gateway : no hub connection."%gateway_comms.msg.Result.NO_HUB_CONNECTION)
             response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
             response.error_message = "no hub connection" 
-        elif request.flip_rule.target_gateway == self.unique_name:
+        elif request.flip_rule.gateway == self.unique_name:
             rospy.logerr("Gateway : gateway cannot flip to itself.")
             response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
             response.error_message = "gateway cannot flip to itself" 
         elif not request.cancel:
-            flip = self.flipped_interface.addRule(
-                            request.flip_rule.target_gateway, 
-                            request.flip_rule.connection.type, 
-                            request.flip_rule.connection.name, 
-                            request.flip_rule.connection.node, 
-                            request.flip_rule.remapped_name)
-            if flip:
-                rospy.loginfo("Gateway : flipping to gateway %s [%s->%s]"%(flip.gateway,flip.name,flip.remapped_name))
+            flip_rule = self.flipped_interface.addRule(request.flip_rule)
+            if flip_rule:
+                rospy.loginfo("Gateway : flipping to gateway %s [%s->%s]"%(flip_rule.gateway,flip_rule.connection.name,flip_rule.remapped_name))
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
             else:
