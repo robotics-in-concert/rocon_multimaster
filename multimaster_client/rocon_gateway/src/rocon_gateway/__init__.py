@@ -13,7 +13,6 @@ __email__ = "d.stonier@gmail.com"
 __date__ = "2012-08-29"
 
 import zeroconf
-from .constants import connection_types
 from .ros_parameters import setupRosParameters
 from .hub_api import resolveHub
 from .gateway_sync import GatewaySync
