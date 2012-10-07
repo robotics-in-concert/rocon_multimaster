@@ -97,7 +97,10 @@ class LocalMaster(rosgraph.Master):
             topic_type = topic_type[0]
             nodes = topic[1]
             for node in nodes:
-                node_uri = self.lookupNode(node)
+                try:
+                    node_uri = self.lookupNode(node)
+                except:
+                    continue
                 connections.append(Connection(type,topic_name,node,node_uri,None,topic_type))
         return connections
 
@@ -110,7 +113,10 @@ class LocalMaster(rosgraph.Master):
             topic_type = re.sub('ActionGoal$', '', goal_topic_type[0]) #Base type for action
             nodes = action[1]
             for node in nodes:
-                node_uri = self.lookupNode(node)
+                try:
+                    node_uri = self.lookupNode(node)
+                except:
+                    continue
                 connections.append(Connection(type,action_name,node,node_uri,None,topic_type))
         return connections
 
@@ -121,7 +127,10 @@ class LocalMaster(rosgraph.Master):
             service_uri = rosservice.get_service_uri(service_name)
             nodes = service[1]
             for node in nodes:
-                node_uri = self.lookupNode(node)
+                try:
+                    node_uri = self.lookupNode(node)
+                except:
+                    continue
                 connections.append(Connection(type,service_name,node,node_uri,service_uri,None))
         return connections
 

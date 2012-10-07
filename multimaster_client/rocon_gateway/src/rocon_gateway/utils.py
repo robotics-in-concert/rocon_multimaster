@@ -82,9 +82,9 @@ def formatRule(rule):
 
 def formatConnection(connection):
     if connection.type == connection.SERVICE: 
-        return '{%s, name: %s, node: %s, uri: %s, service_api: %s'%(connection.type,connection.name,connection.node,connection.uri,connection.service_api)
+        return '{%s, name: %s, node: %s, uri: %s, service_api: %s}'%(connection.type,connection.name,connection.node,connection.uri,connection.service_api)
     else:
-        return '{%s, name: %s, node: %s, uri: %s, topic_type: %s'%(connection.type,connection.name,connection.node,connection.uri,connection.topic_type)
+        return '{%s, name: %s, node: %s, uri: %s, topic_type: %s}'%(connection.type,connection.name,connection.node,connection.uri,connection.topic_type)
 
 def createEmptyConnectionTypeDictionary():
     '''

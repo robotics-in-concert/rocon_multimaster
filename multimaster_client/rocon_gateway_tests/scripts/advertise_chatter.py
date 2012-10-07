@@ -17,9 +17,11 @@ if __name__ == '__main__':
   
   # Form a request message
   req = AdvertiseRequest()
-  req.rule.type = gateway_comms.msg.Connection.PUBLISHER
-  req.rule.name = "/chatter"
-  req.cancel = False
+  rule = PublicRule()
+  rule.connection.type = gateway_comms.msg.Connection.PUBLISHER
+  rule.connection.name = "/chatter"
+  req.rules.append(rule)
+  req.cancel = True
   print ""
   print "== Request =="
   print req

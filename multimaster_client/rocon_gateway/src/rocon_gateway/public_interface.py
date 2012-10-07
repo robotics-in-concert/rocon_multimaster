@@ -365,7 +365,7 @@ class PublicInterface(object):
             for connection in connections[connection_type]:
                 public_connection = self._generatePublic(connection)
                 if public_connection:
-                    public[connection_type].add(public_connection)
+                    public[connection_type].append(public_connection)
             new_public[connection_type] = diff(public[connection_type],self.public[connection_type])
             removed_publics[connection_type] = diff(self.public[connection_type],public[connection_type])
         self.public = public
