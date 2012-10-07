@@ -29,60 +29,13 @@ class WatcherThread(threading.Thread):
         while not rospy.is_shutdown():
             self.cv.acquire()
 
-            if self.gateway.is_connected: 
-                self._checkLocalConnections()
+            if self.gateway.is_connected:
+                connections = self.master.getConnectionState()
+                new_flips, lost_flips = self.flipped_interface.update(connections)
+                # do whatever we need to do on the redis server here
+                self._updatePublicInterface(connections)
             self.cv.release()
             rospy.sleep(3.0)
-
-    def _checkLocalConnections(self):
-        '''
-          Checks the local master and collates a list of all
-          current connections. We use this to check against all 
-          our rules to determine whether any connections have
-          become available or unavailable since the last lookup.
-          
-          @todo : prune pubs and subs and collate action client 
-                  and server lists  
-        '''
-        publishers, subscribers, services = self.master.getSystemState()
-        actions = [] # todo : create and prune pubs/subs
-        self._updateFlips(publishers, subscribers, services, actions)
-        
-        # (PK) ^ I've implemented functions to get action_server, action_client in the master api
-
-        connections = self.master.getConnectionState()
-        self._updatePublicInterface(connections)
-
-    def _updateFlips(self, publishers, subscribers, services, actions):
-        '''
-          Process the list of local connections and check against 
-          the current rules and patterns for flips. If a connection 
-          has become (un)available take appropriate action.
-          
-          @param publishers, subscribers, services, actions
-          @type list of ??? : 
-        '''
-        diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
-        # 0) prune rules/patterns that apply to gateways no longer on the hub
-        existing_flips = []
-        new_flips = []
-        for topic, node_list in publishers:
-            #print "Topic: %s"%topic
-            #print "Nodelist:"
-            for node in node_list:
-                matched_flips = self.flipped_interface.isFlipped(Connection.PUBLISHER,topic,node)
-                matched_flip_rules = self.flipped_interface.matchesRule(Connection.PUBLISHER,topic,node)
-                existing_flips.extend(matched_flips)
-                new_flips.extend(diff(matched_flip_rules,matched_flips))
-                # check patterns
-                
-        # 1) compare with non-active flip rules & patterns, flip if there's a hit
-        for flip in new_flips:
-            print "New flip"
-            continue
-        
-        # 2) compare with currently flipped interfaces checking for one that has disappeared
-        need_to_be_dropped_flips = diff(self.flipped_interface.flipped, existing_flips)
 
     def _updatePublicInterface(self, connections):
         '''
