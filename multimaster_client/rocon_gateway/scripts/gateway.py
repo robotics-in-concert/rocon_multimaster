@@ -159,13 +159,14 @@ class Gateway():
         req = zeroconf_comms.srv.ListDiscoveredServicesRequest() 
         req.service_type = rocon_gateway.zeroconf.gateway_hub_service
         resp = self._zeroconf_services["list_discovered_services"](req)
-        rospy.logdebug("Gateway : checking for autodiscovered gateway hubs")
+        rospy.loginfo("Gateway : checking for autodiscovered gateway hubs")
         new_services = lambda l1,l2: [x for x in l1 if x not in l2]
         for service in new_services(resp.services,previously_found_hubs):
             previously_found_hubs.append(service)
             (ip, port) = rocon_gateway.zeroconf.resolveAddress(service)
             rospy.loginfo("Gateway : discovered hub zeroconf service at " + str(ip) + ":"+str(service.port))
-            if self._connect(ip,port) == gateway_comms.msg.Result.SUCCESS:
+            connect_result = self._connect(ip,port)
+            if connect_result == gateway_comms.msg.Result.SUCCESS:
                 break
 
     def _connect(self,ip,port):
@@ -191,6 +192,9 @@ class Gateway():
                 return gateway_comms.msg.Result.SUCCESS
             else:
                 return gateway_comms.msg.Result.HUB_CONNECTION_FAILED
+        else:
+            rospy.loginfo("Gateway : hub/ip not in non-empty whitelist [%s]",hub_name)
+            return gateway_comms.msg.Result.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST
 
 ##############################################################################
 # Launch point

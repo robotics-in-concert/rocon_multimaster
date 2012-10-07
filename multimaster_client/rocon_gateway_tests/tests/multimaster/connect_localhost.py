@@ -11,10 +11,13 @@ from gateway_comms.srv import ConnectHub
 import argparse
 
 """
-  flip_publisher.py script <gateway>
+  Tests the ros service handle (/gateway/connect_hub) for connecting
+  a gateway to a hub.
   
-  Usage   :
-    rosrun rocon_gateway_tests flip_publisher.py
+  Usage:
+    1 > roslaunch rocon_gateway_hub hub_no_zeroconf.launch
+    2a> roslaunch rocon_gateway gateway.launch
+    2b> rosrun rocon_gateway_tests connect_localhost
 """
 
 if __name__ == '__main__':

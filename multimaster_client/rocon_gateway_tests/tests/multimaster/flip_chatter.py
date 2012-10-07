@@ -11,10 +11,14 @@ from gateway_comms.srv import *
 import argparse
 
 """
-  flip_publisher.py script <gateway>
+  Tests a single flip rule.
   
-  Usage   :
-    rosrun rocon_gateway_tests flip_publisher.py
+  Usage:
+    1 > roslaunch rocon_gateway_hub pirate.launch
+    2a> roslaunch rocon_gateway pirate_chatter.launch
+    3a> roslaunch rocon_gateway pirate.launch
+    3b> rosrun rocon_gateway_tests flip_chatter gateway1
+    2b> rostopic list
 """
 
 if __name__ == '__main__':
