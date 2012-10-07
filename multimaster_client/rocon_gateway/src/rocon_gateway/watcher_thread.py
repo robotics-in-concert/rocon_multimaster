@@ -33,7 +33,7 @@ class WatcherThread(threading.Thread):
                 connections = self.master.getConnectionState()
                 new_flips, lost_flips = self.flipped_interface.update(connections)
                 # do whatever we need to do on the redis server here
-                self._updatePublicInterface(connections)
+                self.gateway.updatePublicInterface()
             self.cv.release()
             rospy.sleep(3.0)
 
@@ -46,6 +46,8 @@ class WatcherThread(threading.Thread):
           @param connections
           @type dictionary of connections 
         '''
+
+
 
         for connection_type in connections:
             allowed_connections = self.public_interface.allowedConnections(connections[connection_type])

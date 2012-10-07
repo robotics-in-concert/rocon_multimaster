@@ -13,6 +13,7 @@ import time
 import re
 import itertools
 import copy
+import threading
 
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
@@ -56,6 +57,7 @@ class GatewaySync(object):
         self.is_connected = False
         self.flipped_interface = FlippedInterface() # Initalise the unique namespace hint for this upon connection later
         self.public_interface = PublicInterface()
+        self.public_interface_lock = threading.Condition()
         self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.master = LocalMaster()
 
@@ -100,10 +102,11 @@ class GatewaySync(object):
         except Exception as e:
             rospy.logerr("Gateway : advertise call error [%s]."%str(e))
             result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
-           
-        #wait for a manual update?
-        rospy.sleep(5.0)
-        return result, self.public_interface.getWatchlistMsg(), list(self.public_interface.public)
+
+        #Do a manual update
+        connections = self.master.getConnectionState()
+        public_interface = self.updatePublicInterface(connections)
+        return result, self.public_interface.getWatchlist(), public_interface
 
     def advertiseAll(self,request):
         success = False
@@ -189,49 +192,69 @@ class GatewaySync(object):
     # Public Interface methods
     ##########################################################################
 
-    def advertiseConnection(self,connection):
-        '''
-        Adds a connection (topic/service/action) to the public interface.
-        
-        - adds to the public interface list
-        - adds to the hub so it can be pulled by remote gateways
-        
-        @param connection : tuple containing connection information
-        @type tuple
-        '''
-        if not self.is_connected:
-            rospy.logerr("Gateway : advertise connection call failed [no hub connection].")
-            return False
-        try:
-            if self.public_interface.add(connection):
-                #self.hub.advertise(connection)
-                pass
-        except Exception as e: 
-            rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
-            return False
-        return True
+    # def advertiseConnection(self,connection):
+    #     '''
+    #     Adds a connection (topic/service/action) to the public interface.
+    #     
+    #     - adds to the public interface list
+    #     - adds to the hub so it can be pulled by remote gateways
+    #     
+    #     @param connection : tuple containing connection information
+    #     @type tuple
+    #     '''
+    #     if not self.is_connected:
+    #         rospy.logerr("Gateway : advertise connection call failed [no hub connection].")
+    #         return False
+    #     try:
+    #         if self.public_interface.add(connection):
+    #             #self.hub.advertise(connection)
+    #             pass
+    #     except Exception as e: 
+    #         rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
+    #         return False
+    #     return True
 
-    def unadvertiseConnection(self,connection):
-        '''
-        Removes a connection (topic/service/action) to the public interface.
-        
-        - remove the public interface list
-        - remove the connection from the hub, the hub announces the removal
-        
-        @param connection : tuple containing connection information
-        @type tuple
+    # def unadvertiseConnection(self,connection):
+    #     '''
+    #     Removes a connection (topic/service/action) to the public interface.
+    #     
+    #     - remove the public interface list
+    #     - remove the connection from the hub, the hub announces the removal
+    #     
+    #     @param connection : tuple containing connection information
+    #     @type tuple
+    #     '''
+    #     if not self.is_connected:
+    #         rospy.logerr("Gateway : advertise call failed [no hub connection].")
+    #         return False
+    #     try:
+    #         if self.public_interface.remove(connection):
+    #             #self.hub.unadvertise(connection)
+    #             pass
+    #     except Exception as e: 
+    #         rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
+    #         return False
+    #     return True
+    
+    def updatePublicInterface(self):
+        ''' 
+          Process the list of local connections and check against 
+          the current rules and patterns for flips. If a connection 
+          has become (un)available take appropriate action.
         '''
         if not self.is_connected:
             rospy.logerr("Gateway : advertise call failed [no hub connection].")
-            return False
-        try:
-            if self.public_interface.remove(connection):
-                #self.hub.unadvertise(connection)
-                pass
-        except Exception as e: 
-            rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
-            return False
-        return True
+            return None
+        connections = self.master.getConnectionState()
+        self.public_interface_lock.acquire()
+        new_conns, lost_conns = self.public_interface.update(connections)
+        public_interface = self.public_interface.getInterface()
+        self.public_interface_lock.release()
+        for connection in new_conns:
+            self.hub.advertise(connection)
+        for connection in lost_conns:
+            self.hub.unadvertise(connection)
+        return public_interface
 
     ##########################################################################
     # Flip Interface Methods [Depracating]
