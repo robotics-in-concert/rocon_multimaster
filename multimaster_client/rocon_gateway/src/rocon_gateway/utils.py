@@ -10,7 +10,7 @@
 
 import json
 import collections
-#from gateway_comms.msg import Connection as ConnectionMsg
+#from gateway_comms.msg import Connection as Connection
 from gateway_comms.msg import Connection
 
 ##############################################################################
@@ -49,66 +49,6 @@ def reshapeTopic(t):
         t = '/' + t
     return t
 
-##############################################################################
-# Connections - usually our wierd triple style string representations.
-##############################################################################
-
-#class Connection(ConnectionMsg):
-#    '''
-#      Hashable wrapper around the connection message 
-#    '''
-#    def __init__(self, type, name, node, uri, service_api = None, topic_type = None):
-#        self.type = type
-#        self.name = name
-#        self.node = node
-#        self.uri = uri
-#        if not service_api:
-#            service_api = ''
-#        self.service_api = service_api
-#        if not topic_type:
-#            topic_type = ''
-#        self.topic_type = topic_type
-#    
-#    # Need these for hashable containers (like sets), ugh!
-#    def __eq__(self, other):
-#        if isinstance(other, self.__class__):
-#            return self.__dict__ == other.__dict__
-#        else:
-#            return False
-#    
-#    def __ne__(self, other):
-#        return not self.__eq__(other)
-#    
-#    def __hash__(self):
-#        return hash(self.type) ^ hash(self.name) ^ hash(self.node) ^ hash(self.uri) ^ hash(self.service_api) ^ hash(self.topic_type)
-#    
-#    def __repr__(self):
-#        if self.type == ConnectionMsg.SERVICE:
-#            return '{%s, name: %s, node: %s, service_api: %s, node_uri: %s}'%(self.type,self.name,self.node,self.service_api,self.uri)
-#        else:
-#            return '{%s, name: %s, node: %s, topic_type: %s, node_uri: %s}'%(self.type,self.name,self.node,self.topic_type,self.uri)
-
-    # def serializeJson(self):
-    #     data = [self.type,self.name,self.uri,self.service_api,self.topic_type]
-    #     return serialize(data)
-
-    # def deserializeJson(self, string):
-    #     data = deserialize(string)
-    #     self.type = data[0]
-    #     self.name = data[1]
-    #     self.uri = data[2]
-    #     self.service_api = data[3]
-    #     self.topic_type = data[4]
-
-def getConnectionTypes(self):
-    connection_types = []
-    connection_types.append(ConnectionMsg.PUBLISHER);
-    connection_types.append(ConnectionMsg.SUBSCRIBER);
-    connection_types.append(ConnectionMsg.SERVICE);
-    connection_types.append(ConnectionMsg.ACTION_SERVER);
-    connection_types.append(ConnectionMsg.ACTION_CLIENT);
-    return connection_types
-
 ##########################################################################
 # Json serialization/deserialization Functions
 ##########################################################################
@@ -136,6 +76,15 @@ def deserialize(str_msg):
 ##########################################################################
 # Other Utilities
 ##########################################################################
+
+def formatRule(rule):
+    return '{type: %s, name/regex: %s, node name: %s}'%(rule.connection.type,rule.connection.name,rule.connection.node)
+
+def formatConnection(connection):
+    if connection.type == connection.SERVICE: 
+        return '{%s, name: %s, node: %s, uri: %s, service_api: %s}'%(connection.type,connection.name,connection.node,connection.uri,connection.service_api)
+    else:
+        return '{%s, name: %s, node: %s, uri: %s, topic_type: %s}'%(connection.type,connection.name,connection.node,connection.uri,connection.topic_type)
 
 def createEmptyConnectionTypeDictionary():
     '''

@@ -13,6 +13,7 @@ import time
 import re
 import itertools
 import copy
+import threading
 
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
@@ -56,6 +57,7 @@ class GatewaySync(object):
         self.is_connected = False
         self.flipped_interface = FlippedInterface() # Initalise the unique namespace hint for this upon connection later
         self.public_interface = PublicInterface()
+        self.public_interface_lock = threading.Condition()
         self.hub = Hub(self.processUpdate, self.unresolved_name)
         self.master = LocalMaster()
 
@@ -88,33 +90,62 @@ class GatewaySync(object):
     # Ros Service Callbacks
     ##########################################################################
 
-    def advertise(self,request):
-        success = False
+    def rosServiceAdvertise(self,request):
+        '''
+          Puts/Removes a number of rules on the public interface watchlist.
+          As local connections matching these rules become available/go away,
+          the public interface is modified accordingly. A manual update is done
+          at the end of the advertise call to quickly capture existing
+          connections
+
+          @param request
+          @type gateway_comms.srv.AdvertiseRequest
+          @return service response
+          @rtype gateway_comms.srv.AdvertiseReponse
+        '''
+        result = gateway_comms.msg.Result.SUCCESS
         try:
-            watchlist = utils.connectionsFromConnectionMsgList(request.watchlist)
             if not request.cancel:
-                utils.addToConnectionList(self._public_watchlist, watchlist)
+                for rule in request.rules:
+                    if not self.public_interface.addRule(rule):
+                        result = gateway_comms.msg.Result.ADVERTISEMENT_EXISTS
             else:
-                utils.removeFromConnectionList(self._public_watchlist, watchlist)
-            success = True
+                for rule in request.rules:
+                    if not self.public_interface.removeRule(rule):
+                        result = gateway_comms.msg.Result.ADVERTISEMENT_NOT_FOUND
         except Exception as e:
             rospy.logerr("Gateway : advertise call error [%s]."%str(e))
-        return success, utils.connectionMsgListFromConnections(self._public_watchlist)
+            result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
 
-    def advertiseAll(self,request):
-        success = False
+        #Do a manual update
+        public_interface = self.updatePublicInterface()
+        return result, self.public_interface.getWatchlist(), public_interface
+
+    def rosServiceAdvertiseAll(self,request):
+        '''
+          Toggles the advertise all mode. If advertising all, an additional 
+          blacklist parameter can be supplied which includes all the topics that
+          will not be advertised/watched for. This blacklist is added to the
+          default blacklist of the public interface
+
+          @param request
+          @type gateway_comms.srv.AdvertiseAllRequest
+          @return service response
+          @rtype gateway_comms.srv.AdvertiseAllReponse
+        '''
+        result = gateway_comms.msg.Result.SUCCESS
         try:
-            blacklist = utils.connectionsFromConnectionMsgList(request.blacklist)
             if not request.cancel:
-                self._public_blacklist = copy.deepcopy(self._default_blacklist)
-                utils.addToConnectionList(self._public_blacklist, blacklist)
-                self._public_whitelist = utils.getAllAllowedConnectionList()
+                self.public_interface.allowAll(request.blacklist)
             else:
-                self._public_whitelist = utils.getEmptyConnectionList()
-            success = True
+                self.public_interface.allowAll(request.blacklist)
         except Exception as e:
             rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
-        return success, utils.connectionMsgListFromConnections(self._public_blacklist)
+            result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
+
+        #Do a manual update
+        public_interface = self.updatePublicInterface()
+        return result, self.public_interface.getBlacklist(), public_interface
 
     def rosServiceFlip(self,request):
         '''
@@ -182,52 +213,75 @@ class GatewaySync(object):
         return response
 
     ##########################################################################
-    # Public Interface method
+    # Public Interface methods
     ##########################################################################
 
-    def advertiseConnection(self,connection):
-        '''
-        Adds a connection (topic/service/action) to the public interface.
-        
-        - adds to the public interface list
-        - adds to the hub so it can be pulled by remote gateways
-        
-        @param connection : tuple containing connection information
-        @type tuple
-        '''
-        if not self.is_connected:
-            rospy.logerr("Gateway : advertise connection call failed [no hub connection].")
-            return False
-        try:
-            if self.public_interface.add(connection):
-                self.hub.advertise(connection)
-                rospy.loginfo("Gateway : added connection to the public interface [%s]"%connection)
-        except Exception as e: 
-            rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
-            return False
-        return True
+    # def advertiseConnection(self,connection):
+    #     '''
+    #     Adds a connection (topic/service/action) to the public interface.
+    #     
+    #     - adds to the public interface list
+    #     - adds to the hub so it can be pulled by remote gateways
+    #     
+    #     @param connection : tuple containing connection information
+    #     @type tuple
+    #     '''
+    #     if not self.is_connected:
+    #         rospy.logerr("Gateway : advertise connection call failed [no hub connection].")
+    #         return False
+    #     try:
+    #         if self.public_interface.add(connection):
+    #             #self.hub.advertise(connection)
+    #             pass
+    #     except Exception as e: 
+    #         rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
+    #         return False
+    #     return True
 
-    def unadvertiseConnection(self,connection):
-        '''
-        Removes a connection (topic/service/action) to the public interface.
-        
-        - remove the public interface list
-        - remove the connection from the hub, the hub announces the removal
-        
-        @param connection : tuple containing connection information
-        @type tuple
+    # def unadvertiseConnection(self,connection):
+    #     '''
+    #     Removes a connection (topic/service/action) to the public interface.
+    #     
+    #     - remove the public interface list
+    #     - remove the connection from the hub, the hub announces the removal
+    #     
+    #     @param connection : tuple containing connection information
+    #     @type tuple
+    #     '''
+    #     if not self.is_connected:
+    #         rospy.logerr("Gateway : advertise call failed [no hub connection].")
+    #         return False
+    #     try:
+    #         if self.public_interface.remove(connection):
+    #             #self.hub.unadvertise(connection)
+    #             pass
+    #     except Exception as e: 
+    #         rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
+    #         return False
+    #     return True
+    
+    def updatePublicInterface(self):
+        ''' 
+          Process the list of local connections and check against 
+          the current rules and patterns for flips. If a connection 
+          has become (un)available take appropriate action.
         '''
         if not self.is_connected:
             rospy.logerr("Gateway : advertise call failed [no hub connection].")
-            return False
-        try:
-            if self.public_interface.remove(connection):
+            return None
+        connections = self.master.getConnectionState()
+        self.public_interface_lock.acquire()
+        new_conns, lost_conns = self.public_interface.update(connections)
+        public_interface = self.public_interface.getInterface()
+        self.public_interface_lock.release()
+        for connection_type in new_conns:
+            for connection in new_conns[connection_type]:
+                rospy.loginfo("Gateway : adding connection to public interface %s"%utils.formatConnection(connection.connection))
+                self.hub.advertise(connection)
+            for connection in lost_conns[connection_type]:
+                rospy.loginfo("Gateway : removing connection to public interface %s"%utils.formatConnection(connection.connection))
                 self.hub.unadvertise(connection)
-                rospy.loginfo("Gateway : added connection to the public interface [%s: %s]"%connection)
-        except Exception as e: 
-            rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
-            return False
-        return True
+        return public_interface
 
     ##########################################################################
     # Flip Interface Methods [Depracating]

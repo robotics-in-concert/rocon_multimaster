@@ -79,8 +79,8 @@ class Gateway():
         gateway_services = {}
         gateway_services['connect_hub']   = rospy.Service('~connect_hub',   gateway_comms.srv.ConnectHub,   self.rosServiceConnectHub)
         gateway_services['gateway_info']  = rospy.Service('~gateway_info',  gateway_comms.srv.GatewayInfo,  self.rosServiceGatewayInfo)
-        gateway_services['advertise']     = rospy.Service('~advertise',     gateway_comms.srv.Advertise,    self.gateway_sync.advertise)
-        gateway_services['advertise_all'] = rospy.Service('~advertise_all', gateway_comms.srv.AdvertiseAll, self.gateway_sync.advertiseAll)        
+        gateway_services['advertise']     = rospy.Service('~advertise',     gateway_comms.srv.Advertise,    self.gateway_sync.rosServiceAdvertise)
+        gateway_services['advertise_all'] = rospy.Service('~advertise_all', gateway_comms.srv.AdvertiseAll, self.gateway_sync.rosServiceAdvertiseAll)        
         gateway_services['flip']          = rospy.Service('~flip',          gateway_comms.srv.Flip,         self.gateway_sync.rosServiceFlip)        
         gateway_services['flip_pattern']  = rospy.Service('~flip_pattern',  gateway_comms.srv.FlipPatterns, self.gateway_sync.rosServiceFlipPattern)        
         gateway_services['flip_all']      = rospy.Service('~flip_all',      gateway_comms.srv.FlipAll,      self.gateway_sync.rosServiceFlipAll)

@@ -20,7 +20,7 @@ import re
 
 from .exceptions import GatewayError, ConnectionTypeError
 from .utils import Connection
-from gateway_comms.msg import Connection as ConnectionMsg
+from gateway_comms.msg import Connection
 
 class LocalMaster(rosgraph.Master):
     '''
@@ -97,7 +97,10 @@ class LocalMaster(rosgraph.Master):
             topic_type = topic_type[0]
             nodes = topic[1]
             for node in nodes:
-                node_uri = self.lookupNode(node)
+                try:
+                    node_uri = self.lookupNode(node)
+                except:
+                    continue
                 connections.append(Connection(type,topic_name,node,node_uri,None,topic_type))
         return connections
 
@@ -110,7 +113,10 @@ class LocalMaster(rosgraph.Master):
             topic_type = re.sub('ActionGoal$', '', goal_topic_type[0]) #Base type for action
             nodes = action[1]
             for node in nodes:
-                node_uri = self.lookupNode(node)
+                try:
+                    node_uri = self.lookupNode(node)
+                except:
+                    continue
                 connections.append(Connection(type,action_name,node,node_uri,None,topic_type))
         return connections
 
@@ -121,7 +127,10 @@ class LocalMaster(rosgraph.Master):
             service_uri = rosservice.get_service_uri(service_name)
             nodes = service[1]
             for node in nodes:
-                node_uri = self.lookupNode(node)
+                try:
+                    node_uri = self.lookupNode(node)
+                except:
+                    continue
                 connections.append(Connection(type,service_name,node,node_uri,service_uri,None))
         return connections
 
@@ -130,11 +139,11 @@ class LocalMaster(rosgraph.Master):
         publishers, subscribers, services = self.getSystemState()
         action_servers = self.getActionServers()
         action_clients = self.getActionClients()
-        connections[ConnectionMsg.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, ConnectionMsg.PUBLISHER)
-        connections[ConnectionMsg.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, ConnectionMsg.SUBSCRIBER)
-        connections[ConnectionMsg.SERVICE] = self.getConnectionsFromServiceList(services, ConnectionMsg.SERVICE)
-        connections[ConnectionMsg.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, ConnectionMsg.ACTION_SERVER)
-        connections[ConnectionMsg.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, ConnectionMsg.ACTION_CLIENT)
+        connections[Connection.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, Connection.PUBLISHER)
+        connections[Connection.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, Connection.SUBSCRIBER)
+        connections[Connection.SERVICE] = self.getConnectionsFromServiceList(services, Connection.SERVICE)
+        connections[Connection.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, Connection.ACTION_SERVER)
+        connections[Connection.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, Connection.ACTION_CLIENT)
         return connections
 
     def _getAnonymousNodeName(self,topic):
