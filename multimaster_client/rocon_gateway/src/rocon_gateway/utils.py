@@ -49,19 +49,6 @@ def reshapeTopic(t):
         t = '/' + t
     return t
 
-##############################################################################
-# Connections - usually our wierd triple style string representations.
-##############################################################################
-
-def getConnectionTypes():
-    connection_types = []
-    connection_types.append(Connection.PUBLISHER);
-    connection_types.append(Connection.SUBSCRIBER);
-    connection_types.append(Connection.SERVICE);
-    connection_types.append(Connection.ACTION_SERVER);
-    connection_types.append(Connection.ACTION_CLIENT);
-    return connection_types
-
 ##########################################################################
 # Json serialization/deserialization Functions
 ##########################################################################
@@ -89,6 +76,15 @@ def deserialize(str_msg):
 ##########################################################################
 # Other Utilities
 ##########################################################################
+
+def formatRule(rule):
+    return '{type: %s, name/regex: %s, node name: %s}'%(rule.connection.type,rule.connection.name,rule.connection.node)
+
+def formatConnection(connection):
+    if connection.type == connection.SERVICE: 
+        return '{%s, name: %s, node: %s, uri: %s, service_api: %s'%(connection.type,connection.name,connection.node,connection.uri,connection.service_api)
+    else:
+        return '{%s, name: %s, node: %s, uri: %s, topic_type: %s'%(connection.type,connection.name,connection.node,connection.uri,connection.topic_type)
 
 def createEmptyConnectionTypeDictionary():
     '''
