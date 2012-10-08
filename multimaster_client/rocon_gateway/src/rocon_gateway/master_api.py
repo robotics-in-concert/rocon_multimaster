@@ -181,7 +181,7 @@ class LocalMaster(rosgraph.Master):
         
         node_master = rosgraph.Master(registration.local_node)
         if registration.type == Connection.PUBLISHER:
-            node_master.registerPublisher(registration.local_name,registration.type_info,registration.xmlrpc_uri)
+            node_master.registerPublisher(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
         else:
             rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
             
