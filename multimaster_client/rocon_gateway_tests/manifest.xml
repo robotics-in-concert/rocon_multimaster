@@ -12,7 +12,7 @@
   <depend package="gateway_comms"/>
   <depend package="rocon_gateway"/>
 
-  <depend pacakge="rostest"/>
+  <depend package="rostest"/>
   <depend package="roscpp_tutorials" />
   <depend package="actionlib_tutorials" />
 
