@@ -40,12 +40,37 @@ class LocalMaster(rosgraph.Master):
 
     def __init__(self):
         rosgraph.Master.__init__(self,rospy.get_name())
-    
-        self.pubs_uri = {}
-        self.pubs_node = {}
-        self.srvs_uri = {}
-        self.srvs_node = {}
-        self.cv = threading.Condition()
+
+    ##########################################################################
+    # Registration
+    ##########################################################################
+
+    def register(self,registration):
+        '''
+          Registers a connection with the local master.
+          
+          @param registration : registration details
+          @type utils.Registration
+          
+          @return the updated registration object (only adds an anonymously generated local node name)
+          @rtype utils.Registration
+        '''
+        registration.local_node = self._getAnonymousNodeName(registration.remote_node)    
+        rospy.loginfo("Gateway : starting new node [%s] for [%s]"%(registration.local_node,registration.local_name))
+        
+        # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
+        # already have handle that. 
+        
+        node_master = rosgraph.Master(registration.local_node)
+        if registration.type == Connection.PUBLISHER:
+            node_master.registerPublisher(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
+        else:
+            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
+            
+
+    def unregister(self,registration):
+        pass
+
 
     ##########################################################################
     # Master utility methods
@@ -159,78 +184,12 @@ class LocalMaster(rosgraph.Master):
         name = roslib.names.anonymous_name(t)
         return name
 
-    ##########################################################################
-    # Registration
-    ##########################################################################
-
-    def register(self,registration):
-        '''
-          Registers a connection with the local master.
-          
-          @param registration : registration details
-          @type utils.Registration
-          
-          @return the updated registration object (only adds an anonymously generated local node name)
-          @rtype utils.Registration
-        '''
-        registration.local_node = self._getAnonymousNodeName(registration.remote_node)    
-        rospy.loginfo("Gateway : starting new node [%s] for [%s]"%(registration.local_node,registration.local_name))
-        
-        # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
-        # already have handle that.  
-        
-        node_master = rosgraph.Master(registration.local_node)
-        if registration.type == Connection.PUBLISHER:
-            node_master.registerPublisher(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
-        else:
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
-            
-
-    def unregister(self,registration):
-        pass
-
-    ##########################################################################
-    # Other
-    ##########################################################################
-
-    def clear(self):
-        self.pubs_node = {}
-        self.pubs_uri = {}
-
 
 
 ##############################################################################
 # Depracating
 ##############################################################################
 
-#    def registerTopic(self,topic,topictype,uri):
-#        try:
-#            if self._checkIfItisLocal(topic,uri,"topic"):
-#                rospy.logerr("Gateway : Topic triple available locally")
-#                return False
-#       
-#            node_name = self._getAnonymousNodeName(topic)    
-#            rospy.logerr("Gateway : Starting new node [%s] for topic [%s]"%(node_name,topic))
-#
-#            # Initialize if it is a new topic
-#            if topic not in self.pubs_uri.keys():
-#                self.pubs_uri[topic] = [] 
-#        
-#            self.cv.acquire()
-#            if uri  not in self.pubs_uri[topic]:
-#                self.pubs_uri[topic].append(uri)
-#                self.pubs_node[(topic,uri)] = node_name
-#                master = rosgraph.Master(node_name)
-#                master.registerPublisher(topic,topictype,uri)
-#            else:
-#                print "already registered"
-#                return False
-#            self.cv.release()
-#        except Exception as e:
-#            print "In registerTopic"
-#            raise
-#
-#        return True
 #    def _checkIfItisLocal(self,name,uri,identifier):
 #        pubs, _1, srvs = self.getSystemState()
 #    
