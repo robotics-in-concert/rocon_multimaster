@@ -66,7 +66,7 @@ class Gateway():
           Clears this gateway's information from the redis server.
         '''
         try:
-            self.gateway_sync.clearServer()
+            self.gateway_sync.shutdown()
         except Exception as e:
             print str(e)
         rospy.loginfo("Gateway : server cleared");

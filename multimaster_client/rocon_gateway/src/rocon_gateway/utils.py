@@ -20,6 +20,40 @@ from gateway_comms.msg import Connection
 connection_types = frozenset([Connection.PUBLISHER, Connection.SUBSCRIBER, Connection.SERVICE, Connection.ACTION_CLIENT, Connection.ACTION_SERVER])
 
 ##############################################################################
+# Registration
+##############################################################################
+
+class Registration():
+    '''
+      An object that represents a connection registered with the local 
+      master (or about to be registered). This has all the gory detail
+      for the connection. It includes the gateway name it originated 
+      from as well as master registration information.
+      
+       - remote_gateway
+       - remote_connection.name (the remote connection name)
+       - remote_node            (the remote node)
+       - type                   (one of Connection.PUBLISHER, etc)
+       - type_info              (msg type for pubsub or service api for services)
+       - xmlrpc_uri             (the xmlrpc node uri for the connection)
+       - local_name             (the remapped name)
+       - local_node             (the local anonymously generated node name)
+    '''
+    def __init__(self, remote_gateway, remote_name, remote_node, type, local_name, type_info = None, xmlrpc_uri = None, local_node = None):
+        '''
+          @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
+          @type string  
+        '''
+        self.remote_gateway = remote_gateway
+        self.remote_name = remote_name
+        self.remote_node = remote_node
+        self.type = type
+        self.type_info = type_info
+        self.xmlrpc_uri = xmlrpc_uri
+        self.local_name = local_name
+        self.local_node = node
+    
+##############################################################################
 # Ros string utilities
 ##############################################################################
 

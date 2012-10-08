@@ -29,7 +29,7 @@ if __name__ == '__main__':
 #  parser.add_argument('-m','--message',metavar='<Topic triple>',type=str,nargs='+',help='<Topic triple>="<topic name>,<topic type>,<node uri>"')
   args = parser.parse_args()
 
-  rospy.init_node('flip_publisher')
+  rospy.init_node('flip_chatter')
 
   flip = rospy.ServiceProxy('/gateway/flip',Flip)
   

@@ -57,9 +57,14 @@ class FlippedInterface(object):
           Initialises the flipped interface.
         '''
         self._namespace = "/" # namespace to root flips in
-        self.flipped = utils.createEmptyConnectionTypeDictionary()  # keys are connection_types, elements are lists of FlipRule objects 
-        self.rules = utils.createEmptyConnectionTypeDictionary()    # keys are connection_types, elements are lists of FlipRule objects 
-        self.patterns = utils.createEmptyConnectionTypeDictionary() # keys are connection_types, elements are lists of FlipPattern objects 
+        
+        # keys are connection_types, elements are lists of FlipRule objects
+        self.flipped = utils.createEmptyConnectionTypeDictionary() # Connections that have been sent to remote gateways   
+        self.rules = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local connections to flip  
+        self.patterns = utils.createEmptyConnectionTypeDictionary() # Regex patterns used to determine what local connections to flip
+        
+        # keys are connection_types, elements are lists of utils.Registration objects
+        self.registrations = utils.createEmptyConnectionTypeDictionary() # Flips from remote gateways that have been locally registered
         
     def setDefaultRootNamespace(self, namespace):
         '''
@@ -173,7 +178,7 @@ class FlippedInterface(object):
           @type str
           
           @return all the flip rules that match this local connection
-          @return list of FlipRule copied objects from self.rules
+          @return list of FlipRule objects updated with node names from self.rules
         '''
         matched_flip_rules = []
         for rule in self.rules[type]:

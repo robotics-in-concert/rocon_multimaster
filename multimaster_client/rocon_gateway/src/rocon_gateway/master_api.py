@@ -4,6 +4,10 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway/LICENSE 
 #
 
+##############################################################################
+# Imports
+##############################################################################
+
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph.masterapi
@@ -21,6 +25,10 @@ import re
 from .exceptions import GatewayError, ConnectionTypeError
 from .utils import Connection
 from gateway_comms.msg import Connection
+
+##############################################################################
+# Master
+##############################################################################
 
 class LocalMaster(rosgraph.Master):
     '''
@@ -151,143 +159,34 @@ class LocalMaster(rosgraph.Master):
         name = roslib.names.anonymous_name(t)
         return name
 
-    def _checkIfItisLocal(self,name,uri,identifier):
-        pubs, _1, srvs = self.getSystemState()
-    
-        if identifier == "topic":
-            for p in itertools.chain(*[l for x, l in pubs]):
-                uri_m = rostopic.get_api(self,p)
-                if uri_m == uri:
-                    return True
-        elif identifier == "service":
-            nodename = rosservice.get_service_node(name)
+    ##########################################################################
+    # Registration
+    ##########################################################################
+
+    def register(self,registration):
+        '''
+          Registers a connection with the local master.
+          
+          @param registration : registration details
+          @type utils.Registration
+          
+          @return the updated registration object (only adds an anonymously generated local node name)
+          @rtype utils.Registration
+        '''
+        registration.local_node = self._getAnonymousNodeName(registration.node)    
+        rospy.loginfo("Gateway : starting new node [%s] for [%s]"%(registration.local_node,registration.local_name))
         
-            if not nodename:
-                return False
-    
-            nodeuri = rosnode.get_api_uri(self,nodename)
-    
-            if nodeuri == uri:
-                return True
+        # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
+        # already have handle that.  
+        
+        node_master = rosgraph.Master(registration.local_node)
+        if registration.type == Connection.PUBLISHER:
+            master.registerPublisher(registration.local_name,registration.type_info,registration.xmlrpc_uri)
         else:
-            print "Wrong Identifier in checkIfItisLocal"
-        return False
+            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
+            
 
-    ##########################################################################
-    # Pull methods - register/unregister pulls/unpulls with local master
-    ##########################################################################
-    
-    def registerTopic(self,topic,topictype,uri):
-        try:
-            if self._checkIfItisLocal(topic,uri,"topic"):
-                rospy.logerr("Gateway : Topic triple available locally")
-                return False
-       
-            node_name = self._getAnonymousNodeName(topic)    
-            rospy.logerr("Gateway : Starting new node [%s] for topic [%s]"%(node_name,topic))
-
-            # Initialize if it is a new topic
-            if topic not in self.pubs_uri.keys():
-                self.pubs_uri[topic] = [] 
-        
-            self.cv.acquire()
-            if uri  not in self.pubs_uri[topic]:
-                self.pubs_uri[topic].append(uri)
-                self.pubs_node[(topic,uri)] = node_name
-                master = rosgraph.Master(node_name)
-                master.registerPublisher(topic,topictype,uri)
-            else:
-                print "already registered"
-                return False
-            self.cv.release()
-        except Exception as e:
-            print "In registerTopic"
-            raise
-
-        return True
-
-    def registerService(self,service,service_api,node_xmlrpc_uri):
-        try:                                                  
-            if self._checkIfItisLocal(service,node_xmlrpc_uri,"service"):
-                rospy.logerr("Gateway : Service triple available locally")
-                return False
-            node_name = self._getAnonymousNodeName(service)    
-            rospy.loginfo("Gateway : Starting new node [%s] for service [%s]"%(node_name,service))
-
-            # Initialize if it is a new topic
-            if service not in self.srvs_uri.keys():
-                self.srvs_uri[service] = [] 
-        
-            self.cv.acquire()
-            if service_api not in self.srvs_uri[service]:
-                self.srvs_uri[service].append(service_api)
-                self.srvs_node[(service,service_api)] =node_name
-                master = rosgraph.Master(node_name)
-                master.registerService(service,service_api,node_xmlrpc_uri)
-            else:
-                print "already registered"
-                return False
-            self.cv.release()
-        except Exception as e:
-            print "registerService:ros_master.py"
-            raise
-
-        return True
-
-    def register(self,connection):
-        # (piyushk) commented out - will have explicit conn type
-        # if connectionTypeString(connection) == "invalid":
-        #     raise ConnectionTypeError("trying to register an invalid connection type [%s]"%connection)
-        # components = connection.split(',')
-        # if connectionTypeString(connection) == "topic":
-        #     self.registerTopic(components[0],components[1],components[2])
-        # elif connectionTypeString(connection) == "service":
-        #     self.registerService(components[0],components[1],components[2])
-        pass
-
-    def unregisterTopic(self,topic,topictype,node_uri):
-        try:
-            try: 
-                node_name = self.pubs_node[(topic,node_uri)]
-            except KeyError:
-                print "Topic does not exist"
-                return False
-            print "Unregistering ",topic," from ",node_name
-            master_n = rosgraph.Master(node_name)
-            master_n.unregisterPublisher(topic,node_uri)
-            del self.pubs_node[(topic,node_uri)]
-            self.pubs_uri[topic].remove(node_uri)
-        except:
-            print "Failed in unregister Topic"
-            raise
-        return True
-
-    def unregisterService(self,service,service_api,node_uri):
-        try:
-            try: 
-                node_name = self.srvs_node[(service,service_api)]
-            except KeyError:
-                print "Service does not exist"
-                return False
-            print "Unregistering ",service," from ",node_name
-            master_n = rosgraph.Master(node_name)
-            master_n.unregisterService(service, service_api)
-            del self.srvs_node[(service,service_api)]
-            self.srvs_uri[service].remove(service_api)
-        except:
-            print "Failed in unregister Service"
-            raise
-        return True
-
-    def unregister(self,connection):
-        # (piyushk) commented out - will have explicit conn type
-        # if connectionTypeString(connection) == "invalid":
-        #     raise ConnectionTypeError("trying to unregister an invalid connection type [%s]"%connection)
-        # components = connection.split(',')
-        # if connectionTypeString(connection) == "topic":
-        #     self.unregisterTopic(components[0],components[1],components[2])
-        # elif connectionTypeString(connection) == "service":
-        #     self.unregisterService(components[0],components[1],components[2])
+    def unregister(self,registration):
         pass
 
     ##########################################################################
@@ -300,3 +199,116 @@ class LocalMaster(rosgraph.Master):
 
 
 
+##############################################################################
+# Depracating
+##############################################################################
+
+#    def registerTopic(self,topic,topictype,uri):
+#        try:
+#            if self._checkIfItisLocal(topic,uri,"topic"):
+#                rospy.logerr("Gateway : Topic triple available locally")
+#                return False
+#       
+#            node_name = self._getAnonymousNodeName(topic)    
+#            rospy.logerr("Gateway : Starting new node [%s] for topic [%s]"%(node_name,topic))
+#
+#            # Initialize if it is a new topic
+#            if topic not in self.pubs_uri.keys():
+#                self.pubs_uri[topic] = [] 
+#        
+#            self.cv.acquire()
+#            if uri  not in self.pubs_uri[topic]:
+#                self.pubs_uri[topic].append(uri)
+#                self.pubs_node[(topic,uri)] = node_name
+#                master = rosgraph.Master(node_name)
+#                master.registerPublisher(topic,topictype,uri)
+#            else:
+#                print "already registered"
+#                return False
+#            self.cv.release()
+#        except Exception as e:
+#            print "In registerTopic"
+#            raise
+#
+#        return True
+#    def _checkIfItisLocal(self,name,uri,identifier):
+#        pubs, _1, srvs = self.getSystemState()
+#    
+#        if identifier == "topic":
+#            for p in itertools.chain(*[l for x, l in pubs]):
+#                uri_m = rostopic.get_api(self,p)
+#                if uri_m == uri:
+#                    return True
+#        elif identifier == "service":
+#            nodename = rosservice.get_service_node(name)
+#            if not nodename:
+#                return False
+#    
+#            nodeuri = rosnode.get_api_uri(self,nodename)
+#    
+#            if nodeuri == uri:
+#                return True
+#        else:
+#            print "Wrong Identifier in checkIfItisLocal"
+#        return False
+#    def registerService(self,service,service_api,node_xmlrpc_uri):
+#        try:                                                  
+#            if self._checkIfItisLocal(service,node_xmlrpc_uri,"service"):
+#                rospy.logerr("Gateway : Service triple available locally")
+#                return False
+#            node_name = self._getAnonymousNodeName(service)    
+#            rospy.loginfo("Gateway : Starting new node [%s] for service [%s]"%(node_name,service))
+#
+#            # Initialize if it is a new topic
+#            if service not in self.srvs_uri.keys():
+#                self.srvs_uri[service] = [] 
+#        
+#            self.cv.acquire()
+#            if service_api not in self.srvs_uri[service]:
+#                self.srvs_uri[service].append(service_api)
+#                self.srvs_node[(service,service_api)] =node_name
+#                master = rosgraph.Master(node_name)
+#                master.registerService(service,service_api,node_xmlrpc_uri)
+#            else:
+#                print "already registered"
+#                return False
+#            self.cv.release()
+#        except Exception as e:
+#            print "registerService:ros_master.py"
+#            raise
+#
+#        return True
+#
+#    def unregisterTopic(self,topic,topictype,node_uri):
+#        try:
+#            try: 
+#                node_name = self.pubs_node[(topic,node_uri)]
+#            except KeyError:
+#                print "Topic does not exist"
+#                return False
+#            print "Unregistering ",topic," from ",node_name
+#            master_n = rosgraph.Master(node_name)
+#            master_n.unregisterPublisher(topic,node_uri)
+#            del self.pubs_node[(topic,node_uri)]
+#            self.pubs_uri[topic].remove(node_uri)
+#        except:
+#            print "Failed in unregister Topic"
+#            raise
+#        return True
+#
+#    def unregisterService(self,service,service_api,node_uri):
+#        try:
+#            try: 
+#                node_name = self.srvs_node[(service,service_api)]
+#            except KeyError:
+#                print "Service does not exist"
+#                return False
+#            print "Unregistering ",service," from ",node_name
+#            master_n = rosgraph.Master(node_name)
+#            master_n.unregisterService(service, service_api)
+#            del self.srvs_node[(service,service_api)]
+#            self.srvs_uri[service].remove(service_api)
+#        except:
+#            print "Failed in unregister Service"
+#            raise
+#        return True

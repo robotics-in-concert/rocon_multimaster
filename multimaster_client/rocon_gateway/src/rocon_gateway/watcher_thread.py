@@ -4,9 +4,19 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway/LICENSE 
 #
 
+##############################################################################
+# Imports
+##############################################################################
+
+import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
+import rostopic
 import threading
 from gateway_comms.msg import Connection
+
+##############################################################################
+# Watcher
+##############################################################################
 
 class WatcherThread(threading.Thread):
     '''
@@ -17,24 +27,26 @@ class WatcherThread(threading.Thread):
         threading.Thread.__init__(self)
         self.gateway = gateway
         self.master = gateway.master
-        self.cv = self.master.cv
-        self.pubs = self.master.pubs_node
+        self.hub = gateway.hub
         self.public_interface = gateway.public_interface
         self.flipped_interface = gateway.flipped_interface
-
-    
         self.start()
 
     def run(self):
         while not rospy.is_shutdown():
-            self.cv.acquire()
-
             if self.gateway.is_connected:
                 connections = self.master.getConnectionState()
+                # Flipped Interface
                 new_flips, lost_flips = self.flipped_interface.update(connections)
-                # do whatever we need to do on the redis server here
+                # new_flips and lost_flips are FlipRule lists with filled supplied name info from the master
+                for connection_type in connections:
+                    for flip in new_flips[connection_type]:
+                        if connection_type == Connection.PUBLISHER or connection_type == Connection.SUBSCRIBER:
+                            type_info = rostopic.get_topic_type(flip.connection.name)[0] # message type
+                            xmlrpc_uri = self.master.lookupNode(flip.connection.node)
+                        self.hub.sendFlipRequest(flip, type_info, xmlrpc_uri )
+                # Public Interface
                 self.gateway.updatePublicInterface()
-            self.cv.release()
             rospy.sleep(3.0)
 
     def _updatePublicInterface(self, connections):
@@ -46,9 +58,6 @@ class WatcherThread(threading.Thread):
           @param connections
           @type dictionary of connections 
         '''
-
-
-
         for connection_type in connections:
             allowed_connections = self.public_interface.allowedConnections(connections[connection_type])
             

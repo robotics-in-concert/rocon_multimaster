@@ -58,22 +58,15 @@ class GatewaySync(object):
         self.flipped_interface = FlippedInterface() # Initalise the unique namespace hint for this upon connection later
         self.public_interface = PublicInterface()
         self.public_interface_lock = threading.Condition()
-        self.hub = Hub(self.processUpdate, self.unresolved_name)
+        self.hub = Hub(self.processRemoteGatewayRequest, self.unresolved_name)
         self.master = LocalMaster()
 
         # create a thread to watch local connection states
         self.watcher_thread = WatcherThread(self)
 
-        # self._initializeWatchlists()
-        # self._initializeBlacklists()
-
-        # create a whitelist/blacklist of named topics and services for flipped
-        self.flipped_topic_whitelist = dict()
-        self.flipped_service_whitelist = dict()
-        self.flip_public_topics = set()
-
-        #create a list of flipped triples
-        self.flipped_interface_list = dict()
+    ##########################################################################
+    # Connection Logic
+    ##########################################################################
 
     def connectToHub(self,ip,port):
         try:
@@ -86,8 +79,12 @@ class GatewaySync(object):
             return False
         return True
 
+    def shutdown(self):
+        self.hub.unregisterGateway()
+        self.master.clear()
+
     ##########################################################################
-    # Ros Service Callbacks
+    # Incoming commands from local system (ros service callbacks)
     ##########################################################################
 
     def rosServiceAdvertise(self,request):
@@ -176,9 +173,9 @@ class GatewaySync(object):
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
             else:
-                rospy.logerr("Gateway : flip rule already exists [%s:%s->%s]"%(request.gateway,request.name,request.remapped_name))
+                rospy.logerr("Gateway : flip rule already exists [%s:%s->%s]"%(request.flip_rule.gateway,request.flip_rule.connection.name,request.flip_rule.remapped_name))
                 response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                response.error_message = "flip rule already exists ["+request.gateway+":"+request.name+"->"+request.remapped_name+"]"
+                response.error_message = "flip rule already exists ["+request.flip_rule.gateway+":"+request.flip_rule.connection.name+"->"+request.flip_rule.remapped_name+"]"
         else: # request.cancel
             # unflip handling
             pass  
@@ -213,101 +210,27 @@ class GatewaySync(object):
         return response
 
     ##########################################################################
-    # Public Interface methods
+    # Incoming commands from remote gateways
     ##########################################################################
 
-    # def advertiseConnection(self,connection):
-    #     '''
-    #     Adds a connection (topic/service/action) to the public interface.
-    #     
-    #     - adds to the public interface list
-    #     - adds to the hub so it can be pulled by remote gateways
-    #     
-    #     @param connection : tuple containing connection information
-    #     @type tuple
-    #     '''
-    #     if not self.is_connected:
-    #         rospy.logerr("Gateway : advertise connection call failed [no hub connection].")
-    #         return False
-    #     try:
-    #         if self.public_interface.add(connection):
-    #             #self.hub.advertise(connection)
-    #             pass
-    #     except Exception as e: 
-    #         rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
-    #         return False
-    #     return True
-
-    # def unadvertiseConnection(self,connection):
-    #     '''
-    #     Removes a connection (topic/service/action) to the public interface.
-    #     
-    #     - remove the public interface list
-    #     - remove the connection from the hub, the hub announces the removal
-    #     
-    #     @param connection : tuple containing connection information
-    #     @type tuple
-    #     '''
-    #     if not self.is_connected:
-    #         rospy.logerr("Gateway : advertise call failed [no hub connection].")
-    #         return False
-    #     try:
-    #         if self.public_interface.remove(connection):
-    #             #self.hub.unadvertise(connection)
-    #             pass
-    #     except Exception as e: 
-    #         rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
-    #         return False
-    #     return True
-    
-    def updatePublicInterface(self):
-        ''' 
-          Process the list of local connections and check against 
-          the current rules and patterns for flips. If a connection 
-          has become (un)available take appropriate action.
+    def processRemoteGatewayRequest(self,command, gateway, remapped_name, connection_type, type, xmlrpc_uri):
         '''
-        if not self.is_connected:
-            rospy.logerr("Gateway : advertise call failed [no hub connection].")
-            return None
-        connections = self.master.getConnectionState()
-        self.public_interface_lock.acquire()
-        new_conns, lost_conns = self.public_interface.update(connections)
-        public_interface = self.public_interface.getInterface()
-        self.public_interface_lock.release()
-        for connection_type in new_conns:
-            for connection in new_conns[connection_type]:
-                rospy.loginfo("Gateway : adding connection to public interface %s"%utils.formatConnection(connection.connection))
-                self.hub.advertise(connection)
-            for connection in lost_conns[connection_type]:
-                rospy.loginfo("Gateway : removing connection to public interface %s"%utils.formatConnection(connection.connection))
-                self.hub.unadvertise(connection)
-        return public_interface
+          Used as a callback for incoming requests on redis pubsub channels.
+          It gets assigned to RedisManager.callback.
+        '''
+        if command == "flip":
+            rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(gateway,remapped_name,connection_type,type,xmlrpc_uri))
+            #self.pull(info)
+        elif command == "unflip":
+            #self.unpull(info)
+            pass
+        else:
+            rospy.logerr("Gateway : received unknown command [%s:%s]"%(command,gateway))
 
     ##########################################################################
-    # Flip Interface Methods [Depracating]
+    # Others - what are we using and what not?
     ##########################################################################
-
-#    def unflip(self,gateways,list):
-#        '''
-#        Removes flipped connection (topic/service/action) to a foreign gateway
-#
-#        @param gateways : list of gateways to flip to (all if empty)
-#        @param list : list of connection representations (usually stringified triples)
-#        '''
-#        if not self.is_connected:
-#            rospy.logerr("Gateway : unflip call failed [no hub connection].")
-#            return False, []
-#        if len(gateways) == 0:
-#            gateways = self.hub.listGateways()
-#        for gateway in gateways:
-#            rospy.loginfo("Gateway : removing flipped connections [%s] to gateway [%s]"%(str(list),gateway))
-#            self.hub.unflip(gateway,list)
-#        return True, []
-
-    ##########################################################################
-    # Pulling Methods
-    ##########################################################################
-
+   
     def pull(self,list):
         '''
         Registers connections (topic/service/action) on a foreign gateway's
@@ -348,62 +271,29 @@ class GatewaySync(object):
             return False, []
         return True, []
 
-    ##########################################################################
-    # Watchlist/Blacklist modification methods
-    ##########################################################################
+    def updatePublicInterface(self):
+        ''' 
+          Process the list of local connections and check against 
+          the current rules and patterns for flips. If a connection 
+          has become (un)available take appropriate action.
+        '''
+        if not self.is_connected:
+            rospy.logerr("Gateway : advertise call failed [no hub connection].")
+            return None
+        connections = self.master.getConnectionState()
+        self.public_interface_lock.acquire()
+        new_conns, lost_conns = self.public_interface.update(connections)
+        public_interface = self.public_interface.getInterface()
+        self.public_interface_lock.release()
+        for connection_type in new_conns:
+            for connection in new_conns[connection_type]:
+                rospy.loginfo("Gateway : adding connection to public interface %s"%utils.formatConnection(connection.connection))
+                self.hub.advertise(connection)
+            for connection in lost_conns[connection_type]:
+                rospy.loginfo("Gateway : removing connection to public interface %s"%utils.formatConnection(connection.connection))
+                self.hub.unadvertise(connection)
+        return public_interface
 
-    # (PK) MOVED TO PUBLIC INTERFACE
-    # def _initializeWatchlists(self):
-    #     '''
-    #     Initializes all watchlists (public/flip/pull) with null sets. This
-    #     function is only used to initialize the vairable names, incase the 
-    #     gateway does not setup the default lists explicityly
-    #     '''
-    #     self._public_watchlist = utils.getEmptyConnectionList()
-
-    # def _initializeBlacklists(self):
-    #     '''
-    #     Initializes all blacklists (topics/services/actions) that can never be
-    #     advertised/flipped/pulled. A blacklist supplied in /pull_all, /flip_all,
-    #     /advertise_all will be in addition to this blacklist.
-    #     '''
-    #     self._default_blacklist = utils.getEmptyConnectionList()
-    #     self._public_blacklist = utils.getEmptyConnectionList()
-    #     
-    # def setDefaultBlacklist(self, blacklist):
-    #     '''
-    #     Sets the default blacklists. This function should be called
-    #     during gateway initialization with blacklists provided through a
-    #     parameter file
-
-    #     @param blacklists : a pre-formatted blacklists dict, most likely from
-    #     @type dict of sets of tuples
-    #     '''
-    #     self._default_blacklist = blacklist
-
-    # def setPublicWatchlist(self, watchlist):
-    #     '''
-    #     Sets the default blacklists. This function should be called
-    #     during gateway initialization with blacklists provided through a
-    #     parameter file
-
-    #     @param blacklists : a pre-formatted blacklists dict, most likely from
-    #     @type dict of sets of tuples
-    #     '''
-    #     self._public_watchlist = watchlist
-
-    def oldFlipWrapper(self,list):
-        num = int(list[0])
-        gateways = list[1:num+1]
-        flip_list = list[num+1:len(list)]
-        return self.flip(gateways,flip_list)
-
-    def oldUnflipWrapper(self,list):
-        num = int(list[0])
-        gateways = list[1:num+1]
-        unflip_list = list[num+1:len(list)]
-        return self.unflip(gateways,unflip_list)
-       
     def addPublicTopicByName(self,topic):
         list = self.getTopicString([topic])
         return self.advertise(list)
@@ -479,9 +369,86 @@ class GatewaySync(object):
         elif identifier == "service":
             self.removePublicServiceByName(name)
 
+    def makeAllPublic(self,list):
+        print "Dumping all non-blacklisted interfaces"
+        self.public_topic_whitelist.append('.*')
+        self.public_service_whitelist.append('.*')
+        return True, []
+
+    def removeAllPublic(self,list):
+        print "Resuming dump of explicitly whitelisted interfaces"
+        self.public_topic_whitelist[:] = [x for x in self.public_topic_whitelist if x != '.*']
+        self.public_service_whitelist[:] = [x for x in self.public_service_whitelist if x != '.*']
+        return True, []
+
+    def allowInterface(self,name,whitelist,blacklist):
+        in_whitelist = False
+        in_blacklist = False
+        for x in whitelist:
+            if re.match(x, name):
+                in_whitelist = True
+                break
+        for x in blacklist:
+            if re.match(x, name):
+                in_blacklist = True
+                break
+
+        return in_whitelist and (not in_blacklist)
+
+    def allowInterfaceInPublic(self,identifier,name):
+        if identifier == 'topic':
+            whitelist = self.public_topic_whitelist
+            blacklist = self.public_topic_blacklist
+        else:
+            whitelist = self.public_service_whitelist
+            blacklist = self.public_service_blacklist
+        return self.allowInterface(name,whitelist,blacklist)
+
+
     ##########################################################################
-    # Old flip logic - depracating
+    # Depracating
     ##########################################################################
+    # (PK) MOVED TO PUBLIC INTERFACE
+    # def _initializeWatchlists(self):
+    #     '''
+    #     Initializes all watchlists (public/flip/pull) with null sets. This
+    #     function is only used to initialize the vairable names, incase the 
+    #     gateway does not setup the default lists explicityly
+    #     '''
+    #     self._public_watchlist = utils.getEmptyConnectionList()
+
+    # def _initializeBlacklists(self):
+    #     '''
+    #     Initializes all blacklists (topics/services/actions) that can never be
+    #     advertised/flipped/pulled. A blacklist supplied in /pull_all, /flip_all,
+    #     /advertise_all will be in addition to this blacklist.
+    #     '''
+    #     self._default_blacklist = utils.getEmptyConnectionList()
+    #     self._public_blacklist = utils.getEmptyConnectionList()
+    #     
+    # def setDefaultBlacklist(self, blacklist):
+    #     '''
+    #     Sets the default blacklists. This function should be called
+    #     during gateway initialization with blacklists provided through a
+    #     parameter file
+
+    #     @param blacklists : a pre-formatted blacklists dict, most likely from
+    #     @type dict of sets of tuples
+    #     '''
+    #     self._default_blacklist = blacklist
+
+    # def setPublicWatchlist(self, watchlist):
+    #     '''
+    #     Sets the default blacklists. This function should be called
+    #     during gateway initialization with blacklists provided through a
+    #     parameter file
+
+    #     @param blacklists : a pre-formatted blacklists dict, most likely from
+    #     @type dict of sets of tuples
+    #     '''
+    #     self._public_watchlist = watchlist
+
+    
 #    def addNamedFlippedTopics(self, list):
 #        # list[0] # of channel
 #        # list[1:list[0]] is channels
@@ -651,56 +618,46 @@ class GatewaySync(object):
 #                not_allowed_clients.append(chn)
 #        return [allowed_clients, not_allowed_clients]
 
-    def makeAllPublic(self,list):
-        print "Dumping all non-blacklisted interfaces"
-        self.public_topic_whitelist.append('.*')
-        self.public_service_whitelist.append('.*')
-        return True, []
+    # def advertiseConnection(self,connection):
+    #     '''
+    #     Adds a connection (topic/service/action) to the public interface.
+    #     
+    #     - adds to the public interface list
+    #     - adds to the hub so it can be pulled by remote gateways
+    #     
+    #     @param connection : tuple containing connection information
+    #     @type tuple
+    #     '''
+    #     if not self.is_connected:
+    #         rospy.logerr("Gateway : advertise connection call failed [no hub connection].")
+    #         return False
+    #     try:
+    #         if self.public_interface.add(connection):
+    #             #self.hub.advertise(connection)
+    #             pass
+    #     except Exception as e: 
+    #         rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
+    #         return False
+    #     return True
 
-    def removeAllPublic(self,list):
-        print "Resuming dump of explicitly whitelisted interfaces"
-        self.public_topic_whitelist[:] = [x for x in self.public_topic_whitelist if x != '.*']
-        self.public_service_whitelist[:] = [x for x in self.public_service_whitelist if x != '.*']
-        return True, []
-
-    def allowInterface(self,name,whitelist,blacklist):
-        in_whitelist = False
-        in_blacklist = False
-        for x in whitelist:
-            if re.match(x, name):
-                in_whitelist = True
-                break
-        for x in blacklist:
-            if re.match(x, name):
-                in_blacklist = True
-                break
-
-        return in_whitelist and (not in_blacklist)
-
-    def allowInterfaceInPublic(self,identifier,name):
-        if identifier == 'topic':
-            whitelist = self.public_topic_whitelist
-            blacklist = self.public_topic_blacklist
-        else:
-            whitelist = self.public_service_whitelist
-            blacklist = self.public_service_blacklist
-        return self.allowInterface(name,whitelist,blacklist)
-
-    def clearServer(self):
-        self.hub.unregisterGateway()
-        self.master.clear()
-
-    def processUpdate(self,cmd,provider,info):
-        '''
-          Used as a callback for incoming requests on redis pubsub channels.
-          It gets assigned to RedisManager.callback.
-        '''
-        if cmd == "flip":
-            self.pull(info)
-        elif cmd == "unflip":
-            self.unpull(info)
-        else:
-            rospy.logerr("Gateway : Received unknown command [%s] from [%s]"%(cmd,provider))
-
-    def getInfo(self):
-        return self.unique_name
+    # def unadvertiseConnection(self,connection):
+    #     '''
+    #     Removes a connection (topic/service/action) to the public interface.
+    #     
+    #     - remove the public interface list
+    #     - remove the connection from the hub, the hub announces the removal
+    #     
+    #     @param connection : tuple containing connection information
+    #     @type tuple
+    #     '''
+    #     if not self.is_connected:
+    #         rospy.logerr("Gateway : advertise call failed [no hub connection].")
+    #         return False
+    #     try:
+    #         if self.public_interface.remove(connection):
+    #             #self.hub.unadvertise(connection)
+    #             pass
+    #     except Exception as e: 
+    #         rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
+    #         return False
+    #     return True
