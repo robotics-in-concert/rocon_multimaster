@@ -173,7 +173,7 @@ class LocalMaster(rosgraph.Master):
           @return the updated registration object (only adds an anonymously generated local node name)
           @rtype utils.Registration
         '''
-        registration.local_node = self._getAnonymousNodeName(registration.node)    
+        registration.local_node = self._getAnonymousNodeName(registration.remote_node)    
         rospy.loginfo("Gateway : starting new node [%s] for [%s]"%(registration.local_node,registration.local_name))
         
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
@@ -181,7 +181,7 @@ class LocalMaster(rosgraph.Master):
         
         node_master = rosgraph.Master(registration.local_node)
         if registration.type == Connection.PUBLISHER:
-            master.registerPublisher(registration.local_name,registration.type_info,registration.xmlrpc_uri)
+            node_master.registerPublisher(registration.local_name,registration.type_info,registration.xmlrpc_uri)
         else:
             rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
             

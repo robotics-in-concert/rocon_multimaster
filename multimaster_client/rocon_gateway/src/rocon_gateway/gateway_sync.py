@@ -213,14 +213,15 @@ class GatewaySync(object):
     # Incoming commands from remote gateways
     ##########################################################################
 
-    def processRemoteGatewayRequest(self,command, gateway, remapped_name, connection_type, type, xmlrpc_uri):
+    def processRemoteGatewayRequest(self,command, registration):
         '''
           Used as a callback for incoming requests on redis pubsub channels.
           It gets assigned to RedisManager.callback.
         '''
         if command == "flip":
-            rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(gateway,remapped_name,connection_type,type,xmlrpc_uri))
-            #self.pull(info)
+            rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
+            # check if it's already in flipped_interface
+            self.master.register(registration)
         elif command == "unflip":
             #self.unpull(info)
             pass

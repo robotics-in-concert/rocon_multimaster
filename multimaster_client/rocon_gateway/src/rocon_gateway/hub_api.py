@@ -81,11 +81,11 @@ class RedisListenerThread(threading.Thread):
             - [7] - local name : the name the connection should be mapped to locally
         '''
         for r in self.redis_pubsub_server.listen():
-            rospy.loginfo("Gateway : redis listener received a channel publication.")
             if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
                 contents = utils.deserialize(r['data'])
                 command = contents[0]
-                registration = Registration(contents[1],contents[2],contents[3],contents[4],contents[5],contents[6],contents[7])
+                rospy.logdebug("Gateway : redis listener received a channel publication [%s]"%command)
+                registration = utils.Registration(remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],type=contents[4],type_info=contents[5],xmlrpc_uri=contents[6],local_name=contents[7])
                 self.remote_gateway_request_callback(command, registration)
 
 ##############################################################################
