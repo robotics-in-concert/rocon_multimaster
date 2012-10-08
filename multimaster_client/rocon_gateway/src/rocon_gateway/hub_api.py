@@ -145,9 +145,9 @@ class Hub(object):
         if gateways == None:
             gateways = self.listGateways()
         for gateway in gateways:
-            gateway_key = self._createKey(gateway)
+            gateway_key = createKey(gateway)
             key = gateway_key +":connection"
-            public_interface = self.getMembers(key)
+            public_interface = self.server.smembers(key)
             public_interfaces[gateway] = []
             for connection_str in public_interface:
                 connection = Connection()
@@ -289,6 +289,9 @@ class Hub(object):
     # Redis Api
     ##########################################################################
 
+    # DJS need to get rid of these, no point in piping if you are only
+    # sending one command at a time.
+    
     def addMembers(self,key,topic):
         try:
             pipe = self.server.pipeline()
