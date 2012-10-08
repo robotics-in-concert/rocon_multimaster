@@ -181,7 +181,7 @@ class PublicInterface(object):
         @param blacklist : list of PublicRule objects
         @type list : list of PublicRule objects
         '''
-        self.watchlist = []
+        self.watchlist = utils.createEmptyConnectionTypeDictionary()
         allow_all_rule = PublicRule()
         allow_all_rule.connection.name = '.*'
         for connection_type in utils.connection_types:
@@ -192,11 +192,11 @@ class PublicInterface(object):
             if not publicRuleExists(b, self.blacklist[b.connection.type]):
                 self.blacklist[b.connection.type].add(b)
 
-    def disallowAll(self):
+    def disallowAll(self, blacklist = None):
         '''
         Disallow all rules in watchlist, reset blacklist to default
         '''
-        self.watchlist = []
+        self.watchlist = utils.createEmptyConnectionTypeDictionary()
         self.blacklist = self._default_blacklist
 
     # def addConnection(self,connection):

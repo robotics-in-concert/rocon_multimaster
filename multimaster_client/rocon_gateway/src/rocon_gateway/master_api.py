@@ -126,12 +126,10 @@ class LocalMaster(rosgraph.Master):
                     actions.append([base_topic, action_nodes])
         return actions
 
-    def getActionServers(self):
-        publishers, subscribers, _ = self.getSystemState()
+    def getActionServers(self, publishers, subscribers):
         return self._getActions(subscribers,publishers)
 
-    def getActionClients(self):
-        publishers, subscribers, _ = self.getSystemState()
+    def getActionClients(self, publishers, subscribers):
         return self._getActions(publishers,subscribers)
 
     def getConnectionsFromPubSubList(self,list,type):
@@ -182,8 +180,8 @@ class LocalMaster(rosgraph.Master):
     def getConnectionState(self):
         connections = {}
         publishers, subscribers, services = self.getSystemState()
-        action_servers = self.getActionServers()
-        action_clients = self.getActionClients()
+        action_servers = self.getActionServers(publishers, subscribers)
+        action_clients = self.getActionClients(publishers, subscribers)
         connections[Connection.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, Connection.PUBLISHER)
         connections[Connection.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, Connection.SUBSCRIBER)
         connections[Connection.SERVICE] = self.getConnectionsFromServiceList(services, Connection.SERVICE)

@@ -116,6 +116,8 @@ class GatewaySync(object):
 
         #Do a manual update
         public_interface = self.updatePublicInterface()
+        if not public_interface:
+            return gateway_comms.msg.Result.NO_HUB_CONNECTION, self.public_interface.getWatchlist(), []
         return result, self.public_interface.getWatchlist(), public_interface
 
     def rosServiceAdvertiseAll(self,request):
@@ -135,13 +137,15 @@ class GatewaySync(object):
             if not request.cancel:
                 self.public_interface.allowAll(request.blacklist)
             else:
-                self.public_interface.allowAll(request.blacklist)
+                self.public_interface.disallowAll(request.blacklist)
         except Exception as e:
             rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
             result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
 
         #Do a manual update
         public_interface = self.updatePublicInterface()
+        if not public_interface:
+            return gateway_comms.msg.Result.NO_HUB_CONNECTION, self.public_interface.getBlacklist(), []
         return result, self.public_interface.getBlacklist(), public_interface
 
     def rosServiceFlip(self,request):
