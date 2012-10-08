@@ -39,14 +39,13 @@ class TestAdvertisementsLocally(unittest.TestCase):
         self.advertise = rospy.ServiceProxy('/gateway/advertise',Advertise)
         self.advertiseAll = rospy.ServiceProxy('/gateway/advertise_all',AdvertiseAll)
 
-        #wait for hub to come up
-        # while True:
-        #     req = AdvertiseAllRequest()
-        #     req.cancel = True
-        #     resp = self.advertiseAll(req)
-        #     if resp.result == Result.SUCCESS:
-        #         break
-        rospy.sleep(5.0)
+        while True:
+            req = AdvertiseAllRequest()
+            req.cancel = True
+            resp = self.advertiseAll(req)
+            if resp.result == Result.SUCCESS:
+                break
+            rospy.sleep(5.0)
 
     def test_AdvertisePublisherByTopic(self):
         req = AdvertiseRequest()
