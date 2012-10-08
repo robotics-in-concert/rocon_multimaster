@@ -169,7 +169,7 @@ class GatewaySync(object):
         elif not request.cancel:
             flip_rule = self.flipped_interface.addRule(request.flip_rule)
             if flip_rule:
-                rospy.loginfo("Gateway : flipping to gateway %s [%s->%s]"%(flip_rule.gateway,flip_rule.connection.name,flip_rule.remapped_name))
+                rospy.loginfo("Gateway : added flip rule [%s:%s->%s]"%(flip_rule.gateway,flip_rule.connection.name,flip_rule.remapped_name))
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
             else:
@@ -177,8 +177,9 @@ class GatewaySync(object):
                 response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                 response.error_message = "flip rule already exists ["+request.flip_rule.gateway+":"+request.flip_rule.connection.name+"->"+request.flip_rule.remapped_name+"]"
         else: # request.cancel
-            if self.flipped_interface.removeRule(request.flip_rule):
-                rospy.loginfo("Gateway : removing flip to gateway %s [%s->%s]"%(flip_rule.gateway,flip_rule.connection.name,flip_rule.remapped_name))
+            flip_rules = self.flipped_interface.removeRule(request.flip_rule)
+            if flip_rules:
+                rospy.loginfo("Gateway : removed flip rule [%s:%s->%s]"%(request.flip_rule.gateway,request.flip_rule.connection.name,request.flip_rule.remapped_name))
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
         return response
@@ -232,7 +233,7 @@ class GatewaySync(object):
             existing_registration = self.flipped_interface.findRegistrationMatch(registration)
             if existing_registration:
                 self.master.unregister(existing_registration)
-                self.flipped_interface.registrations.remove(existing_registration)
+                self.flipped_interface.registrations[existing_registration.type].remove(existing_registration)
         else:
             rospy.logerr("Gateway : received unknown command [%s:%s]"%(command,gateway))
 

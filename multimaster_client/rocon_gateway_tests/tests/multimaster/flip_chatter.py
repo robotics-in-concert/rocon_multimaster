@@ -25,8 +25,7 @@ if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Flip /chatter to a remote gateway')
   parser.add_argument("gateway", help="gateway string identifier", type=str)
-#  parser.add_argument('-c','--clients',metavar='<Client name>',type=str,nargs='+',help='Client\'s unique name on hub')
-#  parser.add_argument('-m','--message',metavar='<Topic triple>',type=str,nargs='+',help='<Topic triple>="<topic name>,<topic type>,<node uri>"')
+  parser.add_argument('--cancel', action='store_true', help='cancel the flip')
   args = parser.parse_args()
 
   rospy.init_node('flip_chatter')
@@ -38,6 +37,8 @@ if __name__ == '__main__':
   req.flip_rule.connection.name = "/chatter"
   req.flip_rule.connection.type = gateway_comms.msg.Connection.PUBLISHER
   req.flip_rule.gateway = args.gateway
+  req.cancel = args.cancel
+  
   #req.node_name = "talker"
   #req.remapped_name = "dude"
   print ""
