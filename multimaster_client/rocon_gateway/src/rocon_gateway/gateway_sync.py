@@ -213,34 +213,9 @@ class GatewaySync(object):
         return response
 
     ##########################################################################
-    # Incoming commands from remote gateways
+    # Public Interface utility functions
     ##########################################################################
 
-    def processRemoteGatewayRequest(self,command, registration):
-        '''
-          Used as a callback for incoming requests on redis pubsub channels.
-          It gets assigned to RedisManager.callback.
-        '''
-        if command == "flip":
-            rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
-            # probably not necessary as the flipping gateway will already check this
-            if not registration in self.flipped_interface.registrations[registration.type]:
-                new_registration = self.master.register(registration)
-                if new_registration:
-                    self.flipped_interface.registrations[registration.type].append(new_registration)
-        elif command == "unflip":
-            rospy.loginfo("Gateway : received an unflip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
-            existing_registration = self.flipped_interface.findRegistrationMatch(registration)
-            if existing_registration:
-                self.master.unregister(existing_registration)
-                self.flipped_interface.registrations[existing_registration.type].remove(existing_registration)
-        else:
-            rospy.logerr("Gateway : received unknown command [%s:%s]"%(command,gateway))
-
-    ##########################################################################
-    # Others - what are we using and what not?
-    ##########################################################################
-   
     def updatePublicInterface(self):
         ''' 
           Process the list of local connections and check against 
@@ -264,409 +239,47 @@ class GatewaySync(object):
                 self.hub.unadvertise(connection)
         return public_interface
 
-    def addPublicTopicByName(self,topic):
-        list = self.getTopicString([topic])
-        return self.advertise(list)
+    ##########################################################################
+    # Incoming commands from remote gateways
+    ##########################################################################
 
-    def addNamedTopics(self, list):
-        print "Adding named topics: " + str(list)
-        self.public_topic_whitelist.extend(list)
-        return True, []
-
-    def getTopicString(self,list):
-        l = []
-        for topic in list:
-            try:
-                topicinfo = self.master.getTopicInfo(topic)
-            
-                # there may exist multiple publisher
-                for info in topicinfo:
-                    l.append(topic+","+info)
-            except:
-                print "Error while looking up topic. Perhaps topic does not exist"
-        return l
-
-    def removePublicTopicByName(self,topic):
-        # remove topics that exist, but are no longer part of the public interface
-        list = self.getTopicString([topic])
-        return self.unadvertise(list)
-
-    def removeNamedTopics(self, list):
-        print "Removing named topics: " + str(list)
-        self.public_topic_whitelist[:] = [x for x in self.public_topic_whitelist if x not in list]
-        return True, []
-
-    def addPublicServiceByName(self,service):
-        list = self.getServiceString([service])
-        return self.advertise(list)
-
-    def addNamedServices(self, list):
-        print "Adding named services: " + str(list)
-        self.public_service_whitelist.extend(list)
-        return True, []
-
-    def getServiceString(self,list):
-        list_with_node_ip = []
-        for service in list:
-            #print service
-            try:
-                srvinfo = self.master.getServiceInfo(service)
-                list_with_node_ip.append(service+","+srvinfo)
-            except:
-                print "Error obtaining service info. Perhaps service does not exist?"
-        return list_with_node_ip
-
-
-    def removePublicServiceByName(self,service):
-        # remove available services that should no longer be on the public interface
-        list = self.getServiceString([service])
-        return self.unadvertise(list)
-
-    def removeNamedServices(self, list):
-        print "Removing named services: " + str(list)
-        self.public_service_whitelist[:] = [x for x in self.public_service_whitelist if x not in list]
-        return True, []
-
-    def addPublicInterfaceByName(self, identifier, name):
-        if identifier == "topic":
-            self.addPublicTopicByName(name)
-        elif identifier == "service":
-            self.addPublicServiceByName(name)
-
-    def removePublicInterfaceByName(self,identifier,name):
-        if identifier == "topic":
-            self.removePublicTopicByName(name)
-        elif identifier == "service":
-            self.removePublicServiceByName(name)
-
-    def makeAllPublic(self,list):
-        print "Dumping all non-blacklisted interfaces"
-        self.public_topic_whitelist.append('.*')
-        self.public_service_whitelist.append('.*')
-        return True, []
-
-    def removeAllPublic(self,list):
-        print "Resuming dump of explicitly whitelisted interfaces"
-        self.public_topic_whitelist[:] = [x for x in self.public_topic_whitelist if x != '.*']
-        self.public_service_whitelist[:] = [x for x in self.public_service_whitelist if x != '.*']
-        return True, []
-
-    def allowInterface(self,name,whitelist,blacklist):
-        in_whitelist = False
-        in_blacklist = False
-        for x in whitelist:
-            if re.match(x, name):
-                in_whitelist = True
-                break
-        for x in blacklist:
-            if re.match(x, name):
-                in_blacklist = True
-                break
-
-        return in_whitelist and (not in_blacklist)
-
-    def allowInterfaceInPublic(self,identifier,name):
-        if identifier == 'topic':
-            whitelist = self.public_topic_whitelist
-            blacklist = self.public_topic_blacklist
+    def processRemoteGatewayRequest(self,command, registration):
+        '''
+          Used as a callback for incoming requests on redis pubsub channels.
+          It gets assigned to RedisManager.callback.
+        '''
+        if command == "flip":
+            rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
+            # probably not necessary as the flipping gateway will already check this
+            if not registration in self.flipped_interface.registrations[registration.type]:
+                new_registration = self.master.register(registration)
+                if new_registration:
+                    self.flipped_interface.registrations[registration.type].append(new_registration)
+        elif command == "unflip":
+            rospy.loginfo("Gateway : received an unflip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
+            existing_registration = self.flipped_interface.findRegistrationMatch(registration)
+            if existing_registration:
+                self.master.unregister(existing_registration)
+                self.flipped_interface.registrations[existing_registration.type].remove(existing_registration)
         else:
-            whitelist = self.public_service_whitelist
-            blacklist = self.public_service_blacklist
-        return self.allowInterface(name,whitelist,blacklist)
-
-
-    ##########################################################################
-    # Depracating
-    ##########################################################################
-    #def pull(self,list):
-    #    '''
-    #    Registers connections (topic/service/action) on a foreign gateway's
-    #    public interface with the local master.
-    #
-    #    @todo - this can probably be almost passed directly back and forth form
-    #    the master api itself.
-    #
-    #    @param list : list of connection representations (usually stringified triples)
-    #    @type list of str
-    #    '''
-    #    try:
-    #        for l in list:
-    #            if self.master.register(l):
-    #                rospy.loginfo("Gateway : adding foreign connection [%s]"%l)
-    #    except Exception as e: 
-    #        rospy.logerr("Gateway : %s"%str(e))
-    #        return False, []
-    #    return True, []
-    #
-    #def unpull(self,list):
-    #    '''
-    #    Unregisters connections (topic/service/action) on a foreign gateway's
-    #    public interface with the local master.
-    #    
-    #    @todo - this can probably be almost passed directly back and forth form
-    #    the master api itself.
-    #
-    #    @param list : connection representations (usually stringified triples)
-    #    @type list of str
-    #    '''
-    #    try:
-    #        for l in list:
-    #            if self.master.unregister(l):
-    #                rospy.loginfo("Gateway : removed foreign connection [%s]"%l)
-    #    except Exception as e: 
-    #        rospy.logerr("Gateway : %s"%str(e))
-    #        return False, []
-    #    return True, []
-    # (PK) MOVED TO PUBLIC INTERFACE
-    # def _initializeWatchlists(self):
-    #     '''
-    #     Initializes all watchlists (public/flip/pull) with null sets. This
-    #     function is only used to initialize the vairable names, incase the 
-    #     gateway does not setup the default lists explicityly
-    #     '''
-    #     self._public_watchlist = utils.getEmptyConnectionList()
-
-    # def _initializeBlacklists(self):
-    #     '''
-    #     Initializes all blacklists (topics/services/actions) that can never be
-    #     advertised/flipped/pulled. A blacklist supplied in /pull_all, /flip_all,
-    #     /advertise_all will be in addition to this blacklist.
-    #     '''
-    #     self._default_blacklist = utils.getEmptyConnectionList()
-    #     self._public_blacklist = utils.getEmptyConnectionList()
-    #     
-    # def setDefaultBlacklist(self, blacklist):
-    #     '''
-    #     Sets the default blacklists. This function should be called
-    #     during gateway initialization with blacklists provided through a
-    #     parameter file
-
-    #     @param blacklists : a pre-formatted blacklists dict, most likely from
-    #     @type dict of sets of tuples
-    #     '''
-    #     self._default_blacklist = blacklist
-
-    # def setPublicWatchlist(self, watchlist):
-    #     '''
-    #     Sets the default blacklists. This function should be called
-    #     during gateway initialization with blacklists provided through a
-    #     parameter file
-
-    #     @param blacklists : a pre-formatted blacklists dict, most likely from
-    #     @type dict of sets of tuples
-    #     '''
-    #     self._public_watchlist = watchlist
-
+            rospy.logerr("Gateway : received unknown command [%s:%s]"%(command,gateway))
     
-#    def addNamedFlippedTopics(self, list):
-#        # list[0] # of channel
-#        # list[1:list[0]] is channels
-#        # rest of them are fliping topics
-#        num = int(list[0])
-#        channels = list[1:num+1]
-#        topics = list[num+1:len(list)]
-#        print "Adding named topics to flip: " + str(list)
-#        for chn in channels:
-#            if chn not in self.flipped_topic_whitelist:
-#                self.flipped_topic_whitelist[chn] = set()
-#            self.flipped_topic_whitelist[chn].update(set(topics))
-#        return True, []
-#
-#    def addFlippedTopicByName(self,clients,name):
-#        topic_triples = self.getTopicString([name])
-#        for client in clients:
-#            if client not in self.flipped_interface_list:
-#                self.flipped_interface_list[client] = set()
-#            add_topic_triples = [x for x in topic_triples if x not in self.flipped_interface_list[client]]
-#            self.flipped_interface_list[client].update(set(add_topic_triples))
-#            topic_list = list(itertools.chain.from_iterable([[1, client], add_topic_triples]))
-#            self.flip(topic_list)
-#
-#    def removeFlippedTopicByName(self,clients,name):
-#        topic_triples = self.getTopicString([name])
-#        for client in clients:
-#            if client not in self.flipped_interface_list:
-#                continue
-#            delete_topic_triples = [x for x in topic_triples if x in self.flipped_interface_list[client]]
-#            self.flipped_interface_list[client].difference_update(set(delete_topic_triples))
-#            topic_list = list(itertools.chain.from_iterable([[1, client], delete_topic_triples]))
-#            self.unflip(topic_list)
-#
-#    def removeNamedFlippedTopics(self,list):
-#        # list[0] # of channel
-#        # list[1:list[0]] is channels
-#        # rest of them are fliping topics
-#        num = int(list[0])
-#        channels = list[1:num+1]
-#        topics = list[num+1:len(list)]
-#        print "removing named topics from flip: " + str(list)
-#        for chn in channels:
-#            if chn in self.flipped_topic_whitelist:
-#                self.flipped_topic_whitelist[chn].difference_update(set(topics))
-#        return True, []
-#
-#    def addFlippedServiceByName(self,clients,name):
-#        service_triples = self.getServiceString([name])
-#        for client in clients:
-#            if client not in self.flipped_interface_list:
-#                self.flipped_interface_list[client] = set()
-#            add_service_triples = [x for x in service_triples if x not in self.flipped_interface_list[client]]
-#            self.flipped_interface_list[client].update(set(add_service_triples))
-#            service_list = list(itertools.chain.from_iterable([[1, client], add_service_triples]))
-#            self.flip(service_list)
-#
-#    def addNamedFlippedServices(self, list):
-#        # list[0] # of channel
-#        # list[1:list[0]] is channels
-#        # rest of them are fliping services
-#        num = int(list[0])
-#        channels = list[1:num+1]
-#        services = list[num+1:len(list)]
-#        print "Adding named services to flip: " + str(list)
-#        for chn in channels:
-#            if chn not in self.flipped_service_whitelist:
-#                self.flipped_service_whitelist[chn] = set()
-#            self.flipped_service_whitelist[chn].update(set(services))
-#        return True, []
-#
-#
-#    def removeFlippedServiceByName(self,clients,name):
-#        service_triples = self.getServiceString([name])
-#        for client in clients:
-#            if client not in self.flipped_interface_list:
-#                continue
-#            delete_service_triples = [x for x in service_triples if x in self.flipped_interface_list[client]]
-#            self.flipped_interface_list[client].difference_update(set(delete_service_triples))
-#            service_list = list(itertools.chain.from_iterable([[1, client], delete_service_triples]))
-#            self.unflip(service_list)
-#
-#    def removeNamedFlippedServices(self,list):
-#        # list[0] # of channel
-#        # list[1:list[0]] is channels
-#        # rest of them are fliping services
-#        num = int(list[0])
-#        channels = list[1:num+1]
-#        services = list[num+1:len(list)]
-#        print "removing named services from flip: " + str(list)
-#        for chn in channels:
-#            if chn in self.flipped_service_whitelist:
-#                self.flipped_service_whitelist[chn].difference_update(set(services))
-#        return True, []
-#
-#    def addFlippedInterfaceByName(self,identifier,clients,name):
-#        if identifier == 'topic':
-#            self.addFlippedTopicByName(clients,name)
-#        elif identifier == 'service':
-#            self.addFlippedServiceByName(clients,name)
-#
-#    def removeFlippedInterfaceByName(self,identifier,clients,name):
-#        if identifier == 'topic':
-#            self.removeFlippedTopicByName(clients,name)
-#        elif identifier == 'service':
-#            self.removeFlippedServiceByName(clients,name)
-#
-#    def flipAll(self,list):
-#        #list is channels
-#        for chn in list:
-#            if chn not in self.flipped_topic_whitelist:
-#              self.flipped_topic_whitelist[chn] = set()
-#            if chn not in self.flipped_service_whitelist:
-#              self.flipped_service_whitelist[chn] = set()
-#            self.flipped_topic_whitelist[chn].add('.*')
-#            self.flipped_service_whitelist[chn].add('.*')
-#            if chn in self.flip_public_topics:
-#                self.flip_public_topics.remove(chn)
-#        return True, []
-#
-#    def flipAllPublic(self,list):
-#        #list is channels
-#        for chn in list:
-#            if chn in self.flipped_topic_whitelist:
-#              self.flipped_topic_whitelist[chn].difference_update(set(['.*']))
-#            if chn in self.flipped_service_whitelist:
-#              self.flipped_service_whitelist[chn].difference_update(set(['.*']))
-#            self.flip_public_topics.add(chn)
-#        return True, []
-#
-#    def flipListOnly(self,list):
-#        #list is channels
-#        for chn in list:
-#            if chn in self.flipped_topic_whitelist:
-#              self.flipped_topic_whitelist[chn].difference_update(set(['.*']))
-#            if chn in self.flipped_service_whitelist:
-#              self.flipped_service_whitelist[chn].difference_update(set(['.*']))
-#            if chn in self.flip_public_topics:
-#                self.flip_public_topics.remove(chn)
-#        return True, []
-#
-#    def allowInterfaceInFlipped(self,identifier,client,name):
-#        #print '  testing ' + identifier + ': ' + name + ' for ' + client
-#        if client in self.flip_public_topics:
-#          #print '    client in public list'
-#          return self.allowInterfaceInPublic(identifier,name)
-#
-#        if identifier == 'topic':
-#            if client not in self.flipped_topic_whitelist:
-#                return False
-#            whitelist = self.flipped_topic_whitelist[client]
-#            blacklist = self.public_topic_blacklist
-#        else:
-#            if client not in self.flipped_service_whitelist:
-#                return False
-#            whitelist = self.flipped_service_whitelist[client]
-#            blacklist = self.public_service_blacklist
-#        return self.allowInterface(name,whitelist,blacklist)
-#    def getFlippedClientList(self,identifier,name):
-#        list = self.hub.listPublicInterfaces()
-#        allowed_clients = []
-#        not_allowed_clients = []
-#        for chn in list:
-#            if self.allowInterfaceInFlipped(identifier,chn,name):
-#                allowed_clients.append(chn)
-#            else:
-#                not_allowed_clients.append(chn)
-#        return [allowed_clients, not_allowed_clients]
+    ##########################################################################
+    # Others - what are we using and what not?
+    ##########################################################################
+   
+    def clearServer(self):
+        self.hub.unregisterGateway()
+        self.master.clear()
 
-    # def advertiseConnection(self,connection):
+    # def processUpdate(self,cmd,provider,info):
     #     '''
-    #     Adds a connection (topic/service/action) to the public interface.
-    #     
-    #     - adds to the public interface list
-    #     - adds to the hub so it can be pulled by remote gateways
-    #     
-    #     @param connection : tuple containing connection information
-    #     @type tuple
+    #       Used as a callback for incoming requests on redis pubsub channels.
+    #       It gets assigned to RedisManager.callback.
     #     '''
-    #     if not self.is_connected:
-    #         rospy.logerr("Gateway : advertise connection call failed [no hub connection].")
-    #         return False
-    #     try:
-    #         if self.public_interface.add(connection):
-    #             #self.hub.advertise(connection)
-    #             pass
-    #     except Exception as e: 
-    #         rospy.logerr("Gateway : advertise connection call failed [%s]"%str(e))
-    #         return False
-    #     return True
-
-    # def unadvertiseConnection(self,connection):
-    #     '''
-    #     Removes a connection (topic/service/action) to the public interface.
-    #     
-    #     - remove the public interface list
-    #     - remove the connection from the hub, the hub announces the removal
-    #     
-    #     @param connection : tuple containing connection information
-    #     @type tuple
-    #     '''
-    #     if not self.is_connected:
-    #         rospy.logerr("Gateway : advertise call failed [no hub connection].")
-    #         return False
-    #     try:
-    #         if self.public_interface.remove(connection):
-    #             #self.hub.unadvertise(connection)
-    #             pass
-    #     except Exception as e: 
-    #         rospy.logerr("Gateway : advertiseList call failed [%s]"%str(e))
-    #         return False
-    #     return True
+    #     if cmd == "flip":
+    #         self.pull(info)
+    #     elif cmd == "unflip":
+    #         self.unpull(info)
+    #     else:
+    #         rospy.logerr("Gateway : Received unknown command [%s] from [%s]"%(cmd,provider))

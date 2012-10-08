@@ -10,7 +10,7 @@
 
 import json
 import collections
-#from gateway_comms.msg import Connection as Connection
+import StringIO
 from gateway_comms.msg import Connection
 
 ##############################################################################
@@ -84,7 +84,7 @@ def reshapeTopic(t):
     return t
 
 ##########################################################################
-# Json serialization/deserialization Functions
+# serialization/deserialization Functions
 ##########################################################################
 
 def convert(data):
@@ -106,6 +106,13 @@ def serialize(data):
 
 def deserialize(str_msg):
     return convert(json.loads(str_msg))
+
+def serializeRosMsg(msg):
+    buffer = StringIO.StringIO()
+    msg.serialize(buffer)
+    msg_str = buffer.getvalue()
+    buffer.close()
+    return str
 
 ##########################################################################
 # Other Utilities
