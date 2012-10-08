@@ -52,22 +52,38 @@ class LocalMaster(rosgraph.Master):
           @rtype utils.Registration
         '''
         registration.local_node = self._getAnonymousNodeName(registration.remote_node)    
-        rospy.loginfo("Gateway : starting new node [%s] for [%s]"%(registration.local_node,registration.local_name))
+        rospy.loginfo("Gateway : registering a new node [%s] for [%s]"%(registration.local_node,registration.remote_name))
         
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
         # already have handle that. 
-        
+
+        # switched local_name -> remote_name below since remappings don't work
+                
         node_master = rosgraph.Master(registration.local_node)
         if registration.type == Connection.PUBLISHER:
             node_master.registerPublisher(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
+            return registration
         else:
             rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
-            
+            return None
 
     def unregister(self,registration):
-        pass
-
-
+        '''
+          Unregisters a connection with the local master.
+          
+          @param registration : registration details for an existing gateway registered connection
+          @type utils.Registration
+        '''
+        
+        # switched local_name -> remote_name below since remappings don't work
+        
+        node_master = rosgraph.Master(registration.local_node)
+        rospy.loginfo("Gateway : unregistering local node [%s] for [%s]"%(registration.local_node,registration.remote_name))
+        if registration.type == Connection.PUBLISHER:
+            node_master.unregisterPublisher(registration.remote_name,registration.xmlrpc_uri)
+        else:
+            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
+        
     ##########################################################################
     # Master utility methods
     ##########################################################################
@@ -232,23 +248,6 @@ class LocalMaster(rosgraph.Master):
 #            print "registerService:ros_master.py"
 #            raise
 #
-#        return True
-#
-#    def unregisterTopic(self,topic,topictype,node_uri):
-#        try:
-#            try: 
-#                node_name = self.pubs_node[(topic,node_uri)]
-#            except KeyError:
-#                print "Topic does not exist"
-#                return False
-#            print "Unregistering ",topic," from ",node_name
-#            master_n = rosgraph.Master(node_name)
-#            master_n.unregisterPublisher(topic,node_uri)
-#            del self.pubs_node[(topic,node_uri)]
-#            self.pubs_uri[topic].remove(node_uri)
-#        except:
-#            print "Failed in unregister Topic"
-#            raise
 #        return True
 #
 #    def unregisterService(self,service,service_api,node_uri):

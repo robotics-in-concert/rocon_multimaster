@@ -177,8 +177,10 @@ class GatewaySync(object):
                 response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                 response.error_message = "flip rule already exists ["+request.flip_rule.gateway+":"+request.flip_rule.connection.name+"->"+request.flip_rule.remapped_name+"]"
         else: # request.cancel
-            # unflip handling
-            pass  
+            if self.flipped_interface.removeRule(request.flip_rule):
+                rospy.loginfo("Gateway : removing flip to gateway %s [%s->%s]"%(flip_rule.gateway,flip_rule.connection.name,flip_rule.remapped_name))
+                response.result = gateway_comms.msg.Result.SUCCESS
+                # watcher thread will look after this from here
         return response
 
     def rosServiceFlipPattern(self,request):
@@ -220,11 +222,17 @@ class GatewaySync(object):
         '''
         if command == "flip":
             rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
-            # check if it's already in flipped_interface
-            self.master.register(registration)
+            # probably not necessary as the flipping gateway will already check this
+            if not registration in self.flipped_interface.registrations[registration.type]:
+                new_registration = self.master.register(registration)
+                if new_registration:
+                    self.flipped_interface.registrations[registration.type].append(new_registration)
         elif command == "unflip":
-            #self.unpull(info)
-            pass
+            rospy.loginfo("Gateway : received an unflip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
+            existing_registration = self.flipped_interface.findRegistrationMatch(registration)
+            if existing_registration:
+                self.master.unregister(existing_registration)
+                self.flipped_interface.registrations.remove(existing_registration)
         else:
             rospy.logerr("Gateway : received unknown command [%s:%s]"%(command,gateway))
 
@@ -232,46 +240,6 @@ class GatewaySync(object):
     # Others - what are we using and what not?
     ##########################################################################
    
-    def pull(self,list):
-        '''
-        Registers connections (topic/service/action) on a foreign gateway's
-        public interface with the local master.
-
-        @todo - this can probably be almost passed directly back and forth form
-        the master api itself.
-
-        @param list : list of connection representations (usually stringified triples)
-        @type list of str
-        '''
-        try:
-            for l in list:
-                if self.master.register(l):
-                    rospy.loginfo("Gateway : adding foreign connection [%s]"%l)
-        except Exception as e: 
-            rospy.logerr("Gateway : %s"%str(e))
-            return False, []
-        return True, []
-
-    def unpull(self,list):
-        '''
-        Unregisters connections (topic/service/action) on a foreign gateway's
-        public interface with the local master.
-        
-        @todo - this can probably be almost passed directly back and forth form
-        the master api itself.
-
-        @param list : connection representations (usually stringified triples)
-        @type list of str
-        '''
-        try:
-            for l in list:
-                if self.master.unregister(l):
-                    rospy.loginfo("Gateway : removed foreign connection [%s]"%l)
-        except Exception as e: 
-            rospy.logerr("Gateway : %s"%str(e))
-            return False, []
-        return True, []
-
     def updatePublicInterface(self):
         ''' 
           Process the list of local connections and check against 
@@ -409,6 +377,45 @@ class GatewaySync(object):
     ##########################################################################
     # Depracating
     ##########################################################################
+    #def pull(self,list):
+    #    '''
+    #    Registers connections (topic/service/action) on a foreign gateway's
+    #    public interface with the local master.
+    #
+    #    @todo - this can probably be almost passed directly back and forth form
+    #    the master api itself.
+    #
+    #    @param list : list of connection representations (usually stringified triples)
+    #    @type list of str
+    #    '''
+    #    try:
+    #        for l in list:
+    #            if self.master.register(l):
+    #                rospy.loginfo("Gateway : adding foreign connection [%s]"%l)
+    #    except Exception as e: 
+    #        rospy.logerr("Gateway : %s"%str(e))
+    #        return False, []
+    #    return True, []
+    #
+    #def unpull(self,list):
+    #    '''
+    #    Unregisters connections (topic/service/action) on a foreign gateway's
+    #    public interface with the local master.
+    #    
+    #    @todo - this can probably be almost passed directly back and forth form
+    #    the master api itself.
+    #
+    #    @param list : connection representations (usually stringified triples)
+    #    @type list of str
+    #    '''
+    #    try:
+    #        for l in list:
+    #            if self.master.unregister(l):
+    #                rospy.loginfo("Gateway : removed foreign connection [%s]"%l)
+    #    except Exception as e: 
+    #        rospy.logerr("Gateway : %s"%str(e))
+    #        return False, []
+    #    return True, []
     # (PK) MOVED TO PUBLIC INTERFACE
     # def _initializeWatchlists(self):
     #     '''

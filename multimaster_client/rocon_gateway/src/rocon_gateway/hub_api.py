@@ -235,7 +235,7 @@ class Hub(object):
     # Messages to Remote Gateways (via redis publisher channels)
     ##########################################################################
     
-    def sendFlipRequest(self, flip_rule, type_info, xmlrpc_uri):
+    def sendFlipRequest(self, command, flip_rule, type_info, xmlrpc_uri):
         '''
           Sends a message to the remote gateway via redis pubsub channel. This is called from the 
           watcher thread, when a flip rule gets activated.
@@ -250,20 +250,23 @@ class Hub(object):
             - [5] - type_info     : a ros format type (e.g. std_msgs/String or service api)
             - [6] - xmlrpc_uri    : the xmlrpc node uri
             - [7] - remapped name : the name it should be remapped to on the remote gateway
+            
+          @param command : string command name - either 'flip' or 'unflip'
+          @type str
+          
+          @param flip_rule : the flip to send
+          @type FlipRule
+          
+          @param type_info : topic type (e.g. std_msgs/String)
+          @param str
+          
+          @param xmlrpc_uri : the node uri
+          @param str
         '''
-        data = ["flip", extractKey(self.redis_keys['name']), flip_rule.connection.name, flip_rule.connection.node, flip_rule.connection.type, type_info, xmlrpc_uri, flip_rule.remapped_name];
+        data = [command, extractKey(self.redis_keys['name']), flip_rule.connection.name, flip_rule.connection.node, flip_rule.connection.type, type_info, xmlrpc_uri, flip_rule.remapped_name];
         cmd = utils.serialize(data)
         try:
             self.server.publish(createKey(flip_rule.gateway),cmd)
-        except Exception as e:
-            return False
-        return True
-
-    def unflip(self,gateway,list):
-        data = ["unflip", self.redis_keys['name'], list];
-        cmd = utils.serialize(data)
-        try:
-            self.server.publish(createKey(gateway),cmd)
         except Exception as e:
             return False
         return True
