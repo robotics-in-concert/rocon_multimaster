@@ -79,6 +79,7 @@ class Gateway():
         gateway_services = {}
         gateway_services['connect_hub']   = rospy.Service('~connect_hub',   gateway_comms.srv.ConnectHub,   self.rosServiceConnectHub)
         gateway_services['gateway_info']  = rospy.Service('~gateway_info',  gateway_comms.srv.GatewayInfo,  self.rosServiceGatewayInfo)
+        gateway_services['remote_gateway_info']  = rospy.Service('~remote_gateway_info',  gateway_comms.srv.RemoteGatewayInfo,  self.rosServiceRemoteGatewayInfo)
         gateway_services['advertise']     = rospy.Service('~advertise',     gateway_comms.srv.Advertise,    self.gateway_sync.rosServiceAdvertise)
         gateway_services['advertise_all'] = rospy.Service('~advertise_all', gateway_comms.srv.AdvertiseAll, self.gateway_sync.rosServiceAdvertiseAll)        
         gateway_services['flip']          = rospy.Service('~flip',          gateway_comms.srv.Flip,         self.gateway_sync.rosServiceFlip)        
@@ -124,6 +125,24 @@ class Gateway():
             #response.flip_patterns.extend(self.gateway_sync.flipped_interface.patterns[connection_type])
         return response
     
+    def rosServiceRemoteGatewayInfo(self,request):
+        
+        # Figure out names of relevant gateways
+        requested_gateways = request.gateways
+        available_gateways = self.gateway_sync.hub.listGateways()
+        available_gateways = [x for x in available_gateways if x != self.gateway_sync.unique_name]
+        if len(requested_gateways) == 0:
+            gateways = available_gateways
+        else:
+            gateways = [x for x in requested_gateways if x in available_gateways]
+
+        # Obtain information about relevant gateways
+        response = gateway_comms.srv.RemoteGatewayInfoResponse()
+        public_interfaces = self.gateway_sync.hub.listPublicInterfaces(gateways)
+        for key in public_interfaces:
+            gateway_response = gateway_comms.msg.Gateway(key, public_interfaces[key])
+            response.gateways.append(gateway_response)
+        return response
 
     #############################################
     # Hub Connection Methods
