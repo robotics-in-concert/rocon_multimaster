@@ -10,20 +10,16 @@
 
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
-import rosgraph.masterapi
-import time
+import rosgraph
 import rostopic
 import rosservice
 import rosnode
 import roslib.names
-import itertools
+#import itertools
 import socket
-import os
-import threading
 import re
 
 from .exceptions import GatewayError, ConnectionTypeError
-from .utils import Connection
 from gateway_comms.msg import Connection
 
 ##############################################################################
