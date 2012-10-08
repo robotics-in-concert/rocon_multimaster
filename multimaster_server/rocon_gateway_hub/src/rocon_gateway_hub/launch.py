@@ -113,8 +113,11 @@ def advertise_port_to_avahi(config, hub_name):
 ##############################################################################
 
 def launch():
-    if not utils.check_master():
-        sys.exit(utils.red_string("Unable to communicate with master!"))
+    while not utils.check_master():
+        rospy.logerr("Unable to communicate with master!")
+        rospy.sleep(1.0)
+        if rospy.is_shutdown():
+            sys.exit(utils.red_string("Unable to communicate with master!"))
 
     # Parameters
     rospy.init_node('hub')
