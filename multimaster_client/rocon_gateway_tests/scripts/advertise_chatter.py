@@ -21,7 +21,7 @@ if __name__ == '__main__':
   rule.connection.type = gateway_comms.msg.Connection.PUBLISHER
   rule.connection.name = "/chatter"
   req.rules.append(rule)
-  req.cancel = True
+  req.cancel = False
   print ""
   print "== Request =="
   print req

@@ -11,6 +11,8 @@ import rospy
 import re
 import utils
 
+from gateway_comms.msg import Connection
+
 ###############################################################################
 # Utility Functions
 ###############################################################################
@@ -25,7 +27,7 @@ def resolveHub(ip, port):
     '''
     r = redis.Redis()
     return r.get("rocon:hub:name") # perhaps should store all key names somewhere central
-    
+
 ###############################################################################
 # Redis Callback Handler
 ##############################################################################
@@ -92,22 +94,22 @@ class Hub(object):
             gateway_list.append(self._baseName(gateway))
         return gateway_list
 
-    def listPublicInterfaces(self):
+    def listPublicInterfaces(self, gateways = None):
         '''
           Return all the 'remote' public interfaces connnected to the hub.
         '''
         public_interfaces = {}
-        gateway_keys = self.getMembers(self.redis_keys['gatewaylist'])
-        for gateway_key in gateway_keys:
-            gateway = self._baseName(gateway_key)
-            public_interfaces[gateway] = {}
-            # get public topic list of this master
-            key = gateway_key +":topic"
-            public_interfaces[gateway]['topic'] = self.getMembers(key)
-
-            # get public service list of this master
-            key = gateway_key +":service"
-            public_interfaces[gateway]['service'] = self.getMembers(key)
+        if gateways == None:
+            gateways = self.listGateways()
+        for gateway in gateways:
+            gateway_key = self._createKey(gateway)
+            key = gateway_key +":connection"
+            public_interface = self.getMembers(key)
+            public_interfaces[gateway] = []
+            for connection_str in public_interface:
+                connection = Connection()
+                connection.deserialize(connection_str)
+                public_interfaces[gateway].append(connection) 
         return public_interfaces
         
     ##########################################################################
@@ -178,12 +180,9 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        # identifier = connectionTypeString(connection)
-        # if identifier not in ['topic', 'service']:  # action not yet implemented
-        #     raise ConnectionTypeError("trying to advertise an invalid connection type on the hub [%s]"%connection)
-        # key = self.redis_keys['name']+":"+identifier
-        # self.addMembers(key,connection)
-        pass
+        key = self.redis_keys['name']+":connection"
+        string = utils.serializeRosMsg(connection)
+        self.addMembers(key,string)
     
     def unadvertise(self, connection):
         '''
@@ -193,12 +192,9 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        # identifier = connectionTypeString(connection)
-        # if identifier not in ['topic', 'service']:  # action not yet implemented
-        #     raise ConnectionTypeError("trying to unadvertise an invalid connection type on the hub.")
-        # key = self.redis_keys['name']+":"+identifier
-        # self.removeMembers(key,connection)
-        pass
+        key = self.redis_keys['name']+":connection"
+        string = utils.serializeRosMsg(connection)
+        self.removeMembers(key,string)
 
     ##########################################################################
     # Gateway-Gateway Communications

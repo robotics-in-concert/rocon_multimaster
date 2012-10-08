@@ -392,92 +392,95 @@ class GatewaySync(object):
     #     '''
     #     self._public_watchlist = watchlist
 
-    def oldFlipWrapper(self,list):
-        num = int(list[0])
-        gateways = list[1:num+1]
-        flip_list = list[num+1:len(list)]
-        return self.flip(gateways,flip_list)
+    ###########################################################################
+    # More old stuff - Deprecating
+    ###########################################################################
+    # def oldFlipWrapper(self,list):
+    #     num = int(list[0])
+    #     gateways = list[1:num+1]
+    #     flip_list = list[num+1:len(list)]
+    #     return self.flip(gateways,flip_list)
 
-    def oldUnflipWrapper(self,list):
-        num = int(list[0])
-        gateways = list[1:num+1]
-        unflip_list = list[num+1:len(list)]
-        return self.unflip(gateways,unflip_list)
-       
-    def addPublicTopicByName(self,topic):
-        list = self.getTopicString([topic])
-        return self.advertise(list)
+    # def oldUnflipWrapper(self,list):
+    #     num = int(list[0])
+    #     gateways = list[1:num+1]
+    #     unflip_list = list[num+1:len(list)]
+    #     return self.unflip(gateways,unflip_list)
+    #    
+    # def addPublicTopicByName(self,topic):
+    #     list = self.getTopicString([topic])
+    #     return self.advertise(list)
 
-    def addNamedTopics(self, list):
-        print "Adding named topics: " + str(list)
-        self.public_topic_whitelist.extend(list)
-        return True, []
+    # def addNamedTopics(self, list):
+    #     print "Adding named topics: " + str(list)
+    #     self.public_topic_whitelist.extend(list)
+    #     return True, []
 
-    def getTopicString(self,list):
-        l = []
-        for topic in list:
-            try:
-                topicinfo = self.master.getTopicInfo(topic)
-            
-                # there may exist multiple publisher
-                for info in topicinfo:
-                    l.append(topic+","+info)
-            except:
-                print "Error while looking up topic. Perhaps topic does not exist"
-        return l
+    # def getTopicString(self,list):
+    #     l = []
+    #     for topic in list:
+    #         try:
+    #             topicinfo = self.master.getTopicInfo(topic)
+    #         
+    #             # there may exist multiple publisher
+    #             for info in topicinfo:
+    #                 l.append(topic+","+info)
+    #         except:
+    #             print "Error while looking up topic. Perhaps topic does not exist"
+    #     return l
 
-    def removePublicTopicByName(self,topic):
-        # remove topics that exist, but are no longer part of the public interface
-        list = self.getTopicString([topic])
-        return self.unadvertise(list)
+    # def removePublicTopicByName(self,topic):
+    #     # remove topics that exist, but are no longer part of the public interface
+    #     list = self.getTopicString([topic])
+    #     return self.unadvertise(list)
 
-    def removeNamedTopics(self, list):
-        print "Removing named topics: " + str(list)
-        self.public_topic_whitelist[:] = [x for x in self.public_topic_whitelist if x not in list]
-        return True, []
+    # def removeNamedTopics(self, list):
+    #     print "Removing named topics: " + str(list)
+    #     self.public_topic_whitelist[:] = [x for x in self.public_topic_whitelist if x not in list]
+    #     return True, []
 
-    def addPublicServiceByName(self,service):
-        list = self.getServiceString([service])
-        return self.advertise(list)
+    # def addPublicServiceByName(self,service):
+    #     list = self.getServiceString([service])
+    #     return self.advertise(list)
 
-    def addNamedServices(self, list):
-        print "Adding named services: " + str(list)
-        self.public_service_whitelist.extend(list)
-        return True, []
+    # def addNamedServices(self, list):
+    #     print "Adding named services: " + str(list)
+    #     self.public_service_whitelist.extend(list)
+    #     return True, []
 
-    def getServiceString(self,list):
-        list_with_node_ip = []
-        for service in list:
-            #print service
-            try:
-                srvinfo = self.master.getServiceInfo(service)
-                list_with_node_ip.append(service+","+srvinfo)
-            except:
-                print "Error obtaining service info. Perhaps service does not exist?"
-        return list_with_node_ip
+    # def getServiceString(self,list):
+    #     list_with_node_ip = []
+    #     for service in list:
+    #         #print service
+    #         try:
+    #             srvinfo = self.master.getServiceInfo(service)
+    #             list_with_node_ip.append(service+","+srvinfo)
+    #         except:
+    #             print "Error obtaining service info. Perhaps service does not exist?"
+    #     return list_with_node_ip
 
 
-    def removePublicServiceByName(self,service):
-        # remove available services that should no longer be on the public interface
-        list = self.getServiceString([service])
-        return self.unadvertise(list)
+    # def removePublicServiceByName(self,service):
+    #     # remove available services that should no longer be on the public interface
+    #     list = self.getServiceString([service])
+    #     return self.unadvertise(list)
 
-    def removeNamedServices(self, list):
-        print "Removing named services: " + str(list)
-        self.public_service_whitelist[:] = [x for x in self.public_service_whitelist if x not in list]
-        return True, []
+    # def removeNamedServices(self, list):
+    #     print "Removing named services: " + str(list)
+    #     self.public_service_whitelist[:] = [x for x in self.public_service_whitelist if x not in list]
+    #     return True, []
 
-    def addPublicInterfaceByName(self, identifier, name):
-        if identifier == "topic":
-            self.addPublicTopicByName(name)
-        elif identifier == "service":
-            self.addPublicServiceByName(name)
+    # def addPublicInterfaceByName(self, identifier, name):
+    #     if identifier == "topic":
+    #         self.addPublicTopicByName(name)
+    #     elif identifier == "service":
+    #         self.addPublicServiceByName(name)
 
-    def removePublicInterfaceByName(self,identifier,name):
-        if identifier == "topic":
-            self.removePublicTopicByName(name)
-        elif identifier == "service":
-            self.removePublicServiceByName(name)
+    # def removePublicInterfaceByName(self,identifier,name):
+    #     if identifier == "topic":
+    #         self.removePublicTopicByName(name)
+    #     elif identifier == "service":
+    #         self.removePublicServiceByName(name)
 
     ##########################################################################
     # Old flip logic - depracating
@@ -650,41 +653,41 @@ class GatewaySync(object):
 #            else:
 #                not_allowed_clients.append(chn)
 #        return [allowed_clients, not_allowed_clients]
-
-    def makeAllPublic(self,list):
-        print "Dumping all non-blacklisted interfaces"
-        self.public_topic_whitelist.append('.*')
-        self.public_service_whitelist.append('.*')
-        return True, []
-
-    def removeAllPublic(self,list):
-        print "Resuming dump of explicitly whitelisted interfaces"
-        self.public_topic_whitelist[:] = [x for x in self.public_topic_whitelist if x != '.*']
-        self.public_service_whitelist[:] = [x for x in self.public_service_whitelist if x != '.*']
-        return True, []
-
-    def allowInterface(self,name,whitelist,blacklist):
-        in_whitelist = False
-        in_blacklist = False
-        for x in whitelist:
-            if re.match(x, name):
-                in_whitelist = True
-                break
-        for x in blacklist:
-            if re.match(x, name):
-                in_blacklist = True
-                break
-
-        return in_whitelist and (not in_blacklist)
-
-    def allowInterfaceInPublic(self,identifier,name):
-        if identifier == 'topic':
-            whitelist = self.public_topic_whitelist
-            blacklist = self.public_topic_blacklist
-        else:
-            whitelist = self.public_service_whitelist
-            blacklist = self.public_service_blacklist
-        return self.allowInterface(name,whitelist,blacklist)
+# 
+#     def makeAllPublic(self,list):
+#         print "Dumping all non-blacklisted interfaces"
+#         self.public_topic_whitelist.append('.*')
+#         self.public_service_whitelist.append('.*')
+#         return True, []
+# 
+#     def removeAllPublic(self,list):
+#         print "Resuming dump of explicitly whitelisted interfaces"
+#         self.public_topic_whitelist[:] = [x for x in self.public_topic_whitelist if x != '.*']
+#         self.public_service_whitelist[:] = [x for x in self.public_service_whitelist if x != '.*']
+#         return True, []
+# 
+#     def allowInterface(self,name,whitelist,blacklist):
+#         in_whitelist = False
+#         in_blacklist = False
+#         for x in whitelist:
+#             if re.match(x, name):
+#                 in_whitelist = True
+#                 break
+#         for x in blacklist:
+#             if re.match(x, name):
+#                 in_blacklist = True
+#                 break
+# 
+#         return in_whitelist and (not in_blacklist)
+# 
+#     def allowInterfaceInPublic(self,identifier,name):
+#         if identifier == 'topic':
+#             whitelist = self.public_topic_whitelist
+#             blacklist = self.public_topic_blacklist
+#         else:
+#             whitelist = self.public_service_whitelist
+#             blacklist = self.public_service_blacklist
+#         return self.allowInterface(name,whitelist,blacklist)
 
     def clearServer(self):
         self.hub.unregisterGateway()
