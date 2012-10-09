@@ -50,7 +50,7 @@ if __name__ == '__main__':
   public_rule = PublicRule()
   public_rule.connection.name = "/chatter"
   public_rule.connection.type = gateway_comms.msg.Connection.PUBLISHER
-  #public_rule.connection.node = "/talker"
+  public_rule.connection.node = "/talker"
   req.rules.append(public_rule)
   req.cancel = args.cancel
   

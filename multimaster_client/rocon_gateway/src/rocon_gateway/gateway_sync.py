@@ -219,16 +219,21 @@ class GatewaySync(object):
     # Public Interface utility functions
     ##########################################################################
 
-    def updatePublicInterface(self):
+    def updatePublicInterface(self,connections = None):
         ''' 
           Process the list of local connections and check against 
-          the current rules and patterns for flips. If a connection 
+          the current rules and patterns for changes. If a connection 
           has become (un)available take appropriate action.
+          
+          @param connections : pregenerated list of connections, if None, this
+                               function will generate them
+          @type gateway_comms.msg.Connection
         '''
         if not self.is_connected:
             rospy.logerr("Gateway : advertise call failed [no hub connection].")
             return None
-        connections = self.master.getConnectionState()
+        if not connections:
+            connections = self.master.getConnectionState()
         self.public_interface_lock.acquire()
         new_conns, lost_conns = self.public_interface.update(connections)
         public_interface = self.public_interface.getInterface()

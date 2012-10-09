@@ -101,8 +101,9 @@ class Hub(object):
     pubsub = None
     callback = None
 
-    def __init__(self,remote_gateway_request_callback,name):
-        self._name = name # used to generate the unique name key later
+    def __init__(self,remote_gateway_request_callback,gateway_name):
+        self.name = '' # the hub name
+        self._gateway_name = gateway_name # used to generate the unique name key later
         self.remote_gateway_request_callback = remote_gateway_request_callback
         self.redis_keys = {}
         #self.redis_keys['name'] = '' # it's a unique id generated later when connecting
@@ -175,12 +176,13 @@ class Hub(object):
           is actually connected here first.
         '''
         unique_num = self.server.incr(self.redis_keys['index'])
-        self.redis_keys['name'] = createKey(self._name+str(unique_num))
+        self.redis_keys['name'] = createKey(self._gateway_name+str(unique_num))
         self.server.sadd(self.redis_keys['gatewaylist'],self.redis_keys['name'])
         self.redis_pubsub_server.subscribe(self.redis_channels['update_topic'])
         self.redis_pubsub_server.subscribe(self.redis_keys['name'])
         self.remote_gateway_listener_thread = RedisListenerThread(self.redis_pubsub_server, self.remote_gateway_request_callback)
         self.remote_gateway_listener_thread.start()
+        self.name = keyBaseName(self.server.get("rocon:hub:name"))
         return keyBaseName(self.redis_keys['name'])
 
     def unregisterGateway(self):

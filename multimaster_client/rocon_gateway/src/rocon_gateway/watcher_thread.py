@@ -51,7 +51,7 @@ class WatcherThread(threading.Thread):
                             xmlrpc_uri = self.master.lookupNode(flip.connection.node)
                         self.hub.sendFlipRequest('unflip', flip, type_info, xmlrpc_uri )
                 # Public Interface
-                self.gateway.updatePublicInterface()
+                self.gateway.updatePublicInterface(connections)
             rospy.sleep(3.0)
 
     def _updatePublicInterface(self, connections):

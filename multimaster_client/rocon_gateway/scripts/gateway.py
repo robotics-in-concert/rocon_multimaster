@@ -31,7 +31,6 @@ class Gateway():
         5. shutdown
     '''
     def __init__(self):
-        self._hub_name = None # name of the gateway hub we are connected to
         self.gateway_sync = None # hub and local ros master connections
         
         self.param = rocon_gateway.setupRosParameters()
@@ -56,7 +55,7 @@ class Gateway():
                 # do nothing, just wait for a service call
                 rospy.logdebug("Gateway : waiting for hub uri input.")
 
-        rospy.loginfo("Gateway : connected to hub [%s][%s]."%(self.gateway_sync.unique_name,self._hub_name)) 
+        rospy.loginfo("Gateway : connected to hub [%s][%s]."%(self.gateway_sync.unique_name,self.gateway_sync.hub.name)) 
         rospy.spin()
         self._shutdown()
 
@@ -107,7 +106,7 @@ class Gateway():
         elif response.result == gateway_comms.msg.Result.HUB_CONNECTION_BLACKLISTED:
             response.error_message = "cowardly refusing your request since that hub is blacklisted [%s]."%request.uri
         elif response.result == gateway_comms.msg.Result.HUB_CONNECTION_ALREADY_EXISTS:
-            response.error_message = "(currently) can only connect to one hub at a time [%s]."%self._hub_name
+            response.error_message = "(currently) can only connect to one hub at a time [%s]."%self.gateway_sync.hub.name
         else:
             response.error_message = "direct connection failed, probably not available [%s]."%request.uri
         return response
@@ -119,6 +118,8 @@ class Gateway():
             response.name = self.gateway_sync.unique_name
         else:
             response.name = self.gateway_sync.unresolved_name
+        response.connected = self.gateway_sync.is_connected
+        response.hub_name = self.gateway_sync.hub.name
         for connection_type in rocon_gateway.connection_types:
             response.flipped_connections.extend(self.gateway_sync.flipped_interface.flipped[connection_type])
             response.flip_rules.extend(self.gateway_sync.flipped_interface.rules[connection_type])
@@ -207,7 +208,6 @@ class Gateway():
         # Handle whitelist (ip or hub name)
         if (len(self.param['hub_whitelist']) == 0) or (ip in self.param['hub_whitelist']) or (hub_name in self.param['hub_whitelist']):
             if self.gateway_sync.connectToHub(ip,port):
-                self._hub_name = hub_name
                 return gateway_comms.msg.Result.SUCCESS
             else:
                 return gateway_comms.msg.Result.HUB_CONNECTION_FAILED
