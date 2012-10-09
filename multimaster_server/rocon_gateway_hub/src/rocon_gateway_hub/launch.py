@@ -80,9 +80,9 @@ def initialize_redis_server(port, hub_name):
         pipe.set("rocon:hub:index",0)
         pipe.set("rocon:hub:name",hub_name)
         pipe.execute()
+        rospy.loginfo("Hub : reset hub variables on the redis server.")
     except redis.exceptions.ConnectionError:
         sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
-    rospy.loginfo("Hub : reset all rocon:xxx variables on the redis server.")
 
 
 ##############################################################################

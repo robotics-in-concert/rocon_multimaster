@@ -18,7 +18,7 @@ import sys
     1 > roslaunch rocon_gateway_hub pirate.launch
     2a> roslaunch rocon_gateway pirate_chatter.launch
     3a> roslaunch rocon_gateway pirate.launch
-    3b> rosrun rocon_gateway_tests flip_chatter
+    3b> rosrun rocon_gateway_tests flip_chatter.py
     2b> rostopic list
 """
 

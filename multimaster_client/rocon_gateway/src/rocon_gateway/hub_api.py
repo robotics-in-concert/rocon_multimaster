@@ -224,7 +224,7 @@ class Hub(object):
         '''
         key = self.redis_keys['name']+":connection"
         string = utils.serializeRosMsg(connection)
-        self.addMembers(key,string)
+        self.server.sadd(key,string)
     
     def unadvertise(self, connection):
         '''
@@ -236,7 +236,7 @@ class Hub(object):
         '''
         key = self.redis_keys['name']+":connection"
         string = utils.serializeRosMsg(connection)
-        self.removeMembers(key,string)
+        self.servers.srem(key,string)
 
     ##########################################################################
     # Gateway-Gateway Communications
@@ -286,31 +286,31 @@ class Hub(object):
         return True
 
     ##########################################################################
-    # Redis Api
+    # Depracating
     ##########################################################################
 
     # DJS need to get rid of these, no point in piping if you are only
     # sending one command at a time.
     
-    def addMembers(self,key,topic):
-        try:
-            pipe = self.server.pipeline()
-            pipe.sadd(key,topic)
-            pipe.execute()
-        except:
-            print "Error : addMembers"
-            return False
-        return True
-
-    def removeMembers(self,key,string):
-        try:
-            pipe = self.server.pipeline()
-            pipe.srem(key,string)
-            pipe.execute()
-        except:
-            print "Error : removeMembers"
-            return False
-        return True
+#    def addMembers(self,key,topic):
+#        try:
+#            pipe = self.server.pipeline()
+#            pipe.sadd(key,topic)
+#            pipe.execute()
+#        except:
+#            print "Error : addMembers"
+#            return False
+#        return True
+#
+#    def removeMembers(self,key,string):
+#        try:
+#            pipe = self.server.pipeline()
+#            pipe.srem(key,string)
+#            pipe.execute()
+#        except:
+#            print "Error : removeMembers"
+#            return False
+#        return True
 
 #    def listPublicInterfaces(self):
 #        '''
