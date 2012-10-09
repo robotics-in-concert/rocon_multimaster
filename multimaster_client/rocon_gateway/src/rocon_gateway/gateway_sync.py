@@ -81,7 +81,6 @@ class GatewaySync(object):
 
     def shutdown(self):
         self.hub.unregisterGateway()
-        self.master.clear()
 
     ##########################################################################
     # Incoming commands from local system (ros service callbacks)
