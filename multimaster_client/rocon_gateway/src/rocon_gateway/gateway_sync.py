@@ -267,18 +267,3 @@ class GatewaySync(object):
         else:
             rospy.logerr("Gateway : received unknown command [%s:%s]"%(command,gateway))
     
-    ##########################################################################
-    # Others - what are we using and what not?
-    ##########################################################################
-
-    # def processUpdate(self,cmd,provider,info):
-    #     '''
-    #       Used as a callback for incoming requests on redis pubsub channels.
-    #       It gets assigned to RedisManager.callback.
-    #     '''
-    #     if cmd == "flip":
-    #         self.pull(info)
-    #     elif cmd == "unflip":
-    #         self.unpull(info)
-    #     else:
-    #         rospy.logerr("Gateway : Received unknown command [%s] from [%s]"%(cmd,provider))
