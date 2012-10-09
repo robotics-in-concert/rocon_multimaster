@@ -174,11 +174,11 @@ class GatewaySync(object):
         elif not request.cancel:
             flip_rule = self.flipped_interface.addRule(request.flip_rule)
             if flip_rule:
-                rospy.loginfo("Gateway : added flip rule [%s:%s]"%(flip_rule.gateway,flip_rule.connection.name))
+                rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.connection.name,flip_rule.connection.type))
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
             else:
-                rospy.logerr("Gateway : flip rule already exists [%s:%s]"%(request.flip_rule.gateway,request.flip_rule.connection.name,request))
+                rospy.logerr("Gateway : flip rule already exists [%s:(%s,%s)]"%(request.flip_rule.gateway,request.flip_rule.connection.name,request.flip_rule.connection.type))
                 response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                 response.error_message = "flip rule already exists ["+request.flip_rule.gateway+":"+request.flip_rule.connection.name+"]"
         else: # request.cancel

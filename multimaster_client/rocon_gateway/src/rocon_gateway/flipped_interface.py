@@ -233,17 +233,25 @@ class FlippedInterface(object):
         '''
         matched_flip_rules = []
         for rule in self.watchlist[type]:
-            if name == rule.connection.name:
+            match_result = re.match(rule.connection.name, name)
+            if match_result and match_result.end() == len(name):
                 if rule.connection.node and node == rule.connection.node:
-                    matched_flip_rules.append(copy.deepcopy(rule))
+                    matched_flip = copy.deepcopy(rule)
+                    matched_flip.connection.name = name # just in case we used a regex
+                    matched_flip_rules.append(matched_flip)
                 elif not rule.connection.node:
                     matched_flip = copy.deepcopy(rule)
+                    matched_flip.connection.name = name # just in case we used a regex
                     matched_flip.connection.node = node
                     matched_flip_rules.append(matched_flip)
+                else: # node failed to match
+                    pass
         return matched_flip_rules
     
 if __name__ == "__main__":
     
-    r = re.compile("/chatter")
-    print r.match('/chatter').group()
-    
+    r = re.compile("/chatte")
+    result = r.match('/chatter')
+    print result.group()
+    print result.span()
+    print len('/chatter')
