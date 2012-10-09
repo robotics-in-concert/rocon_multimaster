@@ -193,6 +193,7 @@ class Hub(object):
           @rtype: bool
         '''
         try:
+            # @todo this needs fixing - we are stating we're piping, but commands are one by one!
             pipe = self.server.pipeline()
             topiclist = self.redis_keys['name'] +":topic"
             self.server.delete(topiclist)
@@ -201,6 +202,7 @@ class Hub(object):
             self.server.srem(self.redis_keys['gatewaylist'],self.redis_keys['name'])
             pipe.execute()
             self.redis_pubsub_server.unsubscribe()
+            self.name = ''
         except Exception as e:
             rospy.logerr("Gateway : error unregistering gateway from the hub (need better error handling here).")
             return False
