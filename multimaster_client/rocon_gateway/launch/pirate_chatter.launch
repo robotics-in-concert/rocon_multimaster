@@ -10,4 +10,5 @@
     <rosparam param="hub_whitelist">['Pirate Hub']</rosparam>
   </node>
   <node pkg="roscpp_tutorials" type="talker" name="talker"/>
+  <node pkg="roscpp_tutorials" type="listener" name="listener"/>
 </launch>

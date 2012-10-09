@@ -55,6 +55,14 @@ if __name__ == '__main__':
   print ""
   print req
   print ""
+
+  resp = flip(req)
+  print "== Response =="
+  print ""
+  print resp
+  print ""
+
+  req.flip_rule.connection.type = gateway_comms.msg.Connection.SUBSCRIBER
   resp = flip(req)
   print "== Response =="
   print ""
