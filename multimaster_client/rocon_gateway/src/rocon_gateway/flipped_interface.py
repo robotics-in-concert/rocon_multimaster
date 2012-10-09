@@ -12,6 +12,7 @@ import roslib; roslib.load_manifest('rocon_gateway')
 from gateway_comms.msg import Connection, FlipRule
 import copy
 import threading
+import re
 
 # Local imports
 import utils
@@ -59,8 +60,7 @@ class FlippedInterface(object):
         
         # keys are connection_types, elements are lists of FlipRule objects
         self.flipped = utils.createEmptyConnectionTypeDictionary() # Connections that have been sent to remote gateways   
-        self.rules = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local connections to flip  
-        self.patterns = utils.createEmptyConnectionTypeDictionary() # Regex patterns used to determine what local connections to flip
+        self.watchlist = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local connections to flip  
         
         # keys are connection_types, elements are lists of utils.Registration objects
         self.registrations = utils.createEmptyConnectionTypeDictionary() # Flips from remote gateways that have been locally registered
@@ -84,8 +84,8 @@ class FlippedInterface(object):
         '''
         result = None
         self.lock.acquire()
-        if not flipRuleExists(flip_rule, self.rules[flip_rule.connection.type]):
-            self.rules[flip_rule.connection.type].append(flip_rule)
+        if not flipRuleExists(flip_rule, self.watchlist[flip_rule.connection.type]):
+            self.watchlist[flip_rule.connection.type].append(flip_rule)
             result = flip_rule
         self.lock.release()
         return flip_rule
@@ -108,7 +108,7 @@ class FlippedInterface(object):
             # This looks for *exact* matches.
             try:
                 self.lock.acquire()
-                self.rules[flip_rule.connection.type].remove(flip_rule)
+                self.watchlist[flip_rule.connection.type].remove(flip_rule)
                 self.lock.release()
                 return [flip_rule]
             except ValueError:
@@ -119,12 +119,12 @@ class FlippedInterface(object):
             # also no need to check for type with the dic keys like they are
             existing_rules = []
             self.lock.acquire()
-            for existing_rule in self.rules[flip_rule.connection.type]:
+            for existing_rule in self.watchlist[flip_rule.connection.type]:
                 if (existing_rule.gateway == flip_rule.gateway) and \
                    (existing_rule.connection.name == flip_rule.connection.name):
                     existing_rules.append(existing_rule)
             for rule in existing_rules:
-                self.rules[flip_rule.connection.type].remove(existing_rule) # not terribly optimal
+                self.watchlist[flip_rule.connection.type].remove(existing_rule) # not terribly optimal
             self.lock.release()
             return existing_rules
 
@@ -229,10 +229,10 @@ class FlippedInterface(object):
           @type str
           
           @return all the flip rules that match this local connection
-          @return list of FlipRule objects updated with node names from self.rules
+          @return list of FlipRule objects updated with node names from self.watchlist
         '''
         matched_flip_rules = []
-        for rule in self.rules[type]:
+        for rule in self.watchlist[type]:
             if name == rule.connection.name:
                 if rule.connection.node and node == rule.connection.node:
                     matched_flip_rules.append(copy.deepcopy(rule))
@@ -244,17 +244,6 @@ class FlippedInterface(object):
     
 if __name__ == "__main__":
     
-    flips = []
-    dudes = ["dude","dudette"]
-    if flips:
-        print "true"
-    else:
-        print "false"
-    print ""
-    flips.extend(dudes)
-    print dudes
-    print flips
-    if flips:
-        print "true"
-    else:
-        print "false"
+    r = re.compile("/chatter")
+    print r.match('/chatter').group()
+    
