@@ -67,7 +67,7 @@ class FlippedInterface(object):
         # keys are connection_types, elements are lists of utils.Registration objects
         self.registrations = utils.createEmptyConnectionTypeDictionary() # Flips from remote gateways that have been locally registered
         
-        self.lock = threading.Condition()
+        self.lock = threading.Lock()
         
     def setDefaultRootNamespace(self, namespace):
         '''
