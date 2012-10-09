@@ -189,7 +189,7 @@ class FlippedInterface(object):
     # Flipped Interface
     ##########################################################################
     
-    def findRegistrationMatch(self,unflip_registration):
+    def findRegistrationMatch(self,remote_gateway,remote_name,remote_node,connection_type):
         '''
           Check to see if a registration exists. Note that it doesn't use the
           local node name in the check. We will get unflip requests that 
@@ -198,20 +198,17 @@ class FlippedInterface(object):
           
           We then return the registration that the unflip registration matches.
           
-          @param unflip_registration : registration corresponding to unflip request
+          @param remote_gateway : registration corresponding to unflip request
           @type utils.Registration
           
           @return matching registration or none
           @rtype utils.Registration
         '''
-        for registration in self.registrations[unflip_registration.type]:
-            if (registration.remote_gateway == unflip_registration.remote_gateway) and \
-               (registration.remote_name    == unflip_registration.remote_name) and \
-               (registration.remote_node    == unflip_registration.remote_node) and \
-               (registration.type           == unflip_registration.type) and \
-               (registration.type_info      == unflip_registration.type_info) and \
-               (registration.xmlrpc_uri     == unflip_registration.xmlrpc_uri) and \
-               (registration.local_name     == unflip_registration.local_name):
+        for registration in self.registrations[connection_type]:
+            if (registration.remote_gateway == remote_gateway) and \
+               (registration.remote_name    == remote_name) and \
+               (registration.remote_node    == remote_node) and \
+               (registration.type           == connection_type):
                 return registration
             else:
                 return None

@@ -58,8 +58,11 @@ class GatewaySync(object):
         self.flipped_interface = FlippedInterface() # Initalise the unique namespace hint for this upon connection later
         self.public_interface = PublicInterface()
         self.public_interface_lock = threading.Condition()
-        self.hub = Hub(self.processRemoteGatewayRequest, self.unresolved_name)
         self.master = LocalMaster()
+        self.remote_gateway_request_callbacks = {}
+        self.remote_gateway_request_callbacks['flip'] = self.processRemoteGatewayFlipRequest
+        self.remote_gateway_request_callbacks['unflip'] = self.processRemoteGatewayUnFlipRequest
+        self.hub = Hub(self.remote_gateway_request_callbacks, self.unresolved_name)
 
         # create a thread to watch local connection states
         self.watcher_thread = WatcherThread(self)
@@ -251,24 +254,22 @@ class GatewaySync(object):
     # Incoming commands from remote gateways
     ##########################################################################
 
-    def processRemoteGatewayRequest(self,command, registration):
+    def processRemoteGatewayFlipRequest(self, registration):
         '''
           Used as a callback for incoming requests on redis pubsub channels.
           It gets assigned to RedisManager.callback.
         '''
-        if command == "flip":
-            rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
-            # probably not necessary as the flipping gateway will already check this
-            if not registration in self.flipped_interface.registrations[registration.type]:
-                new_registration = self.master.register(registration)
-                if new_registration:
-                    self.flipped_interface.registrations[registration.type].append(new_registration)
-        elif command == "unflip":
-            rospy.loginfo("Gateway : received an unflip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
-            existing_registration = self.flipped_interface.findRegistrationMatch(registration)
-            if existing_registration:
-                self.master.unregister(existing_registration)
-                self.flipped_interface.registrations[existing_registration.type].remove(existing_registration)
-        else:
-            rospy.logerr("Gateway : received unknown command [%s:%s]"%(command,gateway))
+        rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
+        # probably not necessary as the flipping gateway will already check this
+        if not registration in self.flipped_interface.registrations[registration.type]:
+            new_registration = self.master.register(registration)
+            if new_registration:
+                self.flipped_interface.registrations[registration.type].append(new_registration)
     
+    def processRemoteGatewayUnFlipRequest(self,remote_gateway, remote_name, remote_node, connection_type):
+        print "unflipping %s:%s:%s:%s"%(remote_gateway,remote_name,remote_node,connection_type)
+        rospy.loginfo("Gateway : received an unflip request [%s,%s,%s,%s]"%(remote_gateway,remote_name,remote_node,connection_type))
+        existing_registration = self.flipped_interface.findRegistrationMatch(remote_gateway,remote_name,remote_node,connection_type)
+        if existing_registration:
+            self.master.unregister(existing_registration)
+            self.flipped_interface.registrations[existing_registration.type].remove(existing_registration)

@@ -44,12 +44,12 @@ class WatcherThread(threading.Thread):
                         if connection_type == Connection.PUBLISHER or connection_type == Connection.SUBSCRIBER:
                             type_info = rostopic.get_topic_type(flip.connection.name)[0] # message type
                             xmlrpc_uri = self.master.lookupNode(flip.connection.node)
-                        self.hub.sendFlipRequest('flip', flip, type_info, xmlrpc_uri )
+                        self.hub.sendFlipRequest(flip, type_info, xmlrpc_uri )
                     for flip in lost_flips[connection_type]:
-                        if connection_type == Connection.PUBLISHER or connection_type == Connection.SUBSCRIBER:
-                            type_info = rostopic.get_topic_type(flip.connection.name)[0] # message type
-                            xmlrpc_uri = self.master.lookupNode(flip.connection.node)
-                        self.hub.sendFlipRequest('unflip', flip, type_info, xmlrpc_uri )
+                        #if connection_type == Connection.PUBLISHER or connection_type == Connection.SUBSCRIBER:
+                            #type_info = rostopic.get_topic_type(flip.connection.name)[0] # message type
+                            #xmlrpc_uri = self.master.lookupNode(flip.connection.node)
+                        self.hub.sendUnFlipRequest(flip )
                 # Public Interface
                 self.gateway.updatePublicInterface(connections)
             rospy.sleep(3.0)

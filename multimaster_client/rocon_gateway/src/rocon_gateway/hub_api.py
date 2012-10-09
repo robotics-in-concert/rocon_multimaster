@@ -62,10 +62,10 @@ class RedisListenerThread(threading.Thread):
       Tunes into the redis channels that have been subscribed to and
       calls the apropriate callbacks.
     '''
-    def __init__(self,redis_pubsub_server,remote_gateway_request_callback):
+    def __init__(self,redis_pubsub_server,remote_gateway_request_callbacks):
         threading.Thread.__init__(self)
         self.redis_pubsub_server = redis_pubsub_server
-        self.remote_gateway_request_callback = remote_gateway_request_callback
+        self.remote_gateway_request_callbacks = remote_gateway_request_callbacks
             
     def run(self):
         '''
@@ -87,8 +87,13 @@ class RedisListenerThread(threading.Thread):
                 contents = utils.deserialize(r['data'])
                 command = contents[0]
                 rospy.logdebug("Gateway : redis listener received a channel publication [%s]"%command)
-                registration = utils.Registration(remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],type=contents[4],type_info=contents[5],xmlrpc_uri=contents[6],local_name=contents[7])
-                self.remote_gateway_request_callback(command, registration)
+                if command == 'flip':
+                    registration = utils.Registration(remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],type=contents[4],type_info=contents[5],xmlrpc_uri=contents[6],local_name=contents[7])
+                    self.remote_gateway_request_callbacks['flip'](registration)
+                elif command == 'unflip':
+                    self.remote_gateway_request_callbacks['unflip'](remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],connection_type=contents[4])
+                else:
+                    rospy.logerr("Gateway : received an unknown command from the hub.")
 
 ##############################################################################
 # Hub Manager - Redis Implementation
@@ -101,10 +106,10 @@ class Hub(object):
     pubsub = None
     callback = None
 
-    def __init__(self,remote_gateway_request_callback,gateway_name):
+    def __init__(self,remote_gateway_request_callbacks,gateway_name):
         self.name = '' # the hub name
         self._gateway_name = gateway_name # used to generate the unique name key later
-        self.remote_gateway_request_callback = remote_gateway_request_callback
+        self.remote_gateway_request_callbacks = remote_gateway_request_callbacks
         self.redis_keys = {}
         #self.redis_keys['name'] = '' # it's a unique id generated later when connecting
         self.redis_keys['index'] = createKey('hub:index') # used for uniquely id'ing the gateway (client)
@@ -180,7 +185,7 @@ class Hub(object):
         self.server.sadd(self.redis_keys['gatewaylist'],self.redis_keys['name'])
         self.redis_pubsub_server.subscribe(self.redis_channels['update_topic'])
         self.redis_pubsub_server.subscribe(self.redis_keys['name'])
-        self.remote_gateway_listener_thread = RedisListenerThread(self.redis_pubsub_server, self.remote_gateway_request_callback)
+        self.remote_gateway_listener_thread = RedisListenerThread(self.redis_pubsub_server, self.remote_gateway_request_callbacks)
         self.remote_gateway_listener_thread.start()
         self.name = keyBaseName(self.server.get("rocon:hub:name"))
         return keyBaseName(self.redis_keys['name'])
@@ -253,14 +258,14 @@ class Hub(object):
     # Messages to Remote Gateways (via redis publisher channels)
     ##########################################################################
     
-    def sendFlipRequest(self, command, flip_rule, type_info, xmlrpc_uri):
+    def sendFlipRequest(self, flip_rule, type_info, xmlrpc_uri):
         '''
           Sends a message to the remote gateway via redis pubsub channel. This is called from the 
           watcher thread, when a flip rule gets activated.
 
            - redis channel name: rocon:<remote_gateway_name>
            - data : list of [ command, gateway, remapped name, connection type, type, xmlrpc_uri ]
-            - [0] - command : in this case 'flip'
+            - [0] - command       : in this case 'flip'
             - [1] - gateway       : the name of this gateway, i.e. the flipper
             - [2] - name          : local name  
             - [3] - node          : local node name
@@ -281,13 +286,23 @@ class Hub(object):
           @param xmlrpc_uri : the node uri
           @param str
         '''
-        data = [command, extractKey(self.redis_keys['name']), flip_rule.connection.name, flip_rule.connection.node, flip_rule.connection.type, type_info, xmlrpc_uri, flip_rule.remapped_name];
+        data = ['flip', extractKey(self.redis_keys['name']), flip_rule.connection.name, flip_rule.connection.node, flip_rule.connection.type, type_info, xmlrpc_uri, flip_rule.remapped_name];
         cmd = utils.serialize(data)
         try:
             self.server.publish(createKey(flip_rule.gateway),cmd)
         except Exception as e:
             return False
         return True
+
+    def sendUnFlipRequest(self, flip_rule):
+        data = ['unflip', extractKey(self.redis_keys['name']), flip_rule.connection.name, flip_rule.connection.node, flip_rule.connection.type];
+        cmd = utils.serialize(data)
+        try:
+            self.server.publish(createKey(flip_rule.gateway),cmd)
+        except Exception as e:
+            return False
+        return True
+        
 
     ##########################################################################
     # Depracating
