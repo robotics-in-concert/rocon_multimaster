@@ -22,7 +22,7 @@ class WatcherThread(threading.Thread):
     '''
     '''
     
-    def __init__(self,gateway):
+    def __init__(self,gateway,watch_loop_period):
         # init thread
         threading.Thread.__init__(self)
         self.gateway = gateway
@@ -30,6 +30,7 @@ class WatcherThread(threading.Thread):
         self.hub = gateway.hub
         self.public_interface = gateway.public_interface
         self.flipped_interface = gateway.flipped_interface
+        self.watch_loop_rate = rospy.Rate(1.0/watch_loop_period)
         self.start()
 
     def run(self):
@@ -52,7 +53,7 @@ class WatcherThread(threading.Thread):
                         self.hub.sendUnFlipRequest(flip )
                 # Public Interface
                 self.gateway.updatePublicInterface(connections)
-            rospy.sleep(3.0)
+            self.watch_loop_rate.sleep()
 
     def _updatePublicInterface(self, connections):
         '''

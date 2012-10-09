@@ -26,6 +26,7 @@ def setupRosParameters():
     
     # Gateway
     param['name'] = rospy.get_param('~name','gateway')
+    param['watch_loop_period'] = rospy.get_param('~watch_loop_period',5) # in seconds
 
     # Topics and services for pre-initialisation/configuration
     param['default_public_interface'] = rospy.get_param('~default_public_interface', '')
