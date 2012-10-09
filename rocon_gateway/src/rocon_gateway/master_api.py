@@ -58,12 +58,14 @@ class LocalMaster(rosgraph.Master):
         # already have handle that. 
 
         node_master = rosgraph.Master(registration.local_node)
-        if registration.type == Connection.PUBLISHER:
+        if registration.connection_type == Connection.PUBLISHER:
             node_master.registerPublisher(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
             return registration
-        elif registration.type == Connection.SUBSCRIBER:
+        elif registration.connection_type == Connection.SUBSCRIBER:
             node_master.registerSubscriber(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
             return registration
+        elif registration.connection_type == Connection.SERVICE:
+            node_master.registerService(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
         else:
             rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
             return None
@@ -77,12 +79,14 @@ class LocalMaster(rosgraph.Master):
         '''
         node_master = rosgraph.Master(registration.local_node)
         rospy.loginfo("Gateway : unregistering local node [%s] for [%s]"%(registration.local_node,registration.remote_name))
-        if registration.type == Connection.PUBLISHER:
+        if registration.connection_type == Connection.PUBLISHER:
             node_master.unregisterPublisher(registration.remote_name,registration.xmlrpc_uri)
-        elif registration.type == Connection.SUBSCRIBER:
+        elif registration.connection_type == Connection.SUBSCRIBER:
             node_master.unregisterSubscriber(registration.remote_name,registration.xmlrpc_uri)
+        elif registration.connection_type == Connection.SERVICE:
+            node_master.unregisterService(registration.remote_name,registration.type_info)
         else:
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
+            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.type)
         
     ##########################################################################
     # Master utility methods

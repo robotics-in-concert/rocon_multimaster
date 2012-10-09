@@ -11,4 +11,5 @@
   </node>
   <node pkg="roscpp_tutorials" type="talker" name="talker"/>
   <node pkg="roscpp_tutorials" type="listener" name="listener"/>
+  <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
 </launch>

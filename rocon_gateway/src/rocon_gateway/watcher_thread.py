@@ -10,6 +10,7 @@
 
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
+import rosservice
 import rostopic
 import threading
 from gateway_comms.msg import Connection
@@ -42,14 +43,13 @@ class WatcherThread(threading.Thread):
                 # new_flips and lost_flips are FlipRule lists with filled supplied name info from the master
                 for connection_type in connections:
                     for flip in new_flips[connection_type]:
+                        xmlrpc_uri = self.master.lookupNode(flip.connection.node)
                         if connection_type == Connection.PUBLISHER or connection_type == Connection.SUBSCRIBER:
                             type_info = rostopic.get_topic_type(flip.connection.name)[0] # message type
-                            xmlrpc_uri = self.master.lookupNode(flip.connection.node)
+                        elif connection_type == Connection.SERVICE:
+                            type_info = rosservice.get_service_uri(flip.connection.name)
                         self.hub.sendFlipRequest(flip, type_info, xmlrpc_uri )
                     for flip in lost_flips[connection_type]:
-                        #if connection_type == Connection.PUBLISHER or connection_type == Connection.SUBSCRIBER:
-                            #type_info = rostopic.get_topic_type(flip.connection.name)[0] # message type
-                            #xmlrpc_uri = self.master.lookupNode(flip.connection.node)
                         self.hub.sendUnFlipRequest(flip )
                 # Public Interface
                 self.gateway.updatePublicInterface(connections)

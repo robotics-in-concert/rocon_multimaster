@@ -243,17 +243,16 @@ class GatewaySync(object):
           Used as a callback for incoming requests on redis pubsub channels.
           It gets assigned to RedisManager.callback.
         '''
-        rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s]"%(registration.remote_gateway,registration.type,registration.type_info,registration.xmlrpc_uri))
+        rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s]"%(registration.remote_gateway,registration.connection_type,registration.type_info,registration.xmlrpc_uri))
         # probably not necessary as the flipping gateway will already check this
-        if not registration in self.flipped_interface.registrations[registration.type]:
+        if not registration in self.flipped_interface.registrations[registration.connection_type]:
             new_registration = self.master.register(registration)
             if new_registration:
-                self.flipped_interface.registrations[registration.type].append(new_registration)
+                self.flipped_interface.registrations[registration.connection_type].append(new_registration)
     
     def processRemoteGatewayUnFlipRequest(self,remote_gateway, remote_name, remote_node, connection_type):
-        print "unflipping %s:%s:%s:%s"%(remote_gateway,remote_name,remote_node,connection_type)
         rospy.loginfo("Gateway : received an unflip request [%s,%s,%s,%s]"%(remote_gateway,remote_name,remote_node,connection_type))
         existing_registration = self.flipped_interface.findRegistrationMatch(remote_gateway,remote_name,remote_node,connection_type)
         if existing_registration:
             self.master.unregister(existing_registration)
-            self.flipped_interface.registrations[existing_registration.type].remove(existing_registration)
+            self.flipped_interface.registrations[existing_registration.connection_type].remove(existing_registration)

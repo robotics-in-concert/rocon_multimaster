@@ -90,7 +90,7 @@ class RedisListenerThread(threading.Thread):
                 command = contents[0]
                 rospy.logdebug("Gateway : redis listener received a channel publication [%s]"%command)
                 if command == 'flip':
-                    registration = utils.Registration(remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],type=contents[4],type_info=contents[5],xmlrpc_uri=contents[6])
+                    registration = utils.Registration(remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],connection_type=contents[4],type_info=contents[5],xmlrpc_uri=contents[6])
                     self.remote_gateway_request_callbacks['flip'](registration)
                 elif command == 'unflip':
                     self.remote_gateway_request_callbacks['unflip'](remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],connection_type=contents[4])

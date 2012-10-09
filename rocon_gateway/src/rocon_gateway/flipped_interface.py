@@ -197,10 +197,10 @@ class FlippedInterface(object):
         matched_registration = None
         self.lock.acquire()
         for registration in self.registrations[connection_type]:
-            if (registration.remote_gateway == remote_gateway) and \
-               (registration.remote_name    == remote_name) and \
-               (registration.remote_node    == remote_node) and \
-               (registration.type           == connection_type):
+            if (registration.remote_gateway  == remote_gateway) and \
+               (registration.remote_name     == remote_name) and \
+               (registration.remote_node     == remote_node) and \
+               (registration.connection_type == connection_type):
                 matched_registration = registration
                 break
             else:
