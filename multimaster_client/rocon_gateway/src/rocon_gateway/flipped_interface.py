@@ -11,6 +11,7 @@
 import roslib; roslib.load_manifest('rocon_gateway')
 from gateway_comms.msg import Connection, FlipRule
 import copy
+import threading
 
 # Local imports
 import utils
@@ -66,6 +67,8 @@ class FlippedInterface(object):
         # keys are connection_types, elements are lists of utils.Registration objects
         self.registrations = utils.createEmptyConnectionTypeDictionary() # Flips from remote gateways that have been locally registered
         
+        self.lock = threading.Condition()
+        
     def setDefaultRootNamespace(self, namespace):
         '''
           The namespace is used as a default setting to root 
@@ -100,7 +103,9 @@ class FlippedInterface(object):
         if flipRuleExists(flip_rule, self.rules[flip_rule.connection.type]):
             return None
         else:
+            self.lock.acquire()
             self.rules[flip_rule.connection.type].append(flip_rule)
+            self.lock.release()
             return flip_rule
     
     def removeRule(self, flip_rule):
@@ -123,7 +128,9 @@ class FlippedInterface(object):
         if flip_rule.connection.node:
             # This looks for *exact* matches.
             try:
+                self.lock.acquire()
                 self.rules[flip_rule.connection.type].remove(flip_rule)
+                self.lock.release()
                 return [flip_rule]
             except ValueError:
                 return []
@@ -137,7 +144,9 @@ class FlippedInterface(object):
                    (existing_rule.remapped_name == flip_rule.remapped_name):
                     existing_rules.append(existing_rule)
             for rule in existing_rules:
+                self.lock.acquire()
                 self.rules[flip_rule.connection.type].remove(existing_rule) # not terribly optimal
+                self.lock.release()
             return existing_rules
 
     def update(self,connections):
@@ -158,6 +167,7 @@ class FlippedInterface(object):
         new_flips = utils.createEmptyConnectionTypeDictionary()
         removed_flips = utils.createEmptyConnectionTypeDictionary()
         diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
+        self.lock.acquire()
         for connection_type in connections:
             for connection in connections[connection_type]:
                 flipped[connection_type].extend(self._generateFlips(connection.type, connection.name, connection.node))
@@ -165,6 +175,7 @@ class FlippedInterface(object):
             removed_flips[connection_type] = diff(self.flipped[connection_type],flipped[connection_type])
         
         self.flipped = copy.deepcopy(flipped)
+        self.lock.release()
         return new_flips, removed_flips
         
         # OPTIMISED METHOD
@@ -204,14 +215,20 @@ class FlippedInterface(object):
           @return matching registration or none
           @rtype utils.Registration
         '''
+        
+        matched_registration = None
+        self.lock.acquire()
         for registration in self.registrations[connection_type]:
             if (registration.remote_gateway == remote_gateway) and \
                (registration.remote_name    == remote_name) and \
                (registration.remote_node    == remote_node) and \
                (registration.type           == connection_type):
-                return registration
+                matched_registration = registration
+                break
             else:
-                return None
+                continue
+        self.lock.release()
+        return matched_registration
         
     def _generateFlips(self, type, name, node):
         '''
@@ -220,7 +237,9 @@ class FlippedInterface(object):
           return multiple matches, since the same local connection 
           properties can be multiply flipped to different remote gateways.
             
-          Used in the watcher thread.
+          Used in the update() call above that is run in the watcher thread.
+          
+          Note, don't need to lock here as the update() function takes care of it.
           
           @param type : connection type
           @type str : string constant from gateway_comms.msg.Connection
@@ -244,31 +263,6 @@ class FlippedInterface(object):
                     matched_flip.connection.node = node
                     matched_flip_rules.append(matched_flip)
         return matched_flip_rules
-
-##############################################################################
-# Depracated
-##############################################################################
-                    
-#    def isFlipped(self, type, name, node):
-#        '''
-#          Checks if a local connection (obtained from master.getSystemState)
-#          is currently flipped and returns a list of the flipped instances
-#          (note that the same local connection may be multiply flipped
-#          to different remote gateways). 
-#          
-#          Used in the watcher thread. 
-#          
-#          @param type : connection type
-#          @type str : string constant from gateway_comms.msg.Connection
-#          
-#          @return all the flips that originate from this local connection
-#          @rtype list : list of FlipRule copied objects from self.flipped 
-#        '''
-#        matched_flips = []
-#        for flip in self.flipped[type]:
-#            if name == flip.connection.name and node == flip.connection.node:
-#                matched_flips.append(copy.deepcopy(flip))
-#        return matched_flips
     
 if __name__ == "__main__":
     
