@@ -270,10 +270,6 @@ class GatewaySync(object):
     ##########################################################################
     # Others - what are we using and what not?
     ##########################################################################
-   
-    def clearServer(self):
-        self.hub.unregisterGateway()
-        self.master.clear()
 
     # def processUpdate(self,cmd,provider,info):
     #     '''
