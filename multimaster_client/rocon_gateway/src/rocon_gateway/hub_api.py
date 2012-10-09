@@ -198,13 +198,10 @@ class Hub(object):
           @rtype: bool
         '''
         try:
-            # @todo this needs fixing - we are stating we're piping, but commands are one by one!
             pipe = self.server.pipeline()
-            topiclist = self.redis_keys['name'] +":topic"
-            self.server.delete(topiclist)
-            srvlist = self.redis_keys['name'] +":service"
-            self.server.delete(srvlist)
-            self.server.srem(self.redis_keys['gatewaylist'],self.redis_keys['name'])
+            public_interface_list = self.redis_keys['name'] +":connection"
+            pipe.delete(public_interface_list)
+            pipe.srem(self.redis_keys['gatewaylist'],self.redis_keys['name'])
             pipe.execute()
             self.redis_pubsub_server.unsubscribe()
             self.name = ''

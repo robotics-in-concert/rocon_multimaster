@@ -84,6 +84,27 @@ def initialize_redis_server(port, hub_name):
     except redis.exceptions.ConnectionError:
         sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
 
+def clear_redis_server(port):
+    '''
+      Clears rocon: keys on the server.
+    '''
+    try:
+        pool = redis.ConnectionPool(host='localhost', port=port, db=0)
+        server = redis.Redis(connection_pool=pool)
+        rocon_keys = server.keys("rocon:*")
+        pattern = re.compile("rocon:*")
+        keys_to_delete = []
+        for key in rocon_keys:
+            if pattern.match(key):
+                keys_to_delete.append(key)
+        pipe = server.pipeline()
+        if len(keys_to_delete) != 0:
+            pipe.delete(*keys_to_delete) # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
+        pipe.execute()
+        rospy.logdebug("Hub : clearing hub variables on the redis server.")
+    except redis.exceptions.ConnectionError:
+        sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
+
 
 ##############################################################################
 # avahi advertisement
@@ -134,3 +155,5 @@ def launch():
         check_if_package_available('avahi-daemon') # aborts if avahi-daemon not installed
         advertise_port_to_avahi(config, hub_name) # aborts if avahi-daemon not running
     rospy.spin()
+    clear_redis_server(int(config["port"]))
+    
