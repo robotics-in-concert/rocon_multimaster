@@ -82,7 +82,6 @@ class Gateway():
         gateway_services['advertise']     = rospy.Service('~advertise',     gateway_comms.srv.Advertise,    self.gateway_sync.rosServiceAdvertise)
         gateway_services['advertise_all'] = rospy.Service('~advertise_all', gateway_comms.srv.AdvertiseAll, self.gateway_sync.rosServiceAdvertiseAll)        
         gateway_services['flip']          = rospy.Service('~flip',          gateway_comms.srv.Flip,         self.gateway_sync.rosServiceFlip)        
-        gateway_services['flip_pattern']  = rospy.Service('~flip_pattern',  gateway_comms.srv.FlipPatterns, self.gateway_sync.rosServiceFlipPattern)        
         gateway_services['flip_all']      = rospy.Service('~flip_all',      gateway_comms.srv.FlipAll,      self.gateway_sync.rosServiceFlipAll)
         return gateway_services        
      
@@ -123,7 +122,6 @@ class Gateway():
         for connection_type in rocon_gateway.connection_types:
             response.flipped_connections.extend(self.gateway_sync.flipped_interface.flipped[connection_type])
             response.flip_rules.extend(self.gateway_sync.flipped_interface.rules[connection_type])
-            #response.flip_patterns.extend(self.gateway_sync.flipped_interface.patterns[connection_type])
         return response
     
     def rosServiceRemoteGatewayInfo(self,request):

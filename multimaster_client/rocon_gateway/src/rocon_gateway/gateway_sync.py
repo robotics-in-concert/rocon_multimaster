@@ -189,21 +189,6 @@ class GatewaySync(object):
                 # watcher thread will look after this from here
         return response
 
-    def rosServiceFlipPattern(self,request):
-        '''
-          Puts regex patterns on a watchlist and (un)flips them on a particular
-          gateway when they become (un)available. Note that this cannot remap, 
-          but can optionally reroot connections under a configurable namespace (default is 
-          <unique_gateway_name>). 
-          
-          @param request
-          @type gateway_comms.srv.FlipPatternRequest
-          @return service response
-          @rtype gateway_comms.srv.FlipPatternResponse
-        '''
-        response = gateway_comms.srv.FlipPatternResponse()
-        return response
-
     def rosServiceFlipAll(self,request):
         '''
           Flips everything except a specified blacklist to a particular gateway,
