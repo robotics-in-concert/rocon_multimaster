@@ -36,10 +36,9 @@ class Registration():
        - type                   (one of Connection.PUBLISHER, etc)
        - type_info              (msg type for pubsub or service api for services)
        - xmlrpc_uri             (the xmlrpc node uri for the connection)
-       - local_name             (the remapped name)
        - local_node             (the local anonymously generated node name)
     '''
-    def __init__(self, remote_gateway, remote_name, remote_node, type, type_info, xmlrpc_uri, local_name, local_node = None):
+    def __init__(self, remote_gateway, remote_name, remote_node, type, type_info, xmlrpc_uri, local_node = None):
         '''
           @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
           @type string  
@@ -50,7 +49,6 @@ class Registration():
         self.type = type
         self.type_info = type_info
         self.xmlrpc_uri = xmlrpc_uri
-        self.local_name = local_name
         self.local_node = local_node
     
 ##############################################################################

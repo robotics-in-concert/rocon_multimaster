@@ -36,7 +36,6 @@ def flipRuleExists(flip_rule, flip_rules):
     '''
     for rule in flip_rules:
         if rule.gateway         == flip_rule.gateway and \
-           rule.remapped_name   == flip_rule.remapped_name and \
            rule.connection.name == flip_rule.connection.name and \
            rule.connection.node == flip_rule.connection.node:
             return True
@@ -57,7 +56,6 @@ class FlippedInterface(object):
         '''
           Initialises the flipped interface.
         '''
-        self._namespace = "/" # namespace to root flips in
         
         # keys are connection_types, elements are lists of FlipRule objects
         self.flipped = utils.createEmptyConnectionTypeDictionary() # Connections that have been sent to remote gateways   
@@ -69,27 +67,13 @@ class FlippedInterface(object):
         
         self.lock = threading.Lock()
         
-    def setDefaultRootNamespace(self, namespace):
-        '''
-          The namespace is used as a default setting to root 
-          flips in the remote gateway's workspace (helps avoid conflicts)
-          when no remapping argument is provided.
-          
-          @param namespace : default namespace to root flipped connections into
-          @type str
-        '''
-        if namespace[0] is not '/':
-            self._namespace = "/"+namespace
-        else:
-            self._namespace = namespace
-
     def addRule(self, flip_rule):
         '''
           Generate the flip rule, taking care to provide a sensible
           default for the remapping (root it in this gateway's namespace
           on the remote system).
           
-          @param gateway, type, name, node, remapped_name
+          @param gateway, type, name, node
           @type str
           
           @param type : connection type
@@ -98,15 +82,13 @@ class FlippedInterface(object):
           @return the flip rule, or None if the rule already exists.
           @rtype Flip || None
         '''
-        if not flip_rule.remapped_name:
-            flip_rule.remapped_name = self._namespace + flip_rule.connection.name
-        if flipRuleExists(flip_rule, self.rules[flip_rule.connection.type]):
-            return None
-        else:
-            self.lock.acquire()
+        result = None
+        self.lock.acquire()
+        if not flipRuleExists(flip_rule, self.rules[flip_rule.connection.type]):
             self.rules[flip_rule.connection.type].append(flip_rule)
-            self.lock.release()
-            return flip_rule
+            result = flip_rule
+        self.lock.release()
+        return flip_rule
     
     def removeRule(self, flip_rule):
         '''
@@ -122,9 +104,6 @@ class FlippedInterface(object):
           @return Matching flip rule list
           @rtype FlipRule[]
         '''
-        if not flip_rule.remapped_name:
-            flip_rule.remapped_name = self._namespace + flip_rule.connection.name
-
         if flip_rule.connection.node:
             # This looks for *exact* matches.
             try:
@@ -133,20 +112,20 @@ class FlippedInterface(object):
                 self.lock.release()
                 return [flip_rule]
             except ValueError:
+                self.lock.release()
                 return []
         else:
             # This looks for any flip rules which match except for the node name
             # also no need to check for type with the dic keys like they are
             existing_rules = []
+            self.lock.acquire()
             for existing_rule in self.rules[flip_rule.connection.type]:
                 if (existing_rule.gateway == flip_rule.gateway) and \
-                   (existing_rule.connection.name == flip_rule.connection.name) and \
-                   (existing_rule.remapped_name == flip_rule.remapped_name):
+                   (existing_rule.connection.name == flip_rule.connection.name):
                     existing_rules.append(existing_rule)
             for rule in existing_rules:
-                self.lock.acquire()
                 self.rules[flip_rule.connection.type].remove(existing_rule) # not terribly optimal
-                self.lock.release()
+            self.lock.release()
             return existing_rules
 
     def update(self,connections):
@@ -173,7 +152,6 @@ class FlippedInterface(object):
                 flipped[connection_type].extend(self._generateFlips(connection.type, connection.name, connection.node))
             new_flips[connection_type] = diff(flipped[connection_type],self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type],flipped[connection_type])
-        
         self.flipped = copy.deepcopy(flipped)
         self.lock.release()
         return new_flips, removed_flips

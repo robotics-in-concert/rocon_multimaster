@@ -51,7 +51,7 @@ class GatewaySync(object):
     The gateway between ros system and redis server
     '''
 
-    def __init__(self, name):
+    def __init__(self, name, watch_loop_period):
         self.unresolved_name = name # This gets used to build unique names after connection to the hub
         self.unique_name = None # single string value set after hub connection (note: it is not a redis rocon:: rooted key!)
         self.is_connected = False
@@ -65,7 +65,7 @@ class GatewaySync(object):
         self.hub = Hub(self.remote_gateway_request_callbacks, self.unresolved_name)
 
         # create a thread to watch local connection states
-        self.watcher_thread = WatcherThread(self)
+        self.watcher_thread = WatcherThread(self, watch_loop_period)
 
     ##########################################################################
     # Connection Logic
@@ -75,7 +75,6 @@ class GatewaySync(object):
         try:
             self.hub.connect(ip,port)
             self.unique_name = self.hub.registerGateway()
-            self.flipped_interface.setDefaultRootNamespace(self.unique_name)
             self.is_connected = True
         except Exception as e:
             print str(e)
@@ -175,17 +174,17 @@ class GatewaySync(object):
         elif not request.cancel:
             flip_rule = self.flipped_interface.addRule(request.flip_rule)
             if flip_rule:
-                rospy.loginfo("Gateway : added flip rule [%s:%s->%s]"%(flip_rule.gateway,flip_rule.connection.name,flip_rule.remapped_name))
+                rospy.loginfo("Gateway : added flip rule [%s:%s]"%(flip_rule.gateway,flip_rule.connection.name))
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
             else:
-                rospy.logerr("Gateway : flip rule already exists [%s:%s->%s]"%(request.flip_rule.gateway,request.flip_rule.connection.name,request.flip_rule.remapped_name))
+                rospy.logerr("Gateway : flip rule already exists [%s:%s]"%(request.flip_rule.gateway,request.flip_rule.connection.name,request))
                 response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                response.error_message = "flip rule already exists ["+request.flip_rule.gateway+":"+request.flip_rule.connection.name+"->"+request.flip_rule.remapped_name+"]"
+                response.error_message = "flip rule already exists ["+request.flip_rule.gateway+":"+request.flip_rule.connection.name+"]"
         else: # request.cancel
             flip_rules = self.flipped_interface.removeRule(request.flip_rule)
             if flip_rules:
-                rospy.loginfo("Gateway : removed flip rule [%s:%s->%s]"%(request.flip_rule.gateway,request.flip_rule.connection.name,request.flip_rule.remapped_name))
+                rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(request.flip_rule.gateway,request.flip_rule.connection.name))
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
         return response
@@ -259,7 +258,7 @@ class GatewaySync(object):
           Used as a callback for incoming requests on redis pubsub channels.
           It gets assigned to RedisManager.callback.
         '''
-        rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.local_name,registration.type,registration.type_info,registration.xmlrpc_uri))
+        rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s]"%(registration.remote_gateway,registration.type,registration.type_info,registration.xmlrpc_uri))
         # probably not necessary as the flipping gateway will already check this
         if not registration in self.flipped_interface.registrations[registration.type]:
             new_registration = self.master.register(registration)

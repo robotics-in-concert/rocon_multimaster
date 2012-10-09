@@ -57,8 +57,6 @@ class LocalMaster(rosgraph.Master):
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
         # already have handle that. 
 
-        # switched local_name -> remote_name below since remappings don't work
-                
         node_master = rosgraph.Master(registration.local_node)
         if registration.type == Connection.PUBLISHER:
             node_master.registerPublisher(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
@@ -77,9 +75,6 @@ class LocalMaster(rosgraph.Master):
           @param registration : registration details for an existing gateway registered connection
           @type utils.Registration
         '''
-        
-        # switched local_name -> remote_name below since remappings don't work
-        
         node_master = rosgraph.Master(registration.local_node)
         rospy.loginfo("Gateway : unregistering local node [%s] for [%s]"%(registration.local_node,registration.remote_name))
         if registration.type == Connection.PUBLISHER:

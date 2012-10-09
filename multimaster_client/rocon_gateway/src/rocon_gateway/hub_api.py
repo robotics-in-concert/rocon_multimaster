@@ -71,16 +71,18 @@ class RedisListenerThread(threading.Thread):
         '''
           Used as a callback for incoming requests on redis pubsub channels.
           
-          The received argument is a list of strings:
+          The received argument is a list of strings for 'flip':
           
-            - [0] - command : one of 'flip', 'unflip'
+            - [0] - command : this one is 'flip'
             - [1] - remote_gateway : the name of the gateway that is flipping to us
             - [2] - remote_name 
             - [3] - remote_node
             - [4] - type : one of Connection.PUBLISHER etc
             - [5] - type_info : a ros format type (e.g. std_msgs/String or service api)
             - [6] - xmlrpc_uri : the xmlrpc node uri
-            - [7] - local name : the name the connection should be mapped to locally
+            
+          The command 'unflip' is the same, not including args 5 and 6.
+            
         '''
         for r in self.redis_pubsub_server.listen():
             if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
@@ -88,7 +90,7 @@ class RedisListenerThread(threading.Thread):
                 command = contents[0]
                 rospy.logdebug("Gateway : redis listener received a channel publication [%s]"%command)
                 if command == 'flip':
-                    registration = utils.Registration(remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],type=contents[4],type_info=contents[5],xmlrpc_uri=contents[6],local_name=contents[7])
+                    registration = utils.Registration(remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],type=contents[4],type_info=contents[5],xmlrpc_uri=contents[6])
                     self.remote_gateway_request_callbacks['flip'](registration)
                 elif command == 'unflip':
                     self.remote_gateway_request_callbacks['unflip'](remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],connection_type=contents[4])
@@ -261,7 +263,7 @@ class Hub(object):
           watcher thread, when a flip rule gets activated.
 
            - redis channel name: rocon:<remote_gateway_name>
-           - data : list of [ command, gateway, remapped name, connection type, type, xmlrpc_uri ]
+           - data : list of [ command, gateway, connection type, type, xmlrpc_uri ]
             - [0] - command       : in this case 'flip'
             - [1] - gateway       : the name of this gateway, i.e. the flipper
             - [2] - name          : local name  
@@ -269,7 +271,6 @@ class Hub(object):
             - [4] - connection_type : one of Connection.PUBLISHER etc
             - [5] - type_info     : a ros format type (e.g. std_msgs/String or service api)
             - [6] - xmlrpc_uri    : the xmlrpc node uri
-            - [7] - remapped name : the name it should be remapped to on the remote gateway
             
           @param command : string command name - either 'flip' or 'unflip'
           @type str
@@ -283,7 +284,7 @@ class Hub(object):
           @param xmlrpc_uri : the node uri
           @param str
         '''
-        data = ['flip', extractKey(self.redis_keys['name']), flip_rule.connection.name, flip_rule.connection.node, flip_rule.connection.type, type_info, xmlrpc_uri, flip_rule.remapped_name];
+        data = ['flip', extractKey(self.redis_keys['name']), flip_rule.connection.name, flip_rule.connection.node, flip_rule.connection.type, type_info, xmlrpc_uri];
         cmd = utils.serialize(data)
         try:
             self.server.publish(createKey(flip_rule.gateway),cmd)

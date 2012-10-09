@@ -34,7 +34,7 @@ class Gateway():
         self.gateway_sync = None # hub and local ros master connections
         
         self.param = rocon_gateway.setupRosParameters()
-        self.gateway_sync = rocon_gateway.GatewaySync(self.param['name']) # redis server (hub) and local ros master connections
+        self.gateway_sync = rocon_gateway.GatewaySync(self.param['name'], self.param['watch_loop_period']) # maybe pass in the whole params dictionary?
         self._gateway_services = self._setupRosServices()
 
         self._zeroconf_services = {}
