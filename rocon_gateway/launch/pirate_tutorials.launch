@@ -3,12 +3,7 @@
   name so we can test hubs in parallel. 
 -->
 <launch>
-  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen"/>
-
-  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
-    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
-    <rosparam param="hub_whitelist">['Pirate Hub']</rosparam>
-  </node>
+  <include file="$(find rocon_gateway)/launch/pirate.launch"/>
   <node pkg="roscpp_tutorials" type="talker" name="talker"/>
   <node pkg="roscpp_tutorials" type="listener" name="listener"/>
   <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>

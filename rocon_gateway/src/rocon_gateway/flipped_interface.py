@@ -53,7 +53,7 @@ class FlippedInterface(object):
       (pubs/subs/services/actions) and rules controlling flips
       to other gateways. 
     '''
-    def __init__(self):
+    def __init__(self, default_connection_blacklist):
         '''
           Initialises the flipped interface.
         '''
@@ -65,6 +65,12 @@ class FlippedInterface(object):
         # keys are connection_types, elements are lists of utils.Registration objects
         self.registrations = utils.createEmptyConnectionTypeDictionary() # Flips from remote gateways that have been locally registered
         
+        # Default rules that cannot be flipped to any gateway - used in FlipAll mode
+        self._default_blacklist = default_connection_blacklist # Note: dictionary of gateway_comms.msg.Connection lists, not FlipRule!
+
+        # Default + custom blacklist - used in AdvertiseAll mode
+        self.blacklist = self._default_blacklist
+
         self.lock = threading.Lock()
         
     def addRule(self, flip_rule):

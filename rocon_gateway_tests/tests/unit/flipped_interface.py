@@ -76,8 +76,3 @@ if __name__ == '__main__':
     new_flips, old_flips = flipped_interface.update(connections)
     print_flips(new_flips,old_flips)
     
-    import re
-    try:
-        print re.match("dude","fat").group()
-    except AttributeError as e:
-        print "dude"
