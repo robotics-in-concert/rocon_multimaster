@@ -29,6 +29,7 @@ from gateway_comms.srv import AdvertiseAllResponse
 
 # Local imports
 import utils
+import ros_parameters
 from .hub_api import Hub
 from .master_api import LocalMaster
 from .watcher_thread import WatcherThread
@@ -51,12 +52,14 @@ class GatewaySync(object):
     The gateway between ros system and redis server
     '''
 
-    def __init__(self, name, watch_loop_period):
-        self.unresolved_name = name # This gets used to build unique names after connection to the hub
+    def __init__(self, param):
+        self.param = param
+        self.unresolved_name = self.param['name'] # This gets used to build unique names after connection to the hub
         self.unique_name = None # single string value set after hub connection (note: it is not a redis rocon:: rooted key!)
         self.is_connected = False
-        self.flipped_interface = FlippedInterface() # Initalise the unique namespace hint for this upon connection later
-        self.public_interface = PublicInterface()
+        default_blacklist_connections = ros_parameters.generateConnections(self.param["default_blacklist"])
+        self.flipped_interface = FlippedInterface(default_blacklist_connections) # Initalise the unique namespace hint for this upon connection later
+        self.public_interface = PublicInterface(default_blacklist_connections)
         self.public_interface_lock = threading.Condition()
         self.master = LocalMaster()
         self.remote_gateway_request_callbacks = {}
@@ -65,7 +68,7 @@ class GatewaySync(object):
         self.hub = Hub(self.remote_gateway_request_callbacks, self.unresolved_name)
 
         # create a thread to watch local connection states
-        self.watcher_thread = WatcherThread(self, watch_loop_period)
+        self.watcher_thread = WatcherThread(self, self.param['watch_loop_period'])
 
     ##########################################################################
     # Connection Logic
@@ -199,7 +202,29 @@ class GatewaySync(object):
           @return service response
           @rtype gateway_comms.srv.FlipAllResponse
         '''
-        response = FlipAllResponse()
+        response = gateway_comms.srv.FlipAllResponse()
+        if not self.is_connected:
+            rospy.logerr("Gateway : no hub connection, aborting flip all request.")
+            response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
+            response.error_message = "no hub connection" 
+        elif request.gateway == self.unique_name:
+            rospy.logerr("Gateway : gateway cannot flip all to itself.")
+            response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
+            response.error_message = "gateway cannot flip all to itself" 
+        elif not request.cancel:
+            if self.flipped_interface.flipAll(request.gateway, request.blacklist):
+                rospy.loginfo("Gateway : flipping all to gateway '%s'"%(request.gateway))
+                response.result = gateway_comms.msg.Result.SUCCESS
+                # watcher thread will look after this from here
+            else:
+                rospy.logerr("Gateway : already flipping all to gateway '%s'"%(request.gateway))
+                response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                response.error_message = "already flipping all to gateway '%s' "+request.gateway
+        else: # request.cancel
+            self.flipped_interface.removeFlipAll(request.gateway, request.blacklist)
+            rospy.loginfo("Gateway : cancelled flip all request [%s]"%(request.gateway))
+            response.result = gateway_comms.msg.Result.SUCCESS
+            # watcher thread will look after this from here
         return response
 
     ##########################################################################

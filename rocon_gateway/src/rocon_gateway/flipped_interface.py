@@ -53,7 +53,7 @@ class FlippedInterface(object):
       (pubs/subs/services/actions) and rules controlling flips
       to other gateways. 
     '''
-    def __init__(self):
+    def __init__(self, default_connection_blacklist):
         '''
           Initialises the flipped interface.
         '''
@@ -65,6 +65,12 @@ class FlippedInterface(object):
         # keys are connection_types, elements are lists of utils.Registration objects
         self.registrations = utils.createEmptyConnectionTypeDictionary() # Flips from remote gateways that have been locally registered
         
+        # Default rules that cannot be flipped to any gateway - used in FlipAll mode
+        self._default_blacklist = default_connection_blacklist # Note: dictionary of gateway-gateway_comms.msg.Connection lists, not FlipRules!
+
+        # Blacklists when doing flip all - different for each gateway, each value is one of our usual connection type dictionaries
+        self._blacklist = {} 
+
         self.lock = threading.Lock()
         
     def addRule(self, flip_rule):
@@ -127,6 +133,71 @@ class FlippedInterface(object):
                 self.watchlist[flip_rule.connection.type].remove(existing_rule) # not terribly optimal
             self.lock.release()
             return existing_rules
+
+    def flipAll(self, gateway, blacklist):
+        '''
+          Generate the flip all rule.
+          
+          @param gateway
+          @type str
+          
+          @param blacklist : do not flip connections matching these patterns
+          @type Connection[]
+          
+          @return failure if flip all rule exists, success otherwise
+          @rtype Bool
+        '''
+        self.lock.acquire()
+        # Blacklist
+        if gateway in self._blacklist:
+            return False
+        self._blacklist[gateway] = self._default_blacklist
+        for connection in blacklist:
+            self._blacklist[gateway][connection.type].append(connection)
+        # Flips
+        for connection_type in utils.connection_types:
+            flip_rule = FlipRule()
+            flip_rule.gateway = gateway
+            flip_rule.connection.name = '.*'
+            flip_rule.connection.node = None
+            flip_rule.connection.type = connection_type
+            # Remove all other rules for that gateway
+            self.watchlist[connection_type][:] = [rule for rule in self.watchlist[connection_type] if rule.gateway != gateway]
+            # basically self.addRule() - do it manually here so we don't deadlock locks
+            self.watchlist[connection_type].append(flip_rule)
+        self.lock.release()
+        return True
+
+    def removeFlipAll(self, gateway):
+        '''
+          Remove the flip all rule for the specified gateway.
+          
+          @param gateway
+          @type str
+          
+          @param blacklist : do not flip connections matching these patterns
+          @type Connection[]
+          
+          @return failure if flip all rule exists, success otherwise
+          @rtype Bool
+        '''
+        self.lock.acquire()
+        if gateway in self._blacklist:
+            return False
+        del self._blacklist[gateway]
+        flip_rule = FlipRule()
+        flip_rule.gateway = gateway
+        flip_rule.connection.name = '.*'
+        flip_rule.connection.node = None
+        for connection_type in utils.connection_types:
+            flip_rule.connection.type = connection_type
+            # basically self.removeRule() - do it manually here so we don't deadlock locks
+            try:
+                self.watchlist[flip_rule.connection.type].remove(flip_rule)
+            except ValueError:
+                pass # should never get here
+        self.lock.release()
+        return True
 
     def update(self,connections):
         '''
@@ -233,19 +304,20 @@ class FlippedInterface(object):
         '''
         matched_flip_rules = []
         for rule in self.watchlist[type]:
-            match_result = re.match(rule.connection.name, name)
-            if match_result and match_result.end() == len(name):
-                if rule.connection.node and node == rule.connection.node:
-                    matched_flip = copy.deepcopy(rule)
-                    matched_flip.connection.name = name # just in case we used a regex
-                    matched_flip_rules.append(matched_flip)
-                elif not rule.connection.node:
-                    matched_flip = copy.deepcopy(rule)
-                    matched_flip.connection.name = name # just in case we used a regex
-                    matched_flip.connection.node = node
-                    matched_flip_rules.append(matched_flip)
-                else: # node failed to match
-                    pass
+            matched = False
+            name_match_result = re.match(rule.connection.name, name)
+            if name_match_result and name_match_result.group() == name:
+                if rule.connection.node:
+                    node_match_result = re.match(rule.connection.node,node)
+                    if node_match_result and node_match_result.group() == node:
+                        matched = True
+                else: # rule.connection.node is None so we don't care about matching the node
+                    matched = True
+            if matched:
+                matched_flip = copy.deepcopy(rule)
+                matched_flip.connection.name = name # just in case we used a regex
+                matched_flip.connection.node = node # just in case we used a regex
+                matched_flip_rules.append(matched_flip)
         return matched_flip_rules
     
     ##########################################################################

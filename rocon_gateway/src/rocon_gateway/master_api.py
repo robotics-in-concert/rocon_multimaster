@@ -68,7 +68,8 @@ class LocalMaster(rosgraph.Master):
             node_master.registerService(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
             return registration
         else:
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.remote_connection.type)
+            print registration
+            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection_type)
             return None
 
     def unregister(self,registration):

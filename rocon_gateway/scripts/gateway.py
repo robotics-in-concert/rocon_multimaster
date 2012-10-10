@@ -34,7 +34,7 @@ class Gateway():
         self.gateway_sync = None # hub and local ros master connections
         
         self.param = rocon_gateway.setupRosParameters()
-        self.gateway_sync = rocon_gateway.GatewaySync(self.param['name'], self.param['watch_loop_period']) # maybe pass in the whole params dictionary?
+        self.gateway_sync = rocon_gateway.GatewaySync(self.param) # maybe pass in the whole params dictionary?
         self._gateway_services = self._setupRosServices()
 
         self._zeroconf_services = {}
@@ -123,6 +123,10 @@ class Gateway():
             response.flipped_connections.extend(self.gateway_sync.flipped_interface.flipped[connection_type])
             response.flipped_in_connections.extend(self.gateway_sync.flipped_interface.flippedInConnections(connection_type))
             response.flip_watchlist.extend(self.gateway_sync.flipped_interface.watchlist[connection_type])
+        # response message must have string output
+        for flip in response.flip_watchlist:
+            if not flip.connection.node:
+                flip.connection.node = 'None'
         response.public_watchlist = self.gateway_sync.public_interface.getWatchlist()
         response.public_interface = self.gateway_sync.public_interface.getInterface()
         return response
@@ -138,8 +142,8 @@ class Gateway():
         else:
             gateways = [x for x in requested_gateways if x in available_gateways]
 
-        # Obtain information about relevant gateways
         response = gateway_comms.srv.RemoteGatewayInfoResponse()
+        # Public Interface
         public_interfaces = self.gateway_sync.hub.listPublicInterfaces(gateways)
         for key in public_interfaces:
             gateway_response = gateway_comms.msg.RemoteGateway(key, public_interfaces[key], [], [])
@@ -180,7 +184,7 @@ class Gateway():
         req = zeroconf_comms.srv.ListDiscoveredServicesRequest() 
         req.service_type = rocon_gateway.zeroconf.gateway_hub_service
         resp = self._zeroconf_services["list_discovered_services"](req)
-        rospy.loginfo("Gateway : checking for autodiscovered gateway hubs")
+        rospy.logdebug("Gateway : checking for autodiscovered gateway hubs")
         new_services = lambda l1,l2: [x for x in l1 if x not in l2]
         for service in new_services(resp.services,previously_found_hubs):
             previously_found_hubs.append(service)

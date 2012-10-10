@@ -12,6 +12,7 @@ import json
 import collections
 import StringIO
 from gateway_comms.msg import Connection
+import yaml
 
 ##############################################################################
 # Constants

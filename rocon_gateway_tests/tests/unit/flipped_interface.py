@@ -49,21 +49,6 @@ if __name__ == '__main__':
     connection.node="/bar"
     connections[Connection.PUBLISHER].append(connection)
     
-    ##############################
-    # Namespace tests
-    ##############################
-    flipped_interface.setDefaultRootNamespace("dude")
-    rospy.loginfo("************* Namespace Tests *************")
-    if flipped_interface._namespace == "/dude":
-        rospy.loginfo("Namespace test : 'dude' -> '/dude'")
-    else:
-        rospy.logerr("Namespace test failed : expected '/dude', got '%s'"%flipped_interface._namespace)
-    flipped_interface.setDefaultRootNamespace("/dude")
-    if flipped_interface._namespace == "/dude":
-        rospy.loginfo("Namespace test : '/dude' -> '/dude'")
-    else:
-        rospy.logerr("Namespace test failed : expected '/dude', got '%s'"%flipped_interface._namespace)
-    
     flip_rule = FlipRule()
     flip_rule.gateway='gateway1'
     flip_rule.connection.name='/chatter'

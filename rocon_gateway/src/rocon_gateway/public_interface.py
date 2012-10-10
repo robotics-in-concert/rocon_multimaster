@@ -59,46 +59,17 @@ def addUniquePublicRules(to_list, from_list):
         if not publicRuleExists(to_list):
             to_list.add(rule)
 
-def parsePublicRuleFromYamlObject(yaml_obj):
+def generatePublicRulesFromConnections(connections):
     '''
-      Parse a connection object from a dictionary extracted from a YAML
-      file. Only the type/name are required fields, and node is optional.
-
-      @param yaml_obj : a dictionary representing a PublicRule object
-      @type dict
+      Generate a public rules dictionary directly from a 
+      connections dictionary.
     '''
-    connection = yaml_obj['connection']
-    node = connection['node']
-    if node == '':
-        node = None
-    return PublicRule(Connection(connection['type'],connection['name'],node))
-
-def parsePublicRulesFromFile(self,file):
-    '''
-      Parse a YAML file for a list of Public rule object.
-
-      @param file : absolute file location of YAML file
-      @type str
-      @return a list of PublicRule objects extracted from the YAML file, None on
-              error
-      @rtype list of PublicRule objects || None
-    '''
-    try:
-        stream = open(file, 'r')
-        list = yaml.load(stream)
-    except:
-        rospy.logerr('Gateway : Unable to load yaml from file [%s]'%file)
-        return None
-
-    rules = utils.createEmptyConnectionTypeDictionary()
-    try:
-        for l in list:
-            rule = self._parseRuleFromYamlObject(l)
-            rules[rule.connection.type].append(rule)
-    except Exception as e:
-        rospy.logerr('Gateway : Error parsing item in yaml file [%s]'%str(e))
-        return None
-    return rules
+    public_rules = utils.createEmptyConnectionTypeDictionary()
+    if connections:
+        for connection_type in utils.connection_types:
+            for connection in connections[connection_type]:
+                public_rules[connection_type].append(PublicRule(connection))
+    return public_rules
 
 ##############################################################################
 # Public Interface
@@ -116,24 +87,21 @@ class PublicInterface(object):
          and shared if they become available 
       
     '''
-    def __init__(self):
+    def __init__(self, default_connection_blacklist):
         '''
           Initialises the public interface
         '''
-        # List of connections that should be monitored, and flipped when they
-        # become available
+        # List of connections to be monitored and (un)advertised  as they 
+        # become (un)available
         self.watchlist = utils.createEmptyConnectionTypeDictionary()
 
-        # Rules that cannot be flipped - regardless of whether they are in the
-        # watchlist or not
-        self._default_blacklist = utils.createEmptyConnectionTypeDictionary()
+        # Default rules that cannot be advertised - used in AdvertiseAll mode
+        self._default_blacklist = generatePublicRulesFromConnections(default_connection_blacklist)
 
-        # Overall blacklist used while flipping everything
+        # Default + custom blacklist - used in AdvertiseAll mode
         self.blacklist = self._default_blacklist
 
-        # list of fully qualified connections currently being flipped
-        # the public interface can be manipulated from both the main gateway
-        # thread and the watcher thread
+        # list of fully qualified connections currently being advertised
         self.public = utils.createEmptyConnectionTypeDictionary()
 
     ##########################################################################
@@ -234,29 +202,13 @@ class PublicInterface(object):
           @param file : absolute file location of YAML file
           @type str
         '''
-        rules = parsePublicRulesFromFile(file)
-        if rules:
-            self.watchlist = rules
+        connections = parseConnectionsFromFile(file)
+        self.watchlist = generatePublicRulesFromConnections(connections)
+        if connections:
             rospy.loginfo('Gateway : Default public interface parsed from yaml file [%s]'%file)
             return True
         else:
             rospy.logerr('Gateway : Error parsing default public interface from yaml file [%s]'%file)
-            return False
-
-    def parseBlacklistFromFile(self,file):
-        '''
-          Parse a YAML file for the default blacklist
-
-          @param file : absolute file location of YAML file
-          @type str
-        '''
-        rules = parsePublicRulesFromFile(file)
-        if rules:
-            rospy.loginfo('Gateway : Default blacklist parsed from yaml file [%s]'%file)
-            self._default_blacklist = rules
-            return True
-        else:
-            rospy.logerr('Gateway : Error parsing default blacklist from yaml file [%s]'%file)
             return False
 
     ##########################################################################
@@ -343,3 +295,4 @@ class PublicInterface(object):
 
         return new_public, removed_publics
 
+        
