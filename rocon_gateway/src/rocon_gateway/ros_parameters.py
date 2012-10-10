@@ -40,7 +40,7 @@ def setupRosParameters():
 
     return param
 
-def generateConnectionsFromParam(param):
+def generateConnections(param):
     '''
       Converts a param of the suitable type (see default_blacklist.yaml)
       into a dictionary of Connection types.

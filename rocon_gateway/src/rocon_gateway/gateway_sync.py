@@ -57,7 +57,7 @@ class GatewaySync(object):
         self.unresolved_name = self.param['name'] # This gets used to build unique names after connection to the hub
         self.unique_name = None # single string value set after hub connection (note: it is not a redis rocon:: rooted key!)
         self.is_connected = False
-        default_blacklist_connections = ros_parameters.generateConnectionsFromParam(self.param["default_blacklist"])
+        default_blacklist_connections = ros_parameters.generateConnections(self.param["default_blacklist"])
         self.flipped_interface = FlippedInterface(default_blacklist_connections) # Initalise the unique namespace hint for this upon connection later
         self.public_interface = PublicInterface(default_blacklist_connections)
         self.public_interface_lock = threading.Condition()
