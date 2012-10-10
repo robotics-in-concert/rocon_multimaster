@@ -187,11 +187,11 @@ class PublicInterface(object):
         allow_all_rule.connection.name = '.*'
         for connection_type in utils.connection_types:
             allow_all_rule.connection.type = connection_type
-            self.watchlist[connection_type].add(allow_all_rule)
+            self.watchlist[connection_type].append(allow_all_rule)
         self.blacklist = copy.deepcopy(self._default_blacklist)
         for b in blacklist:
             if not publicRuleExists(b, self.blacklist[b.connection.type]):
-                self.blacklist[b.connection.type].add(b)
+                self.blacklist[b.connection.type].append(b)
 
     def disallowAll(self, blacklist = None):
         '''

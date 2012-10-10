@@ -11,7 +11,7 @@ import rospy
 import re
 import utils
 
-from gateway_comms.msg import Connection
+from gateway_comms.msg import PublicRule
 
 ###############################################################################
 # Utility Functions
@@ -158,9 +158,9 @@ class Hub(object):
             public_interface = self.server.smembers(key)
             public_interfaces[gateway] = []
             for connection_str in public_interface:
-                connection = Connection()
-                connection.deserialize(connection_str)
-                public_interfaces[gateway].append(connection) 
+                rule = PublicRule()
+                rule.connection.deserialize(connection_str)
+                public_interfaces[gateway].append(rule) 
         return public_interfaces
         
     ##########################################################################
@@ -231,8 +231,8 @@ class Hub(object):
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
         key = self.redis_keys['name']+":connection"
-        string = utils.serializeRosMsg(connection)
-        self.server.sadd(key,string)
+        msg_str = utils.serializeRosMsg(connection)
+        self.server.sadd(key,msg_str)
     
     def unadvertise(self, connection):
         '''
@@ -243,8 +243,8 @@ class Hub(object):
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
         key = self.redis_keys['name']+":connection"
-        string = utils.serializeRosMsg(connection)
-        self.server.srem(key,string)
+        msg_str = utils.serializeRosMsg(connection)
+        self.server.srem(key,msg_str)
 
     ##########################################################################
     # Gateway-Gateway Communications

@@ -142,7 +142,7 @@ class Gateway():
         response = gateway_comms.srv.RemoteGatewayInfoResponse()
         public_interfaces = self.gateway_sync.hub.listPublicInterfaces(gateways)
         for key in public_interfaces:
-            gateway_response = gateway_comms.msg.Gateway(key, public_interfaces[key])
+            gateway_response = gateway_comms.msg.RemoteGateway(key, public_interfaces[key], [], [])
             response.gateways.append(gateway_response)
         return response
 
