@@ -94,7 +94,7 @@ class FlippedInterface(object):
             self.watchlist[flip_rule.connection.type].append(flip_rule)
             result = flip_rule
         self.lock.release()
-        return flip_rule
+        return result
     
     def removeRule(self, flip_rule):
         '''
@@ -150,6 +150,7 @@ class FlippedInterface(object):
         self.lock.acquire()
         # Blacklist
         if gateway in self._blacklist:
+            self.lock.release()
             return False
         self._blacklist[gateway] = self._default_blacklist
         for connection in blacklist:

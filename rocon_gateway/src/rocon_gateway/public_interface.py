@@ -9,14 +9,14 @@
 ##############################################################################
 
 import copy
-import yaml
 import re
+import threading
 
 import rospy
 
 # local imports
 import utils
-from gateway_comms.msg import PublicRule, Connection 
+from gateway_comms.msg import PublicRule
 
 ##############################################################################
 # Functions
@@ -43,21 +43,6 @@ def publicRuleExists(public_rule, public_rules):
            rule.connection.node == public_rule.connection.node:
             return True
     return False
-
-def addUniquePublicRules(to_list, from_list):
-    '''
-      An inefficient but safe method of adding public rules while maintaining 
-      uniqueness of the list.
-
-      @param to_list : list to which rules need to be added
-      @type : list of PublicRule objects
-
-      @param from_list : list from which rules are added (may not be unique)
-      @type : list of PublicRule obejcts
-    '''
-    for rule in from_list:
-        if not publicRuleExists(to_list):
-            to_list.add(rule)
 
 def generatePublicRulesFromConnections(connections):
     '''
@@ -104,112 +89,153 @@ class PublicInterface(object):
         # list of fully qualified connections currently being advertised
         self.public = utils.createEmptyConnectionTypeDictionary()
 
+        self.advertise_all_enabled = False
+
+        self.lock = threading.Lock()
+
     ##########################################################################
     # Public Interfaces
     ##########################################################################
 
-    def addRule(self,rule):
+    def addRule(self, rule):
         '''
         Watch for a new public rule, as described for by the incoming message.
         
         @param rule : a rule msg from the advertise call
         @type PublicRule
+
         @return the rule if added, or None if the rule exists already
         @rtype PublicRule || None
         '''
-        if publicRuleExists(rule,self.watchlist[rule.connection.type]):
-            return None
+        result = None
+        self.lock.acquire()
+        if not publicRuleExists(rule,self.watchlist[rule.connection.type]):
+            self.watchlist[rule.connection.type].append(rule)
+            result = rule
+        self.lock.release()
+        rospy.logdebug("Gateway : (req) advertise %s"%utils.formatRule(rule))
+        return result
 
-        rospy.loginfo("Gateway : (req) advertise %s"%utils.formatRule(rule))
-        self.watchlist[rule.connection.type].append(rule)
-        return rule
-
-    def removeRule(self,rule):
-        '''
-        Attempt to remove a watchlist rule from the public interface. Removes
-        only an exact match
+    def removeRule(self, rule): 
+        ''' 
+        Attempt to remove a watchlist rule from the public interface. Be a
+        bit careful looking for a rule to remove, depending on the node name,
+        which can be set (exact rule/node name match) or None in which case all
+        nodes of that kind of advertisement will match.
         
-        @param rule : a rule msg from the advertise call
+        @param rule : a rule to unadvertise
         @type PublicRule
-        @return the rule if removed, or None if the rule exists already
-        @rtype PublicRule || None
-        '''
-        if rule not in self.watchlist[rule.connection.type]:
-            return None
 
-        self.watchlist[rule.connection.type].remove(rule)
-        rospy.loginfo("Gateway : (req) remove advertisement of %s"%utils.formatRule(rule))
-        return rule
-
-    def allowAll(self, blacklist = None):
+        @return the list of rules removed
+        @rtype PublicRule[]
         '''
-        Allow all rules apart from the ones in the provided blacklist + default
-        blacklist
 
-        @param blacklist : list of PublicRule objects
-        @type list : list of PublicRule objects
+        rospy.logdebug("Gateway : (req) unadvertise %s"%utils.formatRule(rule))
+
+        if rule.connection.node:
+            # This looks for *exact* matches.
+            try:
+                self.lock.acquire()
+                self.watchlist[rule.connection.type].remove(rule)
+                self.lock.release()
+                return [rule]
+            except ValueError:
+                self.lock.release()
+                return []
+        else:
+            # This looks for any flip rules which match except for the node name
+            # also no need to check for type with the dic keys like they are
+            existing_rules = []
+            self.lock.acquire()
+            for existing_rule in self.watchlist[rule.connection.type]:
+                if (existing_rule.connection.name == rule.connection.name):
+                    existing_rules.append(existing_rule)
+            for rule in existing_rules:
+                self.watchlist[rule.connection.type].remove(existing_rule) # not terribly optimal
+            self.lock.release()
+            return existing_rules
+
+    def advertiseAll(self, blacklist):
         '''
-        rospy.loginfo("Gateway : (req) advertise everything!")
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()
-        allow_all_rule = PublicRule()
-        allow_all_rule.connection.name = '.*'
+          Allow all rules apart from the ones in the provided blacklist + 
+          default blacklist
+
+          @param blacklist : list of PublicRule objects
+          @type list : list of PublicRule objects
+
+          @return failure if already advertising all, success otherwise
+          @rtype bool
+        '''
+        rospy.logdebug("Gateway : (req) advertise everything!")
+        self.lock.acquire()
+
+        # Check if advertise all already enabled 
+        if self.advertise_all_enabled:
+            self.lock.release()
+            return False
+        self.advertise_all_enabled = True
+
+        # generate watchlist
+        self.watchlist = utils.createEmptyConnectionTypeDictionary() #easy hack for getting a clean watchlist
         for connection_type in utils.connection_types:
+            allow_all_rule = PublicRule()
+            allow_all_rule.connection.name = '.*'
             allow_all_rule.connection.type = connection_type
             self.watchlist[connection_type].append(allow_all_rule)
-        self.blacklist = copy.deepcopy(self._default_blacklist)
-        for b in blacklist:
-            if not publicRuleExists(b, self.blacklist[b.connection.type]):
-                self.blacklist[b.connection.type].append(b)
 
-    def disallowAll(self, blacklist = None):
+        # generate blacklist (while making sure only unique rules get added)
+        self.blacklist = copy.deepcopy(self._default_blacklist)
+        for rule in blacklist:
+            if not publicRuleExists(rule, self.blacklist[rule.connection.type]):
+                self.blacklist[rule.connection.type].append(rule)
+
+        self.lock.release()
+        return True
+
+    def unadvertiseAll(self):
         '''
-        Disallow all rules in watchlist, reset blacklist to default
+          Disallow the allow all mode, if enabled. If allow all mode is not
+          enabled, remove everything from the public interface
         '''
-        rospy.loginfo("Gateway : (req) remove all advertisements!")
+        rospy.logdebug("Gateway : (req) remove all advertisements!")
+        self.lock.acquire()
+
+        # stop advertising all
+        self.advertise_all_enabled = False
+
+        # easy hack for resetting the watchlist and blacklist
         self.watchlist = utils.createEmptyConnectionTypeDictionary()
         self.blacklist = self._default_blacklist
 
+        self.lock.release()
+
     ##########################################################################
-    # List getters
+    # List Accessors
     ##########################################################################
 
     def getInterface(self):
         list = []
+        self.lock.acquire()
         for connection_type in utils.connection_types:
             list.extend(self.public[connection_type])
+        self.lock.release()
         return list
 
     def getWatchlist(self):
         list = []
+        self.lock.acquire()
         for connection_type in utils.connection_types:
             list.extend(self.watchlist[connection_type])
+        self.lock.release()
         return list
 
     def getBlacklist(self):
         list = []
+        self.lock.acquire()
         for connection_type in utils.connection_types:
             list.extend(self.blacklist[connection_type])
+        self.lock.release()
         return list
-
-    ##########################################################################
-    # File operations
-    ##########################################################################
-
-    def parseDefaultRulesFromFile(self,file):
-        '''
-          Parse a YAML file for the default Public Interface
-
-          @param file : absolute file location of YAML file
-          @type str
-        '''
-        connections = parseConnectionsFromFile(file)
-        self.watchlist = generatePublicRulesFromConnections(connections)
-        if connections:
-            rospy.loginfo('Gateway : Default public interface parsed from yaml file [%s]'%file)
-            return True
-        else:
-            rospy.logerr('Gateway : Error parsing default public interface from yaml file [%s]'%file)
-            return False
 
     ##########################################################################
     # Filter
@@ -226,16 +252,19 @@ class PublicInterface(object):
           @return the list of rules matched, None if no rules found
           @rtype list of PublicRules || None
         '''
-        ret_list = []
+        matched = False
         for r in rules[connection.type]:
-            match_result = re.match(r.connection.name, connection.name)
-            if match_result and match_result.end() == len(connection.name):
-                if not r.connection.node or \
-                   r.connection.node == connection.node:
-                    ret_list.append(r);
-        if len(ret_list) == 0:
-            ret_list = None
-        return ret_list
+            name_match_result = re.match(r.connection.name, connection.name)
+            if name_match_result and name_match_result.group() == connection.name:
+                if r.connection.node:
+                    node_match_result = re.match(r.connection.node, connection.node)
+                    if node_match_result and node_match_result.group() == connection.node:
+                        matched = True
+                else:
+                    matched = True
+            if matched:
+                break
+        return matched
 
     def _allowConnection(self,connection):
         '''
@@ -247,8 +276,10 @@ class PublicInterface(object):
           @return whether connection is allowed
           @rtype bool
         '''
+        self.lock.acquire()
         matched_rules = self._matchAgainstRuleList(self.watchlist,connection)
         matched_blacklisted_rules = self._matchAgainstRuleList(self.blacklist,connection)
+        self.lock.release()
         success = False
         if matched_rules and not matched_blacklisted_rules:
             success = True
@@ -277,6 +308,9 @@ class PublicInterface(object):
 
           @param connections: the list of connections available locally
           @type dict of lists of Connection objects
+
+          @return: new public connections, as well as connections to be removed
+          @rtype: PublicRule[], PublicRule[]
         '''
 
         # SLOW, EASY METHOD
@@ -291,8 +325,8 @@ class PublicInterface(object):
                     public[connection_type].append(public_connection)
             new_public[connection_type] = diff(public[connection_type],self.public[connection_type])
             removed_publics[connection_type] = diff(self.public[connection_type],public[connection_type])
+        self.lock.acquire()
         self.public = public
+        self.lock.release()
 
         return new_public, removed_publics
-
-        
