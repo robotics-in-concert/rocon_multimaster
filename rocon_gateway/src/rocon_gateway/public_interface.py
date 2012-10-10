@@ -276,7 +276,8 @@ class PublicInterface(object):
         '''
         ret_list = []
         for r in rules[connection.type]:
-            if re.match(r.connection.name, connection.name):
+            match_result = re.match(r.connection.name, connection.name)
+            if match_result and match_result.end() == len(connection.name):
                 if not r.connection.node or \
                    r.connection.node == connection.node:
                     ret_list.append(r);
