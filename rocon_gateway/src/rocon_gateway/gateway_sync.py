@@ -202,7 +202,29 @@ class GatewaySync(object):
           @return service response
           @rtype gateway_comms.srv.FlipAllResponse
         '''
-        response = FlipAllResponse()
+        response = gateway_comms.srv.FlipAllResponse()
+        if not self.is_connected:
+            rospy.logerr("Gateway : no hub connection, aborting flip all request.")
+            response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
+            response.error_message = "no hub connection" 
+        elif request.gateway == self.unique_name:
+            rospy.logerr("Gateway : gateway cannot flip all to itself.")
+            response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
+            response.error_message = "gateway cannot flip all to itself" 
+        elif not request.cancel:
+            if self.flipped_interface.flipAll(request.gateway, request.blacklist):
+                rospy.loginfo("Gateway : flipping all to gateway '%s'"%(request.gateway))
+                response.result = gateway_comms.msg.Result.SUCCESS
+                # watcher thread will look after this from here
+            else:
+                rospy.logerr("Gateway : already flipping all to gateway '%s'"%(request.gateway))
+                response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                response.error_message = "already flipping all to gateway '%s' "+request.gateway
+        else: # request.cancel
+            self.flipped_interface.removeFlipAll(request.gateway, request.blacklist)
+            rospy.loginfo("Gateway : cancelled flip all request [%s]"%(request.gateway))
+            response.result = gateway_comms.msg.Result.SUCCESS
+            # watcher thread will look after this from here
         return response
 
     ##########################################################################

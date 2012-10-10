@@ -123,6 +123,10 @@ class Gateway():
             response.flipped_connections.extend(self.gateway_sync.flipped_interface.flipped[connection_type])
             response.flipped_in_connections.extend(self.gateway_sync.flipped_interface.flippedInConnections(connection_type))
             response.flip_watchlist.extend(self.gateway_sync.flipped_interface.watchlist[connection_type])
+        # response message must have string output
+        for flip in response.flip_watchlist:
+            if not flip.connection.node:
+                flip.connection.node = 'None'
         return response
     
     def rosServiceRemoteGatewayInfo(self,request):
@@ -178,7 +182,7 @@ class Gateway():
         req = zeroconf_comms.srv.ListDiscoveredServicesRequest() 
         req.service_type = rocon_gateway.zeroconf.gateway_hub_service
         resp = self._zeroconf_services["list_discovered_services"](req)
-        rospy.loginfo("Gateway : checking for autodiscovered gateway hubs")
+        rospy.logdebug("Gateway : checking for autodiscovered gateway hubs")
         new_services = lambda l1,l2: [x for x in l1 if x not in l2]
         for service in new_services(resp.services,previously_found_hubs):
             previously_found_hubs.append(service)
