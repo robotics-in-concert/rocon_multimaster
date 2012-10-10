@@ -1,0 +1,36 @@
+<launch>
+
+  <arg name="hub_port" />
+  <arg name="gateway1_port" />
+  <arg name="gateway2_port" />
+
+  <!-- launch the hub on a master running on hub_port -->
+  <include file="$(find rocon_gateway_tests)/launch/test_core.launch">
+    <arg name="port" value="$(arg hub_port)" />
+  </include>
+  <include file="$(find rocon_gateway_hub)/launch/hub.launch"> 
+    <env name="ROS_MASTER_URI" value="http://localhost:$(arg hub_port)" />
+  </include>
+
+  <!-- launch the gateway on a separate master running on port gateway_port -->
+  <include file="$(find rocon_gateway_tests)/launch/test_core.launch">
+    <arg name="port" value="$(arg gateway1_port)" />
+  </include>
+  <include file="$(find rocon_gateway)/launch/gateway.launch"> 
+    <env name="ROS_MASTER_URI" value="http://localhost:$(arg gateway1_port)" />
+  </include>
+
+  <!-- launch a suite of test applications on the gateway -->
+  <include file="$(find rocon_gateway_tests)/launch/test_suite.launch">
+    <arg name="port" value="$(arg gateway1_port)" />
+  </include>
+
+  <!-- launch a second gateway to do remote tests -->
+  <include file="$(find rocon_gateway_tests)/launch/test_core.launch">
+    <arg name="port" value="$(arg gateway1_port)" />
+  </include>
+  <include file="$(find rocon_gateway)/launch/gateway.launch"> 
+    <env name="ROS_MASTER_URI" value="http://localhost:$(arg gateway2_port)" />
+  </include>
+
+</launch>

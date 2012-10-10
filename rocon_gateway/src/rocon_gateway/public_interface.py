@@ -152,7 +152,7 @@ class PublicInterface(object):
         if publicRuleExists(rule,self.watchlist[rule.connection.type]):
             return None
 
-        rospy.loginfo("Gateway : advertising %s"%utils.formatRule(rule))
+        rospy.loginfo("Gateway : (req) advertise %s"%utils.formatRule(rule))
         self.watchlist[rule.connection.type].append(rule)
         return rule
 
@@ -170,7 +170,7 @@ class PublicInterface(object):
             return None
 
         self.watchlist[rule.connection.type].remove(rule)
-        rospy.loginfo("Gateway : removing advertisement of %s"%utils.formatRule(rule))
+        rospy.loginfo("Gateway : (req) remove advertisement of %s"%utils.formatRule(rule))
         return rule
 
     def allowAll(self, blacklist = None):
@@ -181,6 +181,7 @@ class PublicInterface(object):
         @param blacklist : list of PublicRule objects
         @type list : list of PublicRule objects
         '''
+        rospy.loginfo("Gateway : (req) advertise everything!")
         self.watchlist = utils.createEmptyConnectionTypeDictionary()
         allow_all_rule = PublicRule()
         allow_all_rule.connection.name = '.*'
@@ -196,40 +197,9 @@ class PublicInterface(object):
         '''
         Disallow all rules in watchlist, reset blacklist to default
         '''
+        rospy.loginfo("Gateway : (req) remove all advertisements!")
         self.watchlist = utils.createEmptyConnectionTypeDictionary()
         self.blacklist = self._default_blacklist
-
-    # def addConnection(self,connection):
-    #     '''
-    #     Add a unique connection to the public interface
-
-    #     @param rule : a rule msg containing the connection to be advertised
-    #     @type PublicRule
-    #     @return the connection if added, or None if the connection exists already
-    #     @rtype PublicRule || None
-    #     '''
-    #     if publicRuleExists(connection,self.public[connection.connection.type]):
-    #         return False
-
-    #     rospy.loginfo("Gateway : adding connection to public interface %s"%self.formatConnection(connection.connection))
-    #     self.public[connection.connection.type].add(connection)
-    #     return connection
-
-    # def removeConnection(self,connection):
-    #     '''
-    #     Remove a unique connection to the public interface
-
-    #     @param rule : a rule msg containing the connection to be advertised
-    #     @type PublicRule
-    #     @return the connection if added, or None if the connection exists already
-    #     @rtype PublicRule || None
-    #     '''
-    #     if connection not in self.public[connection.connection.type]:
-    #         return None
-
-    #     rospy.loginfo("Gateway : removing connection from public interface %s"%self.formatConnection(connection))
-    #     self.public[connection.connection.type].remove(connection)
-    #     return True
 
     ##########################################################################
     # List getters

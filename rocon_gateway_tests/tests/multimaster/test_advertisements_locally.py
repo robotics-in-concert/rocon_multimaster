@@ -11,43 +11,32 @@ import rosgraph
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 import unittest
+import std_msgs
 
 class TestAdvertisementsLocally(unittest.TestCase):
 
     def setUp(self):
-        #wait for the test suite to become available
-        all_nodes_up = False
-        master = rosgraph.Master(rospy.get_name())
-        while not all_nodes_up:
-            try:
-                master.lookupNode("/talker")
-                master.lookupNode("/talker2")
-                master.lookupNode("/listener")
-                master.lookupNode("/add_two_ints_server")
-                master.lookupNode("/fibonacci_client")
-                master.lookupNode("/averaging_server")
-                all_nodes_up = True
-            except:
-                rospy.loginfo("Setup : Still waiting for nodes to come up")
-                rospy.sleep(1.0)
-                if rospy.is_shutdown():
-                    self.fail("Unable to find all test nodes in suite")
 
         rospy.wait_for_service('/gateway/advertise')
         rospy.wait_for_service('/gateway/advertise_all')
+        rospy.wait_for_service('/gateway/gateway_info')
 
         self.advertise = rospy.ServiceProxy('/gateway/advertise',Advertise)
         self.advertiseAll = rospy.ServiceProxy('/gateway/advertise_all',AdvertiseAll)
+        self.gatewayInfo = rospy.ServiceProxy('/gateway/gateway_info',GatewayInfo)
 
+        # Make sure we are connected to the gateway first!
         while True:
-            req = AdvertiseAllRequest()
-            req.cancel = True
-            resp = self.advertiseAll(req)
-            if resp.result == Result.SUCCESS:
+            resp = self.gatewayInfo()
+            if resp.connected:
                 break
-            rospy.sleep(5.0)
+            rospy.sleep(3.0)
 
     def test_AdvertisePublisherByTopic(self):
+        
+        rospy.init_node('multimaster_test')
+
+        # Request adding the /chatter topic, this should add 2 nodes /talker and /talker2
         req = AdvertiseRequest()
         rule = PublicRule()
         rule.connection.type = Connection.PUBLISHER
@@ -56,16 +45,46 @@ class TestAdvertisementsLocally(unittest.TestCase):
         req.cancel = False
         resp = self.advertise(req)
         
-        self.assertEquals(resp.result, Result.SUCCESS, "Advertise call not successful");
-        self.assertEquals(len(resp.watchlist), 1, "Unexpected public interface watchlist length"); # only one rule was added
-        self.assertEquals(resp.watchlist[0], rule, "Added rule different from requested"); # the rule we requested was added
-        self.assertEquals(len(resp.public_interface), 2, "Number of nodes added should be 2, but found to be %s"%str(len(resp.public_interface))); # both nodes are available
+        self.assertEquals(resp.result, Result.SUCCESS)
+        self.assertEquals(len(resp.watchlist), 1)
+        self.assertEquals(resp.watchlist[0], rule)
 
-        self.assertEquals(resp.public_interface[0].connection.type,Connection.PUBLISHER, "added node has incorrect type [%s], expected publisher"%resp.public_interface[0].connection.type);
-        self.assertEquals(resp.public_interface[1].connection.type,Connection.PUBLISHER, "added node has incorrect type [%s], expected publisher"%resp.public_interface[0].connection.type);
-        self.assertEquals(resp.public_interface[0].connection.name,"/chatter", "expected topic name chatter, found %s"%resp.public_interface[0].connection.name);
-        self.assertEquals(resp.public_interface[1].connection.name,"/chatter", "expected topic name chatter, found %s"%resp.public_interface[0].connection.name);
-        self.assertItemsEqual([resp.public_interface[0].connection.node,resp.public_interface[1].connection.node],["/talker","/talker2"], "node names do not match, expected /talker,/talker2, found [%s,%s]"%(resp.public_interface[0].connection.node,resp.public_interface[1].connection.node)) 
+        # Now wait for the 2 nodes to be added. This may take some time as the nodes may not be up yet
+        # If something has gone wrong, then the test will timeout with a failure
+        num_nodes = 2
+        while True:
+            resp = self.gatewayInfo()
+            if len(resp.public_interface) == num_nodes:
+                break
+            rospy.sleep(3.0)
+
+        actual_node_names = []
+        for i in range(num_nodes):
+            self.assertEquals(resp.public_interface[i].connection.type,Connection.PUBLISHER)
+            self.assertEquals(resp.public_interface[i].connection.name,"/chatter")
+            actual_node_names.append(resp.public_interface[i].connection.node)
+        expected_node_names = ["/talker","/talker2"]
+        self.assertItemsEqual(actual_node_names, expected_node_names)
+
+        #Now lets manually add a third publisher, and see if it gets added
+        pub = rospy.Publisher("/chatter", std_msgs.msg.String)
+        pub.publish("hello")
+
+        # Wait for 3 nodes to be available
+        num_nodes = 3
+        while True:
+            resp = self.gatewayInfo()
+            if len(resp.public_interface) == 3:
+                break
+            rospy.sleep(3.0)
+
+        actual_node_names = []
+        for i in range(num_nodes):
+            self.assertEquals(resp.public_interface[i].connection.type,Connection.PUBLISHER)
+            self.assertEquals(resp.public_interface[i].connection.name,"/chatter")
+            actual_node_names.append(resp.public_interface[i].connection.node)
+        expected_node_names = ["/talker","/talker2",rospy.get_name()]
+        self.assertItemsEqual(actual_node_names, expected_node_names)
 
     def tearDown(self):
         req = AdvertiseAllRequest()

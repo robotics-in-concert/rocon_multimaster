@@ -244,7 +244,7 @@ class Hub(object):
         '''
         key = self.redis_keys['name']+":connection"
         string = utils.serializeRosMsg(connection)
-        self.servers.srem(key,string)
+        self.server.srem(key,string)
 
     ##########################################################################
     # Gateway-Gateway Communications

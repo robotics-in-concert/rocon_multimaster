@@ -199,8 +199,6 @@ class LocalMaster(rosgraph.Master):
         name = roslib.names.anonymous_name(t)
         return name
 
-
-
 ##############################################################################
 # Depracating
 ##############################################################################
@@ -225,47 +223,3 @@ class LocalMaster(rosgraph.Master):
 #        else:
 #            print "Wrong Identifier in checkIfItisLocal"
 #        return False
-#    def registerService(self,service,service_api,node_xmlrpc_uri):
-#        try:                                                  
-#            if self._checkIfItisLocal(service,node_xmlrpc_uri,"service"):
-#                rospy.logerr("Gateway : Service triple available locally")
-#                return False
-#            node_name = self._getAnonymousNodeName(service)    
-#            rospy.loginfo("Gateway : Starting new node [%s] for service [%s]"%(node_name,service))
-#
-#            # Initialize if it is a new topic
-#            if service not in self.srvs_uri.keys():
-#                self.srvs_uri[service] = [] 
-#        
-#            self.cv.acquire()
-#            if service_api not in self.srvs_uri[service]:
-#                self.srvs_uri[service].append(service_api)
-#                self.srvs_node[(service,service_api)] =node_name
-#                master = rosgraph.Master(node_name)
-#                master.registerService(service,service_api,node_xmlrpc_uri)
-#            else:
-#                print "already registered"
-#                return False
-#            self.cv.release()
-#        except Exception as e:
-#            print "registerService:ros_master.py"
-#            raise
-#
-#        return True
-#
-#    def unregisterService(self,service,service_api,node_uri):
-#        try:
-#            try: 
-#                node_name = self.srvs_node[(service,service_api)]
-#            except KeyError:
-#                print "Service does not exist"
-#                return False
-#            print "Unregistering ",service," from ",node_name
-#            master_n = rosgraph.Master(node_name)
-#            master_n.unregisterService(service, service_api)
-#            del self.srvs_node[(service,service_api)]
-#            self.srvs_uri[service].remove(service_api)
-#        except:
-#            print "Failed in unregister Service"
-#            raise
-#        return True

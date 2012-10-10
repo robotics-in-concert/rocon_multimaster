@@ -121,7 +121,7 @@ class Gateway():
         response.hub_name = self.gateway_sync.hub.name
         for connection_type in rocon_gateway.connection_types:
             response.flipped_connections.extend(self.gateway_sync.flipped_interface.flipped[connection_type])
-            response.flip_rules.extend(self.gateway_sync.flipped_interface.rules[connection_type])
+            response.flip_watchlist.extend(self.gateway_sync.flipped_interface.watchlist[connection_type])
         return response
     
     def rosServiceRemoteGatewayInfo(self,request):
