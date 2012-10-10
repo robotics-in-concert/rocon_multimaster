@@ -175,7 +175,7 @@ class FlippedInterface(object):
         # diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
 
     ##########################################################################
-    # Flipped Interface
+    # Utility Methods
     ##########################################################################
     
     def findRegistrationMatch(self,remote_gateway,remote_name,remote_node,connection_type):
@@ -247,6 +247,34 @@ class FlippedInterface(object):
                 else: # node failed to match
                     pass
         return matched_flip_rules
+    
+    ##########################################################################
+    # Accessors
+    ##########################################################################
+
+    def flippedInConnections(self,connection_type):
+        '''
+          Parses the registrations list and hands out a set of flip rules for
+          consumption by ros service getters (e.g. GatewayInfo). We don't need
+          to show the service and node uri's here.
+          
+          Basic operation : convert Registration -> FlipRule for each registration
+          
+          @param connection_type : one of Connection.XXX string constants.
+          @type str
+          
+          @return the list of flip rules corresponding to local flip registrations
+          @rtype FlipRule[]
+        '''
+        flipped_in_rules = []
+        for registration in self.registrations[connection_type]:
+            flip_rule = FlipRule()
+            flip_rule.gateway = registration.remote_gateway
+            flip_rule.connection.name = registration.remote_name
+            flip_rule.connection.node = registration.remote_node
+            flip_rule.connection.type = connection_type
+            flipped_in_rules.append(flip_rule)
+        return flipped_in_rules
     
 if __name__ == "__main__":
     
