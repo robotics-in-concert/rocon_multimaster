@@ -62,6 +62,7 @@ if __name__ == '__main__':
 
     if args.regex:
         req.flip_rule.connection.name = ".*ter"
+        req.flip_rule.connection.node = "/t.*er"
     else:
         req.flip_rule.connection.name = "/chatter"
 
@@ -71,6 +72,8 @@ if __name__ == '__main__':
         resp = flip(req)
         if resp.result != 0:
             rospy.logerr("Flip : %s"%resp.error_message)
+
+    req.flip_rule.connection.node = None
 
     if args.subonly or flip_all_connection_types:
         req.flip_rule.connection.type = gateway_comms.msg.Connection.SUBSCRIBER

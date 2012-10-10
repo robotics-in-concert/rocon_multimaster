@@ -136,8 +136,8 @@ class Gateway():
         else:
             gateways = [x for x in requested_gateways if x in available_gateways]
 
-        # Obtain information about relevant gateways
         response = gateway_comms.srv.RemoteGatewayInfoResponse()
+        # Public Interface
         public_interfaces = self.gateway_sync.hub.listPublicInterfaces(gateways)
         for key in public_interfaces:
             gateway_response = gateway_comms.msg.Gateway(key, public_interfaces[key])
