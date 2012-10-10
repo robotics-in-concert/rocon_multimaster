@@ -111,7 +111,7 @@ def serializeRosMsg(msg):
     msg.serialize(buffer)
     msg_str = buffer.getvalue()
     buffer.close()
-    return str
+    return msg_str
 
 ##########################################################################
 # Other Utilities

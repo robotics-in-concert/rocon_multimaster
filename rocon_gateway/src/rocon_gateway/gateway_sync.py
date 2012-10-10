@@ -139,9 +139,10 @@ class GatewaySync(object):
         result = gateway_comms.msg.Result.SUCCESS
         try:
             if not request.cancel:
-                self.public_interface.allowAll(request.blacklist)
+                if not self.public_interface.advertiseAll(request.blacklist):
+                    result = gateway_comms.msg.Result.ADVERTISEMENT_EXISTS
             else:
-                self.public_interface.disallowAll()
+                self.public_interface.unadvertiseAll()
         except Exception as e:
             rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
             result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR

@@ -2,6 +2,7 @@
 
   <arg name="hub_port" default="12345" />
   <arg name="gateway_port" default="12346" />
+  <arg name="time_limit" default="60.0" />
 
   <include file="$(find rocon_gateway_tests)/launch/test_single_gateway_hub.launch">
     <arg name="hub_port" value="$(arg hub_port)"/>
@@ -9,7 +10,7 @@
   </include>
 
   <!-- launch the test -->
-  <test name="multimaster_test" pkg="rocon_gateway_tests" type="test_advertisements_locally.py" test-name="test_advertisements_locally" time-limit="60.0">
+  <test name="multimaster_test" pkg="rocon_gateway_tests" type="test_advertisements_locally.py" test-name="test_advertisements_locally" time-limit="$(arg time_limit)">
     <env name="ROS_MASTER_URI" value="http://localhost:$(arg gateway_port)" />
   </test>
 
