@@ -7,15 +7,24 @@
 PKG = 'rocon_gateway_tests'
 import roslib; roslib.load_manifest(PKG)
 import rospy
-import rosgraph
+import rostest
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 import unittest
 import std_msgs
+import random
 
 class TestAdvertisementsLocally(unittest.TestCase):
 
     def setUp(self):
+        '''
+          Run at the start of every test. This function performs the following:
+            1. Ensure that gateway services are available
+            2. Make sure gateway is connected to the hub
+          If something goes wrong and the setup can not complete successfully,
+          the test will timeout with an error
+        '''
+        self.log_open()
 
         rospy.wait_for_service('/gateway/advertise')
         rospy.wait_for_service('/gateway/advertise_all')
@@ -31,12 +40,29 @@ class TestAdvertisementsLocally(unittest.TestCase):
             if resp.connected:
                 break
             rospy.sleep(3.0)
+            self.log("TEST : Waiting for gateway to be connected...")
 
-    def test_AdvertisePublisherByTopic(self):
-        
-        rospy.init_node('multimaster_test')
+        self.maxDiff = None
 
-        # Request adding the /chatter topic, this should add 2 nodes /talker and /talker2
+    def log_open(self):
+        #self.log_file = open('/tmp/' + PKG + '_test_advertisements_locally_' + str(random.randint(1,100000)), 'w')
+        pass
+
+    def log(self,text):
+        #self.log_file.write('[LOG] ' + text + '\n')
+        pass
+
+    def log_close(self):
+        #self.log_file.close()
+        pass
+
+    def test_advertisePublisherByTopic(self):
+        '''
+          Tests advertising publishers. Also tests that multiple nodes are
+          coming up as expected.
+        '''
+        # Request adding the /chatter topic, 
+        # This should add 2 nodes /talker and /talker2
         req = AdvertiseRequest()
         rule = PublicRule()
         rule.connection.type = Connection.PUBLISHER
@@ -49,14 +75,20 @@ class TestAdvertisementsLocally(unittest.TestCase):
         self.assertEquals(len(resp.watchlist), 1)
         self.assertEquals(resp.watchlist[0], rule)
 
-        # Now wait for the 2 nodes to be added. This may take some time as the nodes may not be up yet
-        # If something has gone wrong, then the test will timeout with a failure
+        # Now wait for the 2 nodes to be added. This may take some time as the 
+        # nodes may not be up yet. If something has gone wrong, then the test 
+        # will timeout with a failure
         num_nodes = 2
         while True:
             resp = self.gatewayInfo()
             if len(resp.public_interface) == num_nodes:
                 break
             rospy.sleep(3.0)
+            self.log("TEST : Waiting for watcher thread to load nodes.")
+            node_names = []
+            for i in resp.public_interface:
+                node_names.append(i.connection.name)
+            self.log("TEST :   Current Nodes: %s"%str(node_names))
 
         actual_node_names = []
         for i in range(num_nodes):
@@ -64,19 +96,24 @@ class TestAdvertisementsLocally(unittest.TestCase):
             self.assertEquals(resp.public_interface[i].connection.name,"/chatter")
             actual_node_names.append(resp.public_interface[i].connection.node)
         expected_node_names = ["/talker","/talker2"]
-        self.assertItemsEqual(actual_node_names, expected_node_names)
+        self.assertListEqual(sorted(actual_node_names), sorted(expected_node_names))
 
         #Now lets manually add a third publisher, and see if it gets added
         pub = rospy.Publisher("/chatter", std_msgs.msg.String)
         pub.publish("hello")
 
-        # Wait for 3 nodes to be available
+        # Wait for 3 nodes to be available with all the correct information
         num_nodes = 3
         while True:
             resp = self.gatewayInfo()
-            if len(resp.public_interface) == 3:
+            if len(resp.public_interface) == num_nodes:
                 break
             rospy.sleep(3.0)
+            self.log("TEST : Waiting for watcher thread to load nodes.")
+            node_names = []
+            for i in resp.public_interface:
+                node_names.append(i.connection.name)
+            self.log("TEST :   Current Nodes: %s"%str(node_names))
 
         actual_node_names = []
         for i in range(num_nodes):
@@ -84,13 +121,71 @@ class TestAdvertisementsLocally(unittest.TestCase):
             self.assertEquals(resp.public_interface[i].connection.name,"/chatter")
             actual_node_names.append(resp.public_interface[i].connection.node)
         expected_node_names = ["/talker","/talker2",rospy.get_name()]
-        self.assertItemsEqual(actual_node_names, expected_node_names)
+        self.assertListEqual(sorted(actual_node_names), sorted(expected_node_names))
+
+    def test_advertiseAll(self):
+        '''
+          Makes sure that every connection type is being detected and advertised
+          appropriately.
+        '''
+        topics = {}
+        topics[Connection.PUBLISHER] = "/chatter"
+        topics[Connection.SUBSCRIBER] = "/chatter"
+        topics[Connection.SERVICE] = "/add_two_ints"
+        topics[Connection.ACTION_SERVER] = "/averaging_server/"
+        topics[Connection.ACTION_CLIENT] = "/fibonacci/"
+        nodes = {}
+        nodes[Connection.PUBLISHER] = ["/talker","/talker2"]
+        nodes[Connection.SUBSCRIBER] = ["/listener"]
+        nodes[Connection.SERVICE] = ["/add_two_ints_server"]
+        nodes[Connection.ACTION_SERVER] = ["/averaging_server"]
+        nodes[Connection.ACTION_CLIENT] = ["/fibonacci_client"]
+        num_nodes = 6
+
+        req = AdvertiseRequest()
+        for type in topics:
+            rule = PublicRule()
+            rule.connection.type = type
+            rule.connection.name = topics[type]
+            req.rules.append(rule)
+        req.cancel = False
+        resp = self.advertise(req)
+
+        self.assertEquals(resp.result, Result.SUCCESS)
+        self.assertEquals(len(resp.watchlist), len(topics))
+        #self.assertListEqual(sorted(resp.watchlist), sorted(req.rules))
+
+        # Ensure all the nodes come as advertised. First wait for all the nodes
+        while True:
+            resp = self.gatewayInfo()
+            if len(resp.public_interface) == num_nodes:
+                break
+            rospy.sleep(3.0)
+            self.log("TEST : Waiting for watcher thread to load nodes.")
+            node_names = []
+            for i in resp.public_interface:
+                node_names.append(i.connection.name)
+            self.log("TEST :   Current Nodes: %s"%str(node_names))
+
+        # Now make sure all data is correct
+        for i in range(num_nodes):
+            type = resp.public_interface[i].connection.type
+            node = resp.public_interface[i].connection.node
+            name = resp.public_interface[i].connection.name
+            self.assertEquals(name, topics[type])
+            self.assertIn(node, nodes[type])
+            nodes[type].remove(node)
 
     def tearDown(self):
+        '''
+          Called at the end of every test to ensure that all the advertisements
+          are removed
+        '''
+        self.log_close()
         req = AdvertiseAllRequest()
         req.cancel = True
         self.advertiseAll(req)
 
 if __name__ == '__main__':
-    import rostest
+    rospy.init_node('multimaster_test')
     rostest.rosrun(PKG, 'test_advertisements_locally', TestAdvertisementsLocally) 

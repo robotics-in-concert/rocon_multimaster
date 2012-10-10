@@ -124,7 +124,7 @@ class Gateway():
             response.flipped_in_connections.extend(self.gateway_sync.flipped_interface.flippedInConnections(connection_type))
             response.flip_watchlist.extend(self.gateway_sync.flipped_interface.watchlist[connection_type])
         response.public_watchlist = self.gateway_sync.public_interface.getWatchlist()
-        response.public_watchlist = self.gateway_sync.public_interface.getInterface()
+        response.public_interface = self.gateway_sync.public_interface.getInterface()
         return response
     
     def rosServiceRemoteGatewayInfo(self,request):
