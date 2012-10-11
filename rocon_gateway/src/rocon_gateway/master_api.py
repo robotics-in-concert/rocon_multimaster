@@ -131,13 +131,25 @@ class LocalMaster(rosgraph.Master):
                 if len(action_nodes) != 0:
                     # yay! an action has been found
                     actions.append([base_topic, action_nodes])
-        return actions
+                    # remove action entries from publishers/subscribers
+                    for connection in pubs:
+                        if connection[0] in [base_topic + 'goal', base_topic + 'cancel']:
+                            connection[1].remove(node)
+                    for connection in subs:
+                        if connection[0] in [base_topic + 'status', base_topic + 'feedback', base_topic + 'result']:
+                            connection[1].remove(node)
+
+        pubs[:] = [connection for connection in pubs if len(connection[1]) != 0]
+        subs[:] = [connection for connection in subs if len(connection[1]) != 0]
+        return actions, pubs, subs
 
     def getActionServers(self, publishers, subscribers):
-        return self._getActions(subscribers,publishers)
+        actions, subs, pubs = self._getActions(subscribers,publishers)
+        return actions, pubs, subs
 
     def getActionClients(self, publishers, subscribers):
-        return self._getActions(publishers,subscribers)
+        actions, pubs, subs = self._getActions(publishers,subscribers)
+        return actions, pubs, subs
 
     def getConnectionsFromPubSubList(self,list,type):
         connections = []
@@ -193,8 +205,8 @@ class LocalMaster(rosgraph.Master):
     def getConnectionState(self):
         connections = {}
         publishers, subscribers, services = self.getSystemState()
-        action_servers = self.getActionServers(publishers, subscribers)
-        action_clients = self.getActionClients(publishers, subscribers)
+        action_servers, publishers, subscribers = self.getActionServers(publishers, subscribers)
+        action_clients, publishers, subscribers = self.getActionClients(publishers, subscribers)
         connections[Rule.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, Rule.PUBLISHER)
         connections[Rule.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, Rule.SUBSCRIBER)
         connections[Rule.SERVICE] = self.getConnectionsFromServiceList(services, Rule.SERVICE)
