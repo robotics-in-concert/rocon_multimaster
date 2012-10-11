@@ -300,7 +300,6 @@ class PublicInterface(object):
           @return: new public connections, as well as connections to be removed
           @rtype: Connection[], Connection[]
         '''
-
         # SLOW, EASY METHOD
         public = utils.createEmptyConnectionTypeDictionary()
         new_public = utils.createEmptyConnectionTypeDictionary()
@@ -313,26 +312,8 @@ class PublicInterface(object):
             new_public[connection_type] = diff(public[connection_type],self.public[connection_type])
             removed_public[connection_type] = diff(self.public[connection_type],public[connection_type])
 
-        # print "old public"
-        # for connection_type in self.public:
-        #     for connection in self.public[connection_type]:
-        #         print utils.formatConnection(connection)
-
         self.lock.acquire()
         self.public = public
         self.lock.release()
-
-        # print "public"
-        # for connection_type in public:
-        #     for connection in public[connection_type]:
-        #         print utils.formatConnection(connection)
-        # print "new public"
-        # for connection_type in new_public:
-        #     for connection in new_public[connection_type]:
-        #         print utils.formatConnection(connection)
-        # print "removed public"
-        # for connection_type in removed_public:
-        #     for connection in removed_public[connection_type]:
-        #         print utils.formatConnection(connection)
 
         return new_public, removed_public
