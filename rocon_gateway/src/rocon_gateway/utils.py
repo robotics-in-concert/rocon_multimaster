@@ -154,7 +154,7 @@ def deserialize(str_msg):
     return convert(json.loads(str_msg))
 
 def serializeConnection(connection):
-    return serialize([connection.rule.type,connection.rule.name,connection.rule.node,connection.xmlrpc_uri,connection.type_info])
+    return serialize([connection.rule.type,connection.rule.name,connection.rule.node,connection.type_info,connection.xmlrpc_uri])
 
 def deserializeConnection(connection_str):
     list = deserialize(connection_str)
@@ -162,7 +162,7 @@ def deserializeConnection(connection_str):
     return Connection(rule, list[3], list[4])
 
 def serializeConnectionRequest(command, source, connection):
-    return serialize([command,source,connection.rule.type,connection.rule.name,connection.rule.node,connection.xmlrpc_uri,connection.type_info])
+    return serialize([command,source,connection.rule.type,connection.rule.name,connection.rule.node,connection.type_info,connection.xmlrpc_uri])
 
 def serializeRuleRequest(command,source,rule):
     return serialize([command,source,rule.type,rule.name,rule.node])

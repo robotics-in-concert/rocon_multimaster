@@ -158,6 +158,20 @@ class Hub(object):
                 connection = utils.deserializeConnection(connection_str)
                 public_interfaces[gateway].append(connection.rule) 
         return public_interfaces
+
+    def getRemoteConnectionState(self, gateway):
+        '''
+          Equivalent to getConnectionState, but generates it from the public
+          interface of a foreign gateway
+       '''
+        connections = utils.createEmptyConnectionTypeDictionary()
+        gateway_key = createKey(gateway)
+        key = gateway_key +":connection"
+        public_interface = self.server.smembers(key)
+        for connection_str in public_interface:
+            connection = utils.deserializeConnection(connection_str)
+            connections[connection.rule.type].append(connection)
+        return connections
         
     ##########################################################################
     # Gateway Rule
