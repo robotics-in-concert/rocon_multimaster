@@ -55,7 +55,7 @@ def generateRules(param):
         # maybe also check for '' here?
         pattern = re.compile("None",re.IGNORECASE)
         if pattern.match(value['node']):
-            rule.node = None
+            rule.node = '' #ROS Message fields should not be None
         else:
             rule.node = value['node']
         rule.type = value['type']

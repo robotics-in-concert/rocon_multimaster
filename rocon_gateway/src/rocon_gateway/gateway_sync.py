@@ -14,6 +14,7 @@ import re
 import itertools
 import copy
 import threading
+import httplib
 
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
@@ -118,11 +119,7 @@ class GatewaySync(object):
             rospy.logerr("Gateway : advertise call error [%s]."%str(e))
             result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
 
-        #Do a manual update
-        public_interface = self.updatePublicInterface()
-        if public_interface == None:
-            return gateway_comms.msg.Result.NO_HUB_CONNECTION, self.public_interface.getWatchlist(), []
-        return result, self.public_interface.getWatchlist(), public_interface
+        return result
 
     def rosServiceAdvertiseAll(self,request):
         '''
@@ -147,11 +144,7 @@ class GatewaySync(object):
             rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
             result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
 
-        #Do a manual update
-        public_interface = self.updatePublicInterface()
-        if public_interface == None:
-            return gateway_comms.msg.Result.NO_HUB_CONNECTION, self.public_interface.getBlacklist(), []
-        return result, self.public_interface.getBlacklist(), public_interface
+        return result
 
     def rosServiceFlip(self,request):
         '''
@@ -252,7 +245,11 @@ class GatewaySync(object):
             rospy.logerr("Gateway : advertise call failed [no hub rule].")
             return None
         if not connections:
-            connections = self.master.getConnectionState()
+            try:
+                connections = self.master.getConnectionState()
+            except httplib.ResponseNotReady as e:
+                rospy.logwarn("Received ResponseNotReady from master api")
+                return None
         self.public_interface_lock.acquire()
         new_conns, lost_conns = self.public_interface.update(connections)
         public_interface = self.public_interface.getInterface()
