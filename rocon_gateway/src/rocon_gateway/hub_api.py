@@ -11,8 +11,6 @@ import rospy
 import re
 import utils
 
-from gateway_comms.msg import Rule
-
 ###############################################################################
 # Utility Functions
 ###############################################################################
@@ -154,13 +152,12 @@ class Hub(object):
             gateways = self.listGateways()
         for gateway in gateways:
             gateway_key = createKey(gateway)
-            key = gateway_key +":rule"
+            key = gateway_key +":connection"
             public_interface = self.server.smembers(key)
             public_interfaces[gateway] = []
-            for rule_str in public_interface:
-                rule = Rule()
-                rule.rule.deserialize(rule_str)
-                public_interfaces[gateway].append(rule) 
+            for connection_str in public_interface:
+                connection = utils.deserializeConnection(connection_str)
+                public_interfaces[gateway].append(connection.rule) 
         return public_interfaces
         
     ##########################################################################
