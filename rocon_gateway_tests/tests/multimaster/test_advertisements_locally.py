@@ -186,6 +186,19 @@ class TestAdvertisementsLocally(unittest.TestCase):
         req.cancel = True
         self.advertiseAll(req)
 
+        #wait for all nodes to disappear
+        num_nodes = 0
+        while True:
+            resp = self.gatewayInfo()
+            if len(resp.public_interface) == num_nodes:
+                break
+            rospy.sleep(3.0)
+            self.log("TEST : Waiting for watcher thread to load nodes.")
+            node_names = []
+            for i in resp.public_interface:
+                node_names.append(i.name)
+            self.log("TEST :   Current Nodes: %s"%str(node_names))
+
 if __name__ == '__main__':
     rospy.init_node('multimaster_test')
     rostest.rosrun(PKG, 'test_advertisements_locally', TestAdvertisementsLocally) 

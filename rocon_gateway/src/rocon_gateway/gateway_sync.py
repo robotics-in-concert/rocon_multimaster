@@ -119,7 +119,7 @@ class GatewaySync(object):
             rospy.logerr("Gateway : advertise call error [%s]."%str(e))
             result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
 
-        return result
+        return result, self.public_interface.getWatchlist()
 
     def rosServiceAdvertiseAll(self,request):
         '''
@@ -144,7 +144,7 @@ class GatewaySync(object):
             rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
             result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
 
-        return result
+        return result, self.public_interface.getBlacklist()
 
     def rosServiceFlip(self,request):
         '''
