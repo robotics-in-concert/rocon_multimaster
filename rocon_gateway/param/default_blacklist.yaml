@@ -22,10 +22,10 @@ default_blacklist:
       type: publisher
     - name: .*zeroconf.*
       node: None
-      type: service
+      type: subscriber
     - name: .*zeroconf.*
       node: None
-      type: subscriber
+      type: service
     - name: .*gateway/.*
       node: None
       type: service

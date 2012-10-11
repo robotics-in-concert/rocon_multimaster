@@ -215,7 +215,7 @@ class GatewaySync(object):
                 response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                 response.error_message = "already flipping all to gateway '%s' "+request.gateway
         else: # request.cancel
-            self.flipped_interface.removeFlipAll(request.gateway)
+            self.flipped_interface.unFlipAll(request.gateway)
             rospy.loginfo("Gateway : cancelled flip all request [%s]"%(request.gateway))
             response.result = gateway_comms.msg.Result.SUCCESS
             # watcher thread will look after this from here

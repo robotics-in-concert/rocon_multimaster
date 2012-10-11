@@ -169,7 +169,7 @@ class FlippedInterface(object):
         self.lock.release()
         return True
 
-    def removeFlipAll(self, gateway):
+    def unFlipAll(self, gateway):
         '''
           Remove the flip all rule for the specified gateway.
           
@@ -184,22 +184,16 @@ class FlippedInterface(object):
         '''
         self.lock.acquire()
         if gateway in self._blacklist:
-            self.lock.release()
-            return False
-        del self._blacklist[gateway]
-        flip_rule = RemoteRule()
-        flip_rule.gateway = gateway
-        flip_rule.rule.name = '.*'
-        flip_rule.rule.node = None
+            del self._blacklist[gateway]
         for connection_type in utils.connection_types:
-            flip_rule.rule.type = connection_type
-            # basically self.removeRule() - do it manually here so we don't deadlock locks
-            try:
-                self.watchlist[flip_rule.rule.type].remove(flip_rule)
-            except ValueError:
-                pass # should never get here
+            for rule in self.watchlist[connection_type]:
+                if rule.gateway == gateway:
+                    # basically self.removeRule() - do it manually here so we don't deadlock locks
+                    try:
+                        self.watchlist[connection_type].remove(rule)
+                    except ValueError:
+                        pass # should never get here
         self.lock.release()
-        return True
 
     def update(self,connections):
         '''
@@ -309,6 +303,9 @@ class FlippedInterface(object):
             matched = False
             name_match_result = re.match(rule.rule.name, name)
             if name_match_result and name_match_result.group() == name:
+                if self._isFlipAllPattern(rule.rule.name):
+                    if self._isInBlacklist(rule.gateway, type, name, node):
+                        continue
                 if rule.rule.node:
                     node_match_result = re.match(rule.rule.node,node)
                     if node_match_result and node_match_result.group() == node:
@@ -321,25 +318,6 @@ class FlippedInterface(object):
                 matched_flip.rule.node = node # just in case we used a regex
                 matched_flip_rules.append(matched_flip)
 
-        # remove matched rules that trigger the blacklist
-        remove_list = []
-        for matched_rule in matched_flip_rules:
-            in_blacklist = False
-            for rule in self._blacklist[matched_rule.gateway][matched_rule.rule.type]:
-                name_match_result = re.match(rule.name, matched_rule.rule.name)
-                if name_match_result and name_match_result.group() == matched_rule.rule.name:
-                    if rule.node:
-                        node_match_result = re.match(rule.node,matched_rule.rule.node)
-                        if node_match_result and node_match_result.group() == matched_rule.rule.node:
-                            in_blacklist = True
-                            break
-                    else: # rule.rule.node is None so we don't care about matching the node
-                        in_blacklist = True
-                        break
-            if in_blacklist:
-                remove_list.append(matched_rule)
-        matched_flip_rules[:] = [rule for rule in matched_flip_rules if rule not in remove_list]
-            
         return matched_flip_rules
     
     ##########################################################################
@@ -369,6 +347,44 @@ class FlippedInterface(object):
             flip_rule.rule.type = connection_type
             flipped_in_rules.append(flip_rule)
         return flipped_in_rules
+
+    ##########################################################################
+    # Utilities
+    ##########################################################################
+
+    def _isFlipAllPattern(self, pattern):
+        ''' 
+          Convenience function for detecting the flip all pattern.
+
+          @todo move to utils - should be shared with the public interface.
+          
+          @param pattern : the name rule string for the flip all concept
+          @type str
+          @return true if matching, false otherwise
+          @rtype Bool
+        '''
+        if pattern == ".*":
+            return True
+        else:
+            return False
+    
+    def _isInBlacklist(self, gateway, type, name, node):
+        '''
+          Check if a particular connection is in the blacklist. Use this to
+          filter connections from the flipAll command.
+          
+          @todo move to utils - should be shared with the public interface.
+        '''
+        for blacklist_rule in self._blacklist[gateway][type]:
+            name_match_result = re.match(blacklist_rule.name, name)
+            if name_match_result and name_match_result.group() == name:
+                if blacklist_rule.node:
+                    node_match_result = re.match(blacklist_rule.node,node)
+                    if node_match_result and node_match_result.group() == node:
+                        return True
+                else: # rule.connection.node is None so we don't care about matching the node
+                    return True
+        return False
     
 if __name__ == "__main__":
     
