@@ -11,7 +11,7 @@ import rospy
 import re
 import utils
 
-from gateway_comms.msg import PublicRule
+from gateway_comms.msg import Rule
 
 ###############################################################################
 # Utility Functions
@@ -45,7 +45,7 @@ def keyBaseName(key):
 def resolveHub(ip, port):
     '''
       Pings the hub for identification. We currently use this to check
-      against the gateway whitelist/blacklists to determine if a connection
+      against the gateway whitelist/blacklists to determine if a rule
       should proceed or not.
       
       @return string - hub name
@@ -77,7 +77,7 @@ class RedisListenerThread(threading.Thread):
             - [1] - remote_gateway : the name of the gateway that is flipping to us
             - [2] - remote_name 
             - [3] - remote_node
-            - [4] - type : one of Connection.PUBLISHER etc
+            - [4] - type : one of Rule.PUBLISHER etc
             - [5] - type_info : a ros format type (e.g. std_msgs/String or service api)
             - [6] - xmlrpc_uri : the xmlrpc node uri
             
@@ -130,8 +130,8 @@ class Hub(object):
             self.server = redis.Redis(connection_pool=self.pool)
             rospy.logdebug("Gateway : connected to the hub's redis server.")
             self.redis_pubsub_server = self.server.pubsub()
-        except ConnectionError as e:
-            rospy.logerror("Gateway : failed connection to the hub's redis server.")
+        except redis.exceptions.ConnectionError as e:
+            rospy.logerror("Gateway : failed rule to the hub's redis server.")
             raise
 
     def listGateways(self):
@@ -154,17 +154,17 @@ class Hub(object):
             gateways = self.listGateways()
         for gateway in gateways:
             gateway_key = createKey(gateway)
-            key = gateway_key +":connection"
+            key = gateway_key +":rule"
             public_interface = self.server.smembers(key)
             public_interfaces[gateway] = []
-            for connection_str in public_interface:
-                rule = PublicRule()
-                rule.connection.deserialize(connection_str)
+            for rule_str in public_interface:
+                rule = Rule()
+                rule.rule.deserialize(rule_str)
                 public_interfaces[gateway].append(rule) 
         return public_interfaces
         
     ##########################################################################
-    # Gateway Connection
+    # Gateway Rule
     ##########################################################################
 
     def registerGateway(self):
@@ -201,7 +201,7 @@ class Hub(object):
         '''
         try:
             pipe = self.server.pipeline()
-            public_interface_list = self.redis_keys['name'] +":connection"
+            public_interface_list = self.redis_keys['name'] +":rule"
             pipe.delete(public_interface_list)
             pipe.srem(self.redis_keys['gatewaylist'],self.redis_keys['name'])
             pipe.execute()
@@ -231,7 +231,7 @@ class Hub(object):
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
         key = self.redis_keys['name']+":connection"
-        msg_str = utils.serializeRosMsg(connection)
+        msg_str = utils.serializeConnection(connection)
         self.server.sadd(key,msg_str)
     
     def unadvertise(self, connection):
@@ -243,7 +243,7 @@ class Hub(object):
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
         key = self.redis_keys['name']+":connection"
-        msg_str = utils.serializeRosMsg(connection)
+        msg_str = utils.serializeConnection(connection)
         self.server.srem(key,msg_str)
 
     ##########################################################################
@@ -263,12 +263,12 @@ class Hub(object):
           watcher thread, when a flip rule gets activated.
 
            - redis channel name: rocon:<remote_gateway_name>
-           - data : list of [ command, gateway, connection type, type, xmlrpc_uri ]
+           - data : list of [ command, gateway, rule type, type, xmlrpc_uri ]
             - [0] - command       : in this case 'flip'
             - [1] - gateway       : the name of this gateway, i.e. the flipper
             - [2] - name          : local name  
             - [3] - node          : local node name
-            - [4] - connection_type : one of Connection.PUBLISHER etc
+            - [4] - connection_type : one of Rule.PUBLISHER etc
             - [5] - type_info     : a ros format type (e.g. std_msgs/String or service api)
             - [6] - xmlrpc_uri    : the xmlrpc node uri
             
@@ -276,7 +276,7 @@ class Hub(object):
           @type str
           
           @param flip_rule : the flip to send
-          @type FlipRule
+          @type RemoteRule
           
           @param type_info : topic type (e.g. std_msgs/String)
           @param str
@@ -284,7 +284,7 @@ class Hub(object):
           @param xmlrpc_uri : the node uri
           @param str
         '''
-        data = ['flip', extractKey(self.redis_keys['name']), flip_rule.connection.name, flip_rule.connection.node, flip_rule.connection.type, type_info, xmlrpc_uri];
+        data = ['flip', extractKey(self.redis_keys['name']), flip_rule.rule.name, flip_rule.rule.node, flip_rule.rule.type, type_info, xmlrpc_uri];
         cmd = utils.serialize(data)
         try:
             self.server.publish(createKey(flip_rule.gateway),cmd)
@@ -293,7 +293,7 @@ class Hub(object):
         return True
 
     def sendUnFlipRequest(self, flip_rule):
-        data = ['unflip', extractKey(self.redis_keys['name']), flip_rule.connection.name, flip_rule.connection.node, flip_rule.connection.type];
+        data = ['unflip', extractKey(self.redis_keys['name']), flip_rule.rule.name, flip_rule.rule.node, flip_rule.rule.type];
         cmd = utils.serialize(data)
         try:
             self.server.publish(createKey(flip_rule.gateway),cmd)

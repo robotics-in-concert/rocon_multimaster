@@ -16,7 +16,7 @@ import rospy
 
 # local imports
 import utils
-from gateway_comms.msg import PublicRule
+from gateway_comms.msg import Rule
 
 ##############################################################################
 # Functions
@@ -30,31 +30,19 @@ def publicRuleExists(public_rule, public_rules):
       name/regex
       
       @param public_rule : the rule to search for
-      @type PublicRule
+      @type Rule
       
-      @param public_rules : list of PublicRule (public, watchlist or blacklist)
-      @type list : list of PublicRule objects
+      @param public_rules : list of Rule (public, watchlist or blacklist)
+      @type list : list of Rule objects
       
       @return True if the public rule exists, False otherwise
       @rtype bool
     '''
     for rule in public_rules:
-        if rule.connection.name == public_rule.connection.name and \
-           rule.connection.node == public_rule.connection.node:
+        if rule.name == public_rule.name and \
+           rule.node == public_rule.node:
             return True
     return False
-
-def generatePublicRulesFromConnections(connections):
-    '''
-      Generate a public rules dictionary directly from a 
-      connections dictionary.
-    '''
-    public_rules = utils.createEmptyConnectionTypeDictionary()
-    if connections:
-        for connection_type in utils.connection_types:
-            for connection in connections[connection_type]:
-                public_rules[connection_type].append(PublicRule(connection))
-    return public_rules
 
 ##############################################################################
 # Public Interface
@@ -62,26 +50,26 @@ def generatePublicRulesFromConnections(connections):
 
 class PublicInterface(object):
     '''
-      The public interface is the set of connections 
+      The public interface is the set of rules 
       (pubs/subs/services/actions) that are exposed and made available for 
       freely sharing with a multimaster system.
       
       It consists of: 
-       * list of currently available connections to be shared 
-       * list of connections and filters that will be watched 
+       * list of currently available rules to be shared 
+       * list of rules and filters that will be watched 
          and shared if they become available 
       
     '''
-    def __init__(self, default_connection_blacklist):
+    def __init__(self, default_rule_blacklist):
         '''
           Initialises the public interface
         '''
-        # List of connections to be monitored and (un)advertised  as they 
+        # List of rules to be monitored and (un)advertised  as they 
         # become (un)available
         self.watchlist = utils.createEmptyConnectionTypeDictionary()
 
         # Default rules that cannot be advertised - used in AdvertiseAll mode
-        self._default_blacklist = generatePublicRulesFromConnections(default_connection_blacklist)
+        self._default_blacklist = default_rule_blacklist
 
         # Default + custom blacklist - used in AdvertiseAll mode
         self.blacklist = self._default_blacklist
@@ -102,18 +90,18 @@ class PublicInterface(object):
         Watch for a new public rule, as described for by the incoming message.
         
         @param rule : a rule msg from the advertise call
-        @type PublicRule
+        @type Rule
 
         @return the rule if added, or None if the rule exists already
-        @rtype PublicRule || None
+        @rtype Rule || None
         '''
         result = None
         self.lock.acquire()
-        if not publicRuleExists(rule,self.watchlist[rule.connection.type]):
-            self.watchlist[rule.connection.type].append(rule)
+        if not publicRuleExists(rule,self.watchlist[rule.type]):
+            self.watchlist[rule.type].append(rule)
             result = rule
         self.lock.release()
-        rospy.logdebug("Gateway : (req) advertise %s"%utils.formatRule(rule))
+        rospy.loginfo("Gateway : (req) advertise %s"%utils.formatRule(rule))
         return result
 
     def removeRule(self, rule): 
@@ -124,19 +112,19 @@ class PublicInterface(object):
         nodes of that kind of advertisement will match.
         
         @param rule : a rule to unadvertise
-        @type PublicRule
+        @type Rule
 
         @return the list of rules removed
-        @rtype PublicRule[]
+        @rtype Rule[]
         '''
 
-        rospy.logdebug("Gateway : (req) unadvertise %s"%utils.formatRule(rule))
+        rospy.loginfo("Gateway : (req) unadvertise %s"%utils.formatRule(rule))
 
-        if rule.connection.node:
+        if rule.node:
             # This looks for *exact* matches.
             try:
                 self.lock.acquire()
-                self.watchlist[rule.connection.type].remove(rule)
+                self.watchlist[rule.type].remove(rule)
                 self.lock.release()
                 return [rule]
             except ValueError:
@@ -147,11 +135,11 @@ class PublicInterface(object):
             # also no need to check for type with the dic keys like they are
             existing_rules = []
             self.lock.acquire()
-            for existing_rule in self.watchlist[rule.connection.type]:
-                if (existing_rule.connection.name == rule.connection.name):
+            for existing_rule in self.watchlist[rule.type]:
+                if (existing_rule.name == rule.name):
                     existing_rules.append(existing_rule)
             for rule in existing_rules:
-                self.watchlist[rule.connection.type].remove(existing_rule) # not terribly optimal
+                self.watchlist[rule.type].remove(existing_rule) # not terribly optimal
             self.lock.release()
             return existing_rules
 
@@ -160,13 +148,13 @@ class PublicInterface(object):
           Allow all rules apart from the ones in the provided blacklist + 
           default blacklist
 
-          @param blacklist : list of PublicRule objects
-          @type list : list of PublicRule objects
+          @param blacklist : list of Rule objects
+          @type list : list of Rule objects
 
           @return failure if already advertising all, success otherwise
           @rtype bool
         '''
-        rospy.logdebug("Gateway : (req) advertise everything!")
+        rospy.loginfo("Gateway : (req) advertise everything!")
         self.lock.acquire()
 
         # Check if advertise all already enabled 
@@ -178,16 +166,16 @@ class PublicInterface(object):
         # generate watchlist
         self.watchlist = utils.createEmptyConnectionTypeDictionary() #easy hack for getting a clean watchlist
         for connection_type in utils.connection_types:
-            allow_all_rule = PublicRule()
-            allow_all_rule.connection.name = '.*'
-            allow_all_rule.connection.type = connection_type
+            allow_all_rule = Rule()
+            allow_all_rule.name = '.*'
+            allow_all_rule.type = connection_type
             self.watchlist[connection_type].append(allow_all_rule)
 
         # generate blacklist (while making sure only unique rules get added)
         self.blacklist = copy.deepcopy(self._default_blacklist)
         for rule in blacklist:
-            if not publicRuleExists(rule, self.blacklist[rule.connection.type]):
-                self.blacklist[rule.connection.type].append(rule)
+            if not publicRuleExists(rule, self.blacklist[rule.type]):
+                self.blacklist[rule.type].append(rule)
 
         self.lock.release()
         return True
@@ -197,7 +185,7 @@ class PublicInterface(object):
           Disallow the allow all mode, if enabled. If allow all mode is not
           enabled, remove everything from the public interface
         '''
-        rospy.logdebug("Gateway : (req) remove all advertisements!")
+        rospy.loginfo("Gateway : (req) remove all advertisements!")
         self.lock.acquire()
 
         # stop advertising all
@@ -217,7 +205,7 @@ class PublicInterface(object):
         list = []
         self.lock.acquire()
         for connection_type in utils.connection_types:
-            list.extend(self.public[connection_type])
+            list.extend([connection.rule for connection in self.public[connection_type]])
         self.lock.release()
         return list
 
@@ -241,24 +229,24 @@ class PublicInterface(object):
     # Filter
     ##########################################################################
 
-    def _matchAgainstRuleList(self,rules,connection):
+    def _matchAgainstRuleList(self,rules,rule):
         '''
-          Match a given connection/rule against a given rule list
+          Match a given rule/rule against a given rule list
 
           @param rules : the rules against which to match
-          @type dict of list of PublicRule objects
-          @param connection : the given connection/rule to match
-          @type Connection
+          @type dict of list of Rule objects
+          @param rule : the given rule/rule to match
+          @type Rule
           @return the list of rules matched, None if no rules found
-          @rtype list of PublicRules || None
+          @rtype list of Rules || None
         '''
         matched = False
-        for r in rules[connection.type]:
-            name_match_result = re.match(r.connection.name, connection.name)
-            if name_match_result and name_match_result.group() == connection.name:
-                if r.connection.node:
-                    node_match_result = re.match(r.connection.node, connection.node)
-                    if node_match_result and node_match_result.group() == connection.node:
+        for r in rules[rule.type]:
+            name_match_result = re.match(r.name, rule.name)
+            if name_match_result and name_match_result.group() == rule.name:
+                if r.node:
+                    node_match_result = re.match(r.node, rule.node)
+                    if node_match_result and node_match_result.group() == rule.node:
                         matched = True
                 else:
                     matched = True
@@ -266,67 +254,85 @@ class PublicInterface(object):
                 break
         return matched
 
-    def _allowConnection(self,connection):
+    def _allowRule(self,rule):
         '''
-          Determines whether a given connection should be allowed given the
+          Determines whether a given rule should be allowed given the
           status of the current watchlist and blacklist
 
-          @param connection : the given connection/rule to match
-          @type Connection
-          @return whether connection is allowed
+          @param rule : the given rule/rule to match
+          @type Rule
+          @return whether rule is allowed
           @rtype bool
         '''
         self.lock.acquire()
-        matched_rules = self._matchAgainstRuleList(self.watchlist,connection)
-        matched_blacklisted_rules = self._matchAgainstRuleList(self.blacklist,connection)
+        matched_rules = self._matchAgainstRuleList(self.watchlist,rule)
+        matched_blacklisted_rules = self._matchAgainstRuleList(self.blacklist,rule)
         self.lock.release()
         success = False
         if matched_rules and not matched_blacklisted_rules:
             success = True
         return success
 
-    def _generatePublic(self, connection):
+    def _generatePublic(self, rule):
         '''
-          Given a connection, determines if the connection is allowed. If it is 
-          allowed, then returns the corresponding PublicRule object
+          Given a rule, determines if the rule is allowed. If it is 
+          allowed, then returns the corresponding Rule object
 
-          @param connections : the given connections to match
-          @type Connection
-          @return The generated PublicRule if allowed, None if no match
-          @rtype PublicRule || None
+          @param rules : the given rules to match
+          @type Rule
+          @return The generated Rule if allowed, None if no match
+          @rtype Rule || None
         '''
-        if self._allowConnection(connection):
-            return PublicRule(connection)
+        if self._allowRule(rule):
+            return Rule(rule)
         return None
 
     def update(self,connections):
         '''
-          Checks a list of connections and determines which ones should be 
+          Checks a list of rules and determines which ones should be 
           added/removed to the public interface. Modifies the public interface
-          accordingly, and returns the list of connections to the gateway for
+          accordingly, and returns the list of rules to the gateway for
           hub operations
 
-          @param connections: the list of connections available locally
-          @type dict of lists of Connection objects
+          @param rules: the list of rules available locally
+          @type dict of lists of Rule objects
 
           @return: new public connections, as well as connections to be removed
-          @rtype: PublicRule[], PublicRule[]
+          @rtype: Connection[], Connection[]
         '''
 
         # SLOW, EASY METHOD
         public = utils.createEmptyConnectionTypeDictionary()
         new_public = utils.createEmptyConnectionTypeDictionary()
-        removed_publics = utils.createEmptyConnectionTypeDictionary()
+        removed_public = utils.createEmptyConnectionTypeDictionary()
         diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
         for connection_type in connections:
             for connection in connections[connection_type]:
-                public_connection = self._generatePublic(connection)
-                if public_connection:
-                    public[connection_type].append(public_connection)
+                if self._allowRule(connection.rule):
+                    public[connection_type].append(connection)
             new_public[connection_type] = diff(public[connection_type],self.public[connection_type])
-            removed_publics[connection_type] = diff(self.public[connection_type],public[connection_type])
+            removed_public[connection_type] = diff(self.public[connection_type],public[connection_type])
+
+        # print "old public"
+        # for connection_type in self.public:
+        #     for connection in self.public[connection_type]:
+        #         print utils.formatConnection(connection)
+
         self.lock.acquire()
         self.public = public
         self.lock.release()
 
-        return new_public, removed_publics
+        # print "public"
+        # for connection_type in public:
+        #     for connection in public[connection_type]:
+        #         print utils.formatConnection(connection)
+        # print "new public"
+        # for connection_type in new_public:
+        #     for connection in new_public[connection_type]:
+        #         print utils.formatConnection(connection)
+        # print "removed public"
+        # for connection_type in removed_public:
+        #     for connection in removed_public[connection_type]:
+        #         print utils.formatConnection(connection)
+
+        return new_public, removed_public

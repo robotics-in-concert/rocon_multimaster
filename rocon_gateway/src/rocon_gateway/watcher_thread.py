@@ -13,7 +13,7 @@ import rospy
 import rosservice
 import rostopic
 import threading
-from gateway_comms.msg import Connection
+from gateway_comms.msg import Rule
 
 ##############################################################################
 # Watcher
@@ -37,48 +37,48 @@ class WatcherThread(threading.Thread):
     def run(self):
         while not rospy.is_shutdown():
             if self.gateway.is_connected:
-                connections = self.master.getConnectionState()
+                rules = self.master.getConnectionState()
                 # Flipped Interface
-                new_flips, lost_flips = self.flipped_interface.update(connections)
-                # new_flips and lost_flips are FlipRule lists with filled supplied name info from the master
-                for connection_type in connections:
+                new_flips, lost_flips = self.flipped_interface.update(rules)
+                # new_flips and lost_flips are RemoteRule lists with filled supplied name info from the master
+                for connection_type in rules:
                     for flip in new_flips[connection_type]:
-                        xmlrpc_uri = self.master.lookupNode(flip.connection.node)
-                        if connection_type == Connection.PUBLISHER or connection_type == Connection.SUBSCRIBER:
-                            type_info = rostopic.get_topic_type(flip.connection.name)[0] # message type
-                        elif connection_type == Connection.SERVICE:
-                            type_info = rosservice.get_service_uri(flip.connection.name)
+                        xmlrpc_uri = self.master.lookupNode(flip.rule.node)
+                        if connection_type == Rule.PUBLISHER or connection_type == Rule.SUBSCRIBER:
+                            type_info = rostopic.get_topic_type(flip.rule.name)[0] # message type
+                        elif connection_type == Rule.SERVICE:
+                            type_info = rosservice.get_service_uri(flip.rule.name)
                         self.hub.sendFlipRequest(flip, type_info, xmlrpc_uri )
                     for flip in lost_flips[connection_type]:
                         self.hub.sendUnFlipRequest(flip )
                 # Public Interface
-                self.gateway.updatePublicInterface(connections)
+                self.gateway.updatePublicInterface(rules)
             self.watch_loop_rate.sleep()
 
-    def _updatePublicInterface(self, connections):
+    def _updatePublicInterface(self, rules):
         '''
-          Process the list of local connections and check against 
-          the current rules and patterns for flips. If a connection 
+          Process the list of local rules and check against 
+          the current rules and patterns for flips. If a rule 
           has become (un)available take appropriate action.
           
-          @param connections
-          @type dictionary of connections 
+          @param rules
+          @type dictionary of rules 
         '''
-        for connection_type in connections:
-            allowed_connections = self.public_interface.allowedConnections(connections[connection_type])
+        for connection_type in rules:
+            allowed_rules = self.public_interface.allowedRules(rules[connection_type])
             
-            # this has both connections that have disappeared or are no longer allowed
-            public_connections = set([x for x in self.public_interface.public if x.type == connection_type])
-            advertise_new_connections = allowed_connections - public_connections
-            unadvertise_connections = public_connections - allowed_connections
+            # this has both rules that have disappeared or are no longer allowed
+            public_rules = set([x for x in self.public_interface.public if x.type == connection_type])
+            advertise_new_rules = allowed_rules - public_rules
+            unadvertise_rules = public_rules - allowed_rules
 
-            for connection in advertise_new_connections:
-                self.gateway.advertiseConnection(connection)
+            for rule in advertise_new_rules:
+                self.gateway.advertiseRule(rule)
 
-            for connection in unadvertise_connections:
-                self.gateway.unadvertiseConnection(connection)
+            for rule in unadvertise_rules:
+                self.gateway.unadvertiseRule(rule)
     
-    def update(self, type, connections):
+    def update(self, type, rules):
         # CURRENTLY DISABLED (work in progress)
         # unadvertise from public interface if a topic disappears from the local master
         # for string in self.public_interface.interface[identifier]:
