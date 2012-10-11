@@ -23,6 +23,9 @@ default_blacklist:
     - name: .*zeroconf.*
       node: None
       type: subscriber
+    - name: .*zeroconf.*
+      node: None
+      type: service
     - name: .*gateway/.*
       node: None
       type: service

@@ -221,7 +221,7 @@ class GatewaySync(object):
                 response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                 response.error_message = "already flipping all to gateway '%s' "+request.gateway
         else: # request.cancel
-            self.flipped_interface.removeFlipAll(request.gateway, request.blacklist)
+            self.flipped_interface.unFlipAll(request.gateway)
             rospy.loginfo("Gateway : cancelled flip all request [%s]"%(request.gateway))
             response.result = gateway_comms.msg.Result.SUCCESS
             # watcher thread will look after this from here
@@ -268,7 +268,7 @@ class GatewaySync(object):
           Used as a callback for incoming requests on redis pubsub channels.
           It gets assigned to RedisManager.callback.
         '''
-        rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s]"%(registration.remote_gateway,registration.connection_type,registration.type_info,registration.xmlrpc_uri))
+        rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s,%s]"%(registration.remote_gateway,registration.remote_name,registration.connection_type,registration.type_info,registration.xmlrpc_uri))
         # probably not necessary as the flipping gateway will already check this
         if not registration in self.flipped_interface.registrations[registration.connection_type]:
             new_registration = self.master.register(registration)
