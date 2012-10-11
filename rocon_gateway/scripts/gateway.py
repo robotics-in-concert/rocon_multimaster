@@ -127,6 +127,8 @@ class Gateway():
         for flip in response.flip_watchlist:
             if not flip.connection.node:
                 flip.connection.node = 'None'
+        response.public_watchlist = self.gateway_sync.public_interface.getWatchlist()
+        response.public_interface = self.gateway_sync.public_interface.getInterface()
         return response
     
     def rosServiceRemoteGatewayInfo(self,request):
@@ -144,7 +146,7 @@ class Gateway():
         # Public Interface
         public_interfaces = self.gateway_sync.hub.listPublicInterfaces(gateways)
         for key in public_interfaces:
-            gateway_response = gateway_comms.msg.Gateway(key, public_interfaces[key])
+            gateway_response = gateway_comms.msg.RemoteGateway(key, public_interfaces[key], [], [])
             response.gateways.append(gateway_response)
         return response
 
