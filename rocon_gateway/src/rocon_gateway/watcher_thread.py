@@ -14,6 +14,8 @@ import rosservice
 import rostopic
 import threading
 import httplib
+
+import utils
 from gateway_comms.msg import Rule
 
 ##############################################################################
@@ -54,9 +56,12 @@ class WatcherThread(threading.Thread):
                             type_info = rostopic.get_topic_type(flip.rule.name)[0] # message type
                         elif connection_type == Rule.SERVICE:
                             type_info = rosservice.get_service_uri(flip.rule.name)
-                        self.hub.sendFlipRequest(flip, type_info, xmlrpc_uri )
+                        connection = utils.Connection(flip.rule, xmlrpc_uri, type_info)
+                        rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
+                        self.hub.sendFlipRequest(flip.gateway, connection)
                     for flip in lost_flips[connection_type]:
-                        self.hub.sendUnFlipRequest(flip)
+                        rospy.loginfo("Unflipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
+                        self.hub.sendUnflipRequest(flip.gateway, flip.rule)
                 # Public Interface
                 self.gateway.updatePublicInterface(connections)
             self.watch_loop_rate.sleep()

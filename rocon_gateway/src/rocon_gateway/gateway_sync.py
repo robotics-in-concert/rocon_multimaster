@@ -65,7 +65,7 @@ class GatewaySync(object):
         self.master = LocalMaster()
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.processRemoteGatewayFlipRequest
-        self.remote_gateway_request_callbacks['unflip'] = self.processRemoteGatewayUnFlipRequest
+        self.remote_gateway_request_callbacks['unflip'] = self.processRemoteGatewayUnflipRequest
         self.hub = Hub(self.remote_gateway_request_callbacks, self.unresolved_name)
 
         # create a thread to watch local rule states
@@ -155,11 +155,11 @@ class GatewaySync(object):
           under <unique_gateway_name>.
           
           @param request
-          @type gateway_comms.srv.FlipRequest
+          @type gateway_comms.srv.RemoteRequest
           @return service response
-          @rtype gateway_comms.srv.FlipResponse
+          @rtype gateway_comms.srv.RemoteResponse
         '''
-        response = gateway_comms.srv.FlipResponse()
+        response = gateway_comms.srv.RemoteResponse()
         if not self.is_connected:
             rospy.logerr("Gateway : no hub rule, aborting flip.")
             response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
@@ -192,11 +192,11 @@ class GatewaySync(object):
           or if the cancel flag is set, clears all flips to that gateway.
           
           @param request
-          @type gateway_comms.srv.FlipAllRequest
+          @type gateway_comms.srv.RemoteAllRequest
           @return service response
-          @rtype gateway_comms.srv.FlipAllResponse
+          @rtype gateway_comms.srv.RemoteAllResponse
         '''
-        response = gateway_comms.srv.FlipAllResponse()
+        response = gateway_comms.srv.RemoteAllResponse()
         if not self.is_connected:
             rospy.logerr("Gateway : no hub rule, aborting flip all request.")
             response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
@@ -215,7 +215,7 @@ class GatewaySync(object):
                 response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                 response.error_message = "already flipping all to gateway '%s' "+request.gateway
         else: # request.cancel
-            self.flipped_interface.removeFlipAll(request.gateway, request.blacklist)
+            self.flipped_interface.removeFlipAll(request.gateway)
             rospy.loginfo("Gateway : cancelled flip all request [%s]"%(request.gateway))
             response.result = gateway_comms.msg.Result.SUCCESS
             # watcher thread will look after this from here
@@ -272,16 +272,17 @@ class GatewaySync(object):
           Used as a callback for incoming requests on redis pubsub channels.
           It gets assigned to RedisManager.callback.
         '''
-        rospy.loginfo("Gateway : received a flip request [%s,%s,%s,%s]"%(registration.remote_gateway,registration.connection_type,registration.type_info,registration.xmlrpc_uri))
+        rospy.loginfo("Gateway : received a flip request %s"%registration)
         # probably not necessary as the flipping gateway will already check this
-        if not registration in self.flipped_interface.registrations[registration.connection_type]:
+        existing_registration = self.flipped_interface.findRegistrationMatch(registration.remote_gateway,registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
+        if not existing_registration:
             new_registration = self.master.register(registration)
             if new_registration:
-                self.flipped_interface.registrations[registration.connection_type].append(new_registration)
+                self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
     
-    def processRemoteGatewayUnFlipRequest(self,remote_gateway, remote_name, remote_node, connection_type):
-        rospy.loginfo("Gateway : received an unflip request [%s,%s,%s,%s]"%(remote_gateway,remote_name,remote_node,connection_type))
-        existing_registration = self.flipped_interface.findRegistrationMatch(remote_gateway,remote_name,remote_node,connection_type)
+    def processRemoteGatewayUnflipRequest(self,rule,remote_gateway):
+        rospy.loginfo("Gateway : received an unflip request from gateway %s: %s"%(remote_gateway,utils.formatRule(rule)))
+        existing_registration = self.flipped_interface.findRegistrationMatch(remote_gateway,rule.name,rule.node,rule.type)
         if existing_registration:
             self.master.unregister(existing_registration)
-            self.flipped_interface.registrations[existing_registration.connection_type].remove(existing_registration)
+            self.flipped_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)

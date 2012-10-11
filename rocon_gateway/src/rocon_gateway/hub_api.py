@@ -84,14 +84,13 @@ class RedisListenerThread(threading.Thread):
         '''
         for r in self.redis_pubsub_server.listen():
             if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
-                contents = utils.deserialize(r['data'])
-                command = contents[0]
-                rospy.logdebug("Gateway : redis listener received a channel publication [%s]"%command)
+                command, source, contents = utils.deserializeRequest(r['data'])
+                rospy.logdebug("Gateway : redis listener received a channel publication from %s : [%s]"%(source,command))
                 if command == 'flip':
-                    registration = utils.Registration(remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],connection_type=contents[4],type_info=contents[5],xmlrpc_uri=contents[6])
+                    registration = utils.Registration(utils.getConnectionFromList(contents), source)
                     self.remote_gateway_request_callbacks['flip'](registration)
                 elif command == 'unflip':
-                    self.remote_gateway_request_callbacks['unflip'](remote_gateway=contents[1],remote_name=contents[2],remote_node=contents[3],connection_type=contents[4])
+                    self.remote_gateway_request_callbacks['unflip'](utils.getRuleFromList(contents), source)
                 else:
                     rospy.logerr("Gateway : received an unknown command from the hub.")
 
@@ -254,7 +253,7 @@ class Hub(object):
     # Messages to Remote Gateways (via redis publisher channels)
     ##########################################################################
     
-    def sendFlipRequest(self, flip_rule, type_info, xmlrpc_uri):
+    def sendFlipRequest(self, gateway, connection):
         '''
           Sends a message to the remote gateway via redis pubsub channel. This is called from the 
           watcher thread, when a flip rule gets activated.
@@ -281,23 +280,22 @@ class Hub(object):
           @param xmlrpc_uri : the node uri
           @param str
         '''
-        data = ['flip', extractKey(self.redis_keys['name']), flip_rule.rule.name, flip_rule.rule.node, flip_rule.rule.type, type_info, xmlrpc_uri];
-        cmd = utils.serialize(data)
+        source = keyBaseName(self.redis_keys['name'])
+        cmd = utils.serializeConnectionRequest('flip', source, connection)
         try:
-            self.server.publish(createKey(flip_rule.gateway),cmd)
+            self.server.publish(createKey(gateway),cmd)
         except Exception as e:
             return False
         return True
 
-    def sendUnFlipRequest(self, flip_rule):
-        data = ['unflip', extractKey(self.redis_keys['name']), flip_rule.rule.name, flip_rule.rule.node, flip_rule.rule.type];
-        cmd = utils.serialize(data)
+    def sendUnflipRequest(self, gateway, rule):
+        source = keyBaseName(self.redis_keys['name'])
+        cmd = utils.serializeRuleRequest('unflip', source, rule)
         try:
-            self.server.publish(createKey(flip_rule.gateway),cmd)
+            self.server.publish(createKey(gateway),cmd)
         except Exception as e:
             return False
         return True
-        
 
     ##########################################################################
     # Depracating

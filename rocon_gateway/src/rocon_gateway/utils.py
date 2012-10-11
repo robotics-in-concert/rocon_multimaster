@@ -71,18 +71,33 @@ class Registration():
       for the connection. It includes the gateway name it originated 
       from as well as master registration information.
       
-       - remote_connection      (the remote connection information)
+       - connection      (the remote connection information)
        - remote_gateway         (the remote gateway from where this connection originated)
        - local_node             (the local anonymously generated node name)
     '''
-    def __init__(self, remote_gateway, remote_name, remote_node, connection_type, type_info, xmlrpc_uri, local_node = None):
+    def __init__(self, connection, remote_gateway, local_node = None):
         '''
           @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
           @type string  
         '''
-        self.remote_connection = remote_node
+        self.connection = connection
         self.remote_gateway = remote_gateway
         self.local_node = local_node
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __str__(self):
+        return '{gateway %s: %s}'%(self.remote_gateway,formatRule(self.connection.rule))
+
+    def __repr__(self):
+        return self.__str__()
     
 ##############################################################################
 # Ros string utilities
@@ -145,6 +160,23 @@ def deserializeConnection(connection_str):
     list = deserialize(connection_str)
     rule = Rule(list[0],list[1],list[2])
     return Connection(rule, list[3], list[4])
+
+def serializeConnectionRequest(command, source, connection):
+    return serialize([command,source,connection.rule.type,connection.rule.name,connection.rule.node,connection.xmlrpc_uri,connection.type_info])
+
+def serializeRuleRequest(command,source,rule):
+    return serialize([command,source,rule.type,rule.name,rule.node])
+
+def deserializeRequest(request_str):
+    list = deserialize(request_str)
+    return list[0], list[1], list[2:]
+
+def getConnectionFromList(list):
+    rule = Rule(list[0],list[1],list[2])
+    return Connection(rule,list[3],list[4])
+
+def getRuleFromList(list):
+    return Rule(list[0],list[1],list[2])
 
 ##########################################################################
 # Other Utilities

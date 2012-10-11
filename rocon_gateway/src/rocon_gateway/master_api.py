@@ -52,25 +52,25 @@ class LocalMaster(rosgraph.Master):
           @return the updated registration object (only adds an anonymously generated local node name)
           @rtype utils.Registration
         '''
-        registration.local_node = self._getAnonymousNodeName(registration.remote_node)    
-        rospy.loginfo("Gateway : registering a new node [%s] for [%s]"%(registration.local_node,registration.remote_name))
+        registration.local_node = self._getAnonymousNodeName(registration.connection.rule.node)    
+        rospy.loginfo("Gateway : registering a new node [%s] for [%s]"%(registration.local_node,registration))
         
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
         # already have handle that. 
 
         node_master = rosgraph.Master(registration.local_node)
-        if registration.connection_type == Rule.PUBLISHER:
-            node_master.registerPublisher(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
+        if registration.connection.rule.type == Rule.PUBLISHER:
+            node_master.registerPublisher(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
-        elif registration.connection_type == Rule.SUBSCRIBER:
-            node_master.registerSubscriber(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
+        elif registration.connection.rule.type == Rule.SUBSCRIBER:
+            node_master.registerSubscriber(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
-        elif registration.connection_type == Rule.SERVICE:
-            node_master.registerService(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
+        elif registration.connection.rule.type == Rule.SERVICE:
+            node_master.registerService(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
         else:
             print registration
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection_type)
+            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
             return None
 
     def unregister(self,registration):
@@ -81,15 +81,15 @@ class LocalMaster(rosgraph.Master):
           @type utils.Registration
         '''
         node_master = rosgraph.Master(registration.local_node)
-        rospy.loginfo("Gateway : unregistering local node [%s] for [%s]"%(registration.local_node,registration.remote_name))
-        if registration.connection_type == Rule.PUBLISHER:
-            node_master.unregisterPublisher(registration.remote_name,registration.xmlrpc_uri)
-        elif registration.connection_type == Rule.SUBSCRIBER:
-            node_master.unregisterSubscriber(registration.remote_name,registration.xmlrpc_uri)
-        elif registration.connection_type == Rule.SERVICE:
-            node_master.unregisterService(registration.remote_name,registration.type_info)
+        rospy.loginfo("Gateway : unregistering local node [%s] for [%s]"%(registration.local_node,registration))
+        if registration.connection.rule.type == Rule.PUBLISHER:
+            node_master.unregisterPublisher(registration.connection.rule.name,registration.connection.xmlrpc_uri)
+        elif registration.connection.rule.type == Rule.SUBSCRIBER:
+            node_master.unregisterSubscriber(registration.connection.rule.name,registration.connection.xmlrpc_uri)
+        elif registration.connection.rule.type == Rule.SERVICE:
+            node_master.unregisterService(registration.connection.rule.name,registration.connection.type_info)
         else:
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.rule.type)
+            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
         
     ##########################################################################
     # Master utility methods

@@ -184,6 +184,7 @@ class FlippedInterface(object):
         '''
         self.lock.acquire()
         if gateway in self._blacklist:
+            self.lock.release()
             return False
         del self._blacklist[gateway]
         flip_rule = RemoteRule()
@@ -270,9 +271,9 @@ class FlippedInterface(object):
         self.lock.acquire()
         for registration in self.registrations[connection_type]:
             if (registration.remote_gateway  == remote_gateway) and \
-               (registration.remote_name     == remote_name) and \
-               (registration.remote_node     == remote_node) and \
-               (registration.connection_type == connection_type):
+               (registration.connection.rule.name == remote_name) and \
+               (registration.connection.rule.node == remote_node) and \
+               (registration.connection.rule.type == connection_type):
                 matched_registration = registration
                 break
             else:
@@ -319,6 +320,26 @@ class FlippedInterface(object):
                 matched_flip.rule.name = name # just in case we used a regex
                 matched_flip.rule.node = node # just in case we used a regex
                 matched_flip_rules.append(matched_flip)
+
+        # remove matched rules that trigger the blacklist
+        remove_list = []
+        for matched_rule in matched_flip_rules:
+            in_blacklist = False
+            for rule in self._blacklist[matched_rule.gateway][matched_rule.rule.type]:
+                name_match_result = re.match(rule.name, matched_rule.rule.name)
+                if name_match_result and name_match_result.group() == matched_rule.rule.name:
+                    if rule.node:
+                        node_match_result = re.match(rule.node,matched_rule.rule.node)
+                        if node_match_result and node_match_result.group() == matched_rule.rule.node:
+                            in_blacklist = True
+                            break
+                    else: # rule.rule.node is None so we don't care about matching the node
+                        in_blacklist = True
+                        break
+            if in_blacklist:
+                remove_list.append(matched_rule)
+        matched_flip_rules[:] = [rule for rule in matched_flip_rules if rule not in remove_list]
+            
         return matched_flip_rules
     
     ##########################################################################

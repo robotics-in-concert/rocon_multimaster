@@ -81,10 +81,10 @@ class Gateway():
         gateway_services['remote_gateway_info']  = rospy.Service('~remote_gateway_info',    gateway_comms.srv.RemoteGatewayInfo,self.rosServiceRemoteGatewayInfo)
         gateway_services['advertise']     = rospy.Service('~advertise',                     gateway_comms.srv.Advertise,        self.gateway_sync.rosServiceAdvertise)
         gateway_services['advertise_all'] = rospy.Service('~advertise_all',                 gateway_comms.srv.AdvertiseAll,     self.gateway_sync.rosServiceAdvertiseAll)        
-        gateway_services['flip']          = rospy.Service('~flip',                          gateway_comms.srv.RemoteRequest,    self.gateway_sync.rosServiceFlip)        
-        gateway_services['flip_all']      = rospy.Service('~flip_all',                      gateway_comms.srv.RemoteRequestAll, self.gateway_sync.rosServiceFlipAll)
-        gateway_services['pull']          = rospy.Service('~pull',                          gateway_comms.srv.RemoteRequest,    self.gateway_sync.rosServicePull)        
-        gateway_services['pull_all']      = rospy.Service('~pull_all',                      gateway_comms.srv.RemoteRequestAll, self.gateway_sync.rosServicePullAll)
+        gateway_services['flip']          = rospy.Service('~flip',                          gateway_comms.srv.Remote,    self.gateway_sync.rosServiceFlip)        
+        gateway_services['flip_all']      = rospy.Service('~flip_all',                      gateway_comms.srv.RemoteAll, self.gateway_sync.rosServiceFlipAll)
+        gateway_services['pull']          = rospy.Service('~pull',                          gateway_comms.srv.Remote,    self.gateway_sync.rosServicePull)        
+        gateway_services['pull_all']      = rospy.Service('~pull_all',                      gateway_comms.srv.RemoteAll, self.gateway_sync.rosServicePullAll)
         return gateway_services        
      
     #############################################
