@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_client/rocon_gateway_tests/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tests/LICENSE 
 #
 
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
+import rocon_gateway
+import rocon_gateway_tests
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 import argparse
@@ -43,19 +45,13 @@ if __name__ == '__main__':
 
     rospy.init_node('flip_tutorials')
 
-    remote_gateway_info = rospy.ServiceProxy('/gateway/remote_gateway_info',RemoteGatewayInfo)
-    flip = rospy.ServiceProxy('/gateway/flip',Remote)
-  
-    req = RemoteGatewayInfoRequest()
-    req.gateways = []
-    resp = remote_gateway_info(req)
-    if len(resp.gateways) == 0:
-        rospy.logerr("Flip Test : no other gateways available to flip to, aborting.")
+    try:
+        gateway = rocon_gateway_tests.findFirstRemoteGateway()
+    except rocon_gateway.GatewayError as e:
+        rospy.logerr("Flip Test : %s, aborting."%(str(e)))
         sys.exit(1)
-    else:
-        gateway = resp.gateways[0].name
-      
-    # Form a request message
+
+    flip = rospy.ServiceProxy('/gateway/flip',Remote)
     req = RemoteRequest() 
     req.remote.gateway = gateway
     req.cancel = args.cancel
