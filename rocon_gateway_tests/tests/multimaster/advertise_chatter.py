@@ -47,10 +47,10 @@ if __name__ == '__main__':
   # Form a request message
   req = AdvertiseRequest()
   req.rules = []
-  public_rule = PublicRule()
-  public_rule.connection.name = "/chatter"
-  public_rule.connection.type = gateway_comms.msg.Connection.PUBLISHER
-  public_rule.connection.node = "/talker"
+  public_rule = Rule()
+  public_rule.name = "/chatter"
+  public_rule.type = gateway_comms.msg.ConnectionType.PUBLISHER
+  public_rule.node = "/talker"
   req.rules.append(public_rule)
   req.cancel = args.cancel
   

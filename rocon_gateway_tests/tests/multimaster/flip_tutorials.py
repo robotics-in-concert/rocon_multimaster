@@ -44,11 +44,11 @@ if __name__ == '__main__':
     rospy.init_node('flip_tutorials')
 
     remote_gateway_info = rospy.ServiceProxy('/gateway/remote_gateway_info',RemoteGatewayInfo)
-    flip = rospy.ServiceProxy('/gateway/flip',Flip)
+    flip = rospy.ServiceProxy('/gateway/flip',Remote)
   
     req = RemoteGatewayInfoRequest()
     req.gateways = []
-    resp = remote_gateway_info()
+    resp = remote_gateway_info(req)
     if len(resp.gateways) == 0:
         rospy.logerr("Flip Test : no other gateways available to flip to, aborting.")
         sys.exit(1)
@@ -56,40 +56,40 @@ if __name__ == '__main__':
         gateway = resp.gateways[0].name
       
     # Form a request message
-    req = FlipRequest() 
-    req.flip_rule.gateway = gateway
+    req = RemoteRequest() 
+    req.remote.gateway = gateway
     req.cancel = args.cancel
 
     if args.regex:
-        req.flip_rule.connection.name = ".*ter"
-        req.flip_rule.connection.node = "/t.*er"
+        req.remote.rule.name = ".*ter"
+        req.remote.rule.node = "/t.*er"
     else:
-        req.flip_rule.connection.name = "/chatter"
+        req.remote.rule.name = "/chatter"
 
     if args.pubonly or flip_all_connection_types:
-        req.flip_rule.connection.type = gateway_comms.msg.Connection.PUBLISHER
-        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(action_text,req.flip_rule.gateway, req.flip_rule.connection.type, req.flip_rule.connection.name, req.flip_rule.connection.node or 'None')) 
+        req.remote.rule.type = gateway_comms.msg.ConnectionType.PUBLISHER
+        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(action_text,req.remote.gateway, req.remote.rule.type, req.remote.rule.name, req.remote.rule.node or 'None')) 
         resp = flip(req)
         if resp.result != 0:
             rospy.logerr("Flip : %s"%resp.error_message)
 
-    req.flip_rule.connection.node = None
-
+    req.remote.rule.node = ''
+    
     if args.subonly or flip_all_connection_types:
-        req.flip_rule.connection.type = gateway_comms.msg.Connection.SUBSCRIBER
-        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(action_text,req.flip_rule.gateway, req.flip_rule.connection.type, req.flip_rule.connection.name, req.flip_rule.connection.node or 'None')) 
+        req.remote.rule.type = gateway_comms.msg.ConnectionType.SUBSCRIBER
+        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(action_text,req.remote.gateway, req.remote.rule.type, req.remote.rule.name, req.remote.rule.node or 'None')) 
         resp = flip(req)
         if resp.result != 0:
             rospy.logerr("Flip : %s"%resp.error_message)
 
     if args.regex:
-        req.flip_rule.connection.name = "/add_two_.*"
+        req.remote.rule.name = "/add_two_.*"
     else:
-        req.flip_rule.connection.name = "/add_two_ints"
+        req.remote.rule.name = "/add_two_ints"
 
     if args.serviceonly or flip_all_connection_types:
-        req.flip_rule.connection.type = gateway_comms.msg.Connection.SERVICE
-        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(action_text,req.flip_rule.gateway, req.flip_rule.connection.type, req.flip_rule.connection.name, req.flip_rule.connection.node or 'None')) 
+        req.remote.rule.type = gateway_comms.msg.ConnectionType.SERVICE
+        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(action_text,req.remote.gateway, req.remote.rule.type, req.remote.rule.name, req.remote.rule.node or 'None')) 
         resp = flip(req)
         if resp.result != 0:
             rospy.logerr("Flip : %s"%resp.error_message)

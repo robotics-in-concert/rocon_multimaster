@@ -35,10 +35,10 @@ def flipRuleExists(flip_rule, flip_rules):
       @return true if the flip rule exists, false otherwise
       @rtype bool
     '''
-    for rule in flip_rules:
-        if rule.gateway   == flip_rule.gateway and \
-           rule.rule.name == flip_rule.rule.name and \
-           rule.rule.node == flip_rule.rule.node:
+    for remote_rule in flip_rules:
+        if remote_rule.gateway   == flip_rule.gateway and \
+           remote_rule.rule.name == flip_rule.rule.name and \
+           remote_rule.rule.node == flip_rule.rule.node:
             return True
     return False
           
@@ -203,6 +203,12 @@ class FlippedInterface(object):
           
           This is run in the watcher thread (warning: take care - other
           additions come from ros service calls in different threads!)
+          
+          @param connections : list of all the system state connections from the local master
+          @type : connection type keyed dictionary of utils.Connection lists.
+          
+          @return new_flips, old_flips 
+          @rtype pair of connection type keyed dictionary of gateway_comms.msg.Rule lists.
         '''
         # SLOW, EASY METHOD
         #   Totally regenerate a new flipped interface, compare with old
@@ -296,21 +302,21 @@ class FlippedInterface(object):
           @return list of RemoteRule objects updated with node names from self.watchlist
         '''
         matched_flip_rules = []
-        for rule in self.watchlist[type]:
+        for flip_rule in self.watchlist[type]:
             matched = False
-            name_match_result = re.match(rule.rule.name, name)
+            name_match_result = re.match(flip_rule.rule.name, name)
             if name_match_result and name_match_result.group() == name:
-                if self._isFlipAllPattern(rule.rule.name):
-                    if self._isInBlacklist(rule.gateway, type, name, node):
+                if self._isFlipAllPattern(flip_rule.rule.name):
+                    if self._isInBlacklist(flip_rule.gateway, type, name, node):
                         continue
-                if rule.rule.node:
-                    node_match_result = re.match(rule.rule.node,node)
+                if flip_rule.rule.node:
+                    node_match_result = re.match(flip_rule.rule.node,node)
                     if node_match_result and node_match_result.group() == node:
                         matched = True
-                else: # rule.rule.node is None so we don't care about matching the node
+                else: # flip_rule.rule.node is None so we don't care about matching the node
                     matched = True
             if matched:
-                matched_flip = copy.deepcopy(rule)
+                matched_flip = copy.deepcopy(flip_rule)
                 matched_flip.rule.name = name # just in case we used a regex
                 matched_flip.rule.node = node # just in case we used a regex
                 matched_flip_rules.append(matched_flip)
