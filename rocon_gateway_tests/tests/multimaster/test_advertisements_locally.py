@@ -64,9 +64,9 @@ class TestAdvertisementsLocally(unittest.TestCase):
         # Request adding the /chatter topic, 
         # This should add 2 nodes /talker and /talker2
         req = AdvertiseRequest()
-        rule = PublicRule()
-        rule.connection.type = Connection.PUBLISHER
-        rule.connection.name = "/chatter"
+        rule = Rule()
+        rule.type = Rule.PUBLISHER
+        rule.name = "/chatter"
         req.rules.append(rule)
         req.cancel = False
         resp = self.advertise(req)
@@ -87,14 +87,14 @@ class TestAdvertisementsLocally(unittest.TestCase):
             self.log("TEST : Waiting for watcher thread to load nodes.")
             node_names = []
             for i in resp.public_interface:
-                node_names.append(i.connection.name)
+                node_names.append(i.name)
             self.log("TEST :   Current Nodes: %s"%str(node_names))
 
         actual_node_names = []
         for i in range(num_nodes):
-            self.assertEquals(resp.public_interface[i].connection.type,Connection.PUBLISHER)
-            self.assertEquals(resp.public_interface[i].connection.name,"/chatter")
-            actual_node_names.append(resp.public_interface[i].connection.node)
+            self.assertEquals(resp.public_interface[i].type,Rule.PUBLISHER)
+            self.assertEquals(resp.public_interface[i].name,"/chatter")
+            actual_node_names.append(resp.public_interface[i].node)
         expected_node_names = ["/talker","/talker2"]
         self.assertListEqual(sorted(actual_node_names), sorted(expected_node_names))
 
@@ -112,14 +112,14 @@ class TestAdvertisementsLocally(unittest.TestCase):
             self.log("TEST : Waiting for watcher thread to load nodes.")
             node_names = []
             for i in resp.public_interface:
-                node_names.append(i.connection.name)
+                node_names.append(i.name)
             self.log("TEST :   Current Nodes: %s"%str(node_names))
 
         actual_node_names = []
         for i in range(num_nodes):
-            self.assertEquals(resp.public_interface[i].connection.type,Connection.PUBLISHER)
-            self.assertEquals(resp.public_interface[i].connection.name,"/chatter")
-            actual_node_names.append(resp.public_interface[i].connection.node)
+            self.assertEquals(resp.public_interface[i].type,Rule.PUBLISHER)
+            self.assertEquals(resp.public_interface[i].name,"/chatter")
+            actual_node_names.append(resp.public_interface[i].node)
         expected_node_names = ["/talker","/talker2",rospy.get_name()]
         self.assertListEqual(sorted(actual_node_names), sorted(expected_node_names))
 
@@ -129,24 +129,24 @@ class TestAdvertisementsLocally(unittest.TestCase):
           appropriately.
         '''
         topics = {}
-        topics[Connection.PUBLISHER] = "/chatter"
-        topics[Connection.SUBSCRIBER] = "/chatter"
-        topics[Connection.SERVICE] = "/add_two_ints"
-        topics[Connection.ACTION_SERVER] = "/averaging_server/"
-        topics[Connection.ACTION_CLIENT] = "/fibonacci/"
+        topics[Rule.PUBLISHER] = "/chatter"
+        topics[Rule.SUBSCRIBER] = "/chatter"
+        topics[Rule.SERVICE] = "/add_two_ints"
+        topics[Rule.ACTION_SERVER] = "/averaging_server/"
+        topics[Rule.ACTION_CLIENT] = "/fibonacci/"
         nodes = {}
-        nodes[Connection.PUBLISHER] = ["/talker","/talker2"]
-        nodes[Connection.SUBSCRIBER] = ["/listener"]
-        nodes[Connection.SERVICE] = ["/add_two_ints_server"]
-        nodes[Connection.ACTION_SERVER] = ["/averaging_server"]
-        nodes[Connection.ACTION_CLIENT] = ["/fibonacci_client"]
+        nodes[Rule.PUBLISHER] = ["/talker","/talker2"]
+        nodes[Rule.SUBSCRIBER] = ["/listener"]
+        nodes[Rule.SERVICE] = ["/add_two_ints_server"]
+        nodes[Rule.ACTION_SERVER] = ["/averaging_server"]
+        nodes[Rule.ACTION_CLIENT] = ["/fibonacci_client"]
         num_nodes = 6
 
         req = AdvertiseRequest()
         for type in topics:
-            rule = PublicRule()
-            rule.connection.type = type
-            rule.connection.name = topics[type]
+            rule = Rule()
+            rule.type = type
+            rule.name = topics[type]
             req.rules.append(rule)
         req.cancel = False
         resp = self.advertise(req)
@@ -164,14 +164,14 @@ class TestAdvertisementsLocally(unittest.TestCase):
             self.log("TEST : Waiting for watcher thread to load nodes.")
             node_names = []
             for i in resp.public_interface:
-                node_names.append(i.connection.name)
+                node_names.append(i.name)
             self.log("TEST :   Current Nodes: %s"%str(node_names))
 
         # Now make sure all data is correct
         for i in range(num_nodes):
-            type = resp.public_interface[i].connection.type
-            node = resp.public_interface[i].connection.node
-            name = resp.public_interface[i].connection.name
+            type = resp.public_interface[i].type
+            node = resp.public_interface[i].node
+            name = resp.public_interface[i].name
             self.assertEquals(name, topics[type])
             self.assertIn(node, nodes[type])
             nodes[type].remove(node)
@@ -185,6 +185,19 @@ class TestAdvertisementsLocally(unittest.TestCase):
         req = AdvertiseAllRequest()
         req.cancel = True
         self.advertiseAll(req)
+
+        #wait for all nodes to disappear
+        num_nodes = 0
+        while True:
+            resp = self.gatewayInfo()
+            if len(resp.public_interface) == num_nodes:
+                break
+            rospy.sleep(3.0)
+            self.log("TEST : Waiting for watcher thread to load nodes.")
+            node_names = []
+            for i in resp.public_interface:
+                node_names.append(i.name)
+            self.log("TEST :   Current Nodes: %s"%str(node_names))
 
 if __name__ == '__main__':
     rospy.init_node('multimaster_test')

@@ -47,7 +47,7 @@ def flipRuleExists(flip_rule, flip_rules):
 # Flipped Interface
 ##############################################################################
 
-class FlippedInterface(object):
+class PulledInterface(object):
     '''
       The flipped interface is the set of rules 
       (pubs/subs/services/actions) and rules controlling flips
@@ -195,7 +195,7 @@ class FlippedInterface(object):
                         pass # should never get here
         self.lock.release()
 
-    def update(self,connections):
+    def update(self,connections, gateway = None):
         '''
           Computes a new flipped interface and returns two dictionaries - 
           removed and newly added flips so the watcher thread can take
@@ -216,7 +216,7 @@ class FlippedInterface(object):
         self.lock.acquire()
         for connection_type in connections:
             for connection in connections[connection_type]:
-                flipped[connection_type].extend(self._generateFlips(connection.rule.type, connection.rule.name, connection.rule.node))
+                flipped[connection_type].extend(self._generateFlips(connection.rule.type, connection.rule.name, connection.rule.node, gateway))
             new_flips[connection_type] = diff(flipped[connection_type],self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type],flipped[connection_type])
         self.flipped = copy.deepcopy(flipped)
@@ -275,7 +275,7 @@ class FlippedInterface(object):
         self.lock.release()
         return matched_registration
         
-    def _generateFlips(self, type, name, node):
+    def _generateFlips(self, type, name, node, gateway = None):
         '''
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can
@@ -300,6 +300,8 @@ class FlippedInterface(object):
         '''
         matched_flip_rules = []
         for rule in self.watchlist[type]:
+            if gateway and not rule.gateway == gateway:
+                continue
             matched = False
             name_match_result = re.match(rule.rule.name, name)
             if name_match_result and name_match_result.group() == name:

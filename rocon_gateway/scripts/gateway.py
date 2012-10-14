@@ -11,6 +11,7 @@
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rocon_gateway
+import redis
 import gateway_comms.msg
 import gateway_comms.srv
 from urlparse import urlparse
@@ -19,7 +20,6 @@ import zeroconf_comms.srv
 ##############################################################################
 # Gateway Configuration and Main Loop Class
 ##############################################################################
-
 class Gateway():
     '''
       Currently this just provides getup and go for the gateway.
@@ -31,7 +31,7 @@ class Gateway():
         5. shutdown
     '''
     def __init__(self):
-        self.gateway_sync = None # hub and local ros master connections
+        self.gateway_sync = None # hub and local ros master connection
         
         self.param = rocon_gateway.setupRosParameters()
         self.gateway_sync = rocon_gateway.GatewaySync(self.param) # maybe pass in the whole params dictionary?
@@ -76,13 +76,15 @@ class Gateway():
 
     def _setupRosServices(self):
         gateway_services = {}
-        gateway_services['connect_hub']   = rospy.Service('~connect_hub',   gateway_comms.srv.ConnectHub,   self.rosServiceConnectHub)
-        gateway_services['gateway_info']  = rospy.Service('~gateway_info',  gateway_comms.srv.GatewayInfo,  self.rosServiceGatewayInfo)
-        gateway_services['remote_gateway_info']  = rospy.Service('~remote_gateway_info',  gateway_comms.srv.RemoteGatewayInfo,  self.rosServiceRemoteGatewayInfo)
-        gateway_services['advertise']     = rospy.Service('~advertise',     gateway_comms.srv.Advertise,    self.gateway_sync.rosServiceAdvertise)
-        gateway_services['advertise_all'] = rospy.Service('~advertise_all', gateway_comms.srv.AdvertiseAll, self.gateway_sync.rosServiceAdvertiseAll)        
-        gateway_services['flip']          = rospy.Service('~flip',          gateway_comms.srv.Flip,         self.gateway_sync.rosServiceFlip)        
-        gateway_services['flip_all']      = rospy.Service('~flip_all',      gateway_comms.srv.FlipAll,      self.gateway_sync.rosServiceFlipAll)
+        gateway_services['connect_hub']   = rospy.Service('~connect_hub',                   gateway_comms.srv.ConnectHub,       self.rosServiceConnectHub)
+        gateway_services['gateway_info']  = rospy.Service('~gateway_info',                  gateway_comms.srv.GatewayInfo,      self.rosServiceGatewayInfo)
+        gateway_services['remote_gateway_info']  = rospy.Service('~remote_gateway_info',    gateway_comms.srv.RemoteGatewayInfo,self.rosServiceRemoteGatewayInfo)
+        gateway_services['advertise']     = rospy.Service('~advertise',                     gateway_comms.srv.Advertise,        self.gateway_sync.rosServiceAdvertise)
+        gateway_services['advertise_all'] = rospy.Service('~advertise_all',                 gateway_comms.srv.AdvertiseAll,     self.gateway_sync.rosServiceAdvertiseAll)        
+        gateway_services['flip']          = rospy.Service('~flip',                          gateway_comms.srv.Remote,    self.gateway_sync.rosServiceFlip)        
+        gateway_services['flip_all']      = rospy.Service('~flip_all',                      gateway_comms.srv.RemoteAll, self.gateway_sync.rosServiceFlipAll)
+        gateway_services['pull']          = rospy.Service('~pull',                          gateway_comms.srv.Remote,    self.gateway_sync.rosServicePull)        
+        gateway_services['pull_all']      = rospy.Service('~pull_all',                      gateway_comms.srv.RemoteAll, self.gateway_sync.rosServicePullAll)
         return gateway_services        
      
     #############################################
@@ -125,8 +127,8 @@ class Gateway():
             response.flip_watchlist.extend(self.gateway_sync.flipped_interface.watchlist[connection_type])
         # response message must have string output
         for flip in response.flip_watchlist:
-            if not flip.connection.node:
-                flip.connection.node = 'None'
+            if not flip.rule.node:
+                flip.rule.node = 'None'
         response.public_watchlist = self.gateway_sync.public_interface.getWatchlist()
         response.public_interface = self.gateway_sync.public_interface.getInterface()
         return response

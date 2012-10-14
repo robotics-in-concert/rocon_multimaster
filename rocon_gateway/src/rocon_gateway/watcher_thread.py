@@ -13,7 +13,10 @@ import rospy
 import rosservice
 import rostopic
 import threading
-from gateway_comms.msg import Connection
+import httplib
+
+import utils
+from gateway_comms.msg import Rule
 
 ##############################################################################
 # Watcher
@@ -31,90 +34,62 @@ class WatcherThread(threading.Thread):
         self.hub = gateway.hub
         self.public_interface = gateway.public_interface
         self.flipped_interface = gateway.flipped_interface
+        self.pulled_interface = gateway.pulled_interface
         self.watch_loop_rate = rospy.Rate(1.0/watch_loop_period)
         self.start()
 
     def run(self):
         while not rospy.is_shutdown():
             if self.gateway.is_connected:
-                connections = self.master.getConnectionState()
+                try:
+                    connections = self.master.getConnectionState()
+                except httplib.ResponseNotReady as e:
+                    rospy.logwarn("Received ResponseNotReady from master api")
+                    self.watch_loop_rate.sleep()
+                    continue
                 # Flipped Interface
                 new_flips, lost_flips = self.flipped_interface.update(connections)
-                # new_flips and lost_flips are FlipRule lists with filled supplied name info from the master
+                # new_flips and lost_flips are RemoteRule lists with filled supplied name info from the master
                 for connection_type in connections:
                     for flip in new_flips[connection_type]:
-                        xmlrpc_uri = self.master.lookupNode(flip.connection.node)
-                        if connection_type == Connection.PUBLISHER or connection_type == Connection.SUBSCRIBER:
-                            type_info = rostopic.get_topic_type(flip.connection.name)[0] # message type
-                        elif connection_type == Connection.SERVICE:
-                            type_info = rosservice.get_service_uri(flip.connection.name)
-                        self.hub.sendFlipRequest(flip, type_info, xmlrpc_uri )
+                        xmlrpc_uri = self.master.lookupNode(flip.rule.node)
+                        if connection_type == Rule.PUBLISHER or connection_type == Rule.SUBSCRIBER:
+                            type_info = rostopic.get_topic_type(flip.rule.name)[0] # message type
+                        elif connection_type == Rule.SERVICE:
+                            type_info = rosservice.get_service_uri(flip.rule.name)
+                        connection = utils.Connection(flip.rule, type_info, xmlrpc_uri)
+                        rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
+                        self.hub.sendFlipRequest(flip.gateway, connection)
                     for flip in lost_flips[connection_type]:
-                        self.hub.sendUnFlipRequest(flip )
+                        rospy.loginfo("Unflipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
+                        self.hub.sendUnflipRequest(flip.gateway, flip.rule)
                 # Public Interface
                 self.gateway.updatePublicInterface(connections)
+
+                # Pulled Interface
+                for gateway in self.hub.listGateways():
+                    if gateway == self.gateway.unique_name: #don't pull from self
+                        continue
+                    connections = self.hub.getRemoteConnectionState(gateway)
+                    new_pulls, lost_pulls = self.pulled_interface.update(connections, gateway)
+                    for connection_type in connections:
+                        for pull in new_pulls[connection_type]:
+                            for connection in connections[pull.rule.type]:
+                                if connection.rule.name == pull.rule.name and \
+                                   connection.rule.node == pull.rule.node:
+                                    corresponding_connection = connection
+                                    break
+                            # Register this pull
+                            existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
+                            if not existing_registration:
+                                registration = utils.Registration(connection, gateway) 
+                                new_registration = self.master.register(registration)
+                                self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
+                        for pull in lost_pulls[connection_type]:
+                            # Unregister this pull
+                            existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
+                            if existing_registration:
+                                self.master.unregister(existing_registration)
+                                self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
+
             self.watch_loop_rate.sleep()
-
-    def _updatePublicInterface(self, connections):
-        '''
-          Process the list of local connections and check against 
-          the current rules and patterns for flips. If a connection 
-          has become (un)available take appropriate action.
-          
-          @param connections
-          @type dictionary of connections 
-        '''
-        for connection_type in connections:
-            allowed_connections = self.public_interface.allowedConnections(connections[connection_type])
-            
-            # this has both connections that have disappeared or are no longer allowed
-            public_connections = set([x for x in self.public_interface.public if x.type == connection_type])
-            advertise_new_connections = allowed_connections - public_connections
-            unadvertise_connections = public_connections - allowed_connections
-
-            for connection in advertise_new_connections:
-                self.gateway.advertiseConnection(connection)
-
-            for connection in unadvertise_connections:
-                self.gateway.unadvertiseConnection(connection)
-    
-    def update(self, type, connections):
-        # CURRENTLY DISABLED (work in progress)
-        # unadvertise from public interface if a topic disappears from the local master
-        # for string in self.public_interface.interface[identifier]:
-        #     name, _, node_uri = string.split(",")
-        #     still_exist = False
-        #     try:
-        #         llist = [x[1] for x in list if x[0] == name]
-        #
-        #         # all nodes are gone.
-        #         uris = [self.master.lookupNode(p) for p in llist[0]]
-        #         still_exist = node_uri in uris
-        #     except:
-        #         still_exist = False
-        #       
-        #     # if it is not exist anymore, remove it from public interface
-        #     if not still_exist:
-        #         self.gateway.unadvertise([string])
-        #
-        # # add/remove named interfaces to public list as necessary
-        # for x in list:
-        #     name = x[0]
-        #     if self.gateway_sync.allowInterfaceInPublic(identifier, name):
-        #         # check if any new publishers are available
-        #         self.gateway_sync.addPublicInterfaceByName(identifier, name)
-        #         self.dumped_interface[identifier].add(name)
-        #     else:
-        #         # this interface has been dumped in the past, and is no longer needed
-        #         if name in self.dumped_interface[identifier]:
-        #             self.gateway.removePublicInterfaceByName(identifier, name)
-        #             self.dumped_interface[identifier].remove(name)
-  
-        # DJS: CURRENTLY DISABLED (work in progress)
-        # add/remove named interfaces to flipped list as necessary
-        # for x in list:
-        #     name = x[0]
-        #     clients, non_clients = self.gateway.getFlippedClientList(identifier, name)
-        #     self.gateway.addFlippedInterfaceByName(identifier,clients,name)
-        #     self.gateway.removeFlippedInterfaceByName(identifier,non_clients,name)
-        pass

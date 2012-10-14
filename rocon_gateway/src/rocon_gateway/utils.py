@@ -10,15 +10,55 @@
 
 import json
 import collections
-import StringIO
-from gateway_comms.msg import Connection
-import yaml
+from gateway_comms.msg import Rule
 
 ##############################################################################
 # Constants
 ##############################################################################
 
-connection_types = frozenset([Connection.PUBLISHER, Connection.SUBSCRIBER, Connection.SERVICE, Connection.ACTION_CLIENT, Connection.ACTION_SERVER])
+connection_types = frozenset([Rule.PUBLISHER, Rule.SUBSCRIBER, Rule.SERVICE, Rule.ACTION_CLIENT, Rule.ACTION_SERVER])
+
+##############################################################################
+# Rule
+##############################################################################
+
+class Connection():
+    '''
+      An object that represents a connection containing all the gory details
+      about a connection, allowing a connection to be passed through to a 
+      foreign gateway
+      
+       - rule (gateway_comms.msg.Rule) (containing type,name,node)
+       - type_info              (msg type for pubsub or service api for services)
+       - xmlrpc_uri             (the xmlrpc node uri for the connection)
+    '''
+    def __init__(self, rule, type_info, xmlrpc_uri):
+        '''
+          @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
+          @type string  
+        '''
+        self.rule = rule
+        self.type_info = type_info
+        self.xmlrpc_uri = xmlrpc_uri
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __str__(self):
+        if self.rule.type == Rule.SERVICE: 
+            return '{%s, name: %s, node: %s, uri: %s, service_api: %s}'%(self.rule.type,self.rule.name,self.rule.node,self.xmlrpc_uri,self.type_info)
+        else:
+            return '{%s, name: %s, node: %s, uri: %s, topic_type: %s}'%(self.rule.type,self.rule.name,self.rule.node,self.xmlrpc_uri,self.type_info)
+
+    def __repr__(self):
+        return self.__str__()
+
 
 ##############################################################################
 # Registration
@@ -31,26 +71,33 @@ class Registration():
       for the connection. It includes the gateway name it originated 
       from as well as master registration information.
       
-       - remote_gateway
-       - remote_connection.name (the remote connection name)
-       - remote_node            (the remote node)
-       - type                   (one of Connection.PUBLISHER, etc)
-       - type_info              (msg type for pubsub or service api for services)
-       - xmlrpc_uri             (the xmlrpc node uri for the connection)
+       - connection      (the remote connection information)
+       - remote_gateway         (the remote gateway from where this connection originated)
        - local_node             (the local anonymously generated node name)
     '''
-    def __init__(self, remote_gateway, remote_name, remote_node, connection_type, type_info, xmlrpc_uri, local_node = None):
+    def __init__(self, connection, remote_gateway, local_node = None):
         '''
           @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
           @type string  
         '''
+        self.connection = connection
         self.remote_gateway = remote_gateway
-        self.remote_name = remote_name
-        self.remote_node = remote_node
-        self.connection_type = connection_type
-        self.type_info = type_info
-        self.xmlrpc_uri = xmlrpc_uri
         self.local_node = local_node
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __str__(self):
+        return '{gateway %s: %s}'%(self.remote_gateway,formatRule(self.connection.rule))
+
+    def __repr__(self):
+        return self.__str__()
     
 ##############################################################################
 # Ros string utilities
@@ -106,29 +153,41 @@ def serialize(data):
 def deserialize(str_msg):
     return convert(json.loads(str_msg))
 
-def serializeRosMsg(msg):
-    buffer = StringIO.StringIO()
-    msg.serialize(buffer)
-    msg_str = buffer.getvalue()
-    buffer.close()
-    return msg_str
+def serializeConnection(connection):
+    return serialize([connection.rule.type,connection.rule.name,connection.rule.node,connection.type_info,connection.xmlrpc_uri])
+
+def deserializeConnection(connection_str):
+    list = deserialize(connection_str)
+    rule = Rule(list[0],list[1],list[2])
+    return Connection(rule, list[3], list[4])
+
+def serializeConnectionRequest(command, source, connection):
+    return serialize([command,source,connection.rule.type,connection.rule.name,connection.rule.node,connection.type_info,connection.xmlrpc_uri])
+
+def serializeRuleRequest(command,source,rule):
+    return serialize([command,source,rule.type,rule.name,rule.node])
+
+def deserializeRequest(request_str):
+    list = deserialize(request_str)
+    return list[0], list[1], list[2:]
+
+def getConnectionFromList(list):
+    rule = Rule(list[0],list[1],list[2])
+    return Connection(rule,list[3],list[4])
+
+def getRuleFromList(list):
+    return Rule(list[0],list[1],list[2])
 
 ##########################################################################
 # Other Utilities
 ##########################################################################
 
 def formatRule(rule):
-    return '{type: %s, name/regex: %s, node name: %s}'%(rule.connection.type,rule.connection.name,rule.connection.node)
-
-def formatConnection(connection):
-    if connection.type == connection.SERVICE: 
-        return '{%s, name: %s, node: %s, uri: %s, service_api: %s}'%(connection.type,connection.name,connection.node,connection.uri,connection.service_api)
-    else:
-        return '{%s, name: %s, node: %s, uri: %s, topic_type: %s}'%(connection.type,connection.name,connection.node,connection.uri,connection.topic_type)
+    return '{type: %s, name/regex: %s, node-name/regex: %s}'%(rule.type,rule.name,rule.node)
 
 def createEmptyConnectionTypeDictionary():
     '''
-      Used to initialise a dictionary with connection type keys 
+      Used to initialise a dictionary with rule type keys 
       and empty lists. 
     '''
     dic = {}

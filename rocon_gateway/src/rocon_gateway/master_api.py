@@ -20,7 +20,8 @@ import socket
 import re
 
 from .exceptions import GatewayError, ConnectionTypeError
-from gateway_comms.msg import Connection
+from gateway_comms.msg import Rule
+from utils import Connection
 
 ##############################################################################
 # Master
@@ -30,7 +31,7 @@ class LocalMaster(rosgraph.Master):
     '''
       Representing a ros master (local ros master). Just contains a 
       few utility methods for retrieving master related information as well
-      as handles for registering and unregistering connections that have 
+      as handles for registering and unregistering rules that have 
       been pulled or flipped in from another gateway.
     '''
 
@@ -43,7 +44,7 @@ class LocalMaster(rosgraph.Master):
 
     def register(self,registration):
         '''
-          Registers a connection with the local master.
+          Registers a rule with the local master.
           
           @param registration : registration details
           @type utils.Registration
@@ -51,44 +52,44 @@ class LocalMaster(rosgraph.Master):
           @return the updated registration object (only adds an anonymously generated local node name)
           @rtype utils.Registration
         '''
-        registration.local_node = self._getAnonymousNodeName(registration.remote_node)    
-        rospy.loginfo("Gateway : registering a new node [%s] for [%s]"%(registration.local_node,registration.remote_name))
+        registration.local_node = self._getAnonymousNodeName(registration.connection.rule.node)    
+        rospy.loginfo("Gateway : registering a new node [%s] for [%s]"%(registration.local_node,registration))
         
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
         # already have handle that. 
 
         node_master = rosgraph.Master(registration.local_node)
-        if registration.connection_type == Connection.PUBLISHER:
-            node_master.registerPublisher(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
+        if registration.connection.rule.type == Rule.PUBLISHER:
+            node_master.registerPublisher(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
-        elif registration.connection_type == Connection.SUBSCRIBER:
-            node_master.registerSubscriber(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
+        elif registration.connection.rule.type == Rule.SUBSCRIBER:
+            node_master.registerSubscriber(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
-        elif registration.connection_type == Connection.SERVICE:
-            node_master.registerService(registration.remote_name,registration.type_info,registration.xmlrpc_uri)
+        elif registration.connection.rule.type == Rule.SERVICE:
+            node_master.registerService(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
         else:
             print registration
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection_type)
+            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
             return None
 
     def unregister(self,registration):
         '''
-          Unregisters a connection with the local master.
+          Unregisters a rule with the local master.
           
-          @param registration : registration details for an existing gateway registered connection
+          @param registration : registration details for an existing gateway registered rule
           @type utils.Registration
         '''
         node_master = rosgraph.Master(registration.local_node)
-        rospy.loginfo("Gateway : unregistering local node [%s] for [%s]"%(registration.local_node,registration.remote_name))
-        if registration.connection_type == Connection.PUBLISHER:
-            node_master.unregisterPublisher(registration.remote_name,registration.xmlrpc_uri)
-        elif registration.connection_type == Connection.SUBSCRIBER:
-            node_master.unregisterSubscriber(registration.remote_name,registration.xmlrpc_uri)
-        elif registration.connection_type == Connection.SERVICE:
-            node_master.unregisterService(registration.remote_name,registration.type_info)
+        rospy.loginfo("Gateway : unregistering local node [%s] for [%s]"%(registration.local_node,registration))
+        if registration.connection.rule.type == Rule.PUBLISHER:
+            node_master.unregisterPublisher(registration.connection.rule.name,registration.connection.xmlrpc_uri)
+        elif registration.connection.rule.type == Rule.SUBSCRIBER:
+            node_master.unregisterSubscriber(registration.connection.rule.name,registration.connection.xmlrpc_uri)
+        elif registration.connection.rule.type == Rule.SERVICE:
+            node_master.unregisterService(registration.connection.rule.name,registration.connection.type_info)
         else:
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.type)
+            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
         
     ##########################################################################
     # Master utility methods
@@ -130,13 +131,25 @@ class LocalMaster(rosgraph.Master):
                 if len(action_nodes) != 0:
                     # yay! an action has been found
                     actions.append([base_topic, action_nodes])
-        return actions
+                    # remove action entries from publishers/subscribers
+                    for connection in pubs:
+                        if connection[0] in [base_topic + 'goal', base_topic + 'cancel']:
+                            connection[1].remove(node)
+                    for connection in subs:
+                        if connection[0] in [base_topic + 'status', base_topic + 'feedback', base_topic + 'result']:
+                            connection[1].remove(node)
+
+        pubs[:] = [connection for connection in pubs if len(connection[1]) != 0]
+        subs[:] = [connection for connection in subs if len(connection[1]) != 0]
+        return actions, pubs, subs
 
     def getActionServers(self, publishers, subscribers):
-        return self._getActions(subscribers,publishers)
+        actions, subs, pubs = self._getActions(subscribers,publishers)
+        return actions, pubs, subs
 
     def getActionClients(self, publishers, subscribers):
-        return self._getActions(publishers,subscribers)
+        actions, pubs, subs = self._getActions(publishers,subscribers)
+        return actions, pubs, subs
 
     def getConnectionsFromPubSubList(self,list,type):
         connections = []
@@ -150,7 +163,9 @@ class LocalMaster(rosgraph.Master):
                     node_uri = self.lookupNode(node)
                 except:
                     continue
-                connections.append(Connection(type,topic_name,node,node_uri,None,topic_type))
+                rule = Rule(type,topic_name,node)
+                connection = Connection(rule, topic_type,node_uri)
+                connections.append(connection)
         return connections
 
     def getConnectionsFromActionList(self,list,type):
@@ -166,7 +181,9 @@ class LocalMaster(rosgraph.Master):
                     node_uri = self.lookupNode(node)
                 except:
                     continue
-                connections.append(Connection(type,action_name,node,node_uri,None,topic_type))
+                rule = Rule(type,action_name,node)
+                connection = Connection(rule, topic_type, node_uri)
+                connections.append(connection)
         return connections
 
     def getConnectionsFromServiceList(self,list,type):
@@ -180,19 +197,21 @@ class LocalMaster(rosgraph.Master):
                     node_uri = self.lookupNode(node)
                 except:
                     continue
-                connections.append(Connection(type,service_name,node,node_uri,service_uri,None))
+                rule = Rule(type,service_name,node)
+                connection = Connection(rule, service_uri, node_uri)
+                connections.append(connection)
         return connections
 
     def getConnectionState(self):
         connections = {}
         publishers, subscribers, services = self.getSystemState()
-        action_servers = self.getActionServers(publishers, subscribers)
-        action_clients = self.getActionClients(publishers, subscribers)
-        connections[Connection.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, Connection.PUBLISHER)
-        connections[Connection.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, Connection.SUBSCRIBER)
-        connections[Connection.SERVICE] = self.getConnectionsFromServiceList(services, Connection.SERVICE)
-        connections[Connection.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, Connection.ACTION_SERVER)
-        connections[Connection.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, Connection.ACTION_CLIENT)
+        action_servers, publishers, subscribers = self.getActionServers(publishers, subscribers)
+        action_clients, publishers, subscribers = self.getActionClients(publishers, subscribers)
+        connections[Rule.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, Rule.PUBLISHER)
+        connections[Rule.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, Rule.SUBSCRIBER)
+        connections[Rule.SERVICE] = self.getConnectionsFromServiceList(services, Rule.SERVICE)
+        connections[Rule.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, Rule.ACTION_SERVER)
+        connections[Rule.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, Rule.ACTION_CLIENT)
         return connections
 
     def _getAnonymousNodeName(self,topic):

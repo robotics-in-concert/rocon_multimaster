@@ -8,7 +8,7 @@ import roslib; roslib.load_manifest('rocon_gateway')
 import roslib.packages
 import rospy
 import re
-from gateway_comms.msg import Connection
+from gateway_comms.msg import Rule
 import utils
 
 ###############################################################################
@@ -40,24 +40,24 @@ def setupRosParameters():
 
     return param
 
-def generateConnections(param):
+def generateRules(param):
     '''
       Converts a param of the suitable type (see default_blacklist.yaml)
-      into a dictionary of Connection types.
+      into a dictionary of Rule types.
       
-      @return all connections as gateway_comms.msg.Connection objects in our usual keyed dictionary format 
-      @rtype type keyed dictionary of Connection lists
+      @return all rules as gateway_comms.msg.Rule objects in our usual keyed dictionary format 
+      @rtype type keyed dictionary of Rule lists
     '''
-    connections = utils.createEmptyConnectionTypeDictionary()
+    rules = utils.createEmptyConnectionTypeDictionary()
     for value in param:
-        connection = Connection()
-        connection.name = value['name']
+        rule = Rule()
+        rule.name = value['name']
         # maybe also check for '' here?
         pattern = re.compile("None",re.IGNORECASE)
         if pattern.match(value['node']):
-            connection.node = None
+            rule.node = '' #ROS Message fields should not be None
         else:
-            connection.node = value['node']
-        connection.type = value['type']
-        connections[connection.type].append(connection)
-    return connections
+            rule.node = value['node']
+        rule.type = value['type']
+        rules[rule.type].append(rule)
+    return rules
