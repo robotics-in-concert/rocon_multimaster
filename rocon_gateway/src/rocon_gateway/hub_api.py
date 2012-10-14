@@ -75,7 +75,7 @@ class RedisListenerThread(threading.Thread):
             - [1] - remote_gateway : the name of the gateway that is flipping to us
             - [2] - remote_name 
             - [3] - remote_node
-            - [4] - type : one of Rule.PUBLISHER etc
+            - [4] - type : one of ConnectionType.PUBLISHER etc
             - [5] - type_info : a ros format type (e.g. std_msgs/String or service api)
             - [6] - xmlrpc_uri : the xmlrpc node uri
             
@@ -278,7 +278,7 @@ class Hub(object):
             - [1] - gateway       : the name of this gateway, i.e. the flipper
             - [2] - name          : local name  
             - [3] - node          : local node name
-            - [4] - connection_type : one of Rule.PUBLISHER etc
+            - [4] - connection_type : one of ConnectionType.PUBLISHER etc
             - [5] - type_info     : a ros format type (e.g. std_msgs/String or service api)
             - [6] - xmlrpc_uri    : the xmlrpc node uri
             

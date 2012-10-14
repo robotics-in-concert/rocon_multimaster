@@ -10,13 +10,14 @@
 
 import json
 import collections
-from gateway_comms.msg import Rule
+from gateway_comms.msg import Rule, ConnectionType
 
 ##############################################################################
 # Constants
 ##############################################################################
 
-connection_types = frozenset([Rule.PUBLISHER, Rule.SUBSCRIBER, Rule.SERVICE, Rule.ACTION_CLIENT, Rule.ACTION_SERVER])
+# for help in iterating over the set of connection constants
+connection_types = frozenset([ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER, ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER])
 
 ##############################################################################
 # Rule
@@ -51,7 +52,7 @@ class Connection():
         return not self.__eq__(other)
 
     def __str__(self):
-        if self.rule.type == Rule.SERVICE: 
+        if self.rule.type == ConnectionType.SERVICE: 
             return '{%s, name: %s, node: %s, uri: %s, service_api: %s}'%(self.rule.type,self.rule.name,self.rule.node,self.xmlrpc_uri,self.type_info)
         else:
             return '{%s, name: %s, node: %s, uri: %s, topic_type: %s}'%(self.rule.type,self.rule.name,self.rule.node,self.xmlrpc_uri,self.type_info)

@@ -16,7 +16,7 @@ import threading
 import httplib
 
 import utils
-from gateway_comms.msg import Rule
+from gateway_comms.msg import Rule, ConnectionType
 
 ##############################################################################
 # Watcher
@@ -53,9 +53,9 @@ class WatcherThread(threading.Thread):
                 for connection_type in connections:
                     for flip in new_flips[connection_type]:
                         xmlrpc_uri = self.master.lookupNode(flip.rule.node)
-                        if connection_type == Rule.PUBLISHER or connection_type == Rule.SUBSCRIBER:
+                        if connection_type == ConnectionType.PUBLISHER or connection_type == ConnectionType.SUBSCRIBER:
                             type_info = rostopic.get_topic_type(flip.rule.name)[0] # message type
-                        elif connection_type == Rule.SERVICE:
+                        elif connection_type == ConnectionType.SERVICE:
                             type_info = rosservice.get_service_uri(flip.rule.name)
                         connection = utils.Connection(flip.rule, type_info, xmlrpc_uri)
                         rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))

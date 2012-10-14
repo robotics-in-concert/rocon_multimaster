@@ -65,7 +65,7 @@ class TestAdvertisementsLocally(unittest.TestCase):
         # This should add 2 nodes /talker and /talker2
         req = AdvertiseRequest()
         rule = Rule()
-        rule.type = Rule.PUBLISHER
+        rule.type = ConnectionType.PUBLISHER
         rule.name = "/chatter"
         req.rules.append(rule)
         req.cancel = False
@@ -92,7 +92,7 @@ class TestAdvertisementsLocally(unittest.TestCase):
 
         actual_node_names = []
         for i in range(num_nodes):
-            self.assertEquals(resp.public_interface[i].type,Rule.PUBLISHER)
+            self.assertEquals(resp.public_interface[i].type,ConnectionType.PUBLISHER)
             self.assertEquals(resp.public_interface[i].name,"/chatter")
             actual_node_names.append(resp.public_interface[i].node)
         expected_node_names = ["/talker","/talker2"]
@@ -117,7 +117,7 @@ class TestAdvertisementsLocally(unittest.TestCase):
 
         actual_node_names = []
         for i in range(num_nodes):
-            self.assertEquals(resp.public_interface[i].type,Rule.PUBLISHER)
+            self.assertEquals(resp.public_interface[i].type,ConnectionType.PUBLISHER)
             self.assertEquals(resp.public_interface[i].name,"/chatter")
             actual_node_names.append(resp.public_interface[i].node)
         expected_node_names = ["/talker","/talker2",rospy.get_name()]
@@ -129,17 +129,17 @@ class TestAdvertisementsLocally(unittest.TestCase):
           appropriately.
         '''
         topics = {}
-        topics[Rule.PUBLISHER] = "/chatter"
-        topics[Rule.SUBSCRIBER] = "/chatter"
-        topics[Rule.SERVICE] = "/add_two_ints"
-        topics[Rule.ACTION_SERVER] = "/averaging_server/"
-        topics[Rule.ACTION_CLIENT] = "/fibonacci/"
+        topics[ConnectionType.PUBLISHER] = "/chatter"
+        topics[ConnectionType.SUBSCRIBER] = "/chatter"
+        topics[ConnectionType.SERVICE] = "/add_two_ints"
+        topics[ConnectionType.ACTION_SERVER] = "/averaging_server/"
+        topics[ConnectionType.ACTION_CLIENT] = "/fibonacci/"
         nodes = {}
-        nodes[Rule.PUBLISHER] = ["/talker","/talker2"]
-        nodes[Rule.SUBSCRIBER] = ["/listener"]
-        nodes[Rule.SERVICE] = ["/add_two_ints_server"]
-        nodes[Rule.ACTION_SERVER] = ["/averaging_server"]
-        nodes[Rule.ACTION_CLIENT] = ["/fibonacci_client"]
+        nodes[ConnectionType.PUBLISHER] = ["/talker","/talker2"]
+        nodes[ConnectionType.SUBSCRIBER] = ["/listener"]
+        nodes[ConnectionType.SERVICE] = ["/add_two_ints_server"]
+        nodes[ConnectionType.ACTION_SERVER] = ["/averaging_server"]
+        nodes[ConnectionType.ACTION_CLIENT] = ["/fibonacci_client"]
         num_nodes = 6
 
         req = AdvertiseRequest()

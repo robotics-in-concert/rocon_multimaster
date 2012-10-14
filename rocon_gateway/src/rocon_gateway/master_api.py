@@ -20,7 +20,7 @@ import socket
 import re
 
 from .exceptions import GatewayError, ConnectionTypeError
-from gateway_comms.msg import Rule
+from gateway_comms.msg import Rule, ConnectionType
 from utils import Connection
 
 ##############################################################################
@@ -59,13 +59,13 @@ class LocalMaster(rosgraph.Master):
         # already have handle that. 
 
         node_master = rosgraph.Master(registration.local_node)
-        if registration.connection.rule.type == Rule.PUBLISHER:
+        if registration.connection.rule.type == ConnectionType.PUBLISHER:
             node_master.registerPublisher(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
-        elif registration.connection.rule.type == Rule.SUBSCRIBER:
+        elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
             node_master.registerSubscriber(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
-        elif registration.connection.rule.type == Rule.SERVICE:
+        elif registration.connection.rule.type == ConnectionType.SERVICE:
             node_master.registerService(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
         else:
@@ -82,11 +82,11 @@ class LocalMaster(rosgraph.Master):
         '''
         node_master = rosgraph.Master(registration.local_node)
         rospy.loginfo("Gateway : unregistering local node [%s] for [%s]"%(registration.local_node,registration))
-        if registration.connection.rule.type == Rule.PUBLISHER:
+        if registration.connection.rule.type == ConnectionType.PUBLISHER:
             node_master.unregisterPublisher(registration.connection.rule.name,registration.connection.xmlrpc_uri)
-        elif registration.connection.rule.type == Rule.SUBSCRIBER:
+        elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
             node_master.unregisterSubscriber(registration.connection.rule.name,registration.connection.xmlrpc_uri)
-        elif registration.connection.rule.type == Rule.SERVICE:
+        elif registration.connection.rule.type == ConnectionType.SERVICE:
             node_master.unregisterService(registration.connection.rule.name,registration.connection.type_info)
         else:
             rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
@@ -207,11 +207,11 @@ class LocalMaster(rosgraph.Master):
         publishers, subscribers, services = self.getSystemState()
         action_servers, publishers, subscribers = self.getActionServers(publishers, subscribers)
         action_clients, publishers, subscribers = self.getActionClients(publishers, subscribers)
-        connections[Rule.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, Rule.PUBLISHER)
-        connections[Rule.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, Rule.SUBSCRIBER)
-        connections[Rule.SERVICE] = self.getConnectionsFromServiceList(services, Rule.SERVICE)
-        connections[Rule.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, Rule.ACTION_SERVER)
-        connections[Rule.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, Rule.ACTION_CLIENT)
+        connections[ConnectionType.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, ConnectionType.PUBLISHER)
+        connections[ConnectionType.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, ConnectionType.SUBSCRIBER)
+        connections[ConnectionType.SERVICE] = self.getConnectionsFromServiceList(services, ConnectionType.SERVICE)
+        connections[ConnectionType.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, ConnectionType.ACTION_SERVER)
+        connections[ConnectionType.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, ConnectionType.ACTION_CLIENT)
         return connections
 
     def _getAnonymousNodeName(self,topic):
