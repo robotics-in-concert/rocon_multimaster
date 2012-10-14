@@ -6,8 +6,8 @@
 
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
-from rocon_gateway import FlippedInterface, createEmptyConnectionTypeDictionary
-from gateway_comms.msg import FlipRule, Connection
+from rocon_gateway import FlippedInterface, createEmptyConnectionTypeDictionary, Connection
+from gateway_comms.msg import Rule, ConnectionType, RemoteRule
 import argparse
 
 """
@@ -37,42 +37,54 @@ if __name__ == '__main__':
 #  args = parser.parse_args()
 
     rospy.init_node('flipped_interface')
-    flipped_interface = FlippedInterface()
+    flipped_interface = FlippedInterface(default_rule_blacklist=[])
 
     ##############################
     # Initial Connections
     ##############################
-    connections = createEmptyConnectionTypeDictionary()
-    connection = Connection()
-    connection.type=Connection.PUBLISHER
-    connection.name="/foo"
-    connection.node="/bar"
-    connections[Connection.PUBLISHER].append(connection)
+    connection_rule = Rule()
+    connection_rule.type=ConnectionType.PUBLISHER
+    connection_rule.name="/foo"
+    connection_rule.node="/bar"
+    system_connections = createEmptyConnectionTypeDictionary()
+    connection = Connection(connection_rule,"std_msgs/String","http://localhost:5321")
+    system_connections[ConnectionType.PUBLISHER].append(connection)
     
-    flip_rule = FlipRule()
+    flip_rule = RemoteRule()
     flip_rule.gateway='gateway1'
-    flip_rule.connection.name='/chatter'
-    flip_rule.connection.type=Connection.PUBLISHER
+    flip_rule.rule.name='/chatter'
+    flip_rule.rule.type=ConnectionType.PUBLISHER
     
-    rospy.loginfo("************* Update Tests *************")
-
-    rospy.loginfo("Testing update for a new flip rule")
+    rospy.loginfo("************* Update after a new flip rule *************")
+    rospy.loginfo("Expected Result: the system connection is not yet present")
+    rospy.loginfo("so should return empty results (no matches) from the update.")
     flipped_interface.addRule(flip_rule)
-    new_flips, old_flips = flipped_interface.update(connections)
+    new_flips, old_flips = flipped_interface.update(system_connections)
     # should return empty dictionaries
-    
-    connection = Connection()
-    connection.type=Connection.PUBLISHER
-    connection.name="/chatter"
-    connection.node="/talker"
-
-    connections[Connection.PUBLISHER].append(connection)
-    new_flips, old_flips = flipped_interface.update(connections)
     print_flips(new_flips,old_flips)
+
+    
+    rospy.loginfo("************* Update after system connection acquired *************")
+    rospy.loginfo("Expected Result: should see a match and a new item in new_flips.")
+
+    connection_rule = Rule()
+    connection_rule.type=ConnectionType.PUBLISHER
+    connection_rule.name="/chatter"
+    connection_rule.node="/talker"
+    system_connections = createEmptyConnectionTypeDictionary()
+    connection = Connection(connection_rule,"std_msgs/String","http://localhost:5321")
+    system_connections[ConnectionType.PUBLISHER].append(connection)
+    
+    new_flips, old_flips = flipped_interface.update(system_connections)
+    print_flips(new_flips,old_flips)
+    
+    rospy.loginfo("************* Update after flip rule removed acquired *************")
+    rospy.loginfo("Expected Result: should see a match existing in old flips.")
     
     if not flipped_interface.removeRule(flip_rule):
         rospy.logerr("Failed to remove an existing rule from the flip rules.")
     
-    new_flips, old_flips = flipped_interface.update(connections)
+    new_flips, old_flips = flipped_interface.update(system_connections)
     print_flips(new_flips,old_flips)
+    rospy.loginfo("************* Done *************")
     

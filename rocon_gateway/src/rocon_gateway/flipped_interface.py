@@ -203,9 +203,6 @@ class FlippedInterface(object):
           
           This is run in the watcher thread (warning: take care - other
           additions come from ros service calls in different threads!)
-          
-          @todo this will need a threading condition here to avoid muckups
-                when adding flip rules etc.
         '''
         # SLOW, EASY METHOD
         #   Totally regenerate a new flipped interface, compare with old
