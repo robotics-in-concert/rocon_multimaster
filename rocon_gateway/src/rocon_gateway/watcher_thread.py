@@ -52,12 +52,7 @@ class WatcherThread(threading.Thread):
                 # new_flips and lost_flips are RemoteRule lists with filled supplied name info from the master
                 for connection_type in connections:
                     for flip in new_flips[connection_type]:
-                        xmlrpc_uri = self.master.lookupNode(flip.rule.node)
-                        if connection_type == ConnectionType.PUBLISHER or connection_type == ConnectionType.SUBSCRIBER:
-                            type_info = rostopic.get_topic_type(flip.rule.name)[0] # message type
-                        elif connection_type == ConnectionType.SERVICE:
-                            type_info = rosservice.get_service_uri(flip.rule.name)
-                        connection = utils.Connection(flip.rule, type_info, xmlrpc_uri)
+                        connection = self.master.generateConnectionDetails(flip.rule.type, flip.rule.name, flip.rule.node)
                         rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
                         self.hub.sendFlipRequest(flip.gateway, connection)
                     for flip in lost_flips[connection_type]:

@@ -87,6 +87,13 @@ class GatewaySync(object):
         return True
 
     def shutdown(self):
+        #self.flipped_interface.clear() # clears the watchlist
+        self.watcher_thread.join()
+        for connection_type in utils.connection_types:
+            for flip in self.flipped_interface.flipped[connection_type]:
+                self.hub.sendUnflipRequest(flip.gateway, flip.rule)
+            for registration in self.flipped_interface.registrations[connection_type]:
+                self.master.unregister(registration)
         self.hub.unregisterGateway()
 
     ##########################################################################

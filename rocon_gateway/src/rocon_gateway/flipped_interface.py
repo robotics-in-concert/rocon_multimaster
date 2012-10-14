@@ -72,6 +72,10 @@ class FlippedInterface(object):
         self._blacklist = {} 
 
         self.lock = threading.Lock()
+
+    ##########################################################################
+    # Rules
+    ##########################################################################
         
     def addRule(self, flip_rule):
         '''
@@ -194,6 +198,10 @@ class FlippedInterface(object):
                     except ValueError:
                         pass # should never get here
         self.lock.release()
+
+    ##########################################################################
+    # Monitoring
+    ##########################################################################
 
     def update(self,connections):
         '''

@@ -94,6 +94,28 @@ class LocalMaster(rosgraph.Master):
     # Master utility methods
     ##########################################################################
     
+    def generateConnectionDetails(self, type, name, node):
+        '''
+        Creates all the extra details to create a connection object from a
+        rule.
+        
+        @param type : the connection type (one of gateway_comms.msg.ConnectionType)
+        @type string
+        @param name : the name of the connection
+        @type string
+        @param node : the master node name it comes from
+        @param string
+        
+        @return the utils.Connection object complete with type_info and xmlrpc_uri
+        @type utils.Connection
+        '''
+        if type == ConnectionType.PUBLISHER or type == ConnectionType.SUBSCRIBER:
+            type_info = rostopic.get_topic_type(name)[0] # message type
+        elif type == ConnectionType.SERVICE:
+            type_info = rosservice.get_service_uri(name)
+        xmlrpc_uri = self.lookupNode(node)
+        return Connection(Rule(type, name, node),type_info,xmlrpc_uri)
+    
     def _getMasterUri(self):
         return rosgraph.get_master_uri()
 
