@@ -22,5 +22,18 @@
 # Used to block/permit remote gateway's from flipping to this gateway.
 # firewall: true
 
-## Static flip/pull lists (todo)
-
+# Static rules
+#default_advertisements: 
+#    - name: /chatter
+#      node: None
+#      type: publisher
+#    - name: /chat*
+#      node: None
+#      type: subscriber
+#default_flips: how to do these? 
+#    - gatewa{ name: /chatter
+#      node: None
+#      type: publisher
+#    - name: /chat*
+#      node: None
+#      type: subscriber

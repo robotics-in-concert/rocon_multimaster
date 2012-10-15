@@ -32,13 +32,15 @@ def setupRosParameters():
     param['watch_loop_period'] = rospy.get_param('~watch_loop_period',10) # in seconds
     
     # Blacklist used for advertise all, flip all and pull all commands
-    param['default_blacklist'] = rospy.get_param('~default_blacklist', [])
+    param['default_blacklist'] = rospy.get_param('~default_blacklist', []) # list of Rule objects
 
-    # Topics and services for pre-initialisation/configuration
-    param['default_public_interface'] = rospy.get_param('~default_public_interface', '')
-    
     # Used to block/permit remote gateway's from flipping to this gateway.
     param['firewall'] = rospy.get_param('~firewall', True)
+
+    # Topics and services for pre-initialisation/configuration
+    param['default_advertisements'] = rospy.get_param('~default_advertisements', [])  # list of Rule objects
+    param['default_flips'] = rospy.get_param('~default_flips', [])  # list of RemoteRule objects
+    param['default_pulls'] = rospy.get_param('~default_pulls', [])  # list of RemoteRule objects
 
     return param
 
