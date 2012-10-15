@@ -62,8 +62,8 @@ class RedisListenerThread(threading.Thread):
     '''
     def __init__(self,redis_pubsub_server,remote_gateway_request_callbacks):
         threading.Thread.__init__(self)
-        self.redis_pubsub_server = redis_pubsub_server
-        self.remote_gateway_request_callbacks = remote_gateway_request_callbacks
+        self._redis_pubsub_server = redis_pubsub_server
+        self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
             
     def run(self):
         '''
@@ -80,17 +80,16 @@ class RedisListenerThread(threading.Thread):
             - [6] - xmlrpc_uri : the xmlrpc node uri
             
           The command 'unflip' is the same, not including args 5 and 6.
-            
         '''
-        for r in self.redis_pubsub_server.listen():
+        for r in self._redis_pubsub_server.listen():
             if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
                 command, source, contents = utils.deserializeRequest(r['data'])
                 rospy.logdebug("Gateway : redis listener received a channel publication from %s : [%s]"%(source,command))
                 if command == 'flip':
                     registration = utils.Registration(utils.getConnectionFromList(contents), source)
-                    self.remote_gateway_request_callbacks['flip'](registration)
+                    self._remote_gateway_request_callbacks['flip'](registration)
                 elif command == 'unflip':
-                    self.remote_gateway_request_callbacks['unflip'](utils.getRuleFromList(contents), source)
+                    self._remote_gateway_request_callbacks['unflip'](utils.getRuleFromList(contents), source)
                 else:
                     rospy.logerr("Gateway : received an unknown command from the hub.")
 
@@ -108,14 +107,13 @@ class Hub(object):
     def __init__(self,remote_gateway_request_callbacks,gateway_name):
         self.name = '' # the hub name
         self._gateway_name = gateway_name # used to generate the unique name key later
-        self.remote_gateway_request_callbacks = remote_gateway_request_callbacks
-        self.redis_keys = {}
-        #self.redis_keys['name'] = '' # it's a unique id generated later when connecting
-        self.redis_keys['index'] = createKey('hub:index') # used for uniquely id'ing the gateway (client)
-        self.redis_keys['gatewaylist'] = createKey('gatewaylist')
-        self.redis_channels = {}
-        self.redis_channels['update_topic'] = createKey('update')
-        self.redis_pubsub_server = None
+        self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
+        self._redis_keys = {}
+        #self._redis_keys['gateway_name'] = '' # it's a unique id generated later when connecting
+        self._redis_keys['index'] = createKey('hub:index') # used for uniquely id'ing the gateway (client)
+        self._redis_keys['gatewaylist'] = createKey('gatewaylist')
+        self._redis_channels = {}
+        self._redis_pubsub_server = None
         
     ##########################################################################
     # Hub
@@ -126,7 +124,7 @@ class Hub(object):
             self.pool = redis.ConnectionPool(host=ip,port=portarg,db=0)
             self.server = redis.Redis(connection_pool=self.pool)
             rospy.logdebug("Gateway : connected to the hub's redis server.")
-            self.redis_pubsub_server = self.server.pubsub()
+            self._redis_pubsub_server = self.server.pubsub()
         except redis.exceptions.ConnectionError as e:
             rospy.logerror("Gateway : failed rule to the hub's redis server.")
             raise
@@ -136,7 +134,7 @@ class Hub(object):
           Return a list of the gateways (name list, not redis keys).
           e.g. ['gateway32','pirate33']
         '''
-        gateway_keys = self.server.smembers(self.redis_keys['gatewaylist']) 
+        gateway_keys = self.server.smembers(self._redis_keys['gatewaylist']) 
         gateway_list = []
         for gateway in gateway_keys:
             gateway_list.append(keyBaseName(gateway))
@@ -192,15 +190,15 @@ class Hub(object):
           @todo - maybe merge with 'connect', or at the least check if it
           is actually connected here first.
         '''
-        unique_num = self.server.incr(self.redis_keys['index'])
-        self.redis_keys['name'] = createKey(self._gateway_name+str(unique_num))
-        self.server.sadd(self.redis_keys['gatewaylist'],self.redis_keys['name'])
-        self.redis_pubsub_server.subscribe(self.redis_channels['update_topic'])
-        self.redis_pubsub_server.subscribe(self.redis_keys['name'])
-        self.remote_gateway_listener_thread = RedisListenerThread(self.redis_pubsub_server, self.remote_gateway_request_callbacks)
+        unique_num = self.server.incr(self._redis_keys['index'])
+        self._redis_keys['gateway_name'] = createKey(self._gateway_name+str(unique_num))
+        self.server.sadd(self._redis_keys['gatewaylist'],self._redis_keys['gateway_name'])
+        self._redis_channels['gateway_name'] = self._redis_keys['gateway_name']
+        self._redis_pubsub_server.subscribe(self._redis_channels['gateway_name'])
+        self.remote_gateway_listener_thread = RedisListenerThread(self._redis_pubsub_server, self._remote_gateway_request_callbacks)
         self.remote_gateway_listener_thread.start()
         self.name = keyBaseName(self.server.get("rocon:hub:name"))
-        return keyBaseName(self.redis_keys['name'])
+        return keyBaseName(self._redis_keys['gateway_name'])
 
     def unregisterGateway(self):
         '''
@@ -211,11 +209,12 @@ class Hub(object):
         '''
         try:
             pipe = self.server.pipeline()
-            public_interface_list = self.redis_keys['name'] +":rule"
+            public_interface_list = self._redis_keys['gateway_name'] +":rule"
             pipe.delete(public_interface_list)
-            pipe.srem(self.redis_keys['gatewaylist'],self.redis_keys['name'])
+            pipe.srem(self._redis_keys['gatewaylist'],self._redis_keys['gateway_name'])
             pipe.execute()
-            self.redis_pubsub_server.unsubscribe()
+            self._redis_pubsub_server.unsubscribe()
+            self._redis_channels = {}
             self.name = ''
         except Exception as e:
             rospy.logerr("Gateway : error unregistering gateway from the hub (need better error handling here).")
@@ -240,7 +239,7 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = self.redis_keys['name']+":connection"
+        key = self._redis_keys['gateway_name']+":connection"
         msg_str = utils.serializeConnection(connection)
         self.server.sadd(key,msg_str)
     
@@ -252,7 +251,7 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = self.redis_keys['name']+":connection"
+        key = self._redis_keys['gateway_name']+":connection"
         msg_str = utils.serializeConnection(connection)
         self.server.srem(key,msg_str)
 
@@ -287,7 +286,7 @@ class Hub(object):
           @param xmlrpc_uri : the node uri
           @param str
         '''
-        source = keyBaseName(self.redis_keys['name'])
+        source = keyBaseName(self._redis_keys['gateway_name'])
         cmd = utils.serializeConnectionRequest('flip', source, connection)
         try:
             self.server.publish(createKey(gateway),cmd)
@@ -296,7 +295,7 @@ class Hub(object):
         return True
 
     def sendUnflipRequest(self, gateway, rule):
-        source = keyBaseName(self.redis_keys['name'])
+        source = keyBaseName(self._redis_keys['gateway_name'])
         cmd = utils.serializeRuleRequest('unflip', source, rule)
         try:
             self.server.publish(createKey(gateway),cmd)
