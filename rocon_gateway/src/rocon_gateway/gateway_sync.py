@@ -87,8 +87,7 @@ class GatewaySync(object):
         return True
 
     def shutdown(self):
-        #self.flipped_interface.clear() # clears the watchlist
-        self.watcher_thread.join()
+        self.watcher_thread.shutdown()
         for connection_type in utils.connection_types:
             for flip in self.flipped_interface.flipped[connection_type]:
                 self.hub.sendUnflipRequest(flip.gateway, flip.rule)
@@ -180,6 +179,7 @@ class GatewaySync(object):
             flip_rule = self.flipped_interface.addRule(request.remote)
             if flip_rule:
                 rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.rule.name,flip_rule.rule.type))
+                self.watcher_thread.trigger_update = True
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
             else:
@@ -190,6 +190,7 @@ class GatewaySync(object):
             flip_rules = self.flipped_interface.removeRule(request.remote)
             if flip_rules:
                 rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(request.remote.gateway,request.remote.rule.name))
+                self.watcher_thread.trigger_update = True
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
         return response
@@ -216,6 +217,7 @@ class GatewaySync(object):
         elif not request.cancel:
             if self.flipped_interface.flipAll(request.gateway, request.blacklist):
                 rospy.loginfo("Gateway : flipping all to gateway '%s'"%(request.gateway))
+                self.watcher_thread.trigger_update = True
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
             else:
@@ -225,6 +227,7 @@ class GatewaySync(object):
         else: # request.cancel
             self.flipped_interface.unFlipAll(request.gateway)
             rospy.loginfo("Gateway : cancelling a previous flip all request [%s]"%(request.gateway))
+            self.watcher_thread.trigger_update = True
             response.result = gateway_comms.msg.Result.SUCCESS
             # watcher thread will look after this from here
         return response
