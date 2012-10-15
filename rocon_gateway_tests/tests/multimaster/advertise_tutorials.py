@@ -21,6 +21,11 @@ import sys
     2a> roslaunch rocon_gateway pirate_tutorials.launch
     3a> roslaunch rocon_gateway pirate.launch
     2b> rosrun rocon_gateway_tests advertise_tutorials.py
+    2c> rosservice call /gateway/gateway_info
+    3b> rosservice call /gateway/remote_gateway_info []
+    2d> rosrun rocon_gateway_tests advertise_tutorials.py --cancel
+    2e> rosrun rocon_gateway_tests advertise_tutorials.py --regex
+    2d> rosrun rocon_gateway_tests advertise_tutorials.py --regex --cancel
 """
 
 if __name__ == '__main__':
