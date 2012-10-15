@@ -56,8 +56,8 @@ if __name__ == '__main__':
         rospy.loginfo("Advertise : %s [%s,%s,%s]."%(action_text, rule.type, rule.name, rule.node or 'None'))
         req.rules.append(rule) 
         resp = advertise(req)
-        if resp.result != 0:
-            rospy.logerr("Advertise : %s"%resp.error_message)
+        #if resp.result != 0:
+        #    rospy.logerr("Advertise : %s"%resp.error_message)
 
     rule.node = ''
     req.rules = []
