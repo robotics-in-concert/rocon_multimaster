@@ -33,7 +33,7 @@ if __name__ == '__main__':
     #parser.add_argument("gateway", help="gateway string identifier", type=str)
     parser.add_argument('--pubonly', action='store_true', help='flip /chatter publisher only')
     parser.add_argument('--subonly', action='store_true', help='flip /chatter subscriber only')
-    parser.add_argument('--serviceonly', action='store_true', help='flip /chatter subscriber only')
+    parser.add_argument('--serviceonly', action='store_true', help='flip add_two_ints service only')
     parser.add_argument('--regex', action='store_true', help='test with a regex pattern')
     parser.add_argument('--cancel', action='store_true', help='cancel the flip')
     args = parser.parse_args()
