@@ -67,7 +67,7 @@ class GatewaySync(object):
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.processRemoteGatewayFlipRequest
         self.remote_gateway_request_callbacks['unflip'] = self.processRemoteGatewayUnflipRequest
-        self.hub = Hub(self.remote_gateway_request_callbacks, self.unresolved_name)
+        self.hub = Hub(self.remote_gateway_request_callbacks, self.unresolved_name, flip_firewall=self.param['flip_firewall'])
 
         # create a thread to watch local rule states
         self.watcher_thread = WatcherThread(self, self.param['watch_loop_period'])

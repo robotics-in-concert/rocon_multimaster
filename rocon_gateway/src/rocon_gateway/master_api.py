@@ -19,7 +19,6 @@ import roslib.names
 import socket
 import re
 
-from .exceptions import GatewayError, ConnectionTypeError
 from gateway_comms.msg import Rule, ConnectionType
 from utils import Connection
 

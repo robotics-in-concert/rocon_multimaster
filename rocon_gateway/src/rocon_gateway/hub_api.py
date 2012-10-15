@@ -10,6 +10,8 @@ import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import re
 import utils
+import gateway_comms.msg
+from .exceptions import UnavailableGatewayError
 
 ###############################################################################
 # Utility Functions
@@ -23,6 +25,25 @@ def createKey(key):
         return key
     else:
         return 'rocon:'+key
+
+def createHubKey(key):
+    '''
+      Root the specified redis key name in our pseudo redis database under
+      the hub namespace
+    '''
+    if re.match('rocon:hub:',key): # checks if leading rocon: is foundupdate
+        return key
+    else:
+        return 'rocon:hub:'+key
+
+def createGatewayKey(unique_gateway_name, key):
+    '''
+      Root the specified redis key name in our pseudo redis database under
+      the gateway namespace.
+      
+      @note : currently does no checking of the incoming keys
+    '''
+    return 'rocon:'+ unique_gateway_name + ":" + key
 
 def extractKey(key):
     '''
@@ -104,19 +125,31 @@ class Hub(object):
     pubsub = None
     callback = None
 
-    def __init__(self,remote_gateway_request_callbacks,gateway_name):
+    def __init__(self,remote_gateway_request_callbacks,gateway_name,flip_firewall):
+        '''
+          @param remote_gateway_request_callbacks : to handle redis responses
+          @type list of function pointers (back to GatewaySync class
+          
+          @param gateway_name : recommended name for this gateway
+          @type string
+          
+          @param flip_firewall : whether this gateway blocks flips or not (we publish this info)
+          @type Bool
+        '''
         self.name = '' # the hub name
         self._gateway_name = gateway_name # used to generate the unique name key later
+        self._flip_firewall = 1 if flip_firewall else 0
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
         self._redis_keys = {}
-        #self._redis_keys['gateway_name'] = '' # it's a unique id generated later when connecting
-        self._redis_keys['index'] = createKey('hub:index') # used for uniquely id'ing the gateway (client)
-        self._redis_keys['gatewaylist'] = createKey('gatewaylist')
+        #self._redis_keys['gateway'] = '' # it's a unique id generated later when connecting
+        #self._redis_keys['firewall'] = '' # it's also generated later when connecting
+        self._redis_keys['index'] = createHubKey('index') # used for uniquely id'ing the gateway (client)
+        self._redis_keys['gatewaylist'] = createHubKey('gatewaylist')
         self._redis_channels = {}
         self._redis_pubsub_server = None
         
     ##########################################################################
-    # Hub
+    # Hub Connections
     ##########################################################################
 
     def connect(self,ip,portarg):
@@ -129,51 +162,6 @@ class Hub(object):
             rospy.logerror("Gateway : failed rule to the hub's redis server.")
             raise
 
-    def listGateways(self):
-        '''
-          Return a list of the gateways (name list, not redis keys).
-          e.g. ['gateway32','pirate33']
-        '''
-        gateway_keys = self.server.smembers(self._redis_keys['gatewaylist']) 
-        gateway_list = []
-        for gateway in gateway_keys:
-            gateway_list.append(keyBaseName(gateway))
-        return gateway_list
-
-    def listPublicInterfaces(self, gateways = None):
-        '''
-          Return all the 'remote' public interfaces connnected to the hub.
-        '''
-        public_interfaces = {}
-        if gateways == None:
-            gateways = self.listGateways()
-        for gateway in gateways:
-            gateway_key = createKey(gateway)
-            key = gateway_key +":connection"
-            public_interface = self.server.smembers(key)
-            public_interfaces[gateway] = []
-            for connection_str in public_interface:
-                connection = utils.deserializeConnection(connection_str)
-                public_interfaces[gateway].append(connection.rule) 
-        return public_interfaces
-
-    def getRemoteConnectionState(self, gateway):
-        '''
-          Equivalent to getConnectionState, but generates it from the public
-          interface of a foreign gateway
-       '''
-        connections = utils.createEmptyConnectionTypeDictionary()
-        gateway_key = createKey(gateway)
-        key = gateway_key +":connection"
-        public_interface = self.server.smembers(key)
-        for connection_str in public_interface:
-            connection = utils.deserializeConnection(connection_str)
-            connections[connection.rule.type].append(connection)
-        return connections
-        
-    ##########################################################################
-    # Gateway Rule
-    ##########################################################################
 
     def registerGateway(self):
         '''
@@ -191,14 +179,17 @@ class Hub(object):
           is actually connected here first.
         '''
         unique_num = self.server.incr(self._redis_keys['index'])
-        self._redis_keys['gateway_name'] = createKey(self._gateway_name+str(unique_num))
-        self.server.sadd(self._redis_keys['gatewaylist'],self._redis_keys['gateway_name'])
-        self._redis_channels['gateway_name'] = self._redis_keys['gateway_name']
-        self._redis_pubsub_server.subscribe(self._redis_channels['gateway_name'])
+        self._unique_gateway_name = self._gateway_name+str(unique_num)
+        self._redis_keys['gateway'] = createKey(self._unique_gateway_name)
+        self._redis_keys['firewall'] = createGatewayKey(self._unique_gateway_name,'firewall')
+        self.server.sadd(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
+        self.server.set(self._redis_keys['firewall'], self._flip_firewall)
+        self._redis_channels['gateway'] = self._redis_keys['gateway']
+        self._redis_pubsub_server.subscribe(self._redis_channels['gateway'])
         self.remote_gateway_listener_thread = RedisListenerThread(self._redis_pubsub_server, self._remote_gateway_request_callbacks)
         self.remote_gateway_listener_thread.start()
         self.name = keyBaseName(self.server.get("rocon:hub:name"))
-        return keyBaseName(self._redis_keys['gateway_name'])
+        return keyBaseName(self._redis_keys['gateway'])
 
     def unregisterGateway(self):
         '''
@@ -208,13 +199,14 @@ class Hub(object):
           @rtype: bool
         '''
         try:
+            gateway_keys = self.server.keys(self._redis_keys['gateway']+":*")
             pipe = self.server.pipeline()
-            public_interface_list = self._redis_keys['gateway_name'] +":rule"
-            pipe.delete(public_interface_list)
-            pipe.srem(self._redis_keys['gatewaylist'],self._redis_keys['gateway_name'])
+            pipe.delete(*gateway_keys)
+            pipe.srem(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
             pipe.execute()
             self._redis_pubsub_server.unsubscribe()
             self._redis_channels = {}
+            self._unique_gateway_name = ''
             self.name = ''
         except Exception as e:
             rospy.logerr("Gateway : error unregistering gateway from the hub (need better error handling here).")
@@ -222,6 +214,78 @@ class Hub(object):
         rospy.loginfo("Gateway : unregistering gateway from the hub.")
         return True
 
+    ##########################################################################
+    # Hub Data Retrieval
+    ##########################################################################
+
+    def remoteGatewayInfo(self, gateway):
+        '''
+          Return remote gateway information for the specified gateway string id.
+          
+          @param gateways : gateway id string to search for
+          @type string
+          @return remote gateway information
+          @rtype gateway_comms.msg.RemotGateway or None
+        '''
+        firewall = self.server.get(createGatewayKey(gateway,'firewall'))
+        if not firewall:
+            return None # equivalent to saying no gateway of this id found
+        else:
+            remote_gateway = gateway_comms.msg.RemoteGateway()
+            remote_gateway.name = gateway
+            remote_gateway.firewall = True if firewall else False
+            encoded_connections = self.server.smembers(createGatewayKey(gateway,'connection'))
+            remote_gateway.public_interface = []
+            for encoded_connection in encoded_connections:
+                connection = utils.deserializeConnection(encoded_connection)
+                remote_gateway.public_interface.append(connection.rule)
+            return remote_gateway 
+
+    def listRemoteGatewayNames(self):
+        '''
+          Return a list of the gateways (name list, not redis keys).
+          e.g. ['gateway32','pirate33']
+        '''
+        gateway_keys = self.server.smembers(self._redis_keys['gatewaylist']) 
+        gateway_list = []
+        for gateway in gateway_keys:
+            if keyBaseName(gateway) != self._unique_gateway_name:
+                gateway_list.append(keyBaseName(gateway))
+        return gateway_list
+
+    def getRemoteConnectionState(self, gateway):
+        '''
+          Equivalent to getConnectionState, but generates it from the public
+          interface of a foreign gateway
+       '''
+        connections = utils.createEmptyConnectionTypeDictionary()
+        gateway_key = createKey(gateway)
+        key = gateway_key +":connection"
+        public_interface = self.server.smembers(key)
+        for connection_str in public_interface:
+            connection = utils.deserializeConnection(connection_str)
+            connections[connection.rule.type].append(connection)
+        return connections
+    
+    def getRemoteGatewayFirewallFlag(self, gateway):
+        '''
+          Returns the value of the remote gateway's firewall (flip)
+          flag.
+          
+          @param gateway : gateway string id
+          @param string
+          
+          @return state of the flag
+          @rtype Bool
+          
+          @raise UnavailableGatewayError when specified gateway is not on the hub
+        '''
+        firewall = self.server.get(createGatewayKey(gateway,'firewall'))
+        if firewall:
+            return True if firewall else False
+        else:
+            raise UnavailableGatewayError
+                
     ##########################################################################
     # Public Interface
     ##########################################################################
@@ -239,7 +303,7 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = self._redis_keys['gateway_name']+":connection"
+        key = self._redis_keys['gateway']+":connection"
         msg_str = utils.serializeConnection(connection)
         self.server.sadd(key,msg_str)
     
@@ -251,7 +315,7 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = self._redis_keys['gateway_name']+":connection"
+        key = self._redis_keys['gateway']+":connection"
         msg_str = utils.serializeConnection(connection)
         self.server.srem(key,msg_str)
 
@@ -286,7 +350,7 @@ class Hub(object):
           @param xmlrpc_uri : the node uri
           @param str
         '''
-        source = keyBaseName(self._redis_keys['gateway_name'])
+        source = keyBaseName(self._redis_keys['gateway'])
         cmd = utils.serializeConnectionRequest('flip', source, connection)
         try:
             self.server.publish(createKey(gateway),cmd)
@@ -295,7 +359,7 @@ class Hub(object):
         return True
 
     def sendUnflipRequest(self, gateway, rule):
-        source = keyBaseName(self._redis_keys['gateway_name'])
+        source = keyBaseName(self._redis_keys['gateway'])
         cmd = utils.serializeRuleRequest('unflip', source, rule)
         try:
             self.server.publish(createKey(gateway),cmd)
@@ -303,3 +367,8 @@ class Hub(object):
             return False
         return True
 
+    ##########################################################################
+    # Redis Converters - convert variosu types to redis readable strings
+    ##########################################################################
+    
+     

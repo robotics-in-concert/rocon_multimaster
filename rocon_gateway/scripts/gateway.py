@@ -135,21 +135,14 @@ class Gateway():
     
     def rosServiceRemoteGatewayInfo(self,request):
         
-        # Figure out names of relevant gateways
-        requested_gateways = request.gateways
-        available_gateways = self.gateway_sync.hub.listGateways()
-        available_gateways = [x for x in available_gateways if x != self.gateway_sync.unique_name]
-        if len(requested_gateways) == 0:
-            gateways = available_gateways
-        else:
-            gateways = [x for x in requested_gateways if x in available_gateways]
-
         response = gateway_comms.srv.RemoteGatewayInfoResponse()
-        # Public Interface
-        public_interfaces = self.gateway_sync.hub.listPublicInterfaces(gateways)
-        for key in public_interfaces:
-            gateway_response = gateway_comms.msg.RemoteGateway(key, public_interfaces[key], [], [])
-            response.gateways.append(gateway_response)
+        requested_gateways = request.gateways if request.gateways else self.gateway_sync.hub.listRemoteGatewayNames()
+        for gateway in requested_gateways:
+            remote_gateway_info = self.gateway_sync.hub.remoteGatewayInfo(gateway)
+            if remote_gateway_info:
+                response.gateways.append(remote_gateway_info)
+            else:
+                rospy.logwarn("Gateway : requested gateway info for unavailable gateway [%s]"%gateway)
         return response
 
     #############################################
