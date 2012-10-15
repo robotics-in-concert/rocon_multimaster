@@ -138,11 +138,12 @@ class Hub(object):
         '''
         self.name = '' # the hub name
         self._gateway_name = gateway_name # used to generate the unique name key later
+        self._unique_gateway_name = '' # set when gateway is registered
         self._firewall = 1 if firewall else 0
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
         self._redis_keys = {}
-        #self._redis_keys['gateway'] = '' # it's a unique id generated later when connecting
-        #self._redis_keys['firewall'] = '' # it's also generated later when connecting
+        #self._redis_keys['gateway'] = '' # it's a unique id set when gateway is registered
+        #self._redis_keys['firewall'] = '' # it's also generated later when gateway is registered
         self._redis_keys['index'] = createHubKey('index') # used for uniquely id'ing the gateway (client)
         self._redis_keys['gatewaylist'] = createHubKey('gatewaylist')
         self._redis_channels = {}
@@ -178,8 +179,13 @@ class Hub(object):
           @todo - maybe merge with 'connect', or at the least check if it
           is actually connected here first.
         '''
-        unique_num = self.server.incr(self._redis_keys['index'])
-        self._unique_gateway_name = self._gateway_name+str(unique_num)
+        gateways = self.listRemoteGatewayNames()
+        if self._gateway_name in gateways:
+            unique_num = self.server.incr(self._redis_keys['index'])
+            self._unique_gateway_name = self._gateway_name+str(unique_num)
+        else:
+            self._unique_gateway_name = self._gateway_name
+        print self._unique_gateway_name
         self._redis_keys['gateway'] = createKey(self._unique_gateway_name)
         self._redis_keys['firewall'] = createGatewayKey(self._unique_gateway_name,'firewall')
         self.server.sadd(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
