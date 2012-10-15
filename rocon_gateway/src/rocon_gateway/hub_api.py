@@ -259,13 +259,6 @@ class Hub(object):
     ##########################################################################
     # Gateway-Gateway Communications
     ##########################################################################
-
-    def broadcastTopicUpdate(self,msg):
-        self.server.publish(self.redis_channels['update_topic'],msg)
-
-    ##########################################################################
-    # Messages to Remote Gateways (via redis publisher channels)
-    ##########################################################################
     
     def sendFlipRequest(self, gateway, connection):
         '''
@@ -311,47 +304,3 @@ class Hub(object):
             return False
         return True
 
-    ##########################################################################
-    # Depracating
-    ##########################################################################
-
-    # DJS need to get rid of these, no point in piping if you are only
-    # sending one command at a time.
-    
-#    def addMembers(self,key,topic):
-#        try:
-#            pipe = self.server.pipeline()
-#            pipe.sadd(key,topic)
-#            pipe.execute()
-#        except:
-#            print "Error : addMembers"
-#            return False
-#        return True
-#
-#    def removeMembers(self,key,string):
-#        try:
-#            pipe = self.server.pipeline()
-#            pipe.srem(key,string)
-#            pipe.execute()
-#        except:
-#            print "Error : removeMembers"
-#            return False
-#        return True
-
-#    def listPublicInterfaces(self):
-#        '''
-#          Return all the 'remote' public interfaces connnected to the hub.
-#        '''
-#        public_interfaces = {}
-#        gateway_keys = self.server.smembers(self.redis_keys['gatewaylist'])
-#        for gateway_key in gateway_keys:
-#            gateway = keyBbaseName(gateway_key)
-#            public_interfaces[gateway] = {}
-#            # get public topic list of this master
-#            key = gateway_key +":topic"
-#            public_interfaces[gateway]['topic'] = self.server.smembers(key)
-#
-#            # get public service list of this master
-#            key = gateway_key +":service"
-#            public_interfaces[gateway]['service'] = self.server.smembers(key)
-#        return public_interfaces
