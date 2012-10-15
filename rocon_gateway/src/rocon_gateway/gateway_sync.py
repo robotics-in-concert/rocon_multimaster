@@ -59,10 +59,10 @@ class GatewaySync(object):
         self.unresolved_name = self.param['name'] # This gets used to build unique names after rule to the hub
         self.unique_name = None # single string value set after hub rule (note: it is not a redis rocon:: rooted key!)
         self.is_connected = False
-        default_blacklist_rules = ros_parameters.generateRules(self.param["default_blacklist"])
-        self.flipped_interface = FlippedInterface(default_blacklist_rules) # Initalise the unique namespace hint for this upon rule later
-        self.pulled_interface = PulledInterface(default_blacklist_rules)
-        self.public_interface = PublicInterface(default_blacklist_rules)
+        default_rule_blacklist = ros_parameters.generateRules(self.param["default_blacklist"])
+        self.flipped_interface = FlippedInterface(firewall=self.param['flip_firewall'],default_rule_blacklist=default_rule_blacklist) # Initalise the unique namespace hint for this upon rule later
+        self.pulled_interface = PulledInterface(default_rule_blacklist)
+        self.public_interface = PublicInterface(default_rule_blacklist)
         self.master = LocalMaster()
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.processRemoteGatewayFlipRequest
@@ -349,14 +349,20 @@ class GatewaySync(object):
         '''
           Used as a callback for incoming requests on redis pubsub channels.
           It gets assigned to RedisManager.callback.
+          
+          @param registration : fully detailed registration to be processed
+          @type utils.Registration
         '''
-        rospy.loginfo("Gateway : received a flip request %s"%registration)
-        # probably not necessary as the flipping gateway will already check this
-        existing_registration = self.flipped_interface.findRegistrationMatch(registration.remote_gateway,registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
-        if not existing_registration:
-            new_registration = self.master.register(registration)
-            if new_registration:
-                self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
+        if self.flipped_interface.firewall:
+            rospy.logwarn("Gateway : firewalling a flip request %s"%registration)
+        else:
+            rospy.loginfo("Gateway : received a flip request %s"%registration)
+            # probably not necessary as the flipping gateway will already check this
+            existing_registration = self.flipped_interface.findRegistrationMatch(registration.remote_gateway,registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
+            if not existing_registration:
+                new_registration = self.master.register(registration)
+                if new_registration:
+                    self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
     
     def processRemoteGatewayUnflipRequest(self,rule,remote_gateway):
         rospy.loginfo("Gateway : received an unflip request from gateway %s: %s"%(remote_gateway,utils.formatRule(rule)))

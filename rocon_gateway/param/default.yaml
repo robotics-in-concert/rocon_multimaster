@@ -15,9 +15,8 @@
 ## Gateway name - this is a human readable convenience only
 # name: 'gateway'
 
-## Static flip/request lists.
-# local_public_topic: []
-# local_public_service: []
-# remote_topic: []
-# remote_service: []
+# Used to block/permit remote gateway's from flipping to this gateway.
+# flip_firewall: true
+
+## Static flip/pull lists (todo)
 

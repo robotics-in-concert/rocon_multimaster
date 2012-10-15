@@ -29,14 +29,16 @@ def setupRosParameters():
     
     # Gateway
     param['name'] = rospy.get_param('~name','gateway')
-    param['watch_loop_period'] = rospy.get_param('~watch_loop_period',5) # in seconds
+    param['watch_loop_period'] = rospy.get_param('~watch_loop_period',20) # in seconds
+    
+    # Blacklist used for advertise all, flip all and pull all commands
+    param['default_blacklist'] = rospy.get_param('~default_blacklist', [])
 
     # Topics and services for pre-initialisation/configuration
     param['default_public_interface'] = rospy.get_param('~default_public_interface', '')
-    param['default_blacklist'] = rospy.get_param('~default_blacklist', [])
-
-    # self.param['remote_topic'] = rospy.get_param('~remote_topic','')
-    # self.param['remote_service'] = rospy.get_param('~remote_service','')
+    
+    # Used to block/permit remote gateway's from flipping to this gateway.
+    param['flip_firewall'] = rospy.get_param('~flip_firewall', True)
 
     return param
 
