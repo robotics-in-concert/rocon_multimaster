@@ -286,6 +286,7 @@ class GatewaySync(object):
             pull_rule = self.pulled_interface.addRule(request.rule)
             if pull_rule:
                 rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
+                self.watcher_thread.trigger_update = True
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
             else:
@@ -296,6 +297,7 @@ class GatewaySync(object):
             pull_rules = self.pulled_interface.removeRule(request.rule)
             if pull_rules:
                 rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(request.rule.gateway,request.remote.rule.name))
+                self.watcher_thread.trigger_update = True
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
         return response
@@ -322,6 +324,7 @@ class GatewaySync(object):
         elif not request.cancel:
             if self.pulled_interface.flipAll(request.gateway, request.blacklist):
                 rospy.loginfo("Gateway : pulling all to gateway '%s'"%(request.gateway))
+                self.watcher_thread.trigger_update = True
                 response.result = gateway_comms.msg.Result.SUCCESS
                 # watcher thread will look after this from here
             else:
@@ -331,6 +334,7 @@ class GatewaySync(object):
         else: # request.cancel
             self.pulled_interface.unFlipAll(request.gateway)
             rospy.loginfo("Gateway : cancelling a previous pull all request [%s]"%(request.gateway))
+            self.watcher_thread.trigger_update = True
             response.result = gateway_comms.msg.Result.SUCCESS
             # watcher thread will look after this from here
         return response
