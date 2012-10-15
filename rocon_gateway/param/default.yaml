@@ -16,7 +16,7 @@
 # name: 'gateway'
 
 # Used to block/permit remote gateway's from flipping to this gateway.
-# flip_firewall: true
+# firewall: true
 
 ## Static flip/pull lists (todo)
 

@@ -60,14 +60,14 @@ class GatewaySync(object):
         self.unique_name = None # single string value set after hub rule (note: it is not a redis rocon:: rooted key!)
         self.is_connected = False
         default_rule_blacklist = ros_parameters.generateRules(self.param["default_blacklist"])
-        self.flipped_interface = FlippedInterface(firewall=self.param['flip_firewall'],default_rule_blacklist=default_rule_blacklist) # Initalise the unique namespace hint for this upon rule later
+        self.flipped_interface = FlippedInterface(firewall=self.param['firewall'],default_rule_blacklist=default_rule_blacklist) # Initalise the unique namespace hint for this upon rule later
         self.pulled_interface = PulledInterface(default_rule_blacklist)
         self.public_interface = PublicInterface(default_rule_blacklist)
         self.master = LocalMaster()
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.processRemoteGatewayFlipRequest
         self.remote_gateway_request_callbacks['unflip'] = self.processRemoteGatewayUnflipRequest
-        self.hub = Hub(self.remote_gateway_request_callbacks, self.unresolved_name, flip_firewall=self.param['flip_firewall'])
+        self.hub = Hub(self.remote_gateway_request_callbacks, self.unresolved_name, firewall=self.param['firewall'])
 
         # create a thread to watch local rule states
         self.watcher_thread = WatcherThread(self, self.param['watch_loop_period'])

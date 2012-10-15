@@ -125,7 +125,7 @@ class Hub(object):
     pubsub = None
     callback = None
 
-    def __init__(self,remote_gateway_request_callbacks,gateway_name,flip_firewall):
+    def __init__(self,remote_gateway_request_callbacks,gateway_name,firewall):
         '''
           @param remote_gateway_request_callbacks : to handle redis responses
           @type list of function pointers (back to GatewaySync class
@@ -133,12 +133,12 @@ class Hub(object):
           @param gateway_name : recommended name for this gateway
           @type string
           
-          @param flip_firewall : whether this gateway blocks flips or not (we publish this info)
+          @param firewall : whether this gateway blocks flips or not (we publish this info)
           @type Bool
         '''
         self.name = '' # the hub name
         self._gateway_name = gateway_name # used to generate the unique name key later
-        self._flip_firewall = 1 if flip_firewall else 0
+        self._firewall = 1 if firewall else 0
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
         self._redis_keys = {}
         #self._redis_keys['gateway'] = '' # it's a unique id generated later when connecting
@@ -183,7 +183,7 @@ class Hub(object):
         self._redis_keys['gateway'] = createKey(self._unique_gateway_name)
         self._redis_keys['firewall'] = createGatewayKey(self._unique_gateway_name,'firewall')
         self.server.sadd(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
-        self.server.set(self._redis_keys['firewall'], self._flip_firewall)
+        self.server.set(self._redis_keys['firewall'], self._firewall)
         self._redis_channels['gateway'] = self._redis_keys['gateway']
         self._redis_pubsub_server.subscribe(self._redis_channels['gateway'])
         self.remote_gateway_listener_thread = RedisListenerThread(self._redis_pubsub_server, self._remote_gateway_request_callbacks)
@@ -228,12 +228,12 @@ class Hub(object):
           @rtype gateway_comms.msg.RemotGateway or None
         '''
         firewall = self.server.get(createGatewayKey(gateway,'firewall'))
-        if not firewall:
+        if firewall is None:
             return None # equivalent to saying no gateway of this id found
         else:
             remote_gateway = gateway_comms.msg.RemoteGateway()
             remote_gateway.name = gateway
-            remote_gateway.firewall = True if firewall else False
+            remote_gateway.firewall = True if int(firewall) else False
             encoded_connections = self.server.smembers(createGatewayKey(gateway,'connection'))
             remote_gateway.public_interface = []
             for encoded_connection in encoded_connections:
@@ -281,8 +281,8 @@ class Hub(object):
           @raise UnavailableGatewayError when specified gateway is not on the hub
         '''
         firewall = self.server.get(createGatewayKey(gateway,'firewall'))
-        if firewall:
-            return True if firewall else False
+        if firewall is not None:
+            return True if int(firewall) else False
         else:
             raise UnavailableGatewayError
                 

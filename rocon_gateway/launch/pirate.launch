@@ -9,5 +9,6 @@
     <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
     <rosparam param="hub_whitelist">['Pirate Hub']</rosparam>
+    <rosparam param="firewall">false</rosparam>
   </node>
 </launch>

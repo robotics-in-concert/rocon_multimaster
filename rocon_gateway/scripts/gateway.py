@@ -121,6 +121,7 @@ class Gateway():
             response.name = self.gateway_sync.unresolved_name
         response.connected = self.gateway_sync.is_connected
         response.hub_name = self.gateway_sync.hub.name
+        response.firewall = self.param['firewall']
         for connection_type in rocon_gateway.connection_types:
             response.flipped_connections.extend(self.gateway_sync.flipped_interface.flipped[connection_type])
             response.flipped_in_connections.extend(self.gateway_sync.flipped_interface.flippedInConnections(connection_type))

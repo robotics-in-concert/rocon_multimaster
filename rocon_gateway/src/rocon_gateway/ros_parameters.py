@@ -38,7 +38,7 @@ def setupRosParameters():
     param['default_public_interface'] = rospy.get_param('~default_public_interface', '')
     
     # Used to block/permit remote gateway's from flipping to this gateway.
-    param['flip_firewall'] = rospy.get_param('~flip_firewall', True)
+    param['firewall'] = rospy.get_param('~firewall', True)
 
     return param
 
