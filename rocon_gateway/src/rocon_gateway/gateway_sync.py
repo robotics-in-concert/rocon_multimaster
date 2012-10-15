@@ -34,7 +34,7 @@ import ros_parameters
 from .hub_api import Hub
 from .master_api import LocalMaster
 from .watcher_thread import WatcherThread
-from .exceptions import GatewayError, ConnectionTypeError
+from .exceptions import GatewayError, UnavailableGatewayError
 from .flipped_interface import FlippedInterface
 from .public_interface import PublicInterface
 from .pulled_interface import PulledInterface
@@ -176,16 +176,27 @@ class GatewaySync(object):
             response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
             response.error_message = "gateway cannot flip to itself" 
         elif not request.cancel:
-            flip_rule = self.flipped_interface.addRule(request.remote)
-            if flip_rule:
-                rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.rule.name,flip_rule.rule.type))
-                self.watcher_thread.trigger_update = True
-                response.result = gateway_comms.msg.Result.SUCCESS
-                # watcher thread will look after this from here
-            else:
-                rospy.logerr("Gateway : flip rule already exists [%s:(%s,%s)]"%(request.remote.gateway,request.remote.rule.name,request.remote.rule.type))
-                response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                response.error_message = "flip rule already exists ["+request.remote.gateway+":"+request.remote.rule.name+"]"
+            # Give some feedback to the user if there is some gateway info there
+            firewall_flag = False
+            try:
+                firewall_flag = self.hub.getRemoteGatewayFirewallFlag(request.remote.gateway)
+                if firewall_flag:
+                    rospy.logerr("Gateway : remote gateway is firewalling flip requests, aborting [%s]"%request.remote.gateway)
+                    response.result = gateway_comms.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING
+                    response.error_message = "remote gateway is firewalling flip requests, aborting ["+request.remote.gateway+"]"
+            except UnavailableGatewayError:
+                rospy.logwarn("Gateway : adding rule, but remote gateway is currently not connected [%s]"%request.remote.gateway)
+            if not firewall_flag:
+                flip_rule = self.flipped_interface.addRule(request.remote)
+                if flip_rule:
+                    rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.rule.name,flip_rule.rule.type))
+                    self.watcher_thread.trigger_update = True
+                    response.result = gateway_comms.msg.Result.SUCCESS
+                    # watcher thread will look after this from here
+                else:
+                    rospy.logerr("Gateway : flip rule already exists [%s:(%s,%s)]"%(request.remote.gateway,request.remote.rule.name,request.remote.rule.type))
+                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                    response.error_message = "flip rule already exists ["+request.remote.gateway+":"+request.remote.rule.name+"]"
         else: # request.cancel
             flip_rules = self.flipped_interface.removeRule(request.remote)
             if flip_rules:
@@ -215,15 +226,26 @@ class GatewaySync(object):
             response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
             response.error_message = "gateway cannot flip all to itself" 
         elif not request.cancel:
-            if self.flipped_interface.flipAll(request.gateway, request.blacklist):
-                rospy.loginfo("Gateway : flipping all to gateway '%s'"%(request.gateway))
-                self.watcher_thread.trigger_update = True
-                response.result = gateway_comms.msg.Result.SUCCESS
-                # watcher thread will look after this from here
-            else:
-                rospy.logerr("Gateway : already flipping all to gateway '%s'"%(request.gateway))
-                response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                response.error_message = "already flipping all to gateway '%s' "+request.gateway
+            # Give some feedback to the user if there is some gateway info there
+            firewall_flag = False
+            try:
+                firewall_flag = self.hub.getRemoteGatewayFirewallFlag(request.gateway)
+                if firewall_flag:
+                    rospy.logerr("Gateway : remote gateway is firewalling flip requests, aborting [%s]"%request.gateway)
+                    response.result = gateway_comms.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING
+                    response.error_message = "remote gateway is firewalling flip requests, aborting ["+request.gateway+"]"
+            except UnavailableGatewayError:
+                rospy.logwarn("Gateway : adding rule, but remote gateway is currently not connected [%s]"%request.gateway)
+            if not firewall_flag:
+                if self.flipped_interface.flipAll(request.gateway, request.blacklist):
+                    rospy.loginfo("Gateway : flipping all to gateway '%s'"%(request.gateway))
+                    self.watcher_thread.trigger_update = True
+                    response.result = gateway_comms.msg.Result.SUCCESS
+                    # watcher thread will look after this from here
+                else:
+                    rospy.logerr("Gateway : already flipping all to gateway '%s'"%(request.gateway))
+                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                    response.error_message = "already flipping all to gateway '%s' "+request.gateway
         else: # request.cancel
             self.flipped_interface.unFlipAll(request.gateway)
             rospy.loginfo("Gateway : cancelling a previous flip all request [%s]"%(request.gateway))
