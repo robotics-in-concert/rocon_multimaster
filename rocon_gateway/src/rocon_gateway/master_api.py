@@ -55,7 +55,7 @@ class LocalMaster(rosgraph.Master):
         rospy.loginfo("Gateway : registering a new node [%s] for [%s]"%(registration.local_node,registration))
         
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
-        # already have handle that. 
+        # already have handle that.
 
         node_master = rosgraph.Master(registration.local_node)
         if registration.connection.rule.type == ConnectionType.PUBLISHER:
@@ -65,8 +65,12 @@ class LocalMaster(rosgraph.Master):
             node_master.registerSubscriber(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
             return registration
         elif registration.connection.rule.type == ConnectionType.SERVICE:
-            node_master.registerService(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
-            return registration
+            if rosservice.get_service_node(registration.connection.rule.name):
+                rospy.logwarn("Gateway : tried to register a service that is already locally available, aborting [%s]"%registration.connection.rule.name)
+                return None
+            else:
+                node_master.registerService(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
+                return registration
         else:
             rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
             return None
