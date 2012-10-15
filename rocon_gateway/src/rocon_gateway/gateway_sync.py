@@ -173,43 +173,23 @@ class GatewaySync(object):
           @rtype gateway_comms.srv.RemoteResponse
         '''
         response = gateway_comms.srv.RemoteResponse()
-        if not self.is_connected:
-            rospy.logerr("Gateway : no hub rule, aborting flip.")
-            response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
-            response.error_message = "no hub rule" 
-        elif request.remote.gateway == self.unique_name:
-            rospy.logerr("Gateway : gateway cannot flip to itself.")
-            response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
-            response.error_message = "gateway cannot flip to itself" 
-        elif not request.cancel:
-            # Give some feedback to the user if there is some gateway info there
-            firewall_flag = False
-            try:
-                firewall_flag = self.hub.getRemoteGatewayFirewallFlag(request.remote.gateway)
-                if firewall_flag:
-                    rospy.logerr("Gateway : remote gateway is firewalling flip requests, aborting [%s]"%request.remote.gateway)
-                    response.result = gateway_comms.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING
-                    response.error_message = "remote gateway is firewalling flip requests, aborting ["+request.remote.gateway+"]"
-            except UnavailableGatewayError:
-                rospy.logwarn("Gateway : adding rule, but remote gateway is currently not connected [%s]"%request.remote.gateway)
-            if not firewall_flag:
+        response.result, response.error_message = self._rosServiceFlipChecks(request.remote.gateway)
+        if response.result == gateway_comms.msg.Result.SUCCESS:
+            if not request.cancel:
                 flip_rule = self.flipped_interface.addRule(request.remote)
                 if flip_rule:
                     rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.rule.name,flip_rule.rule.type))
-                    self.watcher_thread.trigger_update = True
-                    response.result = gateway_comms.msg.Result.SUCCESS
-                    # watcher thread will look after this from here
                 else:
-                    rospy.logerr("Gateway : flip rule already exists [%s:(%s,%s)]"%(request.remote.gateway,request.remote.rule.name,request.remote.rule.type))
                     response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                    response.error_message = "flip rule already exists ["+request.remote.gateway+":"+request.remote.rule.name+"]"
-        else: # request.cancel
-            flip_rules = self.flipped_interface.removeRule(request.remote)
-            if flip_rules:
-                rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(request.remote.gateway,request.remote.rule.name))
-                self.watcher_thread.trigger_update = True
-                response.result = gateway_comms.msg.Result.SUCCESS
-                # watcher thread will look after this from here
+                    response.error_message = "flip rule already exists [%s:(%s,%s)]"%(request.remote.gateway,request.remote.rule.name,request.remote.rule.type)
+            else: # request.cancel
+                flip_rules = self.flipped_interface.removeRule(request.remote)
+                if flip_rules:
+                    rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(request.remote.gateway,request.remote.rule.name))
+        if response.result == gateway_comms.msg.Result.SUCCESS:
+            self.watcher_thread.trigger_update = True
+        else:
+            rospy.logerr("Gateway : %s."%response.error_message)
         return response
 
     def rosServiceFlipAll(self,request):
@@ -223,41 +203,21 @@ class GatewaySync(object):
           @rtype gateway_comms.srv.RemoteAllResponse
         '''
         response = gateway_comms.srv.RemoteAllResponse()
-        if not self.is_connected:
-            rospy.logerr("Gateway : no hub rule, aborting flip all request.")
-            response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
-            response.error_message = "no hub rule" 
-        elif request.gateway == self.unique_name:
-            rospy.logerr("Gateway : gateway cannot flip all to itself.")
-            response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
-            response.error_message = "gateway cannot flip all to itself" 
-        elif not request.cancel:
-            # Give some feedback to the user if there is some gateway info there
-            firewall_flag = False
-            try:
-                firewall_flag = self.hub.getRemoteGatewayFirewallFlag(request.gateway)
-                if firewall_flag:
-                    rospy.logerr("Gateway : remote gateway is firewalling flip requests, aborting [%s]"%request.gateway)
-                    response.result = gateway_comms.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING
-                    response.error_message = "remote gateway is firewalling flip requests, aborting ["+request.gateway+"]"
-            except UnavailableGatewayError:
-                rospy.logwarn("Gateway : adding rule, but remote gateway is currently not connected [%s]"%request.gateway)
-            if not firewall_flag:
+        response.result, response.error_message = self._rosServiceFlipChecks(request.gateway)
+        if response.result == gateway_comms.msg.Result.SUCCESS:
+            if not request.cancel:
                 if self.flipped_interface.flipAll(request.gateway, request.blacklist):
                     rospy.loginfo("Gateway : flipping all to gateway '%s'"%(request.gateway))
-                    self.watcher_thread.trigger_update = True
-                    response.result = gateway_comms.msg.Result.SUCCESS
-                    # watcher thread will look after this from here
                 else:
-                    rospy.logerr("Gateway : already flipping all to gateway '%s'"%(request.gateway))
                     response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "already flipping all to gateway '%s' "+request.gateway
-        else: # request.cancel
-            self.flipped_interface.unFlipAll(request.gateway)
-            rospy.loginfo("Gateway : cancelling a previous flip all request [%s]"%(request.gateway))
+            else: # request.cancel
+                self.flipped_interface.unFlipAll(request.gateway)
+                rospy.loginfo("Gateway : cancelling a previous flip all request [%s]"%(request.gateway))
+        if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
-            response.result = gateway_comms.msg.Result.SUCCESS
-            # watcher thread will look after this from here
+        else:
+            rospy.logerr("Gateway : %s."%response.error_message)
         return response
 
     def rosServicePull(self,request):
@@ -274,32 +234,23 @@ class GatewaySync(object):
           @rtype gateway_comms.srv.RemoteResponse
         '''
         response = gateway_comms.srv.RemoteResponse()
-        if not self.is_connected:
-            rospy.logerr("Gateway : no hub rule, aborting pull.")
-            response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
-            response.error_message = "no hub rule" 
-        elif request.rule.gateway == self.unique_name:
-            rospy.logerr("Gateway : gateway cannot pull to itself.")
-            response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
-            response.error_message = "gateway cannot pull to itself" 
-        elif not request.cancel:
-            pull_rule = self.pulled_interface.addRule(request.rule)
-            if pull_rule:
-                rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
-                self.watcher_thread.trigger_update = True
-                response.result = gateway_comms.msg.Result.SUCCESS
-                # watcher thread will look after this from here
-            else:
-                rospy.logerr("Gateway : pull rule already exists [%s:(%s,%s)]"%(request.rule.gateway,request.remote.rule.name,request.remote.rule.type))
-                response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                response.error_message = "pull rule already exists ["+request.rule.gateway+":"+request.remote.rule.name+"]"
-        else: # request.cancel
-            pull_rules = self.pulled_interface.removeRule(request.rule)
-            if pull_rules:
-                rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(request.rule.gateway,request.remote.rule.name))
-                self.watcher_thread.trigger_update = True
-                response.result = gateway_comms.msg.Result.SUCCESS
-                # watcher thread will look after this from here
+        response.result, response.error_message = self._rosServiceRemoteChecks(request.remote.gateway)
+        if response.result == gateway_comms.msg.Result.SUCCESS:
+            if not request.cancel:
+                pull_rule = self.pulled_interface.addRule(request.rule)
+                if pull_rule:
+                    rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
+                else:
+                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                    response.error_message = "pull rule already exists [%s:(%s,%s)]"%(request.rule.gateway,request.remote.rule.name,request.remote.rule.type)
+            else: # request.cancel
+                pull_rules = self.pulled_interface.removeRule(request.rule)
+                if pull_rules:
+                    rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(request.rule.gateway,request.remote.rule.name))
+        if response.result == gateway_comms.msg.Result.SUCCESS:
+            self.watcher_thread.trigger_update = True
+        else:
+            rospy.logerr("Gateway : %s."%response.error_message)
         return response
 
     def rosServicePullAll(self,request):
@@ -313,31 +264,60 @@ class GatewaySync(object):
           @rtype gateway_comms.srv.RemoteAllResponse
         '''
         response = gateway_comms.srv.RemoteAllResponse()
-        if not self.is_connected:
-            rospy.logerr("Gateway : no hub rule, aborting pull all request.")
-            response.result = gateway_comms.msg.Result.NO_HUB_CONNECTION
-            response.error_message = "no hub rule" 
-        elif request.gateway == self.unique_name:
-            rospy.logerr("Gateway : gateway cannot pull all to itself.")
-            response.result = gateway_comms.msg.Result.FLIP_NO_TO_SELF
-            response.error_message = "gateway cannot pull all to itself" 
-        elif not request.cancel:
-            if self.pulled_interface.flipAll(request.gateway, request.blacklist):
-                rospy.loginfo("Gateway : pulling all to gateway '%s'"%(request.gateway))
-                self.watcher_thread.trigger_update = True
-                response.result = gateway_comms.msg.Result.SUCCESS
-                # watcher thread will look after this from here
-            else:
-                rospy.logerr("Gateway : already pulling all to gateway '%s'"%(request.gateway))
-                response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                response.error_message = "already pulling all to gateway '%s' "+request.gateway
-        else: # request.cancel
-            self.pulled_interface.unFlipAll(request.gateway)
-            rospy.loginfo("Gateway : cancelling a previous pull all request [%s]"%(request.gateway))
+        response.result, response.error_message = self._rosServiceRemoteChecks(request.gateway)
+        if response.result == gateway_comms.msg.Result.SUCCESS:
+            if not request.cancel:
+                if self.pulled_interface.flipAll(request.gateway, request.blacklist):
+                    rospy.loginfo("Gateway : pulling all to gateway '%s'"%(request.gateway))
+                else:
+                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                    response.error_message = "already pulling all to gateway '%s' "+request.gateway
+            else: # request.cancel
+                self.pulled_interface.unFlipAll(request.gateway)
+                rospy.loginfo("Gateway : cancelling a previous pull all request [%s]"%(request.gateway))
+        if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
-            response.result = gateway_comms.msg.Result.SUCCESS
-            # watcher thread will look after this from here
+        else:
+            rospy.logerr("Gateway : %s."%response.error_message)
         return response
+
+
+    def _rosServiceFlipChecks(self, gateway):
+        '''
+          Some simple checks for ros service flips.
+          
+          @param gateway : target gateway string of the flip
+          @type string
+          @return pair of result type and message
+          @rtype gateway_comms.msg.Result.xxx, string
+        '''
+        result, error_message = self._rosServiceRemoteChecks(gateway)
+        if result == gateway_comms.msg.Result.SUCCESS:
+            firewall_flag = False
+            try:
+                firewall_flag = self.hub.getRemoteGatewayFirewallFlag(gateway)
+                if firewall_flag:
+                    return gateway_comms.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING, "remote gateway is firewalling flip requests, aborting [%s]"%gateway
+            except UnavailableGatewayError:
+                pass # handled earlier in rosServiceRemoteChecks
+        return gateway_comms.msg.Result.SUCCESS, ""
+
+    def _rosServiceRemoteChecks(self, gateway):
+        '''
+          Some simple checks for ros service pulls
+          
+          @param gateway : target gateway string of the pull
+          @type string
+          @return pair of result type and message
+          @rtype gateway_comms.msg.Result.xxx, string
+        '''
+        if not self.is_connected:
+            return gateway_comms.msg.Result.NO_HUB_CONNECTION, "not connected to hub, aborting" 
+        elif gateway == self.unique_name:
+            return gateway_comms.msg.Result.FLIP_NO_TO_SELF, "gateway cannot flip to itself"
+        elif gateway in self.hub.listRemoteGatewayNames():
+            rospy.logwarn("Gateway : remote gateway is currently not connected [%s]"%gateway)
+        return gateway_comms.msg.Result.SUCCESS, ""
 
     ##########################################################################
     # Public Interface utility functions
