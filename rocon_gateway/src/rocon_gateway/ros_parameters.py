@@ -29,7 +29,7 @@ def setupRosParameters():
     
     # Gateway
     param['name'] = rospy.get_param('~name','gateway')
-    param['watch_loop_period'] = rospy.get_param('~watch_loop_period',20) # in seconds
+    param['watch_loop_period'] = rospy.get_param('~watch_loop_period',10) # in seconds
     
     # Blacklist used for advertise all, flip all and pull all commands
     param['default_blacklist'] = rospy.get_param('~default_blacklist', [])

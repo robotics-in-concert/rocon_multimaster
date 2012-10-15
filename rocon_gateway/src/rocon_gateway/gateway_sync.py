@@ -315,7 +315,7 @@ class GatewaySync(object):
             return gateway_comms.msg.Result.NO_HUB_CONNECTION, "not connected to hub, aborting" 
         elif gateway == self.unique_name:
             return gateway_comms.msg.Result.FLIP_NO_TO_SELF, "gateway cannot flip to itself"
-        elif gateway in self.hub.listRemoteGatewayNames():
+        elif gateway not in self.hub.listRemoteGatewayNames():
             rospy.logwarn("Gateway : remote gateway is currently not connected [%s]"%gateway)
         return gateway_comms.msg.Result.SUCCESS, ""
 

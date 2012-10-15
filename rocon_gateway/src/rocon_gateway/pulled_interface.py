@@ -388,6 +388,25 @@ class PulledInterface(object):
                     return True
         return False
     
+    ##########################################################################
+    # Pulled Interface Specific Methods
+    ##########################################################################
+    
+    def listRemoteGatewayNames(self):
+        '''
+          Collects all gateways that it should watch for (i.e. those 
+          currently handled by existing registrations).
+          
+          @return set of gateway string ids
+          @rtype set of string
+        '''
+        gateways = []
+        for connection_type in utils.connection_types:
+            for registration in self.registrations[connection_type]:
+                if registration.remote_gateway not in gateways:
+                    gateways.append(registration.remote_gateway)
+        return gateways
+    
 if __name__ == "__main__":
     
     r = re.compile("/chatte")

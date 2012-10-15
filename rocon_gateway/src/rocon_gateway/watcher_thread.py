@@ -77,7 +77,7 @@ class WatcherThread(threading.Thread):
                 self._gateway.updatePublicInterface(connections)
 
                 # Pulled Interface
-                for gateway in self._hub.listRemoteGatewayNames():
+                for gateway in self._hub.listRemoteGatewayNames() + self._pulled_interface.listRemoteGatewayNames():
                     connections = self._hub.getRemoteConnectionState(gateway)
                     new_pulls, lost_pulls = self._pulled_interface.update(connections, gateway)
                     for connection_type in connections:

@@ -15,6 +15,10 @@
 ## Gateway name - this is a human readable convenience only
 # name: 'gateway'
 
+## Watch loop period - how long the watcher should sleep
+## inbetween checking if system state needs synchronisation
+# watch_loop_period: 10
+
 # Used to block/permit remote gateway's from flipping to this gateway.
 # firewall: true
 

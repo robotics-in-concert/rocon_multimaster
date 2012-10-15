@@ -247,11 +247,11 @@ class Hub(object):
           e.g. ['gateway32','pirate33']
         '''
         gateway_keys = self.server.smembers(self._redis_keys['gatewaylist']) 
-        gateway_list = []
+        gateways = []
         for gateway in gateway_keys:
             if keyBaseName(gateway) != self._unique_gateway_name:
-                gateway_list.append(keyBaseName(gateway))
-        return gateway_list
+                gateways.append(keyBaseName(gateway))
+        return gateways
 
     def getRemoteConnectionState(self, gateway):
         '''
