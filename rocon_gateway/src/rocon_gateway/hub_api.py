@@ -185,7 +185,6 @@ class Hub(object):
             self._unique_gateway_name = self._gateway_name+str(unique_num)
         else:
             self._unique_gateway_name = self._gateway_name
-        print self._unique_gateway_name
         self._redis_keys['gateway'] = createKey(self._unique_gateway_name)
         self._redis_keys['firewall'] = createGatewayKey(self._unique_gateway_name,'firewall')
         self.server.sadd(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
