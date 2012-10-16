@@ -4,8 +4,13 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_gateway_hub/LICENSE 
 #
 
+##############################################################################
+# Imports
+##############################################################################
+
 import os
 import socket
+import sys
 import roslib; roslib.load_manifest('rocon_gateway_hub')
 import rosgraph
 
@@ -36,7 +41,7 @@ def logfatal(message):
     print(red_string("[FATAL] "+message))
     
 ##############################################################################
-# Other
+# Ros
 ##############################################################################
 
 def check_master():
@@ -49,6 +54,10 @@ def check_master():
         return True
     except socket.error:
         return False
+
+##############################################################################
+# System
+##############################################################################
 
 def which(program):
     '''
@@ -66,5 +75,41 @@ def which(program):
             exe_file = os.path.join(path, program)
             if is_exe(exe_file):
                 return exe_file
- 
     return None
+
+def check_if_executable_available(name):
+    '''
+      Ensure a particular executable is available on the system.
+      
+      Could use package names and python-apt here to find if the package is
+      available, but more reliable and general - just check if program binary
+      is available.
+      
+      Aborts program execution with fatal error if not found.
+    '''
+    if which(name) is None:
+        sys.exit(logfatal("Hub : " + name + " not installed - hint 'rosdep install rocon_gateway_hub'."))
+
+##############################################################################
+# File Handling
+##############################################################################
+
+def read_template(template_filename):
+    '''
+      Convenience function for opening a file.
+    '''
+    f = open(template_filename, 'r')
+    try:
+        t = f.read()
+    finally:
+        f.close()
+    return t
+
+def instantiate_template(template, hub_name, port, home):
+    '''
+      Variable subsitution in a template file.
+      
+      This inserts the labelled variables into the template wherever the corresponding
+      %(hub_name), %(port) etc are found.
+    '''
+    return template%locals()

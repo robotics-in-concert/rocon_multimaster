@@ -9,4 +9,4 @@ import rospy
 import rocon_gateway_hub
 
 if __name__ == "__main__":
-    rocon_gateway_hub.launch()
+    rocon_gateway_hub.main()

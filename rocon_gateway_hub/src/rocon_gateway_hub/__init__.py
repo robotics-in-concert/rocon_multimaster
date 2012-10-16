@@ -10,4 +10,4 @@ __date__ = "2012-09-24"
 
 from .utils import check_master
 from .utils import logerror
-from .launch import launch
+from .main import main
