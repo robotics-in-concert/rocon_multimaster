@@ -62,8 +62,9 @@ class WatcherThread(threading.Thread):
                     rospy.logwarn("Received ResponseNotReady from master api")
                     self._sleep()
                     continue
+                gateways = self._hub.listRemoteGatewayNames()
                 # Flipped Interface
-                new_flips, lost_flips = self._flipped_interface.update(connections)
+                new_flips, lost_flips = self._flipped_interface.update(connections, gateways)
                 # new_flips and lost_flips are RemoteRule lists with filled supplied name info from the master
                 for connection_type in connections:
                     for flip in new_flips[connection_type]:

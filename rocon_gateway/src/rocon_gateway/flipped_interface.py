@@ -52,7 +52,7 @@ class FlippedInterface(action_interface.ActionInterface):
     # Monitoring
     ##########################################################################
 
-    def update(self,connections):
+    def update(self,connections, gateways):
         '''
           Computes a new flipped interface and returns two dictionaries - 
           removed and newly added flips so the watcher thread can take
@@ -62,21 +62,28 @@ class FlippedInterface(action_interface.ActionInterface):
           additions come from ros service calls in different threads!)
           
           @param connections : list of all the system state connections from the local master
-          @type : connection type keyed dictionary of utils.Connection lists.
+          @type connection type keyed dictionary of utils.Connection lists.
+          
+          @param gateways : gateways that are available (registered on the hub)
+          @type string
           
           @return new_flips, old_flips 
           @rtype pair of connection type keyed dictionary of gateway_comms.msg.Rule lists.
         '''
         # SLOW, EASY METHOD
-        #   Totally regenerate a new flipped interface, compare with old
+        
         flipped = utils.createEmptyConnectionTypeDictionary()
         new_flips = utils.createEmptyConnectionTypeDictionary()
         removed_flips = utils.createEmptyConnectionTypeDictionary()
         diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
         self._lock.acquire()
+        # Prune flips that are not in the gateway list anymore, keep the rules though
+        for connection_type in utils.connection_types:
+            self.flipped[connection_type] = [flip for flip in self.flipped[connection_type] if flip.gateway in gateways]
+        # Totally regenerate a new flipped interface, compare with old
         for connection_type in connections:
             for connection in connections[connection_type]:
-                flipped[connection_type].extend(self._generateFlips(connection.rule.type, connection.rule.name, connection.rule.node))
+                flipped[connection_type].extend(self._generateFlips(connection.rule.type, connection.rule.name, connection.rule.node, gateways))
             new_flips[connection_type] = diff(flipped[connection_type],self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type],flipped[connection_type])
         self.flipped = copy.deepcopy(flipped)
@@ -105,7 +112,7 @@ class FlippedInterface(action_interface.ActionInterface):
     # Utility Methods
     ##########################################################################
         
-    def _generateFlips(self, type, name, node):
+    def _generateFlips(self, type, name, node, gateways):
         '''
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can
@@ -124,6 +131,9 @@ class FlippedInterface(action_interface.ActionInterface):
           
           @param node : ros node name (coming from master.getSystemState)
           @type str
+
+          @param gateways : gateways that are available (registered on the hub)
+          @type string
           
           @return all the flip rules that match this local rule
           @return list of RemoteRule objects updated with node names from self.watchlist
@@ -131,6 +141,8 @@ class FlippedInterface(action_interface.ActionInterface):
         matched_flip_rules = []
         for flip_rule in self.watchlist[type]:
             matched = False
+            if flip_rule.gateway not in gateways:
+                continue
             name_match_result = re.match(flip_rule.rule.name, name)
             if name_match_result and name_match_result.group() == name:
                 if utils.isAllPattern(flip_rule.rule.name):
@@ -168,5 +180,7 @@ class FlippedInterface(action_interface.ActionInterface):
     
 if __name__ == "__main__":
     
-    r = re.compile("/chatte")
-    result = r.match('/chatter')
+    gateways = ['dude','dudette']
+    dudes = ['fred', 'dude']
+    dudes[:] = [x for x in dudes if x in gateways]
+    print dudes
