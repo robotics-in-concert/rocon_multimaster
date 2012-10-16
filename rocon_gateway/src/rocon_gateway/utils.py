@@ -105,36 +105,6 @@ class Registration():
 
     def __repr__(self):
         return self.__str__()
-    
-##############################################################################
-# Ros string utilities
-##############################################################################
-
-def reshapeUri(uri):
-    '''
-      Correct human vagarities, make sure the string always ends with a '/'.
-      
-      @param uri: a simple uri
-      @type  uri: str
-      @return: uri string with a trailing slash
-      @rtype: str
-    '''
-    if uri[len(uri)-1] is not '/':
-        uri = uri + '/'
-    return uri
-
-def reshapeTopic(t):
-    '''
-      Correct human vagarities, make sure the topic name always starts with a '/'.
-      
-      @param t: a simple topic name
-      @type  t: str
-      @return: properly namespaced topic string
-      @rtype: str
-    '''
-    if t[0] is not '/':
-        t = '/' + t
-    return t
 
 ##########################################################################
 # serialization/deserialization Functions
@@ -186,11 +156,36 @@ def getRuleFromList(list):
     return Rule(list[0],list[1],list[2])
 
 ##########################################################################
-# Other Utilities
+# Regex
+##########################################################################
+
+def isAllPattern(pattern):
+    ''' 
+      Convenience function for detecting the flip all pattern.
+
+      @todo move to utils - should be shared with the public interface.
+      
+      @param pattern : the name rule string for the flip all concept
+      @type str
+      @return true if matching, false otherwise
+      @rtype Bool
+    '''
+    if pattern == ".*":
+        return True
+    else:
+        return False
+    
+
+##########################################################################
+# Formatters
 ##########################################################################
 
 def formatRule(rule):
     return '{type: %s, name/regex: %s, node-name/regex: %s}'%(rule.type,rule.name,rule.node)
+
+##########################################################################
+# Factories
+##########################################################################
 
 def createEmptyConnectionTypeDictionary():
     '''

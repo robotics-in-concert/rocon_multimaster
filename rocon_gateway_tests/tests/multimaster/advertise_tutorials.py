@@ -73,7 +73,8 @@ if __name__ == '__main__':
         req.rules.append(rule) 
         resp = advertise(req)
         if resp.result != 0:
-            rospy.logerr("Advertise : %s"%resp.error_message)
+            rospy.logerr("Advertise : error occured (todo: no error message yet)")
+            #rospy.logerr("Advertise : %s"%resp.error_message)
 
     if args.regex:
         rule.name = "/add_two_.*"

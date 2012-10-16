@@ -15,13 +15,13 @@ import re
 
 # Local imports
 import utils
-import active_interface
+import action_interface
 
 ##############################################################################
 # Flipped Interface
 ##############################################################################
 
-class FlippedInterface(active_interface.ActiveInterface):
+class FlippedInterface(action_interface.ActionInterface):
     '''
       The flipped interface is the set of rules 
       (pubs/subs/services/actions) and rules controlling flips
@@ -36,150 +36,18 @@ class FlippedInterface(active_interface.ActiveInterface):
           @param default_rule_blacklist : used when in flip all mode
           @type dictionary of gateway
           @param default_rules : static rules to launch the interface with
+          @type gateway_comms.msg.RemoteRule[]
           
         '''
-        active_interface.ActiveInterface.__init__(self,default_rule_blacklist)
+        action_interface.ActionInterface.__init__(self,default_rule_blacklist, default_rules)
 
         # keys are connection_types, elements are lists of RemoteRule objects
         self.flipped = utils.createEmptyConnectionTypeDictionary() # Rules that have been sent to remote gateways   
         self.firewall = firewall 
         
-        # Load up static rules.
-        for rule in default_rules:
-            self.addRule(rule)
-
-    ##########################################################################
-    # Rules
-    ##########################################################################
-        
-    def addRule(self, flip_rule):
-        '''
-          Generate the flip rule, taking care to provide a sensible
-          default for the remapping (root it in this gateway's namespace
-          on the remote system).
-          
-          @param gateway, type, name, node
-          @type str
-          
-          @param type : rule type
-          @type str : string constant from gateway_comms.msg.Rule
-          
-          @return the flip rule, or None if the rule already exists.
-          @rtype Flip || None
-        '''
-        result = None
-        self._lock.acquire()
-        rule_already_exists = False
-        for remote_rule in self.watchlist[flip_rule.rule.type]:
-            if remote_rule.gateway   == flip_rule.gateway and \
-               remote_rule.rule.name == flip_rule.rule.name and \
-               remote_rule.rule.node == flip_rule.rule.node:
-                rule_already_exists = True
-                break
-        if not rule_already_exists:
-            self.watchlist[flip_rule.rule.type].append(flip_rule)
-            result = flip_rule
-        self._lock.release()
-        return result
-    
-    def removeRule(self, flip_rule):
-        '''
-          Remove a rule. Be a bit careful looking for a rule to remove, depending
-          on the node name, which can be set (exact rule/node name match) or 
-          None in which case all nodes of that kind of flip will match.
-          
-          Handle the remapping appropriately.
-          
-          @param flip_rule : the rule to unflip.
-          @type RemoteRule
-          
-          @return Matching flip rule list
-          @rtype RemoteRule[]
-        '''
-        if flip_rule.rule.node:
-            # This looks for *exact* matches.
-            try:
-                self._lock.acquire()
-                self.watchlist[flip_rule.rule.type].remove(flip_rule)
-                self._lock.release()
-                return [flip_rule]
-            except ValueError:
-                self._lock.release()
-                return []
-        else:
-            # This looks for any flip rules which match except for the node name
-            # also no need to check for type with the dic keys like they are
-            existing_rules = []
-            self._lock.acquire()
-            for existing_rule in self.watchlist[flip_rule.rule.type]:
-                if (existing_rule.gateway == flip_rule.gateway) and \
-                   (existing_rule.rule.name == flip_rule.rule.name):
-                    existing_rules.append(existing_rule)
-            for rule in existing_rules:
-                self.watchlist[flip_rule.rule.type].remove(existing_rule) # not terribly optimal
-            self._lock.release()
-            return existing_rules
-
-    def flipAll(self, gateway, blacklist):
-        '''
-          Generate the flip all rule.
-          
-          @param gateway
-          @type str
-          
-          @param blacklist : do not flip rules matching these patterns
-          @type Rule[]
-          
-          @return failure if flip all rule exists, success otherwise
-          @rtype Bool
-        '''
-        self._lock.acquire()
-        # Blacklist
-        if gateway in self._blacklist:
-            self._lock.release()
-            return False
-        self._blacklist[gateway] = self._default_blacklist
-        for rule in blacklist:
-            self._blacklist[gateway][rule.type].append(rule)
-        # Flips
-        for connection_type in utils.connection_types:
-            flip_rule = RemoteRule()
-            flip_rule.gateway = gateway
-            flip_rule.rule.name = '.*'
-            flip_rule.rule.node = None
-            flip_rule.rule.type = connection_type
-            # Remove all other rules for that gateway
-            self.watchlist[connection_type][:] = [rule for rule in self.watchlist[connection_type] if rule.gateway != gateway]
-            # basically self.addRule() - do it manually here so we don't deadlock locks
-            self.watchlist[connection_type].append(flip_rule)
-        self._lock.release()
-        return True
-
-    def unFlipAll(self, gateway):
-        '''
-          Remove the flip all rule for the specified gateway.
-          
-          @param gateway
-          @type str
-          
-          @param blacklist : do not flip rules matching these patterns
-          @type Rule[]
-          
-          @return failure if flip all rule exists, success otherwise
-          @rtype Bool
-        '''
-        self._lock.acquire()
-        if gateway in self._blacklist:
-            del self._blacklist[gateway]
-        for connection_type in utils.connection_types:
-            for rule in self.watchlist[connection_type]:
-                if rule.gateway == gateway:
-                    # basically self.removeRule() - do it manually here so we don't deadlock locks
-                    try:
-                        self.watchlist[connection_type].remove(rule)
-                    except ValueError:
-                        pass # should never get here
-        self._lock.release()
+        # Function aliases
+        self.flipAll = self.addAll
+        self.unFlipAll = self.removeAll
 
     ##########################################################################
     # Monitoring
@@ -296,7 +164,7 @@ class FlippedInterface(active_interface.ActiveInterface):
             matched = False
             name_match_result = re.match(flip_rule.rule.name, name)
             if name_match_result and name_match_result.group() == name:
-                if self._isFlipAllPattern(flip_rule.rule.name):
+                if utils.isAllPattern(flip_rule.rule.name):
                     if self._isInBlacklist(flip_rule.gateway, type, name, node):
                         continue
                 if flip_rule.rule.node:
@@ -316,44 +184,6 @@ class FlippedInterface(active_interface.ActiveInterface):
     # Accessors for Gateway Info
     ##########################################################################
 
-    def getLocalRegistrations(self):
-        '''
-          Gets the registrations for GatewayInfo consumption.
-          
-          We don't need to show the service and node uri's here.
-          
-          Basic operation : convert Registration -> RemoteRule for each registration
-          
-          @return the list of registrations corresponding to remote interactions
-          @rtype RemoteRule[]
-        '''
-        local_registrations = []
-        for connection_type in utils.connection_types:
-            for registration in self.registrations[connection_type]:
-                remote_rule = RemoteRule()
-                remote_rule.gateway = registration.remote_gateway
-                remote_rule.rule.name = registration.connection.rule.name
-                remote_rule.rule.node = registration.connection.rule.node
-                remote_rule.rule.type = connection_type
-                local_registrations.append(remote_rule)
-        return local_registrations
-
-    def getWatchlist(self):
-        '''
-          Gets the watchlist for GatewayInfo consumption.
-          
-          @return the list of flip rules that are being watched
-          @rtype gateway_comms.msg.RemoteRule[]
-        '''
-        watchlist = []
-        for connection_type in utils.connection_types:
-            watchlist.extend(copy.deepcopy(self.watchlist[connection_type]))
-        # ros messages must have string output
-        for remote in watchlist:
-            if not remote.rule.node:
-                remote.rule.node = 'None'
-        return watchlist
-    
     def getFlippedConnections(self):
         '''
           Gets the flipped connections list for GatewayInfo consumption.
@@ -366,43 +196,6 @@ class FlippedInterface(active_interface.ActiveInterface):
             flipped_connections.extend(copy.deepcopy(self.flipped[connection_type]))
         return flipped_connections
     
-    ##########################################################################
-    # Utilities
-    ##########################################################################
-
-    def _isFlipAllPattern(self, pattern):
-        ''' 
-          Convenience function for detecting the flip all pattern.
-
-          @todo move to utils - should be shared with the public interface.
-          
-          @param pattern : the name rule string for the flip all concept
-          @type str
-          @return true if matching, false otherwise
-          @rtype Bool
-        '''
-        if pattern == ".*":
-            return True
-        else:
-            return False
-    
-    def _isInBlacklist(self, gateway, type, name, node):
-        '''
-          Check if a particular connection is in the blacklist. Use this to
-          filter connections from the flipAll command.
-          
-          @todo move to utils - should be shared with the public interface.
-        '''
-        for blacklist_rule in self._blacklist[gateway][type]:
-            name_match_result = re.match(blacklist_rule.name, name)
-            if name_match_result and name_match_result.group() == name:
-                if blacklist_rule.node:
-                    node_match_result = re.match(blacklist_rule.node,node)
-                    if node_match_result and node_match_result.group() == node:
-                        return True
-                else: # rule.connection.node is None so we don't care about matching the node
-                    return True
-        return False
     
 if __name__ == "__main__":
     

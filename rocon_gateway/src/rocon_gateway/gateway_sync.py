@@ -273,13 +273,13 @@ class GatewaySync(object):
         response.result, response.error_message = self._rosServiceRemoteChecks(request.gateway)
         if response.result == gateway_comms.msg.Result.SUCCESS:
             if not request.cancel:
-                if self.pulled_interface.flipAll(request.gateway, request.blacklist):
+                if self.pulled_interface.pullAll(request.gateway, request.blacklist):
                     rospy.loginfo("Gateway : pulling all to gateway '%s'"%(request.gateway))
                 else:
                     response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "already pulling all to gateway '%s' "+request.gateway
             else: # request.cancel
-                self.pulled_interface.unFlipAll(request.gateway)
+                self.pulled_interface.unPullAll(request.gateway)
                 rospy.loginfo("Gateway : cancelling a previous pull all request [%s]"%(request.gateway))
         if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True

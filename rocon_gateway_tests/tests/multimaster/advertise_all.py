@@ -44,5 +44,6 @@ if __name__ == '__main__':
     rospy.loginfo("Advertise All : %s all."%action_text) 
     resp = advertise_all(req)
     if resp.result != 0:
-        rospy.logerr("Advertise All : %s"%resp.error_message)
+        rospy.logerr("Advertise All : error occured (todo: no error message yet)")
+        #rospy.logerr("Advertise : %s"%resp.error_message)
 
