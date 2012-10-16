@@ -348,43 +348,41 @@ class FlippedInterface(object):
 
     def getLocalRegistrations(self):
         '''
-          Gets the flipped in connections for GatewayInfo consumption.
+          Gets the registrations for GatewayInfo consumption.
           
-          Parses the registrations list and hands out a set of flip rules for
-          consumption by ros service getters. We don't need to show the service 
-          and node uri's here.
+          We don't need to show the service and node uri's here.
           
           Basic operation : convert Registration -> RemoteRule for each registration
           
-          @return the list of flip rules corresponding to local flip registrations
+          @return the list of registrations corresponding to remote interactions
           @rtype RemoteRule[]
         '''
-        flipped_in_connections = []
+        local_registrations = []
         for connection_type in utils.connection_types:
             for registration in self.registrations[connection_type]:
-                flip_rule = RemoteRule()
-                flip_rule.gateway = registration.remote_gateway
-                flip_rule.rule.name = registration.connection.rule.name
-                flip_rule.rule.node = registration.connection.rule.node
-                flip_rule.rule.type = connection_type
-                flipped_in_connections.append(flip_rule)
-        return flipped_in_connections
+                remote_rule = RemoteRule()
+                remote_rule.gateway = registration.remote_gateway
+                remote_rule.rule.name = registration.connection.rule.name
+                remote_rule.rule.node = registration.connection.rule.node
+                remote_rule.rule.type = connection_type
+                local_registrations.append(remote_rule)
+        return local_registrations
 
     def getWatchlist(self):
         '''
           Gets the watchlist for GatewayInfo consumption.
           
           @return the list of flip rules that are being watched
-          @rtype RemoteRule[]
+          @rtype gateway_comms.msg.RemoteRule[]
         '''
-        flip_watchlist = []
+        watchlist = []
         for connection_type in utils.connection_types:
-            flip_watchlist.extend(copy.deepcopy(self.watchlist[connection_type]))
+            watchlist.extend(copy.deepcopy(self.watchlist[connection_type]))
         # ros messages must have string output
-        for flip in flip_watchlist:
-            if not flip.rule.node:
-                flip.rule.node = 'None'
-        return flip_watchlist
+        for remote in watchlist:
+            if not remote.rule.node:
+                remote.rule.node = 'None'
+        return watchlist
     
     def getFlippedConnections(self):
         '''

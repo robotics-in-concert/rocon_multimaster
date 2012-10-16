@@ -125,6 +125,8 @@ class Gateway():
         response.flipped_connections = self.gateway_sync.flipped_interface.getFlippedConnections()
         response.flipped_in_connections = self.gateway_sync.flipped_interface.getLocalRegistrations()
         response.flip_watchlist = self.gateway_sync.flipped_interface.getWatchlist()
+        response.pulled_connections = self.gateway_sync.pulled_interface.getLocalRegistrations()
+        response.pull_watchlist = self.gateway_sync.pulled_interface.getWatchlist()
         response.public_watchlist = self.gateway_sync.public_interface.getWatchlist()
         response.public_interface = self.gateway_sync.public_interface.getInterface()
         return response

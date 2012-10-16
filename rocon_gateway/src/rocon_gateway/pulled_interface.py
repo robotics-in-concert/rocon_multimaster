@@ -246,6 +246,48 @@ class PulledInterface(object):
         # diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
 
     ##########################################################################
+    # Accessors for Gateway Info
+    ##########################################################################
+
+    def getLocalRegistrations(self):
+        '''
+          Gets the registrations for GatewayInfo consumption.
+          
+          We don't need to show the service and node uri's here.
+          
+          Basic operation : convert Registration -> RemoteRule for each registration
+          
+          @return the list of registrations corresponding to remote interactions
+          @rtype RemoteRule[]
+        '''
+        local_registrations = []
+        for connection_type in utils.connection_types:
+            for registration in self.registrations[connection_type]:
+                remote_rule = RemoteRule()
+                remote_rule.gateway = registration.remote_gateway
+                remote_rule.rule.name = registration.connection.rule.name
+                remote_rule.rule.node = registration.connection.rule.node
+                remote_rule.rule.type = connection_type
+                local_registrations.append(remote_rule)
+        return local_registrations
+
+    def getWatchlist(self):
+        '''
+          Gets the watchlist for GatewayInfo consumption.
+          
+          @return the list of flip rules that are being watched
+          @rtype gateway_comms.msg.RemoteRule[]
+        '''
+        watchlist = []
+        for connection_type in utils.connection_types:
+            watchlist.extend(copy.deepcopy(self.watchlist[connection_type]))
+        # ros messages must have string output
+        for remote in watchlist:
+            if not remote.rule.node:
+                remote.rule.node = 'None'
+        return watchlist
+    
+    ##########################################################################
     # Utility Methods
     ##########################################################################
     
