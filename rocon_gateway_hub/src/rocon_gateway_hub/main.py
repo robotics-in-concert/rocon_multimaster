@@ -39,6 +39,7 @@ def main():
     if param['zeroconf']:
         utils.check_if_executable_available('avahi-daemon') # aborts if avahi-daemon not installed
         zeroconf.advertise_port_to_avahi(config, param['name']) # aborts if avahi-daemon not running
+        
     rospy.spin()
     redis_server.clear(int(config["port"]))
     

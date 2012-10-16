@@ -13,6 +13,7 @@ import socket
 import sys
 import roslib; roslib.load_manifest('rocon_gateway_hub')
 import rosgraph
+import rospkg
 
 ##############################################################################
 # Logging
@@ -105,11 +106,3 @@ def read_template(template_filename):
         f.close()
     return t
 
-def instantiate_template(template, hub_name, port, home):
-    '''
-      Variable subsitution in a template file.
-      
-      This inserts the labelled variables into the template wherever the corresponding
-      %(hub_name), %(port) etc are found.
-    '''
-    return template%locals()

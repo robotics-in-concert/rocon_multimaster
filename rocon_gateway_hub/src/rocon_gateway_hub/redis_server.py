@@ -88,3 +88,36 @@ def clear(port):
     except redis.exceptions.ConnectionError:
         sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
 
+def instantiate_template(template, port, pid_file, max_memory):
+    '''
+      Variable subsitution in a template file.
+      
+      This inserts the labelled variables into the template wherever the corresponding
+      %(port) etc are found.
+      
+      @param port : port on which the server will run
+      @type int
+      @param pid_file : pathname to where the pid file will be stored
+      @type string
+      @param max_memory: how much memory to allocate to the redis server in bytes
+      @type string (e.g. 10mb) 
+    '''
+    return template%locals()
+
+import os
+import rospkg
+
+if __name__ == "__main__":
+
+    ros_home = rospkg.get_ros_home()  
+    hub_name = 'Gateway Hub'.lower().replace(" ","_")
+    port = 6380
+    pid_file = os.path.join(ros_home,'redis',hub_name+'.pid')
+    max_memory = '10mb'
+    template = utils.read_template('../../redis/redis.conf.template')
+    print("Ros Home: %s"%ros_home)
+    print("Hub Id  : %s"%hub_name)
+    print("Port    : %s"%port)
+    print("Pid File: %s"%pid_file)
+    template = instantiate_template(template, port, pid_file, max_memory)
+    print template
