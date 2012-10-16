@@ -18,32 +18,6 @@ import re
 import utils
 
 ##############################################################################
-# Functions
-##############################################################################
-
-def flipRuleExists(flip_rule, flip_rules):
-    '''
-      Checks that the flip rule doesn't already exist in the list of flip
-      rules (which can represent the flipped interface or the rules themselves).
-      
-      @param flip_rule : the rule to search for
-      @type RemoteRule
-      
-      @param flip_rules : list of RemoteRule objects (flipped_interface[xxx] or rules[xxx]
-      @type list : list of RemoteRule objects
-      
-      @return true if the flip rule exists, false otherwise
-      @rtype bool
-    '''
-    for rule in flip_rules:
-        if rule.gateway   == flip_rule.gateway and \
-           rule.rule.name == flip_rule.rule.name and \
-           rule.rule.node == flip_rule.rule.node:
-            return True
-    return False
-          
-
-##############################################################################
 # Flipped Interface
 ##############################################################################
 
@@ -93,11 +67,18 @@ class PulledInterface(object):
           @rtype Flip || None
         '''
         result = None
-        self.lock.acquire()
-        if not flipRuleExists(flip_rule, self.watchlist[flip_rule.rule.type]):
+        self._lock.acquire()
+        rule_already_exists = False
+        for remote_rule in self.watchlist[flip_rule.rule.type]:
+            if remote_rule.gateway   == flip_rule.gateway and \
+               remote_rule.rule.name == flip_rule.rule.name and \
+               remote_rule.rule.node == flip_rule.rule.node:
+                rule_already_exists = True
+                break
+        if not rule_already_exists:
             self.watchlist[flip_rule.rule.type].append(flip_rule)
             result = flip_rule
-        self.lock.release()
+        self._lock.release()
         return result
     
     def removeRule(self, flip_rule):
