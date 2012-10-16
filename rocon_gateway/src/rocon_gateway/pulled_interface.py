@@ -11,17 +11,17 @@
 import roslib; roslib.load_manifest('rocon_gateway')
 from gateway_comms.msg import RemoteRule
 import copy
-import threading
 import re
 
 # Local imports
 import utils
+import active_interface
 
 ##############################################################################
 # Flipped Interface
 ##############################################################################
 
-class PulledInterface(object):
+class PulledInterface(active_interface.ActiveInterface):
     '''
       The flipped interface is the set of rules 
       (pubs/subs/services/actions) and rules controlling flips
@@ -31,21 +31,10 @@ class PulledInterface(object):
         '''
           Initialises the flipped interface.
         '''
+        active_interface.ActiveInterface.__init__(self,default_rule_blacklist)
         
         # keys are connection_types, elements are lists of RemoteRule objects
         self.flipped = utils.createEmptyConnectionTypeDictionary() # Rules that have been sent to remote gateways   
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local rules to flip  
-        
-        # keys are connection_types, elements are lists of utils.Registration objects
-        self.registrations = utils.createEmptyConnectionTypeDictionary() # Flips from remote gateways that have been locally registered
-        
-        # Default rules that cannot be flipped to any gateway - used in FlipAll mode
-        self._default_blacklist = default_rule_blacklist # Note: dictionary of gateway-gateway_comms.msg.Rule lists, not RemoteRules!
-
-        # Blacklists when doing flip all - different for each gateway, each value is one of our usual rule type dictionaries
-        self._blacklist = {} 
-
-        self.lock = threading.Lock()
      
         # Load up static rules.
         for rule in default_rules:
@@ -98,25 +87,25 @@ class PulledInterface(object):
         if flip_rule.rule.node:
             # This looks for *exact* matches.
             try:
-                self.lock.acquire()
+                self._lock.acquire()
                 self.watchlist[flip_rule.rule.type].remove(flip_rule)
-                self.lock.release()
+                self._lock.release()
                 return [flip_rule]
             except ValueError:
-                self.lock.release()
+                self._lock.release()
                 return []
         else:
             # This looks for any flip rules which match except for the node name
             # also no need to check for type with the dic keys like they are
             existing_rules = []
-            self.lock.acquire()
+            self._lock.acquire()
             for existing_rule in self.watchlist[flip_rule.rule.type]:
                 if (existing_rule.gateway == flip_rule.gateway) and \
                    (existing_rule.rule.name == flip_rule.rule.name):
                     existing_rules.append(existing_rule)
             for rule in existing_rules:
                 self.watchlist[flip_rule.rule.type].remove(existing_rule) # not terribly optimal
-            self.lock.release()
+            self._lock.release()
             return existing_rules
 
     def flipAll(self, gateway, blacklist):
@@ -132,10 +121,10 @@ class PulledInterface(object):
           @return failure if flip all rule exists, success otherwise
           @rtype Bool
         '''
-        self.lock.acquire()
+        self._lock.acquire()
         # Blacklist
         if gateway in self._blacklist:
-            self.lock.release()
+            self._lock.release()
             return False
         self._blacklist[gateway] = self._default_blacklist
         for rule in blacklist:
@@ -151,7 +140,7 @@ class PulledInterface(object):
             self.watchlist[connection_type][:] = [rule for rule in self.watchlist[connection_type] if rule.gateway != gateway]
             # basically self.addRule() - do it manually here so we don't deadlock locks
             self.watchlist[connection_type].append(flip_rule)
-        self.lock.release()
+        self._lock.release()
         return True
 
     def unFlipAll(self, gateway):
@@ -167,7 +156,7 @@ class PulledInterface(object):
           @return failure if flip all rule exists, success otherwise
           @rtype Bool
         '''
-        self.lock.acquire()
+        self._lock.acquire()
         if gateway in self._blacklist:
             del self._blacklist[gateway]
         for connection_type in utils.connection_types:
@@ -178,7 +167,7 @@ class PulledInterface(object):
                         self.watchlist[connection_type].remove(rule)
                     except ValueError:
                         pass # should never get here
-        self.lock.release()
+        self._lock.release()
 
     def update(self,connections, gateway = None):
         '''
@@ -198,14 +187,14 @@ class PulledInterface(object):
         new_flips = utils.createEmptyConnectionTypeDictionary()
         removed_flips = utils.createEmptyConnectionTypeDictionary()
         diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
-        self.lock.acquire()
+        self._lock.acquire()
         for connection_type in connections:
             for connection in connections[connection_type]:
                 flipped[connection_type].extend(self._generateFlips(connection.rule.type, connection.rule.name, connection.rule.node, gateway))
             new_flips[connection_type] = diff(flipped[connection_type],self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type],flipped[connection_type])
         self.flipped = copy.deepcopy(flipped)
-        self.lock.release()
+        self._lock.release()
         return new_flips, removed_flips
         
         # OPTIMISED METHOD
@@ -289,7 +278,7 @@ class PulledInterface(object):
         '''
         
         matched_registration = None
-        self.lock.acquire()
+        self._lock.acquire()
         for registration in self.registrations[connection_type]:
             if (registration.remote_gateway  == remote_gateway) and \
                (registration.connection.rule.name == remote_name) and \
@@ -299,7 +288,7 @@ class PulledInterface(object):
                 break
             else:
                 continue
-        self.lock.release()
+        self._lock.release()
         return matched_registration
         
     def _generateFlips(self, type, name, node, gateway = None):

@@ -11,17 +11,17 @@
 import roslib; roslib.load_manifest('rocon_gateway')
 from gateway_comms.msg import Rule, RemoteRule
 import copy
-import threading
 import re
 
 # Local imports
 import utils
+import active_interface
 
 ##############################################################################
 # Flipped Interface
 ##############################################################################
 
-class FlippedInterface(object):
+class FlippedInterface(active_interface.ActiveInterface):
     '''
       The flipped interface is the set of rules 
       (pubs/subs/services/actions) and rules controlling flips
@@ -38,22 +38,11 @@ class FlippedInterface(object):
           @param default_rules : static rules to launch the interface with
           
         '''
+        active_interface.ActiveInterface.__init__(self,default_rule_blacklist)
+
         # keys are connection_types, elements are lists of RemoteRule objects
         self.flipped = utils.createEmptyConnectionTypeDictionary() # Rules that have been sent to remote gateways   
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local rules to flip  
-        
-        # keys are connection_types, elements are lists of utils.Registration objects
-        self.registrations = utils.createEmptyConnectionTypeDictionary() # Flips from remote gateways that have been locally registered
-        
-        # Default rules that cannot be flipped to any gateway - used in FlipAll mode
-        self._default_blacklist = default_rule_blacklist # Note: dictionary of gateway-gateway_comms.msg.Rule lists, not RemoteRules!
-
-        
-        # Blacklists when doing flip all - different for each gateway, each value is one of our usual rule type dictionaries
-        self._blacklist = {}
         self.firewall = firewall 
-
-        self._lock = threading.Lock()
         
         # Load up static rules.
         for rule in default_rules:
