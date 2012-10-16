@@ -63,6 +63,12 @@ class PublicInterface(object):
     def __init__(self, default_rule_blacklist, default_rules):
         '''
           Initialises the public interface
+
+          @param default_rule_blacklist : connection type keyed dictionary of rules
+          @type str keyed dictionary of gateway_comms.msg.Rule[] 
+          
+          @param default_rules : connection type keyed dictionary of rules
+          @type str keyed dictionary of gateway_comms.msg.Rule[] 
         '''
         # List of rules to be monitored and (un)advertised  as they 
         # become (un)available
@@ -80,6 +86,12 @@ class PublicInterface(object):
         self.advertise_all_enabled = False
 
         self.lock = threading.Lock()
+        
+        # Load up static rules.
+        for connection_type in utils.connection_types:
+            for rule in default_rules[connection_type]:
+                print rule
+                self.addRule(rule)
 
     ##########################################################################
     # Public Interfaces

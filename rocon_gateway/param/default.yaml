@@ -41,15 +41,15 @@
 #        name: /chat*
 #        node: None
 #        type: subscriber
-default_pulls:
-    - gateway: gateway 
-      rule:  
-        name: /chatter
-        node: None
-        type: publisher
-    - gateway: gateway 
-      rule:  
-        name: /chat*
-        node: None
-        type: subscriber
+#default_pulls:
+#    - gateway: gateway 
+#      rule:  
+#        name: /chatter
+#        node: None
+#        type: publisher
+#    - gateway: gateway 
+#      rule:  
+#        name: /chat*
+#        node: None
+#        type: subscriber
         

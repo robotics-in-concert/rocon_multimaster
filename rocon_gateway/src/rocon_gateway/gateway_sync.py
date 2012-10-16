@@ -67,7 +67,7 @@ class GatewaySync(object):
         self.pulled_interface = PulledInterface(  default_rule_blacklist=default_rule_blacklist,
                                                   default_rules=ros_parameters.generateRemoteRules(self.param["default_pulls"]))
         self.public_interface = PublicInterface(  default_rule_blacklist=default_rule_blacklist,
-                                                  default_rules=self.param['default_advertisements'])
+                                                  default_rules=ros_parameters.generateRules(self.param['default_advertisements']))
         
         self.master = LocalMaster()
         self.remote_gateway_request_callbacks = {}
