@@ -122,14 +122,9 @@ class Gateway():
         response.connected = self.gateway_sync.is_connected
         response.hub_name = self.gateway_sync.hub.name
         response.firewall = self.param['firewall']
-        for connection_type in rocon_gateway.connection_types:
-            response.flipped_connections.extend(self.gateway_sync.flipped_interface.flipped[connection_type])
-            response.flipped_in_connections.extend(self.gateway_sync.flipped_interface.flippedInConnections(connection_type))
-            response.flip_watchlist.extend(self.gateway_sync.flipped_interface.watchlist[connection_type])
-        # response message must have string output
-        for flip in response.flip_watchlist:
-            if not flip.rule.node:
-                flip.rule.node = 'None'
+        response.flipped_connections = self.gateway_sync.flipped_interface.getFlippedConnections()
+        response.flipped_in_connections = self.gateway_sync.flipped_interface.getLocalRegistrations()
+        response.flip_watchlist = self.gateway_sync.flipped_interface.getWatchlist()
         response.public_watchlist = self.gateway_sync.public_interface.getWatchlist()
         response.public_interface = self.gateway_sync.public_interface.getInterface()
         return response

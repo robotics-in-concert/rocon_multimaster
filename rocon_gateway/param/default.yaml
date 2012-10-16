@@ -22,7 +22,7 @@
 # Used to block/permit remote gateway's from flipping to this gateway.
 # firewall: true
 
-# Static rules
+# Static rules.
 #default_advertisements: 
 #    - name: /chatter
 #      node: None
@@ -30,10 +30,26 @@
 #    - name: /chat*
 #      node: None
 #      type: subscriber
-#default_flips: how to do these? 
-#    - gatewa{ name: /chatter
-#      node: None
-#      type: publisher
-#    - name: /chat*
-#      node: None
-#      type: subscriber
+#default_flips: 
+#    - gateway: gateway1 
+#      rule:  
+#        name: /chatter
+#        node: None
+#        type: publisher
+#    - gateway: gateway1 
+#      rule:  
+#        name: /chat*
+#        node: None
+#        type: subscriber
+default_pulls:
+    - gateway: gateway 
+      rule:  
+        name: /chatter
+        node: None
+        type: publisher
+    - gateway: gateway 
+      rule:  
+        name: /chat*
+        node: None
+        type: subscriber
+        

@@ -60,7 +60,7 @@ class PublicInterface(object):
          and shared if they become available 
       
     '''
-    def __init__(self, default_rule_blacklist):
+    def __init__(self, default_rule_blacklist, default_rules):
         '''
           Initialises the public interface
         '''

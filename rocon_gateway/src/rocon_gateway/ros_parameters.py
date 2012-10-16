@@ -8,7 +8,7 @@ import roslib; roslib.load_manifest('rocon_gateway')
 import roslib.packages
 import rospy
 import re
-from gateway_comms.msg import Rule
+from gateway_comms.msg import Rule, RemoteRule
 import utils
 
 ###############################################################################
@@ -65,3 +65,28 @@ def generateRules(param):
         rule.type = value['type']
         rules[rule.type].append(rule)
     return rules
+
+def generateRemoteRules(param):
+    ''' 
+       Converts a param of the suitable type (default_flips, default_pulls) into
+       a list of RemoteRule objects.
+       
+       @param yaml object
+       @type complicated
+       
+       @return list of remote rules
+       @return RemoteRule[]
+    '''
+    remote_rules = []
+    pattern = re.compile("None",re.IGNORECASE)
+    for remote_rule in param:
+        # maybe also check for '' here?
+        node = None if pattern.match(remote_rule['rule']['node']) else remote_rule['rule']['node'] 
+        remote_rules.append(RemoteRule(remote_rule['gateway'],
+                                   Rule(remote_rule['rule']['type'],
+                                        remote_rule['rule']['name'],
+                                        node
+                                        )
+                                   )
+                        )
+    return remote_rules

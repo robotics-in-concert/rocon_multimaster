@@ -72,13 +72,19 @@ class Registration():
       for the connection. It includes the gateway name it originated 
       from as well as master registration information.
       
-       - connection      (the remote connection information)
+       - connection             (the remote connection information)
        - remote_gateway         (the remote gateway from where this connection originated)
        - local_node             (the local anonymously generated node name)
     '''
     def __init__(self, connection, remote_gateway, local_node = None):
         '''
-          @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
+          @param connection : string identifier storing the remote connection details (type, name, node)
+          @type gateway_comms.msg.RemoteRule
+          
+          @param remote_gateway : string identifier for where this registration game from
+          @type string  
+          
+          @param local_node : the local node that this registration is created under
           @type string  
         '''
         self.connection = connection

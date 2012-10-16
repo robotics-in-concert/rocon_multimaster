@@ -9,7 +9,7 @@
 ##############################################################################
 
 import roslib; roslib.load_manifest('rocon_gateway')
-from gateway_comms.msg import RemoteRule
+from gateway_comms.msg import Rule, RemoteRule
 import copy
 import threading
 import re
@@ -53,11 +53,17 @@ class FlippedInterface(object):
       (pubs/subs/services/actions) and rules controlling flips
       to other gateways. 
     '''
-    def __init__(self, firewall, default_rule_blacklist):
+    def __init__(self, firewall, default_rule_blacklist, default_rules):
         '''
           Initialises the flipped interface.
+          
+          @param firewall : flag to prevent this gateway from accepting flips
+          @type Bool
+          @param default_rule_blacklist : used when in flip all mode
+          @type dictionary of gateway
+          @param default_rules : static rules to launch the interface with
+          
         '''
-        
         # keys are connection_types, elements are lists of RemoteRule objects
         self.flipped = utils.createEmptyConnectionTypeDictionary() # Rules that have been sent to remote gateways   
         self.watchlist = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local rules to flip  
@@ -74,6 +80,10 @@ class FlippedInterface(object):
         self.firewall = firewall 
 
         self._lock = threading.Lock()
+        
+        # Load up static rules.
+        for rule in default_rules:
+            self.addRule(rule)
 
     ##########################################################################
     # Rules
@@ -330,37 +340,64 @@ class FlippedInterface(object):
                 matched_flip.rule.name = name # just in case we used a regex
                 matched_flip.rule.node = node # just in case we used a regex
                 matched_flip_rules.append(matched_flip)
-
         return matched_flip_rules
     
     ##########################################################################
-    # Accessors
+    # Accessors for Gateway Info
     ##########################################################################
 
-    def flippedInConnections(self,connection_type):
+    def getLocalRegistrations(self):
         '''
+          Gets the flipped in connections for GatewayInfo consumption.
+          
           Parses the registrations list and hands out a set of flip rules for
-          consumption by ros service getters (e.g. GatewayInfo). We don't need
-          to show the service and node uri's here.
+          consumption by ros service getters. We don't need to show the service 
+          and node uri's here.
           
           Basic operation : convert Registration -> RemoteRule for each registration
-          
-          @param connection_type : one of Rule.XXX string constants.
-          @type str
           
           @return the list of flip rules corresponding to local flip registrations
           @rtype RemoteRule[]
         '''
-        flipped_in_rules = []
-        for registration in self.registrations[connection_type]:
-            flip_rule = RemoteRule()
-            flip_rule.gateway = registration.remote_gateway
-            flip_rule.rule.name = registration.remote_name
-            flip_rule.rule.node = registration.remote_node
-            flip_rule.rule.type = connection_type
-            flipped_in_rules.append(flip_rule)
-        return flipped_in_rules
+        flipped_in_connections = []
+        for connection_type in utils.connection_types:
+            for registration in self.registrations[connection_type]:
+                flip_rule = RemoteRule()
+                flip_rule.gateway = registration.remote_gateway
+                flip_rule.rule.name = registration.connection.rule.name
+                flip_rule.rule.node = registration.connection.rule.node
+                flip_rule.rule.type = connection_type
+                flipped_in_connections.append(flip_rule)
+        return flipped_in_connections
 
+    def getWatchlist(self):
+        '''
+          Gets the watchlist for GatewayInfo consumption.
+          
+          @return the list of flip rules that are being watched
+          @rtype RemoteRule[]
+        '''
+        flip_watchlist = []
+        for connection_type in utils.connection_types:
+            flip_watchlist.extend(copy.deepcopy(self.watchlist[connection_type]))
+        # ros messages must have string output
+        for flip in flip_watchlist:
+            if not flip.rule.node:
+                flip.rule.node = 'None'
+        return flip_watchlist
+    
+    def getFlippedConnections(self):
+        '''
+          Gets the flipped connections list for GatewayInfo consumption.
+          
+          @return the list of flip rules that are activated and have been flipped.
+          @rtype RemoteRule[]
+        '''
+        flipped_connections = []
+        for connection_type in utils.connection_types:
+            flipped_connections.extend(copy.deepcopy(self.flipped[connection_type]))
+        return flipped_connections
+    
     ##########################################################################
     # Utilities
     ##########################################################################
@@ -403,6 +440,3 @@ if __name__ == "__main__":
     
     r = re.compile("/chatte")
     result = r.match('/chatter')
-    print result.group()
-    print result.span()
-    print len('/chatter')

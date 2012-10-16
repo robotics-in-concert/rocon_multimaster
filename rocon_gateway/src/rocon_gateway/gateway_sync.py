@@ -60,9 +60,15 @@ class GatewaySync(object):
         self.unique_name = None # single string value set after hub rule (note: it is not a redis rocon:: rooted key!)
         self.is_connected = False
         default_rule_blacklist = ros_parameters.generateRules(self.param["default_blacklist"])
-        self.flipped_interface = FlippedInterface(firewall=self.param['firewall'],default_rule_blacklist=default_rule_blacklist) # Initalise the unique namespace hint for this upon rule later
-        self.pulled_interface = PulledInterface(default_rule_blacklist)
-        self.public_interface = PublicInterface(default_rule_blacklist)
+        
+        self.flipped_interface = FlippedInterface(firewall=self.param['firewall'],
+                                                  default_rule_blacklist=default_rule_blacklist, 
+                                                  default_rules=ros_parameters.generateRemoteRules(self.param["default_flips"])) 
+        self.pulled_interface = PulledInterface(  default_rule_blacklist=default_rule_blacklist,
+                                                  default_rules=ros_parameters.generateRemoteRules(self.param["default_pulls"]))
+        self.public_interface = PublicInterface(  default_rule_blacklist=default_rule_blacklist,
+                                                  default_rules=self.param['default_advertisements'])
+        
         self.master = LocalMaster()
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.processRemoteGatewayFlipRequest
@@ -82,7 +88,7 @@ class GatewaySync(object):
             self.unique_name = self.hub.registerGateway()
             self.is_connected = True
         except Exception as e:
-            print str(e)
+            rospy.logerr("Gateway : %s"%str(e))
             return False
         return True
 

@@ -53,7 +53,7 @@ class PulledInterface(object):
       (pubs/subs/services/actions) and rules controlling flips
       to other gateways. 
     '''
-    def __init__(self, default_rule_blacklist):
+    def __init__(self, default_rule_blacklist, default_rules):
         '''
           Initialises the flipped interface.
         '''
@@ -72,7 +72,11 @@ class PulledInterface(object):
         self._blacklist = {} 
 
         self.lock = threading.Lock()
-        
+     
+        # Load up static rules.
+        for rule in default_rules:
+            self.addRule(rule)
+
     def addRule(self, flip_rule):
         '''
           Generate the flip rule, taking care to provide a sensible
@@ -406,11 +410,3 @@ class PulledInterface(object):
                 if registration.remote_gateway not in gateways:
                     gateways.append(registration.remote_gateway)
         return gateways
-    
-if __name__ == "__main__":
-    
-    r = re.compile("/chatte")
-    result = r.match('/chatter')
-    print result.group()
-    print result.span()
-    print len('/chatter')
