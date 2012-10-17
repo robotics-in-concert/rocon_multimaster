@@ -37,13 +37,11 @@ def main():
     if param['zeroconf']:
         utils.check_if_executable_available('avahi-daemon')
 
-
-    redis = redis_server.RedisServer(param)
-    
-    redis.start() # sys exits if server connection is unavailable
+    redi = redis_server.RedisServer(param)
+    redi.start()  # sys exits if server connection is unavailable
 
     if param['zeroconf']:
-        zeroconf.advertise_port_to_avahi(param['port'], param['name']) # sys exits if running avahi-daemon not found
-        
+        zeroconf.advertise_port_to_avahi(param['port'], param['name'])  # sys exits if running avahi-daemon not found
+
     rospy.spin()
-    redis.shutdown()
+    redi.shutdown()

@@ -1,0 +1,15 @@
+# Default values are commented with a #.
+
+# String identifier for the gateway hub
+name: Gateway Hub
+
+# Port on which to start the redis server
+port: 6380
+
+# Maximum memory to allocate for the hub
+max_memory: 10mb
+
+# Use zeroconf to advertise the redis server's uri
+zeroconf: true
+
+        

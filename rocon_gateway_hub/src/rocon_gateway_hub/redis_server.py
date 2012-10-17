@@ -12,16 +12,17 @@ import sys
 import re
 import shutil
 import subprocess
-try:
-    import redis
-except ImportError:
-    sys.exit("\n[ERROR] No python-redis found - 'rosdep install rocon_gateway_hub'\n")
 
 # Ros imports
 import roslib
 roslib.load_manifest('rocon_gateway_hub')
 import rospy
 import rospkg
+try:
+    import redis
+except ImportError:
+    # actually unused right now while we use redis as a ros package
+    sys.exit("\n[ERROR] No python-redis found - 'rosdep install rocon_gateway_hub'\n")
 
 # Local imports
 import utils
@@ -99,7 +100,7 @@ class RedisServer:
                 pipe.execute()
                 rospy.loginfo("Hub : reset hub variables on the redis server.")
                 break
-            except redis.exceptions.ConnectionError:
+            except redis.ConnectionError:
                 count += 1
                 if count == no_attempts:
                     self.shutdown()

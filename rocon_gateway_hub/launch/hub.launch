@@ -3,9 +3,6 @@
 -->
 <launch>
   <node pkg="rocon_gateway_hub" type="hub.py" name="gateway_hub" output="screen">
-    <rosparam param="name">Gateway Hub</rosparam>
-    <rosparam param="port">6380</rosparam>
-    <rosparam param="max_memory">10mb</rosparam>
-    <rosparam param="zeroconf">true</rosparam>
+    <rosparam command="load" file="$(find rocon_gateway_hub)/param/default.yaml" />
   </node>
 </launch>
