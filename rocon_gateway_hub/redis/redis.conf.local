@@ -22,3 +22,4 @@ appendonly no
 # Do not use virtual memory
 vm-enabled no
 
+logfile %(logfile)s

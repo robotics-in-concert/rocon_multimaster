@@ -7,9 +7,11 @@
 # Imports
 ##############################################################################
 
+import os
 import sys
 import re
 import shutil
+import subprocess
 try:
     import redis
 except ImportError:
@@ -19,106 +21,110 @@ except ImportError:
 import roslib
 roslib.load_manifest('rocon_gateway_hub')
 import rospy
+import rospkg
 
 # Local imports
 import utils
 
 ##############################################################################
-# Functions
+# Redis Server
 ##############################################################################
 
 
-def parse_system_configuration():
-    '''
-      Pushes the system redis server configuration file into a variable.
-      Primarily used at the moment to find the redis server is running on.
+class RedisServer:
+    def __init__(self, parameters):
+        self._parameters = parameters
+        self._process = None
+        self._home_dir = os.path.join(rospkg.get_ros_home(), 'redis', self._parameters['name'].lower().replace(" ", "_"))
+        self._files = {}
+        self._files['redis_conf'] = os.path.join(self._home_dir, 'redis.conf')
+        self._files['redis_conf_local'] = os.path.join(self._home_dir, 'redis.conf.local')
+        self._files['redis_server_log'] = os.path.join(self._home_dir, 'redis-server.log')
+        self._server = None
 
-      @filename : filename for the redis server configuration file.
-    '''
-    filename = '/etc/redis/redis.conf'
-    f = open(filename, 'r')
-    settings = {}
+        self._setup()
 
-    for line in f:
-        kv = line.split()
-        if len(kv) > 1:
-            settings[kv[0]] = kv[1]
-    return settings
+    def _setup(self):
+        '''
+          Clear and configure redis conf, log files in the ros home
+          directories under a subdirectory styled by the name of this hub.
+        '''
+        if os.path.isdir(self._home_dir):
+            shutil.rmtree(self._home_dir)
+        os.makedirs(self._home_dir)
+        rospack = rospkg.RosPack()
+        redis_conf_template = utils.read_template(os.path.join(rospack.get_path('rocon_gateway_hub'), 'redis', 'redis.conf'))
+        redis_conf_template = instantiate_redis_conf_template(redis_conf_template, self._files['redis_conf_local'])
+        redis_local_template = utils.read_template(os.path.join(rospack.get_path('rocon_gateway_hub'), 'redis', 'redis.conf.local'))
+        redis_local_template = instantiate_local_conf_template(redis_local_template,
+                                                               self._parameters['port'],
+                                                               self._parameters['max_memory'],
+                                                               self._files['redis_server_log'])
+        try:
+            f = open(self._files['redis_conf'], 'w')
+            f.write(redis_conf_template.encode('utf-8'))
+        finally:
+            f.close()
+        try:
+            f = open(self._files['redis_conf_local'], 'w')
+            f.write(redis_local_template.encode('utf-8'))
+        finally:
+            f.close()
 
+    def start(self):
+        '''
+          Start the server. Also connect, delete all rocon:xxx
+          variables and reinitialise with specified values.
 
-def initialise(port, hub_name):
-    '''
-      Connect, delete all rocon:xxx variables and reinitialise with
-      specified values.
+          Aborts the program if the connection fails.
+        '''
+        self._process = subprocess.Popen(["redis-server", self._files['redis_conf']])
+        try:
+            pool = redis.ConnectionPool(host='localhost', port=self._parameters['port'], db=0)
+            self._server = redis.Redis(connection_pool=pool)
+            rocon_keys = self._server.keys("rocon:*")
+            pattern = re.compile("rocon:*")
+            keys_to_delete = []
+            for key in rocon_keys:
+                if pattern.match(key):
+                    keys_to_delete.append(key)
+            pipe = self._server.pipeline()
+            if len(keys_to_delete) != 0:
+                pipe.delete(*keys_to_delete)  # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
+            pipe.set("rocon:hub:index", 0)
+            pipe.set("rocon:hub:name", self._parameters['name'])
+            pipe.execute()
+            rospy.loginfo("Hub : reset hub variables on the redis server.")
+        #except Exception as e:
+        except redis.exceptions.ConnectionError as e:
+            print str(e)
+            self.shutdown()
+            sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
 
-      Aborts the program if the connection fails.
-    '''
-    try:
-        pool = redis.ConnectionPool(host='localhost', port=port, db=0)
-        server = redis.Redis(connection_pool=pool)
-        rocon_keys = server.keys("rocon:*")
-        pattern = re.compile("rocon:*")
-        keys_to_delete = []
-        for key in rocon_keys:
-            if pattern.match(key):
-                keys_to_delete.append(key)
-        pipe = server.pipeline()
-        if len(keys_to_delete) != 0:
-            pipe.delete(*keys_to_delete)  # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
-        pipe.set("rocon:hub:index", 0)
-        pipe.set("rocon:hub:name", hub_name)
-        pipe.execute()
-        rospy.loginfo("Hub : reset hub variables on the redis server.")
-    except redis.exceptions.ConnectionError:
-        sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
+    def shutdown(self):
+        '''
+          Clears rocon: keys on the server.
+        '''
+        try:
+            rocon_keys = self._server.keys("rocon:*")
+            pattern = re.compile("rocon:*")
+            keys_to_delete = []
+            for key in rocon_keys:
+                if pattern.match(key):
+                    keys_to_delete.append(key)
+            pipe = self._server.pipeline()
+            if len(keys_to_delete) != 0:
+                pipe.delete(*keys_to_delete)  # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
+            pipe.execute()
+            rospy.logdebug("Hub : clearing hub variables on the redis server.")
+        except redis.ConnectionError:
+            #sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
+            pass
+        self._process.terminate()
 
-
-def start_server(parameters):
-    home_dir = os.path.join(rospkg.get_ros_home(), 'redis', parameters['hub_name'].lower().replace(" ", "_"))
-    if os.path.isdir(home_dir):
-        shutil.rmtree(home_dir)
-    os.makedirs(home_dir)
-    rospack = rospkg.RosPack()
-    redis_conf_file = os.path.join(rospack.get_path('rocon_gateway_hub'), 'redis', 'redis.conf')
-    redis_local_file = os.path.join(rospack.get_path('rocon_gateway_hub'), 'redis', 'redis.conf.local')
-    target_redis_conf_file = os.path.join(home_dir, 'redis.conf')
-    target_redis_local_file = os.path.join(home_dir, 'redis.conf.local')
-    redis_conf_template = utils.read_template(redis_conf_file)
-    redis_conf_template = instantiate_redis_conf_template(redis_conf_template, target_redis_local_file)
-    redis_local_template = utils.read_template(redis_local_file)
-    redis_local_template = instantiate_local_conf_template(redis_local_template, parameters['port'], parameters['max_memory'])
-    try:
-        f = open(target_redis_conf_file, 'w')
-        f.write(redis_conf_template.encode('utf-8'))
-    finally:
-        f.close()
-    try:
-        f = open(target_redis_local_file, 'w')
-        f.write(redis_local_template.encode('utf-8'))
-    finally:
-        f.close()
-
-
-def clear(port):
-    '''
-      Clears rocon: keys on the server.
-    '''
-    try:
-        pool = redis.ConnectionPool(host='localhost', port=port, db=0)
-        server = redis.Redis(connection_pool=pool)
-        rocon_keys = server.keys("rocon:*")
-        pattern = re.compile("rocon:*")
-        keys_to_delete = []
-        for key in rocon_keys:
-            if pattern.match(key):
-                keys_to_delete.append(key)
-        pipe = server.pipeline()
-        if len(keys_to_delete) != 0:
-            pipe.delete(*keys_to_delete)  # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
-        pipe.execute()
-        rospy.logdebug("Hub : clearing hub variables on the redis server.")
-    except redis.exceptions.ConnectionError:
-        sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
+##############################################################################
+# Functions
+##############################################################################
 
 
 def instantiate_redis_conf_template(template, local_conf_filename):
@@ -131,7 +137,7 @@ def instantiate_redis_conf_template(template, local_conf_filename):
     return template % locals()
 
 
-def instantiate_local_conf_template(template, port, max_memory):
+def instantiate_local_conf_template(template, port, max_memory, logfile):
     '''
       Variable substitution in a template file.
 
@@ -144,13 +150,9 @@ def instantiate_local_conf_template(template, port, max_memory):
     '''
     return template % locals()
 
-import os
-import rospkg
-
 if __name__ == "__main__":
-
-    parameters = {}
-    parameters['hub_name'] = 'Pirate Hub'
-    parameters['port'] = 6380
-    parameters['max_memory'] = '10mb'
-    start_server(parameters)
+    pool = redis.ConnectionPool(host='localhost', port='6380', db=0)
+    try:
+        print "dude"
+    except redis.exceptions.ConnectionError:
+        print "err"

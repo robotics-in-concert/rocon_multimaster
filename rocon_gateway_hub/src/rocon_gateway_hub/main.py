@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_gateway_hub/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_gateway_hub/LICENSE
 #
 
 import sys
 
 # Ros imports
-import roslib; roslib.load_manifest('rocon_gateway_hub')
+import roslib
+roslib.load_manifest('rocon_gateway_hub')
 import rospy
 
 # Local imports
@@ -20,6 +21,7 @@ from . import zeroconf
 # Main
 ##############################################################################
 
+
 def main():
     # Ros
     while not utils.check_master():
@@ -30,16 +32,15 @@ def main():
     rospy.init_node('hub')
     param = ros_parameters.load()
 
-    # Redis
-    utils.check_if_executable_available('redis-server')  # aborts if redis-server not installed
-    config = redis_server.parse_system_configuration()
-    redis_server.initialise(int(config["port"]), param['name'])
-
-    # Zeroconf
+    # Installation checks - both abort the process if not installed.
+    utils.check_if_executable_available('redis-server')
     if param['zeroconf']:
-        utils.check_if_executable_available('avahi-daemon') # aborts if avahi-daemon not installed
-        zeroconf.advertise_port_to_avahi(config, param['name']) # aborts if avahi-daemon not running
-        
+        utils.check_if_executable_available('avahi-daemon')
+
+    if param['zeroconf']:
+        zeroconf.advertise_port_to_avahi(param['port'], param['name'])  # aborts if avahi-daemon not running
+
+    redis = redis_server.RedisServer(param)
+    redis.start()
     rospy.spin()
-    redis_server.clear(int(config["port"]))
-    
+    redis.shutdown()
