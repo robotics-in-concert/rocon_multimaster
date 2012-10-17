@@ -1,0 +1,24 @@
+
+daemonize no
+port %(port)s
+
+# We don't need all those databases
+databases 1
+
+# Don't do any saving to disk.
+# save 900 1
+# save 300 10
+# save 60 10000
+
+# Allow unlimited clients
+maxclients 0
+
+# Keep it small
+maxmemory %(max_memory)s
+
+# Do not log
+appendonly no
+
+# Do not use virtual memory
+vm-enabled no
+
