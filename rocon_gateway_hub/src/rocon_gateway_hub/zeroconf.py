@@ -7,8 +7,8 @@
 # Imports
 ##############################################################################
 
-import sys
 import subprocess
+import sys
 
 # Ros imports
 import roslib
@@ -16,7 +16,7 @@ roslib.load_manifest('rocon_gateway_hub')
 import rospy
 
 # Local imports
-import utils
+from . import utils
 
 ##############################################################################
 # Functions

@@ -32,15 +32,18 @@ def main():
     rospy.init_node('hub')
     param = ros_parameters.load()
 
-    # Installation checks - both abort the process if not installed.
+    # Installation checks - sys exits if the process if not installed.
     utils.check_if_executable_available('redis-server')
     if param['zeroconf']:
         utils.check_if_executable_available('avahi-daemon')
 
-    if param['zeroconf']:
-        zeroconf.advertise_port_to_avahi(param['port'], param['name'])  # aborts if avahi-daemon not running
 
     redis = redis_server.RedisServer(param)
-    redis.start()
+    
+    redis.start() # sys exits if server connection is unavailable
+
+    if param['zeroconf']:
+        zeroconf.advertise_port_to_avahi(param['port'], param['name']) # sys exits if running avahi-daemon not found
+        
     rospy.spin()
     redis.shutdown()

@@ -79,27 +79,33 @@ class RedisServer:
           Aborts the program if the connection fails.
         '''
         self._process = subprocess.Popen(["redis-server", self._files['redis_conf']])
-        try:
-            pool = redis.ConnectionPool(host='localhost', port=self._parameters['port'], db=0)
-            self._server = redis.Redis(connection_pool=pool)
-            rocon_keys = self._server.keys("rocon:*")
-            pattern = re.compile("rocon:*")
-            keys_to_delete = []
-            for key in rocon_keys:
-                if pattern.match(key):
-                    keys_to_delete.append(key)
-            pipe = self._server.pipeline()
-            if len(keys_to_delete) != 0:
-                pipe.delete(*keys_to_delete)  # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
-            pipe.set("rocon:hub:index", 0)
-            pipe.set("rocon:hub:name", self._parameters['name'])
-            pipe.execute()
-            rospy.loginfo("Hub : reset hub variables on the redis server.")
-        #except Exception as e:
-        except redis.exceptions.ConnectionError as e:
-            print str(e)
-            self.shutdown()
-            sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
+        pool = redis.ConnectionPool(host='localhost', port=self._parameters['port'], db=0)
+        no_attempts = 5
+        count = 0
+        while count < no_attempts:
+            try:
+                self._server = redis.Redis(connection_pool=pool)
+                rocon_keys = self._server.keys("rocon:*")
+                pattern = re.compile("rocon:*")
+                keys_to_delete = []
+                for key in rocon_keys:
+                    if pattern.match(key):
+                        keys_to_delete.append(key)
+                pipe = self._server.pipeline()
+                if len(keys_to_delete) != 0:
+                    pipe.delete(*keys_to_delete)  # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
+                pipe.set("rocon:hub:index", 0)
+                pipe.set("rocon:hub:name", self._parameters['name'])
+                pipe.execute()
+                rospy.loginfo("Hub : reset hub variables on the redis server.")
+                break
+            except redis.exceptions.ConnectionError:
+                count += 1
+                if count == no_attempts:
+                    self.shutdown()
+                    sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
+                else:
+                    rospy.sleep(0.1)
 
     def shutdown(self):
         '''
@@ -118,7 +124,6 @@ class RedisServer:
             pipe.execute()
             rospy.logdebug("Hub : clearing hub variables on the redis server.")
         except redis.ConnectionError:
-            #sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
             pass
         self._process.terminate()
 
