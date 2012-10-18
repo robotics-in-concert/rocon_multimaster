@@ -69,7 +69,7 @@ def resolveHub(ip, port):
       
       @return string - hub name
     '''
-    r = redis.Redis()
+    r = redis.Redis(host=ip,port=port)
     return r.get("rocon:hub:name") # perhaps should store all key names somewhere central
 
 ###############################################################################
