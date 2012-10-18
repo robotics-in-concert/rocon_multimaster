@@ -191,9 +191,10 @@ class Gateway():
         if self.gateway_sync.is_connected: 
             rospy.logwarn("Gateway : gateway is already connected, aborting connection attempt.")
             return gateway_comms.msg.Result.HUB_CONNECTION_ALREADY_EXISTS
+        print "Connection"
         try:
             hub_name = rocon_gateway.resolveHub(ip,port)
-            rospy.logdebug("Gateway : resolved hub name [%s].", hub_name)
+            rospy.loginfo("Gateway : resolved hub name [%s].", hub_name)
         except redis.exceptions.ConnectionError:
             rospy.logerr("Gateway : couldn't connect to the hub [%s:%s]", ip, port)
             return gateway_comms.msg.Result.HUB_CONNECTION_UNRESOLVABLE

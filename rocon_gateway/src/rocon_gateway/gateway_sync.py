@@ -118,24 +118,31 @@ class GatewaySync(object):
           @return service response
           @rtype gateway_comms.srv.AdvertiseReponse
         '''
-        result = gateway_comms.msg.Result.SUCCESS
-        try:
-            if not request.cancel:
-                for rule in request.rules:
-                    if not self.public_interface.addRule(rule):
-                        result = gateway_comms.msg.Result.ADVERTISEMENT_EXISTS
-            else:
-                for rule in request.rules:
-                    if not self.public_interface.removeRule(rule):
-                        result = gateway_comms.msg.Result.ADVERTISEMENT_NOT_FOUND
-        except Exception as e:
-            rospy.logerr("Gateway : advertise call error [%s]."%str(e))
-            result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
+        response = gateway_comms.srv.AdvertiseResponse()
+        response.result, response.error_message = self._rosServiceAdvertiseChecks()
+        if response.result == gateway_comms.msg.Result.SUCCESS:
+            try:
+                if not request.cancel:
+                    for rule in request.rules:
+                        if not self.public_interface.addRule(rule):
+                            response.result = gateway_comms.msg.Result.ADVERTISEMENT_EXISTS
+                            response.error_message = "advertisment rule already exists [%s:(%s,%s)]"%(rule.name, rule.type, rule.node)
+                else:
+                    for rule in request.rules:
+                        if not self.public_interface.removeRule(rule):
+                            response.result = gateway_comms.msg.Result.ADVERTISEMENT_NOT_FOUND
+                            response.error_message = "advertisment not found [%s:(%s,%s)]"%(rule.name, rule.type, rule.node)
+            except Exception as e:
+                rospy.logerr("Gateway : unknown advertise error [%s]."%str(e))
+                response.result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
 
         # Let the watcher get on with the update asap
-        if result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
-        return result, self.public_interface.getWatchlist()
+        else:
+            rospy.logerr("Gateway : %s."%response.error_message)
+        response.watchlist = self.public_interface.getWatchlist()
+        return response
 
     def rosServiceAdvertiseAll(self,request):
         '''
@@ -149,21 +156,27 @@ class GatewaySync(object):
           @return service response
           @rtype gateway_comms.srv.AdvertiseAllReponse
         '''
-        result = gateway_comms.msg.Result.SUCCESS
-        try:
-            if not request.cancel:
-                if not self.public_interface.advertiseAll(request.blacklist):
-                    result = gateway_comms.msg.Result.ADVERTISEMENT_EXISTS
-            else:
-                self.public_interface.unadvertiseAll()
-        except Exception as e:
-            rospy.logerr("Gateway : advertise all call error [%s]."%str(e))
-            result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
+        response = gateway_comms.srv.AdvertiseAllResponse()
+        response.result, response.error_message = self._rosServiceAdvertiseChecks()
+        if response.result == gateway_comms.msg.Result.SUCCESS:
+            try:
+                if not request.cancel:
+                    if not self.public_interface.advertiseAll(request.blacklist):
+                        response.result = gateway_comms.msg.Result.ADVERTISEMENT_EXISTS
+                        response.error_message = "already advertising all."
+                else:
+                    self.public_interface.unadvertiseAll()
+            except Exception as e:
+                response.result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
+                response.error_message = "unknown advertise all error [%s]"%(str(e))
 
         # Let the watcher get on with the update asap
-        if result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
-        return result, self.public_interface.getBlacklist()
+        else:
+            rospy.logerr("Gateway : %s."%response.error_message)
+        response.blacklist = self.public_interface.getBlacklist()
+        return response
 
     def rosServiceFlip(self,request):
         '''
@@ -287,6 +300,11 @@ class GatewaySync(object):
             rospy.logerr("Gateway : %s."%response.error_message)
         return response
 
+    def _rosServiceAdvertiseChecks(self):
+        if not self.is_connected:
+            return gateway_comms.msg.Result.NO_HUB_CONNECTION, "not connected to hub, aborting"
+        else: 
+            return gateway_comms.msg.Result.SUCCESS, ""
 
     def _rosServiceFlipChecks(self, gateway):
         '''
@@ -323,7 +341,8 @@ class GatewaySync(object):
             return gateway_comms.msg.Result.FLIP_NO_TO_SELF, "gateway cannot flip to itself"
         elif gateway not in self.hub.listRemoteGatewayNames():
             rospy.logwarn("Gateway : remote gateway is currently not connected [%s]"%gateway)
-        return gateway_comms.msg.Result.SUCCESS, ""
+        else:
+            return gateway_comms.msg.Result.SUCCESS, ""
 
     ##########################################################################
     # Public Interface utility functions
