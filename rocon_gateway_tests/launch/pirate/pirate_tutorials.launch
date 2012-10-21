@@ -3,8 +3,10 @@
   name so we can test hubs in parallel. 
 -->
 <launch>
-  <include file="$(find rocon_gateway)/launch/pirate.launch"/>
+  <include file="$(find rocon_gateway_tests)/launch/pirate/pirate.launch"/>
   <node pkg="roscpp_tutorials" type="talker" name="talker"/>
   <node pkg="roscpp_tutorials" type="listener" name="listener"/>
   <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
+  <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
+  <node name="averaging_server" pkg="actionlib_tutorials" type="averaging_server"/>
 </launch>

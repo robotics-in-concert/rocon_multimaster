@@ -13,3 +13,4 @@ __email__ = "d.stonier@gmail.com"
 __date__ = "2012-08-29"
 
 from .gateways import findFirstRemoteGateway
+from .utils import createTutorialDictionaries

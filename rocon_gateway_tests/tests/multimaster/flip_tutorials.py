@@ -3,6 +3,9 @@
 # License: BSD
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tests/LICENSE 
 #
+##############################################################################
+# Imports
+##############################################################################
 
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
@@ -13,8 +16,42 @@ from gateway_comms.srv import *
 import argparse
 import sys
 
+##############################################################################
+# Utilities
+##############################################################################
+
+class Context(object):
+    def __init__(self, gateway, cancel_flag, regex):
+        self.gateway = gateway
+        if cancel_flag:
+            self.action_text = "cancelling"
+        else:
+            self.action_text = "advertising"
+        self.flip_service = rospy.ServiceProxy('/gateway/flip',Remote)
+        self.req = RemoteRequest() 
+        self.req.remote.gateway = gateway
+        self.req.cancel = cancel_flag
+        self.names, self.nodes = rocon_gateway_tests.createTutorialDictionaries(regex)
+
+    def flip(self, type):
+        self.req.remote.rule.name = self.names[type]
+        self.req.remote.rule.type = type
+        self.req.remote.rule.node = self.nodes[type]
+        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(self.action_text, 
+                                                  self.req.remote.gateway, 
+                                                  self.req.remote.rule.type, 
+                                                  self.req.remote.rule.name, 
+                                                  self.req.remote.rule.node or 'None')) 
+        resp = self.flip_service(self.req)
+        if resp.result != 0:
+            rospy.logerr("Flip : %s"%resp.error_message)
+
+##############################################################################
+# Main
+##############################################################################
+
 """
-  Tests a single flip rule.
+  Tests flips, either for all tutorials (default) or one by one (via args).
   
   Usage:
     1 > roslaunch rocon_gateway_hub pirate.launch
@@ -30,14 +67,15 @@ import sys
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Flip roscpp tutorial connections (/chatter, /add_two_ints to a remote gateway')
-    #parser.add_argument("gateway", help="gateway string identifier", type=str)
     parser.add_argument('--pubonly', action='store_true', help='flip /chatter publisher only')
     parser.add_argument('--subonly', action='store_true', help='flip /chatter subscriber only')
     parser.add_argument('--serviceonly', action='store_true', help='flip add_two_ints service only')
+    parser.add_argument('--actionclientonly', action='store_true', help='flip /fibonacci action client only')
+    parser.add_argument('--actionserveronly', action='store_true', help='flip /averaging action server only')
     parser.add_argument('--regex', action='store_true', help='test with a regex pattern')
     parser.add_argument('--cancel', action='store_true', help='cancel the flip')
     args = parser.parse_args()
-    flip_all_connection_types = (not args.pubonly) and (not args.subonly) and (not args.serviceonly)
+    flip_all_connection_types = (not args.pubonly) and (not args.subonly) and (not args.serviceonly) and (not args.actionclientonly) and (not args.actionserveronly)
     if args.cancel:
         action_text = "cancelling"
     else:
@@ -51,41 +89,19 @@ if __name__ == '__main__':
         rospy.logerr("Flip Test : %s, aborting."%(str(e)))
         sys.exit(1)
 
-    flip = rospy.ServiceProxy('/gateway/flip',Remote)
-    req = RemoteRequest() 
-    req.remote.gateway = gateway
-    req.cancel = args.cancel
-
-    if args.regex:
-        req.remote.rule.name = ".*ter"
-        req.remote.rule.node = "/t.*er"
-    else:
-        req.remote.rule.name = "/chatter"
+    context = Context(gateway, args.cancel, args.regex)
 
     if args.pubonly or flip_all_connection_types:
-        req.remote.rule.type = gateway_comms.msg.ConnectionType.PUBLISHER
-        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(action_text,req.remote.gateway, req.remote.rule.type, req.remote.rule.name, req.remote.rule.node or 'None')) 
-        resp = flip(req)
-        if resp.result != 0:
-            rospy.logerr("Flip : %s"%resp.error_message)
-
-    req.remote.rule.node = ''
+        context.flip(ConnectionType.PUBLISHER)
     
     if args.subonly or flip_all_connection_types:
-        req.remote.rule.type = gateway_comms.msg.ConnectionType.SUBSCRIBER
-        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(action_text,req.remote.gateway, req.remote.rule.type, req.remote.rule.name, req.remote.rule.node or 'None')) 
-        resp = flip(req)
-        if resp.result != 0:
-            rospy.logerr("Flip : %s"%resp.error_message)
-
-    if args.regex:
-        req.remote.rule.name = "/add_two_.*"
-    else:
-        req.remote.rule.name = "/add_two_ints"
+        context.flip(ConnectionType.SUBSCRIBER)
 
     if args.serviceonly or flip_all_connection_types:
-        req.remote.rule.type = gateway_comms.msg.ConnectionType.SERVICE
-        rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(action_text,req.remote.gateway, req.remote.rule.type, req.remote.rule.name, req.remote.rule.node or 'None')) 
-        resp = flip(req)
-        if resp.result != 0:
-            rospy.logerr("Flip : %s"%resp.error_message)
+        context.flip(ConnectionType.SERVICE)
+
+    if args.actionclientonly or flip_all_connection_types:
+        context.flip(ConnectionType.ACTION_CLIENT)
+
+    if args.actionserveronly or flip_all_connection_types:
+        context.flip(ConnectionType.ACTION_SERVER)
