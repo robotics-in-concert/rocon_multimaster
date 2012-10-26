@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "roslaunch $1 $2 --port=$3"
+roslaunch $1 $2 --port=$3
