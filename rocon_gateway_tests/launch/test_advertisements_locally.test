@@ -2,7 +2,7 @@
 
   <arg name="hub_port" default="12345" />
   <arg name="gateway_port" default="12346" />
-  <arg name="time_limit" default="60.0" />
+  <arg name="time_limit" default="300.0" />
 
   <include file="$(find rocon_gateway_tests)/launch/test_single_gateway_hub.launch">
     <arg name="hub_port" value="$(arg hub_port)"/>
