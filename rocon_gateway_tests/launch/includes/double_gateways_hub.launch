@@ -3,23 +3,27 @@
   <arg name="hub_port" />
   <arg name="gateway1_port" />
   <arg name="gateway2_port" />
+  <arg name="output" default="log" />
 
   <!-- launch the hub on a master running on hub_port -->
-  <include file="$(find rocon_gateway_tests)/launch/test_hub.launch">
+  <include file="$(find rocon_gateway_tests)/launch/includes/test_hub.launch">
     <arg name="port" value="$(arg hub_port)" />
+    <arg name="output" value="$(arg output)" />
   </include>
 
   <!-- launch the gateway on a separate master running on port gateway_port -->
-  <include file="$(find rocon_gateway_tests)/launch/test_gateway.launch">
+  <include file="$(find rocon_gateway_tests)/launch/includes/test_gateway.launch">
     <arg name="port" value="$(arg gateway1_port)" />
+    <arg name="output" value="$(arg output)" />
   </include>
   <!-- launch a suite of test applications on the gateway -->
-  <include file="$(find rocon_gateway_tests)/launch/test_suite.launch">
+  <include file="$(find rocon_gateway_tests)/launch/includes/test_suite.launch">
     <arg name="port" value="$(arg gateway1_port)" />
+    <arg name="output" value="$(arg output)" />
   </include>
 
   <!-- launch a second gateway to do remote tests -->
-  <include file="$(find rocon_gateway_tests)/launch/test_gateway.launch">
+  <include file="$(find rocon_gateway_tests)/launch/includes/test_gateway.launch">
     <arg name="port" value="$(arg gateway2_port)" />
   </include>
 
