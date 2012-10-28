@@ -16,6 +16,49 @@ import copy
 
 class TestAdvertisementsLocally(unittest.TestCase):
 
+    def assertAdvertiseAllCall(self, blacklist, expected_interface):
+        req = AdvertiseAllRequest()
+        req.cancel = False
+        req.blacklist = copy.deepcopy(blacklist)
+
+        # make call and ensure it succeeded
+        resp = self.advertiseAll(req)
+        self.assertEquals(resp.result, Result.SUCCESS)
+
+        # ensure expected interfaces came up
+        self.assertPublicInterface(expected_interface)
+
+        # remove everything
+        req.cancel = True
+        resp = self.advertiseAll(req)
+        self.assertEquals(resp.result, Result.SUCCESS)
+
+        self.assertPublicInterface([])
+
+    def assertAdvertiseCall(self, watchlist, expected_interface):
+
+        # Make the call
+        req = AdvertiseRequest()
+        req.rules = copy.deepcopy(watchlist)
+        req.cancel = False
+
+        # ensure call succeeded
+        resp = self.advertise(req)
+        self.assertEquals(resp.result, Result.SUCCESS)
+        self.assertEquals(len(resp.watchlist), len(watchlist))
+        for rule in resp.watchlist:
+            self.assertIn(rule, watchlist)
+
+        # ensure public interface comes up as expected
+        self.assertPublicInterface(expected_interface)
+
+        # remove everything and check if everything has been removed
+        req.cancel = True
+        resp = self.advertise(req)
+        self.assertEquals(resp.result, Result.SUCCESS)
+        self.assertEquals(len(resp.watchlist), 0)
+        self.assertPublicInterface([])
+
     def assertPublicInterface(self, rules):
 
         expected_rules = copy.deepcopy(rules)
@@ -72,100 +115,34 @@ class TestAdvertisementsLocally(unittest.TestCase):
           Tests advertising publishers. Also tests that multiple nodes are
           coming up as expected.
         '''
-        # Request adding the /chatter topic, 
-        # This should add 2 nodes /talker and /talker2
-        req = AdvertiseRequest()
-        rule = Rule()
-        rule.type = ConnectionType.PUBLISHER
-        rule.name = "/chatter"
-        req.rules.append(rule)
-        req.cancel = False
-
-        resp = self.advertise(req)
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), 1)
-        self.assertEquals(resp.watchlist[0], rule)
-
-        # Ensure the two nodes in the test suite got added
+        # Test topic name directly
+        watchlist = [Rule(ConnectionType.PUBLISHER, "/chatter", '')]
         expected_interface = list()
         expected_interface.append(Rule(ConnectionType.PUBLISHER, "/chatter", "/talker"))
         expected_interface.append(Rule(ConnectionType.PUBLISHER, "/chatter", "/talker2"))
-        self.assertPublicInterface(expected_interface)
-
-        # Test removal
-        req.cancel = True
-        resp = self.advertise(req)
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), 0)
-        self.assertPublicInterface([])
+        self.assertAdvertiseCall(watchlist, expected_interface)
 
         # Test topic name using regex
-        req.rules[0].name="/chat.*"
-        req.cancel = False
+        watchlist = [Rule(ConnectionType.PUBLISHER, "/chat.*", '')]
+        self.assertAdvertiseCall(watchlist, expected_interface)
 
-        resp = self.advertise(req)
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), 1)
-        self.assertEquals(resp.watchlist[0], rule)
-
-        self.assertPublicInterface(expected_interface)
-
-        # Test removal
-        req.cancel = True
-        resp = self.advertise(req)
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), 0)
-        self.assertPublicInterface([])
+        # Test bogus regex
+        watchlist = [Rule(ConnectionType.PUBLISHER, "/chattt.*", '')]
+        self.assertAdvertiseCall(watchlist, [])
 
     def test_advertisePublisherByNode(self):
         '''
           Tests advertising publishers. Also tests that multiple nodes are
           coming up as expected.
         '''
-        req = AdvertiseRequest()
-        rule = Rule()
-        rule.type = ConnectionType.PUBLISHER
-        rule.name = "/chatter"
-        rule.node = "/talker"
-        req.rules.append(rule)
-        req.cancel = False
-
-        resp = self.advertise(req)
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), 1)
-        self.assertEquals(resp.watchlist[0], rule)
-
-        # Ensure the two nodes in the test suite got added
+        watchlist = [Rule(ConnectionType.PUBLISHER, "/chatter", "/talker")]
         expected_interface = list()
         expected_interface.append(Rule(ConnectionType.PUBLISHER, "/chatter", "/talker"))
-        self.assertPublicInterface(expected_interface)
-
-        # Test removal
-        req.cancel = True
-        resp = self.advertise(req)
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), 0)
-        self.assertPublicInterface([])
+        self.assertAdvertiseCall(watchlist, expected_interface)
 
         # Test using regex
-        req.rules[0].name="/chat.*"
-        req.rules[0].node=".*ker"
-        req.cancel = False
-
-        resp = self.advertise(req)
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), 1)
-        self.assertEquals(resp.watchlist[0], rule)
-
-        self.assertPublicInterface(expected_interface)
-
-        # Test removal
-        req.cancel = True
-        resp = self.advertise(req)
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), 0)
-        self.assertPublicInterface([])
-        
+        watchlist = [Rule(ConnectionType.PUBLISHER, "/chat.*", ".*ker")]
+        self.assertAdvertiseCall(watchlist, expected_interface)
 
     def test_advertiseDifferentConnections(self):
         '''
@@ -185,31 +162,55 @@ class TestAdvertisementsLocally(unittest.TestCase):
         nodes[ConnectionType.ACTION_SERVER] = ["/averaging_server"]
         nodes[ConnectionType.ACTION_CLIENT] = ["/fibonacci_client"]
 
-        expected_rules = [Rule(type, topics[type], node) for type in topics for node in nodes[type]]
+        watchlist = [Rule(type, topics[type], '') for type in topics]
+        expected_interface = [Rule(type, topics[type], node) for type in topics for node in nodes[type]]
+        self.assertAdvertiseCall(watchlist, expected_interface)
 
-        req = AdvertiseRequest()
-        for type in topics:
-            rule = Rule()
-            rule.type = type
-            rule.name = topics[type]
-            req.rules.append(rule)
-        req.cancel = False
-        resp = self.advertise(req)
+    def test_advertiseAll(self):
 
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), len(topics))
-        for rule in resp.watchlist:
-            self.assertIn(rule, resp.watchlist)
+        topics = {}
+        topics[ConnectionType.PUBLISHER] = "/chatter"
+        topics[ConnectionType.SUBSCRIBER] = "/chatter"
+        topics[ConnectionType.SERVICE] = "/add_two_ints"
+        topics[ConnectionType.ACTION_SERVER] = "/averaging_server/"
+        topics[ConnectionType.ACTION_CLIENT] = "/fibonacci/"
+        nodes = {}
+        nodes[ConnectionType.PUBLISHER] = ["/talker","/talker2"]
+        nodes[ConnectionType.SUBSCRIBER] = ["/listener"]
+        nodes[ConnectionType.SERVICE] = ["/add_two_ints_server"]
+        nodes[ConnectionType.ACTION_SERVER] = ["/averaging_server"]
+        nodes[ConnectionType.ACTION_CLIENT] = ["/fibonacci_client"]
 
-        # Ensure all the nodes come as advertised.
-        self.assertPublicInterface(expected_rules)
-        
-        # Remove everything and assert null list
-        req.cancel = True
-        resp = self.advertise(req)
-        self.assertEquals(resp.result, Result.SUCCESS)
-        self.assertEquals(len(resp.watchlist), 0)
-        self.assertPublicInterface([])
+        # no blacklist
+        blacklist = []
+        expected_interface = [Rule(type, topics[type], node) for type in topics for node in nodes[type]]
+        expected_interface.append(Rule(ConnectionType.SUBSCRIBER, "/random_number", "/averaging_server"))
+        self.assertAdvertiseAllCall(blacklist, expected_interface)
+
+        # 2 items in blacklist
+        blacklist = []
+        blacklist.append(Rule(ConnectionType.PUBLISHER, "/chatter", ""))
+        blacklist.append(Rule(ConnectionType.SUBSCRIBER, "/random_number", "/averaging_server"))
+        expected_interface = [Rule(type, topics[type], node) for type in topics for node in nodes[type]]
+        expected_interface[:] = [e for e in expected_interface if e.type != ConnectionType.PUBLISHER]
+        self.assertAdvertiseAllCall(blacklist, expected_interface)
+
+        # test regex in blacklist
+        blacklist = []
+        blacklist.append(Rule(ConnectionType.SUBSCRIBER, "/random.*", ""))
+        expected_interface = [Rule(type, topics[type], node) for type in topics for node in nodes[type]]
+        self.assertAdvertiseAllCall(blacklist, expected_interface)
+
+        blacklist = []
+        blacklist.append(Rule(ConnectionType.SUBSCRIBER, "/random2.*", "")) 
+        expected_interface = [Rule(type, topics[type], node) for type in topics for node in nodes[type]]
+        expected_interface.append(Rule(ConnectionType.SUBSCRIBER, "/random_number", "/averaging_server"))
+        self.assertAdvertiseAllCall(blacklist, expected_interface)
+
+        blacklist = []
+        blacklist.append(Rule(ConnectionType.SUBSCRIBER, "/random.*", ".*raging.*"))
+        expected_interface = [Rule(type, topics[type], node) for type in topics for node in nodes[type]]
+        self.assertAdvertiseAllCall(blacklist, expected_interface)
 
     def tearDown(self):
         '''
