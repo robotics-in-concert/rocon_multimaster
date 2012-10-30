@@ -1,0 +1,31 @@
+#!/bin/bash
+
+port=$1
+name=$2
+args=$3
+
+control_c() {
+  exit
+}
+
+run_again=1
+while [ $run_again -eq 1 ]
+do
+  trap control_c SIGINT
+  sleep 1
+  ROS_MASTER_URI=http://localhost:$port; rosservice call --wait $name $args > temp
+  if [ $? -ne 0 ]
+  then
+    run_again=1
+  else
+    result=`grep "result" temp | awk '{print $2}'`
+    if [ $result -ne 0 ]
+    then
+      run_again=1
+    else
+      run_again=0
+    fi
+  fi
+done
+rm -rf temp
+

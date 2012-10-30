@@ -256,16 +256,16 @@ class GatewaySync(object):
         response.result, response.error_message = self._rosServiceRemoteChecks(request.remote.gateway)
         if response.result == gateway_comms.msg.Result.SUCCESS:
             if not request.cancel:
-                pull_rule = self.pulled_interface.addRule(request.rule)
+                pull_rule = self.pulled_interface.addRule(request.remote)
                 if pull_rule:
                     rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
                 else:
                     response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "pull rule already exists [%s:(%s,%s)]"%(request.rule.gateway,request.remote.rule.name,request.remote.rule.type)
             else: # request.cancel
-                pull_rules = self.pulled_interface.removeRule(request.rule)
+                pull_rules = self.pulled_interface.removeRule(request.remote)
                 if pull_rules:
-                    rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(request.rule.gateway,request.remote.rule.name))
+                    rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(request.remote.gateway,request.remote.rule.name))
         if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
@@ -340,7 +340,7 @@ class GatewaySync(object):
         elif gateway == self.unique_name:
             return gateway_comms.msg.Result.FLIP_NO_TO_SELF, "gateway cannot flip to itself"
         elif gateway not in self.hub.listRemoteGatewayNames():
-            rospy.logwarn("Gateway : remote gateway is currently not connected [%s]"%gateway)
+            return gateway_comms.msg.Result.FLIP_REMOTE_GATEWAY_NOT_CONNECTED, "remote gateway is currently not connected [%s]"%gateway
         else:
             return gateway_comms.msg.Result.SUCCESS, ""
 

@@ -28,3 +28,6 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
+
+rosbuild_add_rostest(launch/tests/test_advertisements_locally.test)
+rosbuild_add_rostest(launch/tests/test_pull_remotely.test)

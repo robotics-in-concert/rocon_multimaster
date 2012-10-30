@@ -1,0 +1,23 @@
+<launch>
+
+  <arg name="hub_port" />
+  <arg name="gateway_port" />
+  <arg name="output" default="log" />
+
+  <!-- launch the hub on a master running on hub_port -->
+  <include file="$(find rocon_gateway_tests)/launch/includes/hub.launch">
+    <arg name="port" value="$(arg hub_port)" />
+    <arg name="output" value="$(arg output)" />
+  </include>
+
+  <!-- launch the gateway on a separate master running on port gateway_port -->
+  <include file="$(find rocon_gateway_tests)/launch/includes/gateway.launch">
+    <arg name="port" value="$(arg gateway_port)" />
+    <arg name="output" value="$(arg output)" />
+  </include>
+  <!-- launch a suite of test applications on the gateway -->
+  <include file="$(find rocon_gateway_tests)/launch/includes/test_suite.launch">
+    <arg name="port" value="$(arg gateway_port)" />
+  </include>
+
+</launch>
