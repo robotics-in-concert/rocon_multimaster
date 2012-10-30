@@ -60,7 +60,7 @@ class TestPullRemotely(unittest.TestCase):
                     if connection.rule.name == rule_name:
                         num_rules_found = num_rules_found + 1
                 if num_rules_found != rule_count:
-                    rules_not_found.append(rule.name)
+                    rules_not_found.append(rule_name)
                     all_rules_found = False
             if all_rules_found:
                 break
@@ -95,6 +95,32 @@ class TestPullRemotely(unittest.TestCase):
             self.assertEquals(resp.result, Result.SUCCESS)
 
         self.assertMasterState(zero_interface)
+
+    def assertPullAllCall(self, gateway, blacklist, expected_interface):
+
+        zero_interface = []
+        for i in expected_interface:
+            zero_interface.append((i[0],i[1],0))
+
+        self.assertMasterState(zero_interface)
+
+        req = RemoteAllRequest()
+        req.gateway = gateway
+        req.blacklist = blacklist
+        req.cancel = False
+        resp = self.pullAll(req)
+        self.assertEquals(resp.result, Result.SUCCESS)
+
+        self.assertMasterState(expected_interface)
+            
+        req = RemoteAllRequest()
+        req.gateway = gateway
+        req.cancel = True
+        resp = self.pullAll(req)
+        self.assertEquals(resp.result, Result.SUCCESS)
+
+        self.assertMasterState(zero_interface)
+
 
     def setUp(self):
         '''
@@ -143,7 +169,6 @@ class TestPullRemotely(unittest.TestCase):
         # unit test property - show the difference when an assertion fails
         self.maxDiff = None
 
-
     def test_checkRemotePublicInterface(self):
         '''
           Makes sure that every connection type is being detected and advertised
@@ -176,6 +201,43 @@ class TestPullRemotely(unittest.TestCase):
         # Test using regex
         watchlist = [RemoteRule(self.remote_gateway_name, Rule(ConnectionType.PUBLISHER, "/chat.*", ".*ker"))]
         self.assertPullCall(watchlist, expected_interface)
+
+    def test_pullDifferentConnections(self):
+        topics = {}
+        topics[ConnectionType.PUBLISHER] = "/chatter"
+        topics[ConnectionType.SUBSCRIBER] = "/chatter"
+        topics[ConnectionType.SERVICE] = "/add_two_ints"
+        topics[ConnectionType.ACTION_SERVER] = "/averaging_server/"
+        topics[ConnectionType.ACTION_CLIENT] = "/fibonacci/"
+        nodes = {}
+        nodes[ConnectionType.PUBLISHER] = ["/talker","/talker2"]
+        nodes[ConnectionType.SUBSCRIBER] = ["/listener"]
+        nodes[ConnectionType.SERVICE] = ["/add_two_ints_server"]
+        nodes[ConnectionType.ACTION_SERVER] = ["/averaging_server"]
+        nodes[ConnectionType.ACTION_CLIENT] = ["/fibonacci_client"]
+
+        watchlist = [RemoteRule(self.remote_gateway_name, Rule(type, topics[type], '')) for type in topics]
+        expected_interface = [(type, topics[type], len(nodes[type])) for type in topics]
+        self.assertPullCall(watchlist, expected_interface)
+
+    def test_pullAll(self):
+        topics = {}
+        topics[ConnectionType.PUBLISHER] = "/chatter"
+        topics[ConnectionType.SUBSCRIBER] = "/chatter"
+        topics[ConnectionType.SERVICE] = "/add_two_ints"
+        topics[ConnectionType.ACTION_SERVER] = "/averaging_server/"
+        topics[ConnectionType.ACTION_CLIENT] = "/fibonacci/"
+        nodes = {}
+        nodes[ConnectionType.PUBLISHER] = ["/talker","/talker2"]
+        nodes[ConnectionType.SUBSCRIBER] = ["/listener"]
+        nodes[ConnectionType.SERVICE] = ["/add_two_ints_server"]
+        nodes[ConnectionType.ACTION_SERVER] = ["/averaging_server"]
+        nodes[ConnectionType.ACTION_CLIENT] = ["/fibonacci_client"]
+
+        blacklist = []
+        expected_interface = [(type, topics[type], len(nodes[type])) for type in topics]
+        expected_interface.append((ConnectionType.SUBSCRIBER, "/random_number", 1))
+        self.assertPullAllCall(self.remote_gateway_name, blacklist, expected_interface)
 
     def tearDown(self):
         '''
