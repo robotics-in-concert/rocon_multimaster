@@ -345,18 +345,75 @@ class GatewaySync(object):
             return gateway_comms.msg.Result.SUCCESS, ""
 
     ##########################################################################
-    # Public Interface utility functions
+    # Update interface states (usually from watcher thread)
     ##########################################################################
 
+    def updateFlipInterface(self,connections, gateways):
+        '''
+          Process the list of local connections and check against
+          the current flip rules and patterns for changes. If a rule
+          has become (un)available take appropriate action.
+          
+          @param connections : list of current local connections parsed from the master
+          @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
+          
+          @param gateways : list of remote gateway string id's
+          @type string
+        '''
+        new_flips, lost_flips = self.flipped_interface.update(connections, gateways)
+        # new_flips and lost_flips are RemoteRule lists with filled supplied name info from the master
+        for connection_type in connections:
+            for flip in new_flips[connection_type]:
+                connection = self.master.generateConnectionDetails(flip.rule.type, flip.rule.name, flip.rule.node)
+                rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
+                self.hub.sendFlipRequest(flip.gateway, connection)
+            for flip in lost_flips[connection_type]:
+                rospy.loginfo("Unflipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
+                self.hub.sendUnflipRequest(flip.gateway, flip.rule)
+
+    def updatePulledInterface(self, connections, gateways ):
+        '''
+          Process the list of local connections and check against
+          the current pull rules and patterns for changes. If a rule
+          has become (un)available take appropriate action.
+          
+          @param connections : list of current local connections parsed from the master
+          @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
+          
+          @param gateways : list of remote gateway string id's
+          @type string
+        '''
+        for gateway in gateways + self.pulled_interface.listRemoteGatewayNames():
+            connections = self.hub.getRemoteConnectionState(gateway)
+            new_pulls, lost_pulls = self.pulled_interface.update(connections, gateway)
+            for connection_type in connections:
+                for pull in new_pulls[connection_type]:
+                    for connection in connections[pull.rule.type]:
+                        if connection.rule.name == pull.rule.name and \
+                           connection.rule.node == pull.rule.node:
+                            corresponding_connection = connection
+                            break
+                    # Register this pull
+                    existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
+                    if not existing_registration:
+                        registration = utils.Registration(connection, gateway) 
+                        new_registration = self.master.register(registration)
+                        self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
+                for pull in lost_pulls[connection_type]:
+                    # Unregister this pull
+                    existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
+                    if existing_registration:
+                        self.master.unregister(existing_registration)
+                        self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
+                
     def updatePublicInterface(self, connections = None):
         ''' 
-          Process the list of local rules and check against 
+          Process the list of local connections and check against 
           the current rules and patterns for changes. If a rule 
           has become (un)available take appropriate action.
           
-          @param rules : pregenerated list of rules, if None, this
-                               function will generate them
-          @type gateway_comms.msg.Rule
+          @param connections : list of current local connections parsed from the master
+          @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
         '''
         if not self.is_connected:
             rospy.logerr("Gateway : advertise call failed [no hub rule].")
