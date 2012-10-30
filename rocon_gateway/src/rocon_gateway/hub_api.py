@@ -204,12 +204,12 @@ class Hub(object):
           @rtype: bool
         '''
         try:
+            self._redis_pubsub_server.unsubscribe()
             gateway_keys = self.server.keys(self._redis_keys['gateway']+":*")
             pipe = self.server.pipeline()
             pipe.delete(*gateway_keys)
             pipe.srem(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
             pipe.execute()
-            self._redis_pubsub_server.unsubscribe()
             self._redis_channels = {}
             self._unique_gateway_name = ''
             self.name = ''
@@ -376,4 +376,4 @@ class Hub(object):
     # Redis Converters - convert variosu types to redis readable strings
     ##########################################################################
     
-     
+
