@@ -14,7 +14,7 @@
   </include>
 
   <!-- launch the test -->
-  <test name="multimaster_test" pkg="rocon_gateway_tests" type="test_advertisements_remotely.py" test-name="test_advertisements_remotely" time-limit="$(arg time_limit)">
+  <test name="multimaster_test" pkg="rocon_gateway_tests" type="test_pull_remotely.py" test-name="test_pull_remotely" time-limit="$(arg time_limit)">
     <env name="ROS_MASTER_URI" value="http://localhost:$(arg gateway2_port)" />
   </test>
 
