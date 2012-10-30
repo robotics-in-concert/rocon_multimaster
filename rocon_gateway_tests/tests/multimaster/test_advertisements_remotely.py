@@ -25,19 +25,20 @@ class TestAdvertisementsLocally(unittest.TestCase):
             resp = self.remoteGatewayInfo()
             remote_gateway = None
             for gateway in resp.gateways:
-                if gateway == gateway_name:
+                if gateway.name == gateway_name:
                     remote_gateway = gateway
                     break
             self.assertIsNotNone(remote_gateway)
+            node_names = []
             for i in remote_gateway.public_interface:
                 node_names.append(i.node)
             rospy.loginfo("TEST: Public Interface Nodes (Gateway: %s): %s"%(gateway_name, str(node_names)))
-            if len(remote_gatway.public_interface) == num_nodes:
+            if len(remote_gateway.public_interface) == num_nodes:
                 break
             rospy.loginfo("TEST:   Waiting for watcher thread to load all nodes.")
 
         for i in range(num_nodes):
-            self.assertIn(remote_gatway.public_interface[i], expected_rules)
+            self.assertIn(remote_gateway.public_interface[i], expected_rules)
             expected_rules.remove(remote_gateway.public_interface[i])
 
         self.assertEqual(len(expected_rules), 0);
@@ -78,6 +79,7 @@ class TestAdvertisementsLocally(unittest.TestCase):
                 rospy.loginfo("TEST: Waiting for remote gateway to come up...")
             else:
                 self.remote_gateway_name = resp.gateways[0].name
+                break
 
         rospy.loginfo("TEST: Remote gateway connected")
         # unit test property - show the difference when an assertion fails
@@ -95,7 +97,7 @@ class TestAdvertisementsLocally(unittest.TestCase):
         expected_interface.append(Rule(ConnectionType.SUBSCRIBER, "/random_number", "/averaging_server"))
         expected_interface.append(Rule(ConnectionType.SERVICE, "/add_two_ints", "/add_two_ints_server"))
         expected_interface.append(Rule(ConnectionType.ACTION_SERVER, "/averaging_server/", "/averaging_server"))
-        expected_interface.append(Rule(ConnectionType.ACTION_CLIENT, "/fibonacci_client/", "/fibonacci"))
+        expected_interface.append(Rule(ConnectionType.ACTION_CLIENT, "/fibonacci/", "/fibonacci_client"))
         self.assertRemotePublicInterface(self.remote_gateway_name, expected_interface)
 
     def tearDown(self):
