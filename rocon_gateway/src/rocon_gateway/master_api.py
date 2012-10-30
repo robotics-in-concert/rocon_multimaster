@@ -69,9 +69,21 @@ class LocalMaster(rosgraph.Master):
             else:
                 node_master.registerService(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
                 return registration
-        else:
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
-            return None
+        elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
+            node_master.registerSubscriber(registration.connection.rule.name+"goal",registration.connection.type_info+"ActionGoal",registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name+"cancel","actionlib_msgs/GoalID",registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name+"status","actionlib_msgs/GoalStatusArray",registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name+"feedback",registration.connection.type_info+"ActionFeedback",registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name+"result",registration.connection.type_info+"ActionResult",registration.connection.xmlrpc_uri)
+            return registration
+        elif registration.connection.rule.type == ConnectionType.ACTION_CLIENT:
+            node_master.registerPublisher(registration.connection.rule.name+"goal",registration.connection.type_info+"ActionGoal",registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name+"cancel","actionlib_msgs/GoalID",registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name+"status","actionlib_msgs/GoalStatusArray",registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name+"feedback",registration.connection.type_info+"ActionFeedback",registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name+"result",registration.connection.type_info+"ActionResult",registration.connection.xmlrpc_uri)
+            return registration
+        return None
 
     def unregister(self,registration):
         '''
@@ -88,7 +100,18 @@ class LocalMaster(rosgraph.Master):
             node_master.unregisterSubscriber(registration.connection.rule.name,registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.SERVICE:
             node_master.unregisterService(registration.connection.rule.name,registration.connection.type_info)
-        else:
+        elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
+            node_master.unregisterSubscriber(registration.connection.rule.name+"goal",registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name+"cancel",registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name+"status",registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name+"feedback",registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name+"result",registration.connection.xmlrpc_uri)
+        elif registration.connection.rule.type == ConnectionType.ACTION_CLIENT:
+            node_master.unregisterPublisher(registration.connection.rule.name+"goal",registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name+"cancel",registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name+"status",registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name+"feedback",registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name+"result",registration.connection.xmlrpc_uri)
             rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
         
     ##########################################################################
