@@ -59,37 +59,15 @@ class WatcherThread(threading.Thread):
                 try:
                     connections = self._master.getConnectionState()
                 except httplib.ResponseNotReady as e:
-                    rospy.logwarn("Received ResponseNotReady from master api")
+                    rospy.logwarn("Gateway : received 'ResponseNotReady' from master api")
                     self._sleep()
                     continue
                 gateways = self._hub.listRemoteGatewayNames()
                 
                 self._gateway.updateFlipInterface(connections, gateways)
                 self._gateway.updatePublicInterface(connections)
+                self._gateway.updatePulledInterface(connections, gateways)
 
-                # Pulled Interface
-                for gateway in self._hub.listRemoteGatewayNames() + self._pulled_interface.listRemoteGatewayNames():
-                    connections = self._hub.getRemoteConnectionState(gateway)
-                    new_pulls, lost_pulls = self._pulled_interface.update(connections, gateway)
-                    for connection_type in connections:
-                        for pull in new_pulls[connection_type]:
-                            for connection in connections[pull.rule.type]:
-                                if connection.rule.name == pull.rule.name and \
-                                   connection.rule.node == pull.rule.node:
-                                    corresponding_connection = connection
-                                    break
-                            # Register this pull
-                            existing_registration = self._pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
-                            if not existing_registration:
-                                registration = utils.Registration(connection, gateway) 
-                                new_registration = self._master.register(registration)
-                                self._pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
-                        for pull in lost_pulls[connection_type]:
-                            # Unregister this pull
-                            existing_registration = self._pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
-                            if existing_registration:
-                                self._master.unregister(existing_registration)
-                                self._pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
             self._sleep()
 
 
