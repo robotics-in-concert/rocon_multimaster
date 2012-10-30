@@ -63,18 +63,8 @@ class WatcherThread(threading.Thread):
                     self._sleep()
                     continue
                 gateways = self._hub.listRemoteGatewayNames()
-                # Flipped Interface
-                new_flips, lost_flips = self._flipped_interface.update(connections, gateways)
-                # new_flips and lost_flips are RemoteRule lists with filled supplied name info from the master
-                for connection_type in connections:
-                    for flip in new_flips[connection_type]:
-                        connection = self._master.generateConnectionDetails(flip.rule.type, flip.rule.name, flip.rule.node)
-                        rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
-                        self._hub.sendFlipRequest(flip.gateway, connection)
-                    for flip in lost_flips[connection_type]:
-                        rospy.loginfo("Unflipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
-                        self._hub.sendUnflipRequest(flip.gateway, flip.rule)
-                # Public Interface
+                
+                self._gateway.updateFlipInterface(connections, gateways)
                 self._gateway.updatePublicInterface(connections)
 
                 # Pulled Interface
