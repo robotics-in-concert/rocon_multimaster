@@ -26,7 +26,7 @@ class Context(object):
         if cancel_flag:
             self.action_text = "cancelling"
         else:
-            self.action_text = "advertising"
+            self.action_text = "flipping"
         self.flip_service = rospy.ServiceProxy('/gateway/flip',Remote)
         self.req = RemoteRequest() 
         self.req.remote.gateway = gateway
