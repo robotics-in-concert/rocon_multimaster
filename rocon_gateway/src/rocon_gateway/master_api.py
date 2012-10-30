@@ -112,7 +112,6 @@ class LocalMaster(rosgraph.Master):
             node_master.unregisterSubscriber(registration.connection.rule.name+"status",registration.connection.xmlrpc_uri)
             node_master.unregisterSubscriber(registration.connection.rule.name+"feedback",registration.connection.xmlrpc_uri)
             node_master.unregisterSubscriber(registration.connection.rule.name+"result",registration.connection.xmlrpc_uri)
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
         
     ##########################################################################
     # Master utility methods
