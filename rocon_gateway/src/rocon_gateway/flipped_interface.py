@@ -9,7 +9,7 @@
 ##############################################################################
 
 import roslib; roslib.load_manifest('rocon_gateway')
-from gateway_comms.msg import Rule, RemoteRule
+from gateway_comms.msg import Rule, RemoteRule, ConnectionType
 import copy
 import re
 

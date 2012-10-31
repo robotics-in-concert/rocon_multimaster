@@ -364,9 +364,10 @@ class GatewaySync(object):
         # new_flips and lost_flips are RemoteRule lists with filled supplied name info from the master
         for connection_type in connections:
             for flip in new_flips[connection_type]:
-                connection = self.master.generateConnectionDetails(flip.rule.type, flip.rule.name, flip.rule.node)
-                rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
-                self.hub.sendFlipRequest(flip.gateway, connection)
+                connections = self.master.generateConnectionDetails(flip.rule.type, flip.rule.name, flip.rule.node)
+                for connection in connections:
+                    rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
+                    self.hub.sendFlipRequest(flip.gateway, connection)
             for flip in lost_flips[connection_type]:
                 rospy.loginfo("Unflipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
                 self.hub.sendUnflipRequest(flip.gateway, flip.rule)
