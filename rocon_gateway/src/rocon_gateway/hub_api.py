@@ -364,6 +364,38 @@ class Hub(object):
         return True
 
     def sendUnflipRequest(self, gateway, rule):
+        if rule.type == gateway_comms.msg.ConnectionType.ACTION_CLIENT:
+            action_name = rule.name
+            rule.type = gateway_comms.msg.ConnectionType.PUBLISHER
+            rule.name = action_name + "/goal"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/cancel"
+            self._sendUnflipRequest(gateway, rule)
+            rule.type = gateway_comms.msg.ConnectionType.SUBSCRIBER
+            rule.name = action_name + "/feedback"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/status"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/result"
+            self._sendUnflipRequest(gateway, rule)
+        elif rule.type == gateway_comms.msg.ConnectionType.ACTION_SERVER:
+            action_name = rule.name
+            rule.type = gateway_comms.msg.ConnectionType.SUBSCRIBER
+            rule.name = action_name + "/goal"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/cancel"
+            self._sendUnflipRequest(gateway, rule)
+            rule.type = gateway_comms.msg.ConnectionType.PUBLISHER
+            rule.name = action_name + "/feedback"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/status"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/result"
+            self._sendUnflipRequest(gateway, rule)
+        else:
+            self._sendUnflipRequest(gateway, rule)
+
+    def _sendUnflipRequest(self, gateway, rule):
         source = keyBaseName(self._redis_keys['gateway'])
         cmd = utils.serializeRuleRequest('unflip', source, rule)
         try:
