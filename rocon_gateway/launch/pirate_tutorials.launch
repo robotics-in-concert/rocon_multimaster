@@ -7,12 +7,18 @@
   <node pkg="roscpp_tutorials" type="talker" name="talker"/>
   <node pkg="roscpp_tutorials" type="listener" name="listener"/>
   <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
-  <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
-  <node name="averaging_server" pkg="actionlib_tutorials" type="averaging_server" output="screen">
-    <remap from="averaging_server/goal" to="averaging/goal"/>
-    <remap from="averaging_server/cancel" to="averaging/cancel"/>
-    <remap from="averaging_server/result" to="averaging/result"/>
-    <remap from="averaging_server/feedback" to="averaging/feedback"/>
-    <remap from="averaging_server/status" to="averaging/status"/>
+  <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client">
+    <remap from="fibonacci/goal" to="fibonacci/client/goal"/>
+    <remap from="fibonacci/cancel" to="fibonacci/client/cancel"/>
+    <remap from="fibonacci/result" to="fibonacci/client/result"/>
+    <remap from="fibonacci/feedback" to="fibonacci/client/feedback"/>
+    <remap from="fibonacci/status" to="fibonacci/client/status"/>
+  </node>
+  <node name="fibonacci_server" pkg="actionlib_tutorials" type="fibonacci_server">
+    <remap from="fibonacci_server/goal" to="fibonacci/server/goal"/>
+    <remap from="fibonacci_server/cancel" to="fibonacci/server/cancel"/>
+    <remap from="fibonacci_server/result" to="fibonacci/server/result"/>
+    <remap from="fibonacci_server/feedback" to="fibonacci/server/feedback"/>
+    <remap from="fibonacci_server/status" to="fibonacci/server/status"/>
   </node>
 </launch>
