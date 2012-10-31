@@ -31,8 +31,8 @@ def createTutorialDictionaries(regex):
         names = { ConnectionType.PUBLISHER : '.*ter',
                   ConnectionType.SUBSCRIBER : '.*ter',
                   ConnectionType.SERVICE : '/add_two_.*',
-                  ConnectionType.ACTION_CLIENT : '/fibbon.*',
-                  ConnectionType.ACTION_SERVER : '/averaging.*'
+                  ConnectionType.ACTION_CLIENT : '/fibon.*',
+                  ConnectionType.ACTION_SERVER : '/averag.*'
                 }
         nodes = { ConnectionType.PUBLISHER : '/t.*er',
                   ConnectionType.SUBSCRIBER : '',
@@ -44,8 +44,8 @@ def createTutorialDictionaries(regex):
         names = { ConnectionType.PUBLISHER : '/chatter',
                   ConnectionType.SUBSCRIBER : '/chatter',
                   ConnectionType.SERVICE : '/add_two_ints',
-                  ConnectionType.ACTION_CLIENT : '/fibbonaci',
-                  ConnectionType.ACTION_SERVER : '/averaging_server'
+                  ConnectionType.ACTION_CLIENT : '/fibonacci',
+                  ConnectionType.ACTION_SERVER : '/averaging'
                 }
         nodes = { ConnectionType.PUBLISHER : '',
                   ConnectionType.SUBSCRIBER : '',
