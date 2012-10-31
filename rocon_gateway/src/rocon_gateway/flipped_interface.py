@@ -15,13 +15,13 @@ import re
 
 # Local imports
 import utils
-import action_interface
+import interactive_interface
 
 ##############################################################################
 # Flipped Interface
 ##############################################################################
 
-class FlippedInterface(action_interface.ActionInterface):
+class FlippedInterface(interactive_interface.InteractiveInterface):
     '''
       The flipped interface is the set of rules 
       (pubs/subs/services/actions) and rules controlling flips
@@ -39,7 +39,7 @@ class FlippedInterface(action_interface.ActionInterface):
           @type gateway_comms.msg.RemoteRule[]
           
         '''
-        action_interface.ActionInterface.__init__(self,default_rule_blacklist, default_rules)
+        interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules)
 
         self.firewall = firewall 
         
