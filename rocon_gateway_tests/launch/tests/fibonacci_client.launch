@@ -1,0 +1,13 @@
+<!--
+  Simple launcher to test fibonacci server that is flipped or pulled to another master.  
+ -->
+<launch>
+  <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client" output="screen">
+    <remap from="fibonacci/goal" to="fibonacci/server/goal"/>
+    <remap from="fibonacci/cancel" to="fibonacci/server/cancel"/>
+    <remap from="fibonacci/result" to="fibonacci/server/result"/>
+    <remap from="fibonacci/feedback" to="fibonacci/server/feedback"/>
+    <remap from="fibonacci/status" to="fibonacci/server/status"/>
+  </node>
+</launch>
+
