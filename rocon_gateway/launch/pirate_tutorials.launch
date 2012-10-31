@@ -8,5 +8,11 @@
   <node pkg="roscpp_tutorials" type="listener" name="listener"/>
   <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
   <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
-  <node name="averaging_server" pkg="actionlib_tutorials" type="averaging_server"/>
+  <node name="averaging_server" pkg="actionlib_tutorials" type="averaging_server" output="screen">
+    <remap from="averaging_server/goal" to="averaging/goal"/>
+    <remap from="averaging_server/cancel" to="averaging/cancel"/>
+    <remap from="averaging_server/result" to="averaging/result"/>
+    <remap from="averaging_server/feedback" to="averaging/feedback"/>
+    <remap from="averaging_server/status" to="averaging/status"/>
+  </node>
 </launch>
