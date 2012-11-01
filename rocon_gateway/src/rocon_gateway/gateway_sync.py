@@ -261,7 +261,7 @@ class GatewaySync(object):
                     rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
                 else:
                     response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                    response.error_message = "pull rule already exists [%s:(%s,%s)]"%(request.rule.gateway,request.remote.rule.name,request.remote.rule.type)
+                    response.error_message = "pull rule already exists [%s:(%s,%s)]"%(request.remote.gateway,request.remote.rule.name,request.remote.rule.type)
             else: # request.cancel
                 pull_rules = self.pulled_interface.removeRule(request.remote)
                 if pull_rules:
@@ -274,8 +274,8 @@ class GatewaySync(object):
 
     def rosServicePullAll(self,request):
         '''
-          Flips everything except a specified blacklist to a particular gateway,
-          or if the cancel flag is set, clears all flips to that gateway.
+          Pull everything except a specified blacklist from a particular gateway,
+          or if the cancel flag is set, clears all pulls from that gateway.
           
           @param request
           @type gateway_comms.srv.RemoteAllRequest
@@ -287,10 +287,10 @@ class GatewaySync(object):
         if response.result == gateway_comms.msg.Result.SUCCESS:
             if not request.cancel:
                 if self.pulled_interface.pullAll(request.gateway, request.blacklist):
-                    rospy.loginfo("Gateway : pulling all to gateway '%s'"%(request.gateway))
+                    rospy.loginfo("Gateway : pulling all from gateway '%s'"%(request.gateway))
                 else:
                     response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                    response.error_message = "already pulling all to gateway '%s' "+request.gateway
+                    response.error_message = "already pulling all from gateway '%s' "+request.gateway
             else: # request.cancel
                 self.pulled_interface.unPullAll(request.gateway)
                 rospy.loginfo("Gateway : cancelling a previous pull all request [%s]"%(request.gateway))
