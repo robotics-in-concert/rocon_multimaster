@@ -239,11 +239,17 @@ class Hub(object):
             remote_gateway = gateway_comms.msg.RemoteGateway()
             remote_gateway.name = gateway
             remote_gateway.firewall = True if int(firewall) else False
-            encoded_connections = self.server.smembers(createGatewayKey(gateway,'connection'))
             remote_gateway.public_interface = []
-            for encoded_connection in encoded_connections:
-                connection = utils.deserializeConnection(encoded_connection)
-                remote_gateway.public_interface.append(connection.rule)
+            encoded_advertisements = self.server.smembers(createGatewayKey(gateway,'advertisements'))
+            for encoded_advertisement in encoded_advertisements:
+                advertisement = utils.deserializeConnection(encoded_advertisement)
+                remote_gateway.public_interface.append(advertisement.rule)
+            remote_gateway.flipped_interface = []
+            encoded_flips = self.server.smembers(createGatewayKey(gateway,'flips'))
+            for encoded_flip in encoded_flips:
+                [target_gateway, name, type, node] = utils.deserialize(encoded_flip)
+                remote_rule = gateway_comms.msg.RemoteRule(target_gateway, gateway_comms.msg.Rule(name, type, node))
+                remote_gateway.flipped_interface.append(remote_rule)
             return remote_gateway 
 
     def listRemoteGatewayNames(self):
@@ -323,6 +329,38 @@ class Hub(object):
         msg_str = utils.serializeConnection(connection)
         self.server.srem(key,msg_str)
 
+    def postFlipDetails(self, gateway, name, type, node):
+        '''
+          Post flip details to the redis server. This has no actual functionality,
+          it is just useful for debugging with the remote_gateway_info service.
+          
+          @param gateway : the target of the flip
+          @type string
+          @param name : the name of the connection
+          @type string
+          @param type : the type of the connection (one of ConnectionType.xxx
+          @type string
+        '''
+        key = createGatewayKey(self._unique_gateway_name,'flips')
+        serialized_data = utils.serialize([gateway, name, type, node])
+        self.server.sadd(key,serialized_data)
+
+    def removeFlipDetails(self, gateway, name, type, node):
+        '''
+          Post flip details to the redis server. This has no actual functionality,
+          it is just useful for debugging with the remote_gateway_info service.
+          
+          @param gateway : the target of the flip
+          @type string
+          @param name : the name of the connection
+          @type string
+          @param type : the type of the connection (one of ConnectionType.xxx
+          @type string
+        '''
+        key = createGatewayKey(self._unique_gateway_name,'flips')
+        serialized_data = utils.serialize([gateway, name, type, node])
+        self.server.srem(key,serialized_data)
+
     ##########################################################################
     # Gateway-Gateway Communications
     ##########################################################################
@@ -346,7 +384,7 @@ class Hub(object):
           @type str
           
           @param flip_rule : the flip to send
-          @type RemoteRule
+          @type gateway_comms.msg.RemoteRule
           
           @param type_info : topic type (e.g. std_msgs/String)
           @param str

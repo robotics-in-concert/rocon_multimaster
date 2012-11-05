@@ -368,9 +368,11 @@ class GatewaySync(object):
                 for connection in connections:
                     rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
                     self.hub.sendFlipRequest(flip.gateway, connection)
+                    self.hub.postFlipDetails(flip.gateway, connection.rule.name, connection.rule.type, connection.rule.node)
             for flip in lost_flips[connection_type]:
                 rospy.loginfo("Unflipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
                 self.hub.sendUnflipRequest(flip.gateway, flip.rule)
+                self.hub.removeFlipDetails(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
 #        for connection_type in utils.connection_types:
 #            for connection in new_flips[connection_type]:
 #                rospy.loginfo("Gateway : adding rule to public interface %s"%utils.formatRule(connection.rule))
