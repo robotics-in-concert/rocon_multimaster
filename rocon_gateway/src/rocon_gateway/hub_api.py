@@ -264,8 +264,7 @@ class Hub(object):
           interface of a foreign gateway
        '''
         connections = utils.createEmptyConnectionTypeDictionary()
-        gateway_key = createKey(gateway)
-        key = gateway_key +":connection"
+        key = createGatewayKey(gateway,'advertisements')
         public_interface = self.server.smembers(key)
         for connection_str in public_interface:
             connection = utils.deserializeConnection(connection_str)
@@ -308,7 +307,7 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = self._redis_keys['gateway']+":connection"
+        key = createGatewayKey(self._unique_gateway_name,'advertisements')
         msg_str = utils.serializeConnection(connection)
         self.server.sadd(key,msg_str)
     
@@ -320,7 +319,7 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = self._redis_keys['gateway']+":connection"
+        key = createGatewayKey(self._unique_gateway_name,'advertisements')
         msg_str = utils.serializeConnection(connection)
         self.server.srem(key,msg_str)
 

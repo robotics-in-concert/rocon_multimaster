@@ -371,6 +371,13 @@ class GatewaySync(object):
             for flip in lost_flips[connection_type]:
                 rospy.loginfo("Unflipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
                 self.hub.sendUnflipRequest(flip.gateway, flip.rule)
+#        for connection_type in utils.connection_types:
+#            for connection in new_flips[connection_type]:
+#                rospy.loginfo("Gateway : adding rule to public interface %s"%utils.formatRule(connection.rule))
+#                self.hub.advertise(connection)
+#            for connection in lost_conns[connection_type]:
+#                rospy.loginfo("Gateway : removing rule to public interface %s"%utils.formatRule(connection.rule))
+#                self.hub.unadvertise(connection)
 
     def updatePulledInterface(self, connections, gateways ):
         '''
@@ -427,7 +434,7 @@ class GatewaySync(object):
                 return None
         new_conns, lost_conns = self.public_interface.update(connections)
         public_interface = self.public_interface.getInterface()
-        for connection_type in new_conns:
+        for connection_type in utils.connection_types:
             for connection in new_conns[connection_type]:
                 rospy.loginfo("Gateway : adding rule to public interface %s"%utils.formatRule(connection.rule))
                 self.hub.advertise(connection)
