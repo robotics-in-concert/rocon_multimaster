@@ -13,12 +13,7 @@
   <depend stack="ros" />
   <depend stack="ros_comm" /> <!-- rosgraph, rospy -->
   <depend stack="rocon_comms" /> <!-- gateway_comms -->
-  <!-- 
-    until we have a better way of handling the multi-platform
-    zeroconf dependencies
-
-    https://github.com/robotics-in-concert/rocon_multimaster/issues/39
-  -->
-  <depend stack="zeroconf_implementations" /> <!-- zeroconf_avahi -->
+  <depend stack="zeroconf_avahi_suite" /> <!-- zeroconf_avahi -->
+  <depend stack="zeroconf_comms" /> <!-- zeroconf_comms -->
  
 </stack>
