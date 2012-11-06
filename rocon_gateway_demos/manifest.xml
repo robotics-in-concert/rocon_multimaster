@@ -1,0 +1,15 @@
+<package>
+  <catkin/>
+  <description brief="rocon_gateway_demos">
+
+     rocon_gateway_demos
+
+  </description>
+  <author>Daniel Stonier</author>
+  <license>BSD</license>
+  <review status="experimental" notes=""/>
+  <url>http://ros.org/wiki/rocon_gateway_demos</url>
+  <depend package="rocon_gateway_hub"/>
+  <depend package="rocon_gateway"/>
+
+</package>
