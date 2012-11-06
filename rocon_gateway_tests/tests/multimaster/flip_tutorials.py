@@ -55,13 +55,16 @@ class Context(object):
   
   Usage:
     1 > roslaunch rocon_gateway_hub pirate.launch
+
     2a> roslaunch rocon_gateway pirate_tutorials.launch
     3a> roslaunch rocon_gateway pirate.launch
-    3b> rosrun rocon_gateway_tests flip_tutorials.py
-    2b> rostopic list
-    3c> rosrun rocon_gateway_tests flip_tutorials.py --cancel
-    3d> rosrun rocon_gateway_tests flip_tutorials.py --regex
-    3c> rosrun rocon_gateway_tests flip_tutorials.py --regex --cancel
+
+    2b> rosrun rocon_gateway_tests flip_tutorials.py
+    3b> rostopic list
+
+    2c> rosrun rocon_gateway_tests flip_tutorials.py --cancel
+    2d> rosrun rocon_gateway_tests flip_tutorials.py --regex
+    2e> rosrun rocon_gateway_tests flip_tutorials.py --regex --cancel
 """
 
 if __name__ == '__main__':
