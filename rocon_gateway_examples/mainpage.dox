@@ -2,7 +2,7 @@
 \mainpage
 \htmlinclude manifest.html
 
-\b test_redis 
+\b rocon_gateway_examples 
 
 <!-- 
 Provide an overview of your package.

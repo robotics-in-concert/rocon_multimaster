@@ -207,12 +207,12 @@ class Hub(object):
           @rtype: bool
         '''
         try:
+            self._redis_pubsub_server.unsubscribe()
             gateway_keys = self.server.keys(self._redis_keys['gateway']+":*")
             pipe = self.server.pipeline()
             pipe.delete(*gateway_keys)
             pipe.srem(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
             pipe.execute()
-            self._redis_pubsub_server.unsubscribe()
             self._redis_channels = {}
             self._unique_gateway_name = ''
             self.name = ''
@@ -242,11 +242,17 @@ class Hub(object):
             remote_gateway = gateway_comms.msg.RemoteGateway()
             remote_gateway.name = gateway
             remote_gateway.firewall = True if int(firewall) else False
-            encoded_connections = self.server.smembers(createGatewayKey(gateway,'connection'))
             remote_gateway.public_interface = []
-            for encoded_connection in encoded_connections:
-                connection = utils.deserializeConnection(encoded_connection)
-                remote_gateway.public_interface.append(connection.rule)
+            encoded_advertisements = self.server.smembers(createGatewayKey(gateway,'advertisements'))
+            for encoded_advertisement in encoded_advertisements:
+                advertisement = utils.deserializeConnection(encoded_advertisement)
+                remote_gateway.public_interface.append(advertisement.rule)
+            remote_gateway.flipped_interface = []
+            encoded_flips = self.server.smembers(createGatewayKey(gateway,'flips'))
+            for encoded_flip in encoded_flips:
+                [target_gateway, name, type, node] = utils.deserialize(encoded_flip)
+                remote_rule = gateway_comms.msg.RemoteRule(target_gateway, gateway_comms.msg.Rule(name, type, node))
+                remote_gateway.flipped_interface.append(remote_rule)
             return remote_gateway 
 
     def listRemoteGatewayNames(self):
@@ -267,8 +273,7 @@ class Hub(object):
           interface of a foreign gateway
        '''
         connections = utils.createEmptyConnectionTypeDictionary()
-        gateway_key = createKey(gateway)
-        key = gateway_key +":connection"
+        key = createGatewayKey(gateway,'advertisements')
         public_interface = self.server.smembers(key)
         for connection_str in public_interface:
             connection = utils.deserializeConnection(connection_str)
@@ -311,7 +316,7 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = self._redis_keys['gateway']+":connection"
+        key = createGatewayKey(self._unique_gateway_name,'advertisements')
         msg_str = utils.serializeConnection(connection)
         self.server.sadd(key,msg_str)
     
@@ -323,9 +328,41 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = self._redis_keys['gateway']+":connection"
+        key = createGatewayKey(self._unique_gateway_name,'advertisements')
         msg_str = utils.serializeConnection(connection)
         self.server.srem(key,msg_str)
+
+    def postFlipDetails(self, gateway, name, type, node):
+        '''
+          Post flip details to the redis server. This has no actual functionality,
+          it is just useful for debugging with the remote_gateway_info service.
+          
+          @param gateway : the target of the flip
+          @type string
+          @param name : the name of the connection
+          @type string
+          @param type : the type of the connection (one of ConnectionType.xxx
+          @type string
+        '''
+        key = createGatewayKey(self._unique_gateway_name,'flips')
+        serialized_data = utils.serialize([gateway, name, type, node])
+        self.server.sadd(key,serialized_data)
+
+    def removeFlipDetails(self, gateway, name, type, node):
+        '''
+          Post flip details to the redis server. This has no actual functionality,
+          it is just useful for debugging with the remote_gateway_info service.
+          
+          @param gateway : the target of the flip
+          @type string
+          @param name : the name of the connection
+          @type string
+          @param type : the type of the connection (one of ConnectionType.xxx
+          @type string
+        '''
+        key = createGatewayKey(self._unique_gateway_name,'flips')
+        serialized_data = utils.serialize([gateway, name, type, node])
+        self.server.srem(key,serialized_data)
 
     ##########################################################################
     # Gateway-Gateway Communications
@@ -350,7 +387,7 @@ class Hub(object):
           @type str
           
           @param flip_rule : the flip to send
-          @type RemoteRule
+          @type gateway_comms.msg.RemoteRule
           
           @param type_info : topic type (e.g. std_msgs/String)
           @param str
@@ -367,6 +404,38 @@ class Hub(object):
         return True
 
     def sendUnflipRequest(self, gateway, rule):
+        if rule.type == gateway_comms.msg.ConnectionType.ACTION_CLIENT:
+            action_name = rule.name
+            rule.type = gateway_comms.msg.ConnectionType.PUBLISHER
+            rule.name = action_name + "/goal"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/cancel"
+            self._sendUnflipRequest(gateway, rule)
+            rule.type = gateway_comms.msg.ConnectionType.SUBSCRIBER
+            rule.name = action_name + "/feedback"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/status"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/result"
+            self._sendUnflipRequest(gateway, rule)
+        elif rule.type == gateway_comms.msg.ConnectionType.ACTION_SERVER:
+            action_name = rule.name
+            rule.type = gateway_comms.msg.ConnectionType.SUBSCRIBER
+            rule.name = action_name + "/goal"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/cancel"
+            self._sendUnflipRequest(gateway, rule)
+            rule.type = gateway_comms.msg.ConnectionType.PUBLISHER
+            rule.name = action_name + "/feedback"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/status"
+            self._sendUnflipRequest(gateway, rule)
+            rule.name = action_name + "/result"
+            self._sendUnflipRequest(gateway, rule)
+        else:
+            self._sendUnflipRequest(gateway, rule)
+
+    def _sendUnflipRequest(self, gateway, rule):
         source = keyBaseName(self._redis_keys['gateway'])
         cmd = utils.serializeRuleRequest('unflip', source, rule)
         try:
@@ -379,4 +448,4 @@ class Hub(object):
     # Redis Converters - convert variosu types to redis readable strings
     ##########################################################################
     
-     
+

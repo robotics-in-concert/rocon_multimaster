@@ -18,7 +18,7 @@ import roslib.names
 import re
 
 from gateway_comms.msg import Rule, ConnectionType
-from utils import Connection
+from utils import Connection, action_types
 
 ##############################################################################
 # Master
@@ -69,9 +69,21 @@ class LocalMaster(rosgraph.Master):
             else:
                 node_master.registerService(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
                 return registration
-        else:
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
-            return None
+        elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
+            node_master.registerSubscriber(registration.connection.rule.name+"/goal",registration.connection.type_info+"ActionGoal",registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name+"/cancel","actionlib_msgs/GoalID",registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name+"/status","actionlib_msgs/GoalStatusArray",registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name+"/feedback",registration.connection.type_info+"ActionFeedback",registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name+"/result",registration.connection.type_info+"ActionResult",registration.connection.xmlrpc_uri)
+            return registration
+        elif registration.connection.rule.type == ConnectionType.ACTION_CLIENT:
+            node_master.registerPublisher(registration.connection.rule.name+"/goal",registration.connection.type_info+"ActionGoal",registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name+"/cancel","actionlib_msgs/GoalID",registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name+"/status","actionlib_msgs/GoalStatusArray",registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name+"/feedback",registration.connection.type_info+"ActionFeedback",registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name+"/result",registration.connection.type_info+"ActionResult",registration.connection.xmlrpc_uri)
+            return registration
+        return None
 
     def unregister(self,registration):
         '''
@@ -88,8 +100,18 @@ class LocalMaster(rosgraph.Master):
             node_master.unregisterSubscriber(registration.connection.rule.name,registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.SERVICE:
             node_master.unregisterService(registration.connection.rule.name,registration.connection.type_info)
-        else:
-            rospy.logwarn("Gateway : you have discovered an empty stub for registering a local %s"%registration.connection.rule.type)
+        elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
+            node_master.unregisterSubscriber(registration.connection.rule.name+"/goal",registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name+"/cancel",registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name+"/status",registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name+"/feedback",registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name+"/result",registration.connection.xmlrpc_uri)
+        elif registration.connection.rule.type == ConnectionType.ACTION_CLIENT:
+            node_master.unregisterPublisher(registration.connection.rule.name+"/goal",registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name+"/cancel",registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name+"/status",registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name+"/feedback",registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name+"/result",registration.connection.xmlrpc_uri)
         
     ##########################################################################
     # Master utility methods
@@ -110,12 +132,37 @@ class LocalMaster(rosgraph.Master):
         @return the utils.Connection object complete with type_info and xmlrpc_uri
         @type utils.Connection
         '''
+        xmlrpc_uri = self.lookupNode(node)
+        connections = []
         if type == ConnectionType.PUBLISHER or type == ConnectionType.SUBSCRIBER:
             type_info = rostopic.get_topic_type(name)[0] # message type
+            connections.append(Connection(Rule(type, name, node),type_info,xmlrpc_uri))
         elif type == ConnectionType.SERVICE:
             type_info = rosservice.get_service_uri(name)
-        xmlrpc_uri = self.lookupNode(node)
-        return Connection(Rule(type, name, node),type_info,xmlrpc_uri)
+            connections.append(Connection(Rule(type, name, node),type_info,xmlrpc_uri))
+        elif type == ConnectionType.ACTION_SERVER:
+            type_info = rostopic.get_topic_type(name+'/goal')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/goal', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name+'/cancel')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/cancel', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name+'/status')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/status', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name+'/feedback')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/feedback', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name+'/result')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/result', node),type_info,xmlrpc_uri))
+        elif type == ConnectionType.ACTION_CLIENT:
+            type_info = rostopic.get_topic_type(name+'/goal')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/goal', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name+'/cancel')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/cancel', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name+'/status')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/status', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name+'/feedback')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/feedback', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name+'/result')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/result', node),type_info,xmlrpc_uri))
+        return connections
     
     def _getMasterUri(self):
         return rosgraph.get_master_uri()
@@ -135,17 +182,17 @@ class LocalMaster(rosgraph.Master):
         for goal_candidate in pubs:
             if re.search('goal$', goal_candidate[0]):
                 # goal found, extract base topic
-                base_topic = re.sub('goal$','',goal_candidate[0])
+                base_topic = re.sub('\/goal$','',goal_candidate[0])
                 nodes = goal_candidate[1]
                 action_nodes = []
 
                 # there may be multiple nodes -- for each node search for the other topics
                 for node in nodes:
                     is_action = True
-                    is_action &= self._isTopicNodeInList(base_topic + 'cancel',node,pubs)
-                    is_action &= self._isTopicNodeInList(base_topic + 'status',node,subs)
-                    is_action &= self._isTopicNodeInList(base_topic + 'feedback',node,subs)
-                    is_action &= self._isTopicNodeInList(base_topic + 'result',node,subs)
+                    is_action &= self._isTopicNodeInList(base_topic + '/cancel',node,pubs)
+                    is_action &= self._isTopicNodeInList(base_topic + '/status',node,subs)
+                    is_action &= self._isTopicNodeInList(base_topic + '/feedback',node,subs)
+                    is_action &= self._isTopicNodeInList(base_topic + '/result',node,subs)
 
                     if is_action:
                         action_nodes.append(node)
@@ -194,7 +241,7 @@ class LocalMaster(rosgraph.Master):
         connections = []
         for action in list:
             action_name = action[0]
-            goal_topic = action_name + 'goal'
+            goal_topic = action_name + '/goal'
             goal_topic_type = rostopic.get_topic_type(goal_topic)
             topic_type = re.sub('ActionGoal$', '', goal_topic_type[0]) #Base type for action
             nodes = action[1]

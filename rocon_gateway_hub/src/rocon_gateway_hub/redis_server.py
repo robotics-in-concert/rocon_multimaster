@@ -80,7 +80,7 @@ class RedisServer:
           Aborts the program if the connection fails.
         '''
         self._process = subprocess.Popen(["redis-server", self._files['redis_conf']])
-        pool = redis.ConnectionPool(host='localhost', port=self._parameters['port'], db=0)
+        pool = redis.ConnectionPool(host='localhost', port=int(self._parameters['port']), db=0)
         no_attempts = 5
         count = 0
         while count < no_attempts:

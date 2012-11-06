@@ -34,3 +34,4 @@ def findFirstRemoteGateway():
         raise rocon_gateway.GatewayError("no remote gateways available")
     else:
         return resp.gateways[0].name
+

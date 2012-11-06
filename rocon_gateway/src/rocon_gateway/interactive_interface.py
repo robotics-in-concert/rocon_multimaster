@@ -21,7 +21,7 @@ import utils
 # Classes
 ##############################################################################
 
-class ActionInterface(object):
+class InteractiveInterface(object):
     '''
       Parent interface for flip and pull interfaces.
     '''

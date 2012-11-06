@@ -18,6 +18,7 @@ from gateway_comms.msg import Rule, ConnectionType
 
 # for help in iterating over the set of connection constants
 connection_types = frozenset([ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER, ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER])
+action_types = ['/goal', '/cancel', '/status', '/feedback', '/result']
 
 ##############################################################################
 # Rule
