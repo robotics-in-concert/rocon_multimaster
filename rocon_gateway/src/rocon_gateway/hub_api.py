@@ -179,6 +179,7 @@ class Hub(object):
           @todo - maybe merge with 'connect', or at the least check if it
           is actually connected here first.
         '''
+        # Ooops - possible...very remotely possible chance of racing condition here.
         gateways = self.listRemoteGatewayNames()
         if self._gateway_name in gateways:
             unique_num = self.server.incr(self._redis_keys['index'])
@@ -187,6 +188,8 @@ class Hub(object):
             self._unique_gateway_name = self._gateway_name
         self._redis_keys['gateway'] = createKey(self._unique_gateway_name)
         self._redis_keys['firewall'] = createGatewayKey(self._unique_gateway_name,'firewall')
+        # To solve the racing conditino here, check the return value - it should return
+        # 0 if the element is already there. Refer to http://redis.io/commands/sadd
         self.server.sadd(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
         self.server.set(self._redis_keys['firewall'], self._firewall)
         self._redis_channels['gateway'] = self._redis_keys['gateway']
