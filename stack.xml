@@ -13,7 +13,6 @@
   <depend stack="ros" />
   <depend stack="ros_comm" /> <!-- rosgraph, rospy -->
   <depend stack="rocon_comms" /> <!-- gateway_comms -->
-  <depend stack="zeroconf_avahi_suite" /> <!-- zeroconf_avahi -->
   <depend stack="zeroconf_comms" /> <!-- zeroconf_comms -->
  
 </stack>
