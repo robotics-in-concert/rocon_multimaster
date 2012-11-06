@@ -19,7 +19,7 @@ from gateway_comms.msg import ConnectionType
     Usage:
         1 > roslaunch --port=11311 rocon_gateway_hub priate.launch           // starts hub
 
-        2a > roslaunch --port=11312 rocon_gateway pirate_tutorials.launch     // launches gateway on master_uri 11312 its gateway name is 'gateway'
+        2a > roslaunch --port=11312 rocon_gateway pirate_tutorials.launch     // launches gateway on master_uri 11312 its gateway name is 'gateway' and starts /chatter publisher
         3a > roslaunch --port=11313 rocon_gateway priate.launch               // launches gateway on master_uri 11313 its gateway name is 'gateway2'
 
         2b > rosrun rocon_gateway_examples flip_chatter.py  __master:=http://localhost:11312  // flips /chatter topic in 11312
