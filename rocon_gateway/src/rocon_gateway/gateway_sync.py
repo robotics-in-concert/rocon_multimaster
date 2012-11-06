@@ -373,13 +373,6 @@ class GatewaySync(object):
                 rospy.loginfo("Unflipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
                 self.hub.sendUnflipRequest(flip.gateway, flip.rule)
                 self.hub.removeFlipDetails(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
-#        for connection_type in utils.connection_types:
-#            for connection in new_flips[connection_type]:
-#                rospy.loginfo("Gateway : adding rule to public interface %s"%utils.formatRule(connection.rule))
-#                self.hub.advertise(connection)
-#            for connection in lost_conns[connection_type]:
-#                rospy.loginfo("Gateway : removing rule to public interface %s"%utils.formatRule(connection.rule))
-#                self.hub.unadvertise(connection)
 
     def updatePulledInterface(self, connections, gateways ):
         '''
@@ -409,11 +402,13 @@ class GatewaySync(object):
                         registration = utils.Registration(connection, gateway) 
                         new_registration = self.master.register(registration)
                         self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
+                        self.hub.postPullDetails(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
                 for pull in lost_pulls[connection_type]:
                     # Unregister this pull
                     existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
                     if existing_registration:
                         self.master.unregister(existing_registration)
+                        self.hub.removePullDetails(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
                         self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
                 
     def updatePublicInterface(self, connections = None):

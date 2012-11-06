@@ -252,6 +252,12 @@ class Hub(object):
                 [target_gateway, name, type, node] = utils.deserialize(encoded_flip)
                 remote_rule = gateway_comms.msg.RemoteRule(target_gateway, gateway_comms.msg.Rule(name, type, node))
                 remote_gateway.flipped_interface.append(remote_rule)
+            remote_gateway.pulled_interface = []
+            encoded_pulls = self.server.smembers(createGatewayKey(gateway,'pulls'))
+            for encoded_pull in encoded_pulls:
+                [target_gateway, name, type, node] = utils.deserialize(encoded_pull)
+                remote_rule = gateway_comms.msg.RemoteRule(target_gateway, gateway_comms.msg.Rule(name, type, node))
+                remote_gateway.pulled_interface.append(remote_rule)
             return remote_gateway 
 
     def listRemoteGatewayNames(self):
@@ -299,7 +305,7 @@ class Hub(object):
             raise UnavailableGatewayError
                 
     ##########################################################################
-    # Public Interface
+    # Posting Information to the Hub
     ##########################################################################
 
     def advertise(self, connection):
@@ -342,6 +348,8 @@ class Hub(object):
           @type string
           @param type : the type of the connection (one of ConnectionType.xxx
           @type string
+          @param node : the node name it was pulled from
+          @type string
         '''
         key = createGatewayKey(self._unique_gateway_name,'flips')
         serialized_data = utils.serialize([gateway, name, type, node])
@@ -358,8 +366,46 @@ class Hub(object):
           @type string
           @param type : the type of the connection (one of ConnectionType.xxx
           @type string
+          @param node : the node name it was pulled from
+          @type string
         '''
         key = createGatewayKey(self._unique_gateway_name,'flips')
+        serialized_data = utils.serialize([gateway, name, type, node])
+        self.server.srem(key,serialized_data)
+
+    def postPullDetails(self, gateway, name, type, node):
+        '''
+          Post pull details to the hub. This has no actual functionality,
+          it is just useful for debugging with the remote_gateway_info service.
+          
+          @param gateway : the gateway it is pulling from
+          @type string
+          @param name : the name of the connection
+          @type string
+          @param type : the type of the connection (one of ConnectionType.xxx
+          @type string
+          @param node : the node name it was pulled from
+          @type string
+        '''
+        key = createGatewayKey(self._unique_gateway_name,'pulls')
+        serialized_data = utils.serialize([gateway, name, type, node])
+        self.server.sadd(key,serialized_data)
+
+    def removePullDetails(self, gateway, name, type, node):
+        '''
+          Post pull details to the hub. This has no actual functionality,
+          it is just useful for debugging with the remote_gateway_info service.
+          
+          @param gateway : the gateway it was pulling from
+          @type string
+          @param name : the name of the connection
+          @type string
+          @param type : the type of the connection (one of ConnectionType.xxx
+          @type string
+          @param node : the node name it was pulled from
+          @type string
+        '''
+        key = createGatewayKey(self._unique_gateway_name,'pulls')
         serialized_data = utils.serialize([gateway, name, type, node])
         self.server.srem(key,serialized_data)
 
