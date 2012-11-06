@@ -1,0 +1,17 @@
+<package>
+  <description brief="rocon_gateway_examples">
+
+     rocon_gateway_examples
+
+  </description>
+  <author>Jihoon</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rocon_gateway_examples</url>
+  <depend package="rospy"/>
+  <depend package="gateway_comms"/>
+  <depend package="rocon_gateway"/>
+
+</package>
+
+
