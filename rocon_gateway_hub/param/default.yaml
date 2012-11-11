@@ -11,5 +11,3 @@ max_memory: 10mb
 
 # Use zeroconf to advertise the redis server's uri
 zeroconf: true
-
-        
