@@ -78,8 +78,7 @@ class TestPullRemotely(unittest.TestCase):
 
         for remote_rule in watchlist:
             req = RemoteRequest()
-            req.gateway = remote_rule.gateway
-            req.rules.append(remote_rule.rule)
+            req.remotes.append(remote_rule)
             req.cancel = False
 
             resp = self.pull(req)
@@ -89,8 +88,7 @@ class TestPullRemotely(unittest.TestCase):
             
         for remote_rule in watchlist:
             req = RemoteRequest()
-            req.gateway = remote_rule.gateway
-            req.rules.append(remote_rule.rule)
+            req.remotes.append(remote_rule)
             req.cancel = True
 
             resp = self.pull(req)
