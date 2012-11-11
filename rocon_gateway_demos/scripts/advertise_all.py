@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tests/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_demos/LICENSE 
 #
 
-import roslib; roslib.load_manifest('rocon_gateway_tests')
+import roslib; roslib.load_manifest('rocon_gateway_demos')
 import rospy
 import rocon_gateway
-import rocon_gateway_tests
+import rocon_gateway_demos
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 import argparse
@@ -17,11 +17,11 @@ import sys
   Tests a single flip rule.
   
   Usage:
-    1 > roslaunch rocon_gateway_hub pirate.launch
-    2a> roslaunch rocon_gateway pirate_tutorials.launch
-    3a> roslaunch rocon_gateway pirate.launch
-    2b> rosrun rocon_gateway_tests advertise_all.py
-    2c> rosrun rocon_gateway_tests advertise_all.py --cancel
+    1 > roslaunch rocon_gateway_demos pirate_hub.launch
+    2a> roslaunch rocon_gateway_demos pirate_gateway_tutorials.launch
+    3a> roslaunch rocon_gateway_demos pirate_gateway.launch
+    2b> rosrun rocon_gateway_demos advertise_all.py
+    2c> rosrun rocon_gateway_demos advertise_all.py --cancel
 """
 
 if __name__ == '__main__':

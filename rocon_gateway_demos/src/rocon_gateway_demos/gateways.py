@@ -8,7 +8,7 @@
 # Imports
 ##############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway_tests')
+import roslib; roslib.load_manifest('rocon_gateway_demos')
 import rospy
 import rocon_gateway
 from gateway_comms.srv import *

@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tests/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_demos/LICENSE 
 #
 ##############################################################################
 # Imports
 ##############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway_tests')
+import roslib; roslib.load_manifest('rocon_gateway_demos')
 import rospy
 import rocon_gateway
-import rocon_gateway_tests
+import rocon_gateway_demos
 from gateway_comms.msg import *
 from gateway_comms.srv import *
 import argparse
@@ -32,7 +32,7 @@ class Context(object):
         self.req.gateway = gateway
         self.req.cancel = cancel_flag
         self.req.rules = []
-        self.names, self.nodes = rocon_gateway_tests.createTutorialDictionaries(regex)
+        self.names, self.nodes = rocon_gateway_demos.createTutorialDictionaries(regex)
 
     def pull(self, type):
         rule = gateway_comms.msg.Rule()
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     rospy.init_node('pull_tutorials')
 
     try:
-        gateway = rocon_gateway_tests.findFirstRemoteGateway()
+        gateway = rocon_gateway_demos.findFirstRemoteGateway()
     except rocon_gateway.GatewayError as e:
         rospy.logerr("Pull Test : %s, aborting."%(str(e)))
         sys.exit(1)
