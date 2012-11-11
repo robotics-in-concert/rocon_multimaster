@@ -76,9 +76,10 @@ class TestPullRemotely(unittest.TestCase):
 
         self.assertMasterState(zero_interface)
 
-        for rule in watchlist:
+        for remote_rule in watchlist:
             req = RemoteRequest()
-            req.remote = rule
+            req.gateway = remote_rule.gateway
+            req.rules.append(remote_rule.rule)
             req.cancel = False
 
             resp = self.pull(req)
@@ -86,9 +87,10 @@ class TestPullRemotely(unittest.TestCase):
 
         self.assertMasterState(expected_interface)
             
-        for rule in watchlist:
+        for remote_rule in watchlist:
             req = RemoteRequest()
-            req.remote = rule
+            req.gateway = remote_rule.gateway
+            req.rules.append(remote_rule.rule)
             req.cancel = True
 
             resp = self.pull(req)
