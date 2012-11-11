@@ -5,7 +5,7 @@
 #   sudo apt-get install ros-groovy-desktop-full
 #
 # Zeroconf
-#   sudo apt-get install ros-groovy-zeroconf-comms ros-groovy-zeroconf-avahi-suite
+#   sudo apt-get install ros-groovy-zeroconf-avahi
 
 [
 # Official Ros Stacks
