@@ -1,8 +1,8 @@
 <package>
   <catkin/>
-  <description brief="rocon_gateway_demos">
+  <description brief="collection of gateway demos">
 
-     rocon_gateway_demos
+     Collection of gateway demos illustrating usage of the gateway model.
 
   </description>
   <author>Daniel Stonier</author>

@@ -23,10 +23,6 @@ import argparse
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Make a connection to a localhost hub by service call')
-#  parser.add_argument("gateway", help="gateway string identifier", type=str)
-#  parser.add_argument('-c','--clients',metavar='<Client name>',type=str,nargs='+',help='Client\'s unique name on hub')
-#  parser.add_argument('-m','--message',metavar='<Topic triple>',type=str,nargs='+',help='<Topic triple>="<topic name>,<topic type>,<node uri>"')
-#  args = parser.parse_args()
 
   rospy.init_node('connect_localhost')
 
@@ -34,7 +30,7 @@ if __name__ == '__main__':
   
   # Form a request message
   req = gateway_comms.srv.ConnectHubRequest() 
-  req.uri = "http://localhost:6379"
+  req.uri = "http://localhost:6380"
   print ""
   print "== Request =="
   print ""

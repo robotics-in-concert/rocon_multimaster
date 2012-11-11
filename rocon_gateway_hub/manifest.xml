@@ -1,12 +1,12 @@
 <package>
-  <description brief="rocon_gateway_hub">
-
-     rocon_gateway_hub
-
+  <description brief="the centralised gateway hub server">
+  A gateway hub acts as a central administration server for a collection of 
+  multimaster gateways.
   </description>
-  <author>yujin</author>
+  <author>Daniel Stonier</author>
+  <author>Jihoon Lee</author>
   <license>BSD</license>
-  <review status="unreviewed" notes=""/>
+  <review status="experimental" notes=""/>
   <url>http://ros.org/wiki/rocon_gateway_hub</url>
 
   <depend package="rospy" />
