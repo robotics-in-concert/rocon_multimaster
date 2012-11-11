@@ -189,24 +189,35 @@ class GatewaySync(object):
           @rtype gateway_comms.srv.RemoteResponse
         '''
         response = gateway_comms.srv.RemoteResponse()
-        response.result, response.error_message = self._rosServiceFlipChecks(request.gateway)
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        for remote in request.remotes:
+            response.result, response.error_message = self._rosServiceFlipChecks(remote.gateway)
+            if response.result != gateway_comms.msg.Result.SUCCESS:
+                rospy.logerr("Gateway : %s."%response.error_message)
+                return response
+              
+        # result is currently SUCCESS
+        added_rules = []  
+        for remote in request.remotes:
             if not request.cancel:
-                for rule in request.rules:
-                    flip_rule = self.flipped_interface.addRule(request.gateway, rule)
-                    if flip_rule:
-                        rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.rule.name,flip_rule.rule.type))
-                    else:
-                        response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                        response.error_message = "flip rule already exists [%s:(%s,%s)]"%(request.gateway,rule.name,rule.type)
+                flip_rule = self.flipped_interface.addRule(remote)
+                if flip_rule:
+                    added_rules.append(flip_rule)
+                    rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.rule.name,flip_rule.rule.type))
+                else:
+                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                    response.error_message = "flip rule already exists [%s:(%s,%s)]"%(remote.gateway,remote.rule.name,remote.rule.type)
+                    break
             else: # request.cancel
-                for rule in request.rules:
-                    flip_rules = self.flipped_interface.removeRule(request.gateway, rule)
-                    if flip_rules:
-                        rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(request.gateway, rule.name))
+                removed_flip_rules = self.flipped_interface.removeRule(remote)
+                if removed_flip_rules:
+                    rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(remote.gateway, remote.rule.name))
+        
         if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
+            if added_rules: # completely abort any added rules
+                for added_rule in added_rules:
+                    self.flipped_interface.removeRule(added_rule)
             rospy.logerr("Gateway : %s."%response.error_message)
         return response
 
@@ -252,24 +263,35 @@ class GatewaySync(object):
           @rtype gateway_comms.srv.RemoteResponse
         '''
         response = gateway_comms.srv.RemoteResponse()
-        response.result, response.error_message = self._rosServiceRemoteChecks(request.gateway)
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        for remote in request.remotes:
+            response.result, response.error_message = self._rosServiceFlipChecks(remote.gateway)
+            if response.result != gateway_comms.msg.Result.SUCCESS:
+                rospy.logerr("Gateway : %s."%response.error_message)
+                return response
+
+        # result is currently SUCCESS
+        added_rules = []  
+        for remote in request.remotes:
             if not request.cancel:
-                for rule in request.rules:
-                    pull_rule = self.pulled_interface.addRule(request.gateway, rule)
-                    if pull_rule:
-                        rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
-                    else:
-                        response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                        response.error_message = "pull rule already exists [%s:(%s,%s)]"%(request.gateway,rule.name,rule.type)
+                pull_rule = self.pulled_interface.addRule(remote)
+                if pull_rule:
+                    added_rules.append(pull_rule)
+                    rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
+                else:
+                    response.result = gateway_comms.msg.Result.PULL_RULE_ALREADY_EXISTS
+                    response.error_message = "pull rule already exists [%s:(%s,%s)]"%(remote.gateway,remote.rule.name,remote.rule.type)
+                    break
             else: # request.cancel
                 for rule in request.rules:
-                    pull_rules = self.pulled_interface.removeRule(request.gateway, rule)
-                    if pull_rules:
-                        rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(request.gateway, rule.name))
+                    removed_pull_rules = self.pulled_interface.removeRule(remote)
+                    if removed_pull_rules:
+                        rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(remote.gateway, remote.rule.name))
         if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
+            if added_rules: # completely abort any added rules
+                for added_rule in added_rules:
+                    self.pulled_interface.removeRule(added_rule)
             rospy.logerr("Gateway : %s."%response.error_message)
         return response
 

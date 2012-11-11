@@ -61,7 +61,7 @@ class InteractiveInterface(object):
     # Rules
     ##########################################################################
         
-    def addRule(self, gateway, rule):
+    def addRule(self, remote_rule):
         '''
           Add a remote rule to the watchlist for monitoring.
           
@@ -71,7 +71,6 @@ class InteractiveInterface(object):
           @return the remote rule, or None if the rule already exists.
           @rtype gateway_comms.msg.RemoteRule || None
         '''
-        remote_rule = RemoteRule(gateway, rule)
         result = None
         self._lock.acquire()
         rule_already_exists = False
@@ -87,7 +86,7 @@ class InteractiveInterface(object):
         self._lock.release()
         return result
 
-    def removeRule(self, gateway, rule):
+    def removeRule(self, remote_rule):
         '''
           Remove a rule. Be a bit careful looking for a rule to remove, depending
           on the node name, which can be set (exact rule/node name match) or 
@@ -101,7 +100,6 @@ class InteractiveInterface(object):
           @return Rules remaining in the watchlist
           @rtype RemoteRule[]
         '''
-        remote_rule = RemoteRule(gateway, rule)
         if remote_rule.rule.node:
             # This looks for *exact* matches.
             try:
