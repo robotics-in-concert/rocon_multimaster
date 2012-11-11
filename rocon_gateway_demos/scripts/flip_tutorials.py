@@ -29,22 +29,26 @@ class Context(object):
             self.action_text = "flipping"
         self.flip_service = rospy.ServiceProxy('/gateway/flip',Remote)
         self.req = RemoteRequest() 
-        self.req.remote.gateway = gateway
+        self.req.gateway = gateway
         self.req.cancel = cancel_flag
+        self.req.rules = []
         self.names, self.nodes = rocon_gateway_tests.createTutorialDictionaries(regex)
 
     def flip(self, type):
-        self.req.remote.rule.name = self.names[type]
-        self.req.remote.rule.type = type
-        self.req.remote.rule.node = self.nodes[type]
+        rule = gateway_comms.msg.Rule()
+        rule.name = self.names[type]
+        rule.type = type
+        rule.node = self.nodes[type]
+        self.req.rules.append(rule)
         rospy.loginfo("Flip : %s [%s,%s,%s,%s]."%(self.action_text, 
-                                                  self.req.remote.gateway, 
-                                                  self.req.remote.rule.type, 
-                                                  self.req.remote.rule.name, 
-                                                  self.req.remote.rule.node or 'None')) 
+                                                  self.req.gateway, 
+                                                  rule.type, 
+                                                  rule.name, 
+                                                  rule.node or 'None')) 
         resp = self.flip_service(self.req)
         if resp.result != 0:
             rospy.logerr("Flip : %s"%resp.error_message)
+        self.req.rules = []
 
 ##############################################################################
 # Main

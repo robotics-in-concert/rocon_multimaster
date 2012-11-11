@@ -180,11 +180,8 @@ class GatewaySync(object):
 
     def rosServiceFlip(self,request):
         '''
-          Puts a single rule on a watchlist and (un)flips it to a particular 
-          gateway when it becomes (un)available. Note that this can also
-          completely reconfigure the fully qualified name for the rule when 
-          flipping (remapping). If not specified, it will simply reroot rule
-          under <unique_gateway_name>.
+          Puts flip rules on a watchlist which (un)flips them when they 
+          become (un)available. 
           
           @param request
           @type gateway_comms.srv.RemoteRequest
@@ -192,19 +189,21 @@ class GatewaySync(object):
           @rtype gateway_comms.srv.RemoteResponse
         '''
         response = gateway_comms.srv.RemoteResponse()
-        response.result, response.error_message = self._rosServiceFlipChecks(request.remote.gateway)
+        response.result, response.error_message = self._rosServiceFlipChecks(request.gateway)
         if response.result == gateway_comms.msg.Result.SUCCESS:
             if not request.cancel:
-                flip_rule = self.flipped_interface.addRule(request.remote)
-                if flip_rule:
-                    rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.rule.name,flip_rule.rule.type))
-                else:
-                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                    response.error_message = "flip rule already exists [%s:(%s,%s)]"%(request.remote.gateway,request.remote.rule.name,request.remote.rule.type)
+                for rule in request.rules:
+                    flip_rule = self.flipped_interface.addRule(request.gateway, rule)
+                    if flip_rule:
+                        rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.rule.name,flip_rule.rule.type))
+                    else:
+                        response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                        response.error_message = "flip rule already exists [%s:(%s,%s)]"%(request.gateway,rule.name,rule.type)
             else: # request.cancel
-                flip_rules = self.flipped_interface.removeRule(request.remote)
-                if flip_rules:
-                    rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(request.remote.gateway,request.remote.rule.name))
+                for rule in request.rules:
+                    flip_rules = self.flipped_interface.removeRule(request.gateway, rule)
+                    if flip_rules:
+                        rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(request.gateway, rule.name))
         if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
@@ -324,7 +323,7 @@ class GatewaySync(object):
                     return gateway_comms.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING, "remote gateway is firewalling flip requests, aborting [%s]"%gateway
             except UnavailableGatewayError:
                 pass # handled earlier in rosServiceRemoteChecks
-        return gateway_comms.msg.Result.SUCCESS, ""
+        return result, error_message
 
     def _rosServiceRemoteChecks(self, gateway):
         '''

@@ -1,9 +1,9 @@
 <!--
-  Works with rocon_gateway_hub/pirate.launch - uses a non-default hub
+  Works with rocon_gateway_demos/pirate_hub.launch - uses a non-default hub
   name so we can test hubs in parallel. 
 -->
 <launch>
-  <include file="$(find rocon_gateway)/launch/pirate.launch"/>
+  <include file="$(find rocon_gateway_demos)/launch/pirate_gateway.launch"/>
   <node pkg="roscpp_tutorials" type="talker" name="talker"/>
   <node pkg="roscpp_tutorials" type="listener" name="listener"/>
   <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>

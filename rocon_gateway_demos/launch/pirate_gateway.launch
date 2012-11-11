@@ -1,5 +1,5 @@
 <!--
-  Works with rocon_gateway_hub/pirate.launch - uses a non-default hub
+  Works with rocon_gateway_demos/pirate_hub.launch - uses a non-default hub
   name so we can test hubs in parallel. 
 -->
 <launch>
