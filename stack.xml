@@ -6,7 +6,8 @@
   old foreign_relay and master_sync concepts.
   </description>
   <author>Daniel Stonier</author>
-  <author>Lee JiHoon</author>
+  <author>Jihoon Lee</author>
+  <author>Piyush Khandelwal</author>
   <license>BSD</license>  
   <review status="experimental" notes=""/>
   <url>http://ros.org/wiki/rocon_multimaster</url>
