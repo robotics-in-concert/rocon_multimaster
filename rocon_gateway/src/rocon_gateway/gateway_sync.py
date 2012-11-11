@@ -252,19 +252,21 @@ class GatewaySync(object):
           @rtype gateway_comms.srv.RemoteResponse
         '''
         response = gateway_comms.srv.RemoteResponse()
-        response.result, response.error_message = self._rosServiceRemoteChecks(request.remote.gateway)
+        response.result, response.error_message = self._rosServiceRemoteChecks(request.gateway)
         if response.result == gateway_comms.msg.Result.SUCCESS:
             if not request.cancel:
-                pull_rule = self.pulled_interface.addRule(request.remote)
-                if pull_rule:
-                    rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
-                else:
-                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
-                    response.error_message = "pull rule already exists [%s:(%s,%s)]"%(request.remote.gateway,request.remote.rule.name,request.remote.rule.type)
+                for rule in request.rules:
+                    pull_rule = self.pulled_interface.addRule(request.gateway, rule)
+                    if pull_rule:
+                        rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
+                    else:
+                        response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                        response.error_message = "pull rule already exists [%s:(%s,%s)]"%(request.gateway,rule.name,rule.type)
             else: # request.cancel
-                pull_rules = self.pulled_interface.removeRule(request.remote)
-                if pull_rules:
-                    rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(request.remote.gateway,request.remote.rule.name))
+                for rule in request.rules:
+                    pull_rules = self.pulled_interface.removeRule(request.gateway, rule)
+                    if pull_rules:
+                        rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(request.gateway, rule.name))
         if response.result == gateway_comms.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:

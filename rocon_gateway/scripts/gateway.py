@@ -67,8 +67,8 @@ class Gateway():
         try:
             self.gateway_sync.shutdown()
         except Exception as e:
-            print str(e)
-        rospy.loginfo("Gateway : server cleared");
+            rospy.logerr("Gateway : error on shutdown [%s]"%str(e))
+        rospy.logdebug("Gateway : redis server cleared of gateway information");
     
     #############################################
     # Ros Pubs, Subs and Services
@@ -191,7 +191,6 @@ class Gateway():
         if self.gateway_sync.is_connected: 
             rospy.logwarn("Gateway : gateway is already connected, aborting connection attempt.")
             return gateway_comms.msg.Result.HUB_CONNECTION_ALREADY_EXISTS
-        print "Connection"
         try:
             hub_name = rocon_gateway.resolveHub(ip,port)
             rospy.loginfo("Gateway : resolved hub name [%s].", hub_name)

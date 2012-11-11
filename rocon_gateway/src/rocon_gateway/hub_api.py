@@ -188,7 +188,6 @@ class Hub(object):
             self._redis_keys['gateway'] = createKey(self._unique_gateway_name)
             ret = self.server.sadd(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
         ret = self.server.sadd(self._redis_keys['gatewaylist'],self._redis_keys['gateway'])
-        print("Return: %s"%str(ret))
         self._redis_keys['firewall'] = createGatewayKey(self._unique_gateway_name,'firewall')
         self.server.set(self._redis_keys['firewall'], self._firewall)
         self._redis_channels['gateway'] = self._redis_keys['gateway']

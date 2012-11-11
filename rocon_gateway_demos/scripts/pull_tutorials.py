@@ -29,22 +29,26 @@ class Context(object):
             self.action_text = "pulling"
         self.pull_service = rospy.ServiceProxy('/gateway/pull',Remote)
         self.req = RemoteRequest() 
-        self.req.remote.gateway = gateway
+        self.req.gateway = gateway
         self.req.cancel = cancel_flag
+        self.req.rules = []
         self.names, self.nodes = rocon_gateway_tests.createTutorialDictionaries(regex)
 
     def pull(self, type):
-        self.req.remote.rule.name = self.names[type]
-        self.req.remote.rule.type = type
-        self.req.remote.rule.node = self.nodes[type]
+        rule = gateway_comms.msg.Rule()
+        rule.name = self.names[type]
+        rule.type = type
+        rule.node = self.nodes[type]
+        self.req.rules.append(rule)
         rospy.loginfo("Pull : %s [%s,%s,%s,%s]."%(self.action_text, 
-                                                  self.req.remote.gateway, 
-                                                  self.req.remote.rule.type, 
-                                                  self.req.remote.rule.name, 
-                                                  self.req.remote.rule.node or 'None')) 
+                                                  self.req.gateway, 
+                                                  rule.type, 
+                                                  rule.name, 
+                                                  rule.node or 'None')) 
         resp = self.pull_service(self.req)
         if resp.result != 0:
             rospy.logerr("Pull : %s"%resp.error_message)
+        self.req.rules = []
 
 ##############################################################################
 # Main
@@ -54,15 +58,17 @@ class Context(object):
   Tests pulls, either for all tutorials (default) or one by one (via args).
   
   Usage:
-    1 > roslaunch rocon_gateway_hub pirate.launch
-    2a> roslaunch rocon_gateway pirate_tutorials.launch
-    2b> rosrun rocon_gateway_tests advertise_tutorials.py
-    3a> roslaunch rocon_gateway pirate.launch
-    3b> rosrun rocon_gateway_tests pull_tutorials.py
+    1 > roslaunch rocon_gateway_demos pirate.launch
+    2a> roslaunch rocon_gateway_demos pirate_gateway_tutorials.launch
+    3a> roslaunch rocon_gateway_demos pirate_gateway.launch
+    2b> rosrun rocon_gateway_demos advertise_tutorials.py
+    3b> rosrun rocon_gateway_demos pull_tutorials.py
     3c> rostopic echo /fibonacci/server/feedback
-    3d> roslaunch rocon_gateway_tests fibonacci_client.launch
-    3e> rosrun rocon_gateway_tests pull_tutorials.py --cancel
-    2c> rosrun rocon_gateway_tests advertise_tutorials.py --cancel
+    3d> roslaunch rocon_gateway_demos fibonacci_client.launch
+    3e> roslaunch rocon_gateway_demos fibonacci_server.launch
+    2c> # wait for fibonnacci client to finish and close 
+    3e> rosrun rocon_gateway_demos pull_tutorials.py --cancel
+    2d> rosrun rocon_gateway_demos advertise_tutorials.py --cancel
     
   Variations in the options (singly, or by regex patterns).
 """
