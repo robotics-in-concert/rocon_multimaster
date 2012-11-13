@@ -27,7 +27,7 @@
 #    - name: /chatter
 #      node: None
 #      type: publisher
-#    - name: /chat*
+#    - name: /chat.*
 #      node: None
 #      type: subscriber
 #default_flips: 
@@ -38,7 +38,7 @@
 #        type: publisher
 #    - gateway: gateway1 
 #      rule:  
-#        name: /chat*
+#        name: /chat.*
 #        node: None
 #        type: subscriber
 #default_pulls:
@@ -49,7 +49,7 @@
 #        type: publisher
 #    - gateway: gateway 
 #      rule:  
-#        name: /chat*
+#        name: /chat.*
 #        node: None
 #        type: subscriber
         
