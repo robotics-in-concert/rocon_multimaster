@@ -6,8 +6,8 @@
 
 import roslib; roslib.load_manifest('rocon_gateway_demos')
 import rospy
-import gateway_comms.srv
-from gateway_comms.srv import ConnectHub
+import gateway_msgs.srv
+from gateway_msgs.srv import ConnectHub
 import argparse
 
 """
@@ -29,7 +29,7 @@ if __name__ == '__main__':
   connect = rospy.ServiceProxy('/gateway/connect_hub',ConnectHub)
   
   # Form a request message
-  req = gateway_comms.srv.ConnectHubRequest() 
+  req = gateway_msgs.srv.ConnectHubRequest() 
   req.uri = "http://localhost:6380"
   print ""
   print "== Request =="

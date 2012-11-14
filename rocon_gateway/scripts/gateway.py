@@ -12,10 +12,10 @@ import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import rocon_gateway
 import redis
-import gateway_comms.msg
-import gateway_comms.srv
+import gateway_msgs.msg
+import gateway_msgs.srv
 from urlparse import urlparse
-import zeroconf_comms.srv
+import zeroconf_msgs.srv
 
 ##############################################################################
 # Gateway Configuration and Main Loop Class
@@ -76,15 +76,15 @@ class Gateway():
 
     def _setupRosServices(self):
         gateway_services = {}
-        gateway_services['connect_hub']   = rospy.Service('~connect_hub',                   gateway_comms.srv.ConnectHub,       self.rosServiceConnectHub)
-        gateway_services['gateway_info']  = rospy.Service('~gateway_info',                  gateway_comms.srv.GatewayInfo,      self.rosServiceGatewayInfo)
-        gateway_services['remote_gateway_info']  = rospy.Service('~remote_gateway_info',    gateway_comms.srv.RemoteGatewayInfo,self.rosServiceRemoteGatewayInfo)
-        gateway_services['advertise']     = rospy.Service('~advertise',                     gateway_comms.srv.Advertise,        self.gateway_sync.rosServiceAdvertise)
-        gateway_services['advertise_all'] = rospy.Service('~advertise_all',                 gateway_comms.srv.AdvertiseAll,     self.gateway_sync.rosServiceAdvertiseAll)        
-        gateway_services['flip']          = rospy.Service('~flip',                          gateway_comms.srv.Remote,    self.gateway_sync.rosServiceFlip)        
-        gateway_services['flip_all']      = rospy.Service('~flip_all',                      gateway_comms.srv.RemoteAll, self.gateway_sync.rosServiceFlipAll)
-        gateway_services['pull']          = rospy.Service('~pull',                          gateway_comms.srv.Remote,    self.gateway_sync.rosServicePull)        
-        gateway_services['pull_all']      = rospy.Service('~pull_all',                      gateway_comms.srv.RemoteAll, self.gateway_sync.rosServicePullAll)
+        gateway_services['connect_hub']   = rospy.Service('~connect_hub',                   gateway_msgs.srv.ConnectHub,       self.rosServiceConnectHub)
+        gateway_services['gateway_info']  = rospy.Service('~gateway_info',                  gateway_msgs.srv.GatewayInfo,      self.rosServiceGatewayInfo)
+        gateway_services['remote_gateway_info']  = rospy.Service('~remote_gateway_info',    gateway_msgs.srv.RemoteGatewayInfo,self.rosServiceRemoteGatewayInfo)
+        gateway_services['advertise']     = rospy.Service('~advertise',                     gateway_msgs.srv.Advertise,        self.gateway_sync.rosServiceAdvertise)
+        gateway_services['advertise_all'] = rospy.Service('~advertise_all',                 gateway_msgs.srv.AdvertiseAll,     self.gateway_sync.rosServiceAdvertiseAll)        
+        gateway_services['flip']          = rospy.Service('~flip',                          gateway_msgs.srv.Remote,    self.gateway_sync.rosServiceFlip)        
+        gateway_services['flip_all']      = rospy.Service('~flip_all',                      gateway_msgs.srv.RemoteAll, self.gateway_sync.rosServiceFlipAll)
+        gateway_services['pull']          = rospy.Service('~pull',                          gateway_msgs.srv.Remote,    self.gateway_sync.rosServicePull)        
+        gateway_services['pull_all']      = rospy.Service('~pull_all',                      gateway_msgs.srv.RemoteAll, self.gateway_sync.rosServicePullAll)
         return gateway_services        
      
     #############################################
@@ -99,21 +99,21 @@ class Gateway():
           Requests are of the form of a uri (hostname:port pair) pointing to 
           the gateway hub. 
         '''
-        response = gateway_comms.srv.ConnectHubResponse()
+        response = gateway_msgs.srv.ConnectHubResponse()
         o = urlparse(request.uri)
         response.result = self._connect(o.hostname, o.port)
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             rospy.loginfo("Gateway : made direct connection to hub [%s]"%request.uri)
-        elif response.result == gateway_comms.msg.Result.HUB_CONNECTION_BLACKLISTED:
+        elif response.result == gateway_msgs.msg.Result.HUB_CONNECTION_BLACKLISTED:
             response.error_message = "cowardly refusing your request since that hub is blacklisted [%s]."%request.uri
-        elif response.result == gateway_comms.msg.Result.HUB_CONNECTION_ALREADY_EXISTS:
+        elif response.result == gateway_msgs.msg.Result.HUB_CONNECTION_ALREADY_EXISTS:
             response.error_message = "(currently) can only connect to one hub at a time [%s]."%self.gateway_sync.hub.name
         else:
             response.error_message = "direct connection failed, probably not available [%s]."%request.uri
         return response
 
     def rosServiceGatewayInfo(self,msg):
-        response = gateway_comms.srv.GatewayInfoResponse()
+        response = gateway_msgs.srv.GatewayInfoResponse()
         # Should add something about connected status here
         if self.gateway_sync.unique_name != None:
             response.name = self.gateway_sync.unique_name
@@ -133,7 +133,7 @@ class Gateway():
     
     def rosServiceRemoteGatewayInfo(self,request):
         
-        response = gateway_comms.srv.RemoteGatewayInfoResponse()
+        response = gateway_msgs.srv.RemoteGatewayInfoResponse()
         requested_gateways = request.gateways if request.gateways else self.gateway_sync.hub.listRemoteGatewayNames()
         for gateway in requested_gateways:
             remote_gateway_info = self.gateway_sync.hub.remoteGatewayInfo(gateway)
@@ -156,7 +156,7 @@ class Gateway():
         '''
         if self.param['hub_uri'] != '':
             o = urlparse(self.param['hub_uri'])
-            if self._connect(o.hostname, o.port) == gateway_comms.msg.Result.SUCCESS:
+            if self._connect(o.hostname, o.port) == gateway_msgs.msg.Result.SUCCESS:
                 rospy.loginfo("Gateway : made direct connection to hub [%s]"%self.param['hub_uri'])
                 return True
             else:
@@ -174,7 +174,7 @@ class Gateway():
           @type  previously_found_hubs: list of str
         '''
         # Get discovered redis server list from zeroconf
-        req = zeroconf_comms.srv.ListDiscoveredServicesRequest() 
+        req = zeroconf_msgs.srv.ListDiscoveredServicesRequest() 
         req.service_type = rocon_gateway.zeroconf.gateway_hub_service
         resp = self._zeroconf_services["list_discovered_services"](req)
         rospy.logdebug("Gateway : checking for autodiscovered gateway hubs")
@@ -184,34 +184,34 @@ class Gateway():
             (ip, port) = rocon_gateway.zeroconf.resolveAddress(service)
             rospy.loginfo("Gateway : discovered hub zeroconf service at " + str(ip) + ":"+str(service.port))
             connect_result = self._connect(ip,port)
-            if connect_result == gateway_comms.msg.Result.SUCCESS:
+            if connect_result == gateway_msgs.msg.Result.SUCCESS:
                 break
 
     def _connect(self,ip,port):
         if self.gateway_sync.is_connected: 
             rospy.logwarn("Gateway : gateway is already connected, aborting connection attempt.")
-            return gateway_comms.msg.Result.HUB_CONNECTION_ALREADY_EXISTS
+            return gateway_msgs.msg.Result.HUB_CONNECTION_ALREADY_EXISTS
         try:
             hub_name = rocon_gateway.resolveHub(ip,port)
             rospy.loginfo("Gateway : resolved hub name [%s].", hub_name)
         except redis.exceptions.ConnectionError:
             rospy.logerr("Gateway : couldn't connect to the hub [%s:%s]", ip, port)
-            return gateway_comms.msg.Result.HUB_CONNECTION_UNRESOLVABLE
+            return gateway_msgs.msg.Result.HUB_CONNECTION_UNRESOLVABLE
         if ip in self.param['hub_blacklist']:
             rospy.loginfo("Gateway : ignoring blacklisted hub [%s]",ip)
-            return gateway_comms.msg.Result.HUB_CONNECTION_BLACKLISTED
+            return gateway_msgs.msg.Result.HUB_CONNECTION_BLACKLISTED
         elif hub_name in self.param['hub_blacklist']:
             rospy.loginfo("Gateway : ignoring blacklisted hub [%s]",hub_name)
-            return gateway_comms.msg.Result.HUB_CONNECTION_BLACKLISTED
+            return gateway_msgs.msg.Result.HUB_CONNECTION_BLACKLISTED
         # Handle whitelist (ip or hub name)
         if (len(self.param['hub_whitelist']) == 0) or (ip in self.param['hub_whitelist']) or (hub_name in self.param['hub_whitelist']):
             if self.gateway_sync.connectToHub(ip,port):
-                return gateway_comms.msg.Result.SUCCESS
+                return gateway_msgs.msg.Result.SUCCESS
             else:
-                return gateway_comms.msg.Result.HUB_CONNECTION_FAILED
+                return gateway_msgs.msg.Result.HUB_CONNECTION_FAILED
         else:
             rospy.loginfo("Gateway : hub/ip not in non-empty whitelist [%s]",hub_name)
-            return gateway_comms.msg.Result.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST
+            return gateway_msgs.msg.Result.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST
 
 ##############################################################################
 # Launch point

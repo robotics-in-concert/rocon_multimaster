@@ -8,8 +8,8 @@ PKG = 'rocon_gateway_tests'
 import roslib; roslib.load_manifest(PKG)
 import rospy
 import rostest
-from gateway_comms.msg import *
-from gateway_comms.srv import *
+from gateway_msgs.msg import *
+from gateway_msgs.srv import *
 from rocon_gateway.master_api import LocalMaster
 import unittest
 import std_msgs

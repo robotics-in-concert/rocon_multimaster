@@ -11,8 +11,8 @@ import roslib; roslib.load_manifest('rocon_gateway_demos')
 import rospy
 import rocon_gateway
 import rocon_gateway_demos
-from gateway_comms.msg import *
-from gateway_comms.srv import *
+from gateway_msgs.msg import *
+from gateway_msgs.srv import *
 import argparse
 import sys
 
@@ -34,7 +34,7 @@ class Context(object):
         self.names, self.nodes = rocon_gateway_demos.createTutorialDictionaries(regex)
 
     def flip(self, type):
-        rule = gateway_comms.msg.Rule()
+        rule = gateway_msgs.msg.Rule()
         rule.name = self.names[type]
         rule.type = type
         rule.node = self.nodes[type]

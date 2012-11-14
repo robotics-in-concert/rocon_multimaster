@@ -10,8 +10,8 @@
   <url>http://ros.org/wiki/rocon_gateway</url>
   <depend package="rospy"/>
   <depend package="roslib"/>
-  <depend package="zeroconf_comms"/>
-  <depend package="gateway_comms"/>
+  <depend package="zeroconf_msgs"/>
+  <depend package="gateway_msgs"/>
   <!-- 
     Don't hardcode a dependency to a particular platform's zeroconf implementation 
     even if it does appeal to us ubuntu eggheads.

@@ -16,7 +16,7 @@ import rospy
 
 # local imports
 import utils
-from gateway_comms.msg import Rule
+from gateway_msgs.msg import Rule
 
 ##############################################################################
 # Functions
@@ -65,10 +65,10 @@ class PublicInterface(object):
           Initialises the public interface
 
           @param default_rule_blacklist : connection type keyed dictionary of rules
-          @type str keyed dictionary of gateway_comms.msg.Rule[] 
+          @type str keyed dictionary of gateway_msgs.msg.Rule[] 
           
           @param default_rules : connection type keyed dictionary of rules
-          @type str keyed dictionary of gateway_comms.msg.Rule[] 
+          @type str keyed dictionary of gateway_msgs.msg.Rule[] 
         '''
         # List of rules to be monitored and (un)advertised  as they 
         # become (un)available

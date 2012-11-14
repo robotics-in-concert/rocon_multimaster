@@ -16,7 +16,7 @@ import threading
 import httplib
 
 import utils
-from gateway_comms.msg import Rule, ConnectionType
+from gateway_msgs.msg import Rule, ConnectionType
 
 ##############################################################################
 # Watcher

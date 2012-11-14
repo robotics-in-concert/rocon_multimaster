@@ -8,8 +8,8 @@ import roslib; roslib.load_manifest('rocon_gateway_demos')
 import rospy
 import rocon_gateway
 import rocon_gateway_demos
-from gateway_comms.msg import *
-from gateway_comms.srv import *
+from gateway_msgs.msg import *
+from gateway_msgs.srv import *
 import argparse
 import sys
 

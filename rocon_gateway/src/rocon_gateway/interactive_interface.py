@@ -10,7 +10,7 @@
 
 import roslib; roslib.load_manifest('rocon_gateway')
 import threading
-from gateway_comms.msg import RemoteRule
+from gateway_msgs.msg import RemoteRule
 import re
 import copy
 
@@ -30,7 +30,7 @@ class InteractiveInterface(object):
           @param default_rule_blacklist : used when in flip all mode
           @type dictionary of gateway
           @param default_rules : static rules to launch the interface with
-          @type gateway_comms.msg.RemoteRule[]
+          @type gateway_msgs.msg.RemoteRule[]
         '''
         # Rules that are active, ie have been flipped or pulled from remote gateways 
         # keys are connection_types, elements are lists of RemoteRule objects
@@ -39,9 +39,9 @@ class InteractiveInterface(object):
         self.active = utils.createEmptyConnectionTypeDictionary()   
         
         # Default rules used in the xxxAll modes
-        self._default_blacklist = default_rule_blacklist # dictionary of gateway-gateway_comms.msg.Rule lists, not RemoteRules!
+        self._default_blacklist = default_rule_blacklist # dictionary of gateway-gateway_msgs.msg.Rule lists, not RemoteRules!
         
-        # keys are connection_types, elements are lists of gateway_comms.msg.RemoteRule objects
+        # keys are connection_types, elements are lists of gateway_msgs.msg.RemoteRule objects
         self.watchlist = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local rules to flip  
         
         # keys are connection_types, elements are lists of utils.Registration objects
@@ -66,10 +66,10 @@ class InteractiveInterface(object):
           Add a remote rule to the watchlist for monitoring.
           
           @param remote_rule : the remote rule to add to the watchlist
-          @type gateway_comms.msg.RemoteRule
+          @type gateway_msgs.msg.RemoteRule
           
           @return the remote rule, or None if the rule already exists.
-          @rtype gateway_comms.msg.RemoteRule || None
+          @rtype gateway_msgs.msg.RemoteRule || None
         '''
         result = None
         self._lock.acquire()
@@ -95,7 +95,7 @@ class InteractiveInterface(object):
           Handle the remapping appropriately.
           
           @param remote_rule : the remote rule to remove from the watchlist.
-          @type gateway_comms.msg.RemoteRule
+          @type gateway_msgs.msg.RemoteRule
          
           @return Rules remaining in the watchlist
           @rtype RemoteRule[]
@@ -132,7 +132,7 @@ class InteractiveInterface(object):
           @type str
           
           @param blacklist : do not act on rules matching these patterns
-          @type gateway_comms.msg.Rule[]
+          @type gateway_msgs.msg.Rule[]
           
           @return success or failure depending on if it ahs already been set or not
           @rtype Bool
@@ -210,7 +210,7 @@ class InteractiveInterface(object):
           Gets the watchlist for GatewayInfo consumption.
           
           @return the list of flip rules that are being watched
-          @rtype gateway_comms.msg.RemoteRule[]
+          @rtype gateway_msgs.msg.RemoteRule[]
         '''
         watchlist = []
         for connection_type in utils.connection_types:

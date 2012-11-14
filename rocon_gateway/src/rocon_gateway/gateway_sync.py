@@ -21,12 +21,12 @@ import rospy
 import rosgraph
 from std_msgs.msg import Empty
 
-# Ros Comms
-import gateway_comms.msg
-import gateway_comms.srv
-from gateway_comms.msg import Rule
-from gateway_comms.srv import AdvertiseResponse
-from gateway_comms.srv import AdvertiseAllResponse
+# Ros msgs
+import gateway_msgs.msg
+import gateway_msgs.srv
+from gateway_msgs.msg import Rule
+from gateway_msgs.srv import AdvertiseResponse
+from gateway_msgs.srv import AdvertiseAllResponse
 
 # Local imports
 import utils
@@ -114,30 +114,30 @@ class GatewaySync(object):
           rules
 
           @param request
-          @type gateway_comms.srv.AdvertiseRequest
+          @type gateway_msgs.srv.AdvertiseRequest
           @return service response
-          @rtype gateway_comms.srv.AdvertiseReponse
+          @rtype gateway_msgs.srv.AdvertiseReponse
         '''
-        response = gateway_comms.srv.AdvertiseResponse()
+        response = gateway_msgs.srv.AdvertiseResponse()
         response.result, response.error_message = self._rosServiceAdvertiseChecks()
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             try:
                 if not request.cancel:
                     for rule in request.rules:
                         if not self.public_interface.addRule(rule):
-                            response.result = gateway_comms.msg.Result.ADVERTISEMENT_EXISTS
+                            response.result = gateway_msgs.msg.Result.ADVERTISEMENT_EXISTS
                             response.error_message = "advertisment rule already exists [%s:(%s,%s)]"%(rule.name, rule.type, rule.node)
                 else:
                     for rule in request.rules:
                         if not self.public_interface.removeRule(rule):
-                            response.result = gateway_comms.msg.Result.ADVERTISEMENT_NOT_FOUND
+                            response.result = gateway_msgs.msg.Result.ADVERTISEMENT_NOT_FOUND
                             response.error_message = "advertisment not found [%s:(%s,%s)]"%(rule.name, rule.type, rule.node)
             except Exception as e:
                 rospy.logerr("Gateway : unknown advertise error [%s]."%str(e))
-                response.result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
+                response.result = gateway_msgs.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
 
         # Let the watcher get on with the update asap
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
             rospy.logerr("Gateway : %s."%response.error_message)
@@ -152,26 +152,26 @@ class GatewaySync(object):
           default blacklist of the public interface
 
           @param request
-          @type gateway_comms.srv.AdvertiseAllRequest
+          @type gateway_msgs.srv.AdvertiseAllRequest
           @return service response
-          @rtype gateway_comms.srv.AdvertiseAllReponse
+          @rtype gateway_msgs.srv.AdvertiseAllReponse
         '''
-        response = gateway_comms.srv.AdvertiseAllResponse()
+        response = gateway_msgs.srv.AdvertiseAllResponse()
         response.result, response.error_message = self._rosServiceAdvertiseChecks()
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             try:
                 if not request.cancel:
                     if not self.public_interface.advertiseAll(request.blacklist):
-                        response.result = gateway_comms.msg.Result.ADVERTISEMENT_EXISTS
+                        response.result = gateway_msgs.msg.Result.ADVERTISEMENT_EXISTS
                         response.error_message = "already advertising all."
                 else:
                     self.public_interface.unadvertiseAll()
             except Exception as e:
-                response.result = gateway_comms.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
+                response.result = gateway_msgs.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
                 response.error_message = "unknown advertise all error [%s]"%(str(e))
 
         # Let the watcher get on with the update asap
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
             rospy.logerr("Gateway : %s."%response.error_message)
@@ -184,14 +184,14 @@ class GatewaySync(object):
           become (un)available. 
           
           @param request
-          @type gateway_comms.srv.RemoteRequest
+          @type gateway_msgs.srv.RemoteRequest
           @return service response
-          @rtype gateway_comms.srv.RemoteResponse
+          @rtype gateway_msgs.srv.RemoteResponse
         '''
-        response = gateway_comms.srv.RemoteResponse()
+        response = gateway_msgs.srv.RemoteResponse()
         for remote in request.remotes:
             response.result, response.error_message = self._rosServiceFlipChecks(remote.gateway)
-            if response.result != gateway_comms.msg.Result.SUCCESS:
+            if response.result != gateway_msgs.msg.Result.SUCCESS:
                 rospy.logerr("Gateway : %s."%response.error_message)
                 return response
               
@@ -204,7 +204,7 @@ class GatewaySync(object):
                     added_rules.append(flip_rule)
                     rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]"%(flip_rule.gateway,flip_rule.rule.name,flip_rule.rule.type))
                 else:
-                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                    response.result = gateway_msgs.msg.Result.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "flip rule already exists [%s:(%s,%s)]"%(remote.gateway,remote.rule.name,remote.rule.type)
                     break
             else: # request.cancel
@@ -212,7 +212,7 @@ class GatewaySync(object):
                 if removed_flip_rules:
                     rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(remote.gateway, remote.rule.name))
         
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
             if added_rules: # completely abort any added rules
@@ -227,23 +227,23 @@ class GatewaySync(object):
           or if the cancel flag is set, clears all flips to that gateway.
           
           @param request
-          @type gateway_comms.srv.RemoteAllRequest
+          @type gateway_msgs.srv.RemoteAllRequest
           @return service response
-          @rtype gateway_comms.srv.RemoteAllResponse
+          @rtype gateway_msgs.srv.RemoteAllResponse
         '''
-        response = gateway_comms.srv.RemoteAllResponse()
+        response = gateway_msgs.srv.RemoteAllResponse()
         response.result, response.error_message = self._rosServiceFlipChecks(request.gateway)
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             if not request.cancel:
                 if self.flipped_interface.flipAll(request.gateway, request.blacklist):
                     rospy.loginfo("Gateway : flipping all to gateway '%s'"%(request.gateway))
                 else:
-                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                    response.result = gateway_msgs.msg.Result.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "already flipping all to gateway '%s' "+request.gateway
             else: # request.cancel
                 self.flipped_interface.unFlipAll(request.gateway)
                 rospy.loginfo("Gateway : cancelling a previous flip all request [%s]"%(request.gateway))
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
             rospy.logerr("Gateway : %s."%response.error_message)
@@ -258,14 +258,14 @@ class GatewaySync(object):
           under <unique_gateway_name>.
           
           @param request
-          @type gateway_comms.srv.RemoteRequest
+          @type gateway_msgs.srv.RemoteRequest
           @return service response
-          @rtype gateway_comms.srv.RemoteResponse
+          @rtype gateway_msgs.srv.RemoteResponse
         '''
-        response = gateway_comms.srv.RemoteResponse()
+        response = gateway_msgs.srv.RemoteResponse()
         for remote in request.remotes:
             response.result, response.error_message = self._rosServiceFlipChecks(remote.gateway)
-            if response.result != gateway_comms.msg.Result.SUCCESS:
+            if response.result != gateway_msgs.msg.Result.SUCCESS:
                 rospy.logerr("Gateway : %s."%response.error_message)
                 return response
 
@@ -278,7 +278,7 @@ class GatewaySync(object):
                     added_rules.append(pull_rule)
                     rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]"%(pull_rule.gateway,pull_rule.rule.name,pull_rule.rule.type))
                 else:
-                    response.result = gateway_comms.msg.Result.PULL_RULE_ALREADY_EXISTS
+                    response.result = gateway_msgs.msg.Result.PULL_RULE_ALREADY_EXISTS
                     response.error_message = "pull rule already exists [%s:(%s,%s)]"%(remote.gateway,remote.rule.name,remote.rule.type)
                     break
             else: # request.cancel
@@ -286,7 +286,7 @@ class GatewaySync(object):
                     removed_pull_rules = self.pulled_interface.removeRule(remote)
                     if removed_pull_rules:
                         rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(remote.gateway, remote.rule.name))
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
             if added_rules: # completely abort any added rules
@@ -301,23 +301,23 @@ class GatewaySync(object):
           or if the cancel flag is set, clears all pulls from that gateway.
           
           @param request
-          @type gateway_comms.srv.RemoteAllRequest
+          @type gateway_msgs.srv.RemoteAllRequest
           @return service response
-          @rtype gateway_comms.srv.RemoteAllResponse
+          @rtype gateway_msgs.srv.RemoteAllResponse
         '''
-        response = gateway_comms.srv.RemoteAllResponse()
+        response = gateway_msgs.srv.RemoteAllResponse()
         response.result, response.error_message = self._rosServiceRemoteChecks(request.gateway)
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             if not request.cancel:
                 if self.pulled_interface.pullAll(request.gateway, request.blacklist):
                     rospy.loginfo("Gateway : pulling all from gateway '%s'"%(request.gateway))
                 else:
-                    response.result = gateway_comms.msg.Result.FLIP_RULE_ALREADY_EXISTS
+                    response.result = gateway_msgs.msg.Result.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "already pulling all from gateway '%s' "+request.gateway
             else: # request.cancel
                 self.pulled_interface.unPullAll(request.gateway)
                 rospy.loginfo("Gateway : cancelling a previous pull all request [%s]"%(request.gateway))
-        if response.result == gateway_comms.msg.Result.SUCCESS:
+        if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
             rospy.logerr("Gateway : %s."%response.error_message)
@@ -325,9 +325,9 @@ class GatewaySync(object):
 
     def _rosServiceAdvertiseChecks(self):
         if not self.is_connected:
-            return gateway_comms.msg.Result.NO_HUB_CONNECTION, "not connected to hub, aborting"
+            return gateway_msgs.msg.Result.NO_HUB_CONNECTION, "not connected to hub, aborting"
         else: 
-            return gateway_comms.msg.Result.SUCCESS, ""
+            return gateway_msgs.msg.Result.SUCCESS, ""
 
     def _rosServiceFlipChecks(self, gateway):
         '''
@@ -336,15 +336,15 @@ class GatewaySync(object):
           @param gateway : target gateway string of the flip
           @type string
           @return pair of result type and message
-          @rtype gateway_comms.msg.Result.xxx, string
+          @rtype gateway_msgs.msg.Result.xxx, string
         '''
         result, error_message = self._rosServiceRemoteChecks(gateway)
-        if result == gateway_comms.msg.Result.SUCCESS:
+        if result == gateway_msgs.msg.Result.SUCCESS:
             firewall_flag = False
             try:
                 firewall_flag = self.hub.getRemoteGatewayFirewallFlag(gateway)
                 if firewall_flag:
-                    return gateway_comms.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING, "remote gateway is firewalling flip requests, aborting [%s]"%gateway
+                    return gateway_msgs.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING, "remote gateway is firewalling flip requests, aborting [%s]"%gateway
             except UnavailableGatewayError:
                 pass # handled earlier in rosServiceRemoteChecks
         return result, error_message
@@ -356,16 +356,16 @@ class GatewaySync(object):
           @param gateway : target gateway string of the pull
           @type string
           @return pair of result type and message
-          @rtype gateway_comms.msg.Result.xxx, string
+          @rtype gateway_msgs.msg.Result.xxx, string
         '''
         if not self.is_connected:
-            return gateway_comms.msg.Result.NO_HUB_CONNECTION, "not connected to hub, aborting" 
+            return gateway_msgs.msg.Result.NO_HUB_CONNECTION, "not connected to hub, aborting" 
         elif gateway == self.unique_name:
-            return gateway_comms.msg.Result.FLIP_NO_TO_SELF, "gateway cannot flip to itself"
+            return gateway_msgs.msg.Result.FLIP_NO_TO_SELF, "gateway cannot flip to itself"
         elif gateway not in self.hub.listRemoteGatewayNames():
-            return gateway_comms.msg.Result.FLIP_REMOTE_GATEWAY_NOT_CONNECTED, "remote gateway is currently not connected [%s]"%gateway
+            return gateway_msgs.msg.Result.FLIP_REMOTE_GATEWAY_NOT_CONNECTED, "remote gateway is currently not connected [%s]"%gateway
         else:
-            return gateway_comms.msg.Result.SUCCESS, ""
+            return gateway_msgs.msg.Result.SUCCESS, ""
 
     ##########################################################################
     # Update interface states (usually from watcher thread)

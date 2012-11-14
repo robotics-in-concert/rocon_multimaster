@@ -18,6 +18,6 @@
 {'git': {'local-name': 'rocon_multimaster', 'version': 'master', 'uri':'https://github.com/robotics-in-concert/rocon_multimaster.git'}},
   
 # Messages  
-{'git': {'local-name': 'rocon_comms', 'version': 'master', 'uri': 'https://github.com/robotics-in-concert/rocon_comms.git'}}
+{'git': {'local-name': 'rocon_msgs', 'version': 'master', 'uri': 'https://github.com/robotics-in-concert/rocon_msgs.git'}}
 
 ]
