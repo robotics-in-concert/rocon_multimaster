@@ -1,4 +1,6 @@
-# Default values are commented with a #.
+##############################################################################
+# Core parameters - defaults are commented with a #
+##############################################################################
 
 ## Uri for the hub - set this if you want to manually
 ## find the gateway hub instead of via zeroconf.
@@ -22,42 +24,46 @@
 # Used to block/permit remote gateway's from flipping to this gateway.
 # firewall: true
 
-# Static rules.
-# Note that the pull_xxx rules negate any other default rules for 
-# the targeted gateways.
+# Make everything (except the default_blacklist) publicly available for pulling
+# advertise_all: false
+
+##############################################################################
+# Example static parameters - defaults for these are always empty
+##############################################################################
+# Note that the pull_all, flip_all default rules negate any 
+# other default rules for the targeted gateways.
 #
-# pull_all:
-#    - gateway: gateway1
-#    - gateway: gateway2
-# flip_all:
-#    - gateway: gateway1
-#    - gateway: gateway2
-# 
-#default_advertisements: 
+# default_advertisements: 
 #    - name: /chatter
 #      node: None
 #      type: publisher
 #    - name: /chat.*
 #      node: None
 #      type: subscriber
-#default_flips: 
-#    - gateway: gateway1 
+#
+# default_flips: 
+#    - gateway: pirate_gateway       # flip_all to this gateway 
+#    - gateway: pirate_.*            # regex can also be used 
+#    - gateway: pirate_gateway       # flip to a specific rule to a gateway
 #      rule:  
 #        name: /chatter
 #        node: None
 #        type: publisher
-#    - gateway: gateway1 
+#    - gateway: pirate_.*            # regex can be used for the rule too
 #      rule:  
 #        name: /chat.*
 #        node: None
 #        type: subscriber
-#default_pulls:
-#    - gateway: gateway 
+#
+# default_pulls:
+#    - gateway: pirate_gateway 
+#    - gateway: pirate_.* 
+#    - gateway: pirate_gateway
 #      rule:  
 #        name: /chatter
 #        node: None
 #        type: publisher
-#    - gateway: gateway 
+#    - gateway: pirate_.*
 #      rule:  
 #        name: /chat.*
 #        node: None

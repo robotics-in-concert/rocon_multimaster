@@ -37,6 +37,9 @@ def setupRosParameters():
     # Used to block/permit remote gateway's from flipping to this gateway.
     param['firewall'] = rospy.get_param('~firewall', True)
 
+    # Make everything publicly available (excepting the default blacklist)
+    param['advertise_all'] = rospy.get_param('~advertise_all', [])  # boolean
+
     # Topics and services for pre-initialisation/configuration
     param['default_advertisements'] = rospy.get_param('~default_advertisements', [])  # list of Rule objects
     param['default_flips'] = rospy.get_param('~default_flips', [])  # list of RemoteRule objects
