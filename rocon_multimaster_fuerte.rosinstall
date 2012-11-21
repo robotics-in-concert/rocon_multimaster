@@ -18,10 +18,10 @@
 {'git': {'local-name': 'rocon_multimaster', 'version': 'master', 'uri':'https://github.com/robotics-in-concert/rocon_multimaster.git'}},
   
 # Messages  
-{'git': {'local-name': 'rocon_msgs', 'version': 'master', 'uri': 'https://github.com/robotics-in-concert/rocon_msgs.git'}}
+{'git': {'local-name': 'rocon_msgs', 'version': 'master', 'uri': 'https://github.com/robotics-in-concert/rocon_msgs.git'}},
 
 # Zeroconf
 {'git': {'local-name': 'zeroconf_msgs', 'version': 'fuerte', 'uri':'https://github.com/stonier/zeroconf_msgs.git'}},
-{'git': {'local-name': 'zeroconf_avahi_suite', 'version': 'fuerte', 'uri':'https://github.com/stonier/zeroconf_avahi_suite.git'}},
+{'git': {'local-name': 'zeroconf_avahi_suite', 'version': 'fuerte', 'uri':'https://github.com/stonier/zeroconf_avahi_suite.git'}}
  
 ]
