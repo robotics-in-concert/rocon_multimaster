@@ -10,7 +10,7 @@ import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
 import re
 import utils
-import gateway_comms.msg
+import gateway_msgs.msg
 from .exceptions import UnavailableGatewayError
 
 ###############################################################################
@@ -231,13 +231,13 @@ class Hub(object):
           @param gateways : gateway id string to search for
           @type string
           @return remote gateway information
-          @rtype gateway_comms.msg.RemotGateway or None
+          @rtype gateway_msgs.msg.RemotGateway or None
         '''
         firewall = self.server.get(createGatewayKey(gateway,'firewall'))
         if firewall is None:
             return None # equivalent to saying no gateway of this id found
         else:
-            remote_gateway = gateway_comms.msg.RemoteGateway()
+            remote_gateway = gateway_msgs.msg.RemoteGateway()
             remote_gateway.name = gateway
             remote_gateway.firewall = True if int(firewall) else False
             remote_gateway.public_interface = []
@@ -249,13 +249,13 @@ class Hub(object):
             encoded_flips = self.server.smembers(createGatewayKey(gateway,'flips'))
             for encoded_flip in encoded_flips:
                 [target_gateway, name, type, node] = utils.deserialize(encoded_flip)
-                remote_rule = gateway_comms.msg.RemoteRule(target_gateway, gateway_comms.msg.Rule(name, type, node))
+                remote_rule = gateway_msgs.msg.RemoteRule(target_gateway, gateway_msgs.msg.Rule(name, type, node))
                 remote_gateway.flipped_interface.append(remote_rule)
             remote_gateway.pulled_interface = []
             encoded_pulls = self.server.smembers(createGatewayKey(gateway,'pulls'))
             for encoded_pull in encoded_pulls:
                 [target_gateway, name, type, node] = utils.deserialize(encoded_pull)
-                remote_rule = gateway_comms.msg.RemoteRule(target_gateway, gateway_comms.msg.Rule(name, type, node))
+                remote_rule = gateway_msgs.msg.RemoteRule(target_gateway, gateway_msgs.msg.Rule(name, type, node))
                 remote_gateway.pulled_interface.append(remote_rule)
             return remote_gateway 
 
@@ -441,7 +441,7 @@ class Hub(object):
           @type str
           
           @param flip_rule : the flip to send
-          @type gateway_comms.msg.RemoteRule
+          @type gateway_msgs.msg.RemoteRule
           
           @param type_info : topic type (e.g. std_msgs/String)
           @param str
@@ -458,28 +458,28 @@ class Hub(object):
         return True
 
     def sendUnflipRequest(self, gateway, rule):
-        if rule.type == gateway_comms.msg.ConnectionType.ACTION_CLIENT:
+        if rule.type == gateway_msgs.msg.ConnectionType.ACTION_CLIENT:
             action_name = rule.name
-            rule.type = gateway_comms.msg.ConnectionType.PUBLISHER
+            rule.type = gateway_msgs.msg.ConnectionType.PUBLISHER
             rule.name = action_name + "/goal"
             self._sendUnflipRequest(gateway, rule)
             rule.name = action_name + "/cancel"
             self._sendUnflipRequest(gateway, rule)
-            rule.type = gateway_comms.msg.ConnectionType.SUBSCRIBER
+            rule.type = gateway_msgs.msg.ConnectionType.SUBSCRIBER
             rule.name = action_name + "/feedback"
             self._sendUnflipRequest(gateway, rule)
             rule.name = action_name + "/status"
             self._sendUnflipRequest(gateway, rule)
             rule.name = action_name + "/result"
             self._sendUnflipRequest(gateway, rule)
-        elif rule.type == gateway_comms.msg.ConnectionType.ACTION_SERVER:
+        elif rule.type == gateway_msgs.msg.ConnectionType.ACTION_SERVER:
             action_name = rule.name
-            rule.type = gateway_comms.msg.ConnectionType.SUBSCRIBER
+            rule.type = gateway_msgs.msg.ConnectionType.SUBSCRIBER
             rule.name = action_name + "/goal"
             self._sendUnflipRequest(gateway, rule)
             rule.name = action_name + "/cancel"
             self._sendUnflipRequest(gateway, rule)
-            rule.type = gateway_comms.msg.ConnectionType.PUBLISHER
+            rule.type = gateway_msgs.msg.ConnectionType.PUBLISHER
             rule.name = action_name + "/feedback"
             self._sendUnflipRequest(gateway, rule)
             rule.name = action_name + "/status"

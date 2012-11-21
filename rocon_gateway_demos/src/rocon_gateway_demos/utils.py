@@ -11,7 +11,7 @@
 import roslib
 roslib.load_manifest('rocon_gateway_demos')
 import rospy
-from gateway_comms.msg import *
+from gateway_msgs.msg import *
 
 ##############################################################################
 # Functions

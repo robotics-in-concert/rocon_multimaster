@@ -19,7 +19,7 @@ class GatewayError(Exception):
 class UnavailableGatewayError(Exception):
     pass
 
-# Raised when a connection type of the kind gateway_comms.ConnectionType is 
+# Raised when a connection type of the kind gateway_msgs.ConnectionType is 
 # invalid
 class ConnectionTypeError(GatewayError):
     pass

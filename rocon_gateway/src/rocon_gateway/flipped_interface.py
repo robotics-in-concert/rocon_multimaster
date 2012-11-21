@@ -9,7 +9,7 @@
 ##############################################################################
 
 import roslib; roslib.load_manifest('rocon_gateway')
-from gateway_comms.msg import Rule, RemoteRule, ConnectionType
+from gateway_msgs.msg import Rule, RemoteRule, ConnectionType
 import copy
 import re
 
@@ -36,7 +36,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           @param default_rule_blacklist : used when in flip all mode
           @type dictionary of gateway
           @param default_rules : static rules to launch the interface with
-          @type gateway_comms.msg.RemoteRule[]
+          @type gateway_msgs.msg.RemoteRule[]
           
         '''
         interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules)
@@ -68,7 +68,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           @type string
           
           @return new_flips, old_flips 
-          @rtype pair of connection type keyed dictionary of gateway_comms.msg.Rule lists.
+          @rtype pair of connection type keyed dictionary of gateway_msgs.msg.Rule lists.
         '''
         # SLOW, EASY METHOD
         
@@ -123,7 +123,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           Note, don't need to lock here as the update() function takes care of it.
           
           @param type : rule type
-          @type str : string constant from gateway_comms.msg.Rule
+          @type str : string constant from gateway_msgs.msg.Rule
           
           @param name : fully qualified topic, service or action name
           @type str

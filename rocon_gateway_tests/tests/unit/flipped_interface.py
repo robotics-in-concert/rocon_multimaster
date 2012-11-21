@@ -7,7 +7,7 @@
 import roslib; roslib.load_manifest('rocon_gateway_tests')
 import rospy
 from rocon_gateway import FlippedInterface, createEmptyConnectionTypeDictionary, Connection
-from gateway_comms.msg import Rule, ConnectionType, RemoteRule
+from gateway_msgs.msg import Rule, ConnectionType, RemoteRule
 import argparse
 
 """

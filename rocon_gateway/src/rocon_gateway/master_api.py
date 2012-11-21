@@ -17,7 +17,7 @@ import rosnode
 import roslib.names
 import re
 
-from gateway_comms.msg import Rule, ConnectionType
+from gateway_msgs.msg import Rule, ConnectionType
 from utils import Connection, action_types
 
 ##############################################################################
@@ -122,7 +122,7 @@ class LocalMaster(rosgraph.Master):
         Creates all the extra details to create a connection object from a
         rule.
         
-        @param type : the connection type (one of gateway_comms.msg.ConnectionType)
+        @param type : the connection type (one of gateway_msgs.msg.ConnectionType)
         @type string
         @param name : the name of the connection
         @type string

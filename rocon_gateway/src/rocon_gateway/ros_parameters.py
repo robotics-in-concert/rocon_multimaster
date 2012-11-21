@@ -8,7 +8,7 @@ import roslib; roslib.load_manifest('rocon_gateway')
 import roslib.packages
 import rospy
 import re
-from gateway_comms.msg import Rule, RemoteRule
+from gateway_msgs.msg import Rule, RemoteRule
 import utils
 
 ###############################################################################
@@ -49,7 +49,7 @@ def generateRules(param):
       Converts a param of the suitable type (see default_blacklist.yaml)
       into a dictionary of Rule types.
       
-      @return all rules as gateway_comms.msg.Rule objects in our usual keyed dictionary format 
+      @return all rules as gateway_msgs.msg.Rule objects in our usual keyed dictionary format 
       @rtype type keyed dictionary of Rule lists
     '''
     rules = utils.createEmptyConnectionTypeDictionary()

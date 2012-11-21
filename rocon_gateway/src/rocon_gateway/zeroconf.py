@@ -10,7 +10,7 @@
 
 import roslib; roslib.load_manifest('rocon_gateway')
 import rospy
-import zeroconf_comms.srv
+import zeroconf_msgs.srv
 
 ###############################################################################
 # Constants
@@ -25,7 +25,7 @@ gateway_hub_service = "_ros-gateway-hub._tcp"
 def resolveAddress(msg):
     '''
       Resolves a zeroconf address into ip/port portions.
-      @var msg : zeroconf_comms.DiscoveredService 
+      @var msg : zeroconf_msgs.DiscoveredService 
       @return (string,int) : ip, port pair.
     '''
     ip = "localhost"
@@ -47,8 +47,8 @@ def setupRosServices():
     rospy.loginfo("Gateway : looking to see if zeroconf services are available...")
     try:
         rospy.wait_for_service("zeroconf/add_listener", timeout=zeroconf_timeout)
-        zeroconf_services["add_listener"] = rospy.ServiceProxy("zeroconf/add_listener",zeroconf_comms.srv.AddListener)
-        zeroconf_services["list_discovered_services"] = rospy.ServiceProxy("zeroconf/list_discovered_services",zeroconf_comms.srv.ListDiscoveredServices)
+        zeroconf_services["add_listener"] = rospy.ServiceProxy("zeroconf/add_listener",zeroconf_msgs.srv.AddListener)
+        zeroconf_services["list_discovered_services"] = rospy.ServiceProxy("zeroconf/list_discovered_services",zeroconf_msgs.srv.ListDiscoveredServices)
         if not zeroconf_services["add_listener"](service_type = gateway_hub_service):
             zeroconf.services = {} # failure
     except rospy.ROSException:

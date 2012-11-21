@@ -10,7 +10,7 @@
 
 import json
 import collections
-from gateway_comms.msg import Rule, ConnectionType
+from gateway_msgs.msg import Rule, ConnectionType
 
 ##############################################################################
 # Constants
@@ -30,7 +30,7 @@ class Connection():
       about a connection, allowing a connection to be passed through to a 
       foreign gateway
       
-       - rule (gateway_comms.msg.Rule) (containing type,name,node)
+       - rule (gateway_msgs.msg.Rule) (containing type,name,node)
        - type_info              (msg type for pubsub or service api for services)
        - xmlrpc_uri             (the xmlrpc node uri for the connection)
     '''
@@ -80,7 +80,7 @@ class Registration():
     def __init__(self, connection, remote_gateway, local_node = None):
         '''
           @param connection : string identifier storing the remote connection details (type, name, node)
-          @type gateway_comms.msg.RemoteRule
+          @type gateway_msgs.msg.RemoteRule
           
           @param remote_gateway : string identifier for where this registration game from
           @type string  
