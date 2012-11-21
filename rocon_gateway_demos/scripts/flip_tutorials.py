@@ -87,7 +87,7 @@ if __name__ == '__main__':
     rospy.init_node('flip_tutorials')
 
     try:
-        gateway = rocon_gateway_demos.findFirstRemoteGateway()
+        gateway = "pirate_gateway.*"
     except rocon_gateway.GatewayError as e:
         rospy.logerr("Flip Test : %s, aborting."%(str(e)))
         sys.exit(1)

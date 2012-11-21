@@ -120,7 +120,6 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           properties can be multiply flipped to different remote gateways.
             
           Used in the update() call above that is run in the watcher thread.
-          
           Note, don't need to lock here as the update() function takes care of it.
           
           @param type : rule type
@@ -140,9 +139,15 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         '''
         matched_flip_rules = []
         for flip_rule in self.watchlist[type]:
-            matched = False
-            if flip_rule.gateway not in gateways:
+            # Check if the flip rule corresponds to an existing gateway
+            matched_gateways = []
+            for gateway in gateways:
+                if re.match(flip_rule.gateway, gateway):
+                    matched_gateways.append(gateway)
+            if not matched_gateways:
                 continue
+            # Check names
+            matched = False
             name_match_result = re.match(flip_rule.rule.name, name)
             if name_match_result and name_match_result.group() == name:
                 if utils.isAllPattern(flip_rule.rule.name):
@@ -155,10 +160,12 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                 else: # flip_rule.rule.node is None so we don't care about matching the node
                     matched = True
             if matched:
-                matched_flip = copy.deepcopy(flip_rule)
-                matched_flip.rule.name = name # just in case we used a regex
-                matched_flip.rule.node = node # just in case we used a regex
-                matched_flip_rules.append(matched_flip)
+                for gateway in matched_gateways:
+                    matched_flip = copy.deepcopy(flip_rule)
+                    matched_flip.gateway = gateway # just in case we used a regex
+                    matched_flip.rule.name = name  # just in case we used a regex
+                    matched_flip.rule.node = node  # just in case we used a regex
+                    matched_flip_rules.append(matched_flip)
         return matched_flip_rules
     
     ##########################################################################

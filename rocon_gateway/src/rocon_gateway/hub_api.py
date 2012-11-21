@@ -270,6 +270,16 @@ class Hub(object):
             if keyBaseName(gateway) != self._unique_gateway_name:
                 gateways.append(keyBaseName(gateway))
         return gateways
+    
+    def matchesRemoteGatewayName(self, gateway):
+        '''
+          Use this when gateway can be a regular expression and 
+          we need to check it off against listRemoteGatewayNames()
+        '''
+        for remote_gateway in self.listRemoteGatewayNames():
+            if re.match(gateway, remote_gateway):
+                return True
+        return False
 
     def getRemoteConnectionState(self, gateway):
         '''

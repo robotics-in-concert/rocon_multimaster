@@ -111,13 +111,15 @@ class PulledInterface(interactive_interface.InteractiveInterface):
           @param node : ros node name (coming from master.getSystemState)
           @type str
           
-          @return all the flip rules that match this local rule
+          @return all the pull rules that match this local rule
           @return list of RemoteRule objects updated with node names from self.watchlist
         '''
         matched_flip_rules = []
         for rule in self.watchlist[type]:
-            if gateway and not rule.gateway == gateway:
+            # This is a bit different to _generateFlips - does it need to be? DJS
+            if gateway and not re.match(rule.gateway,gateway):
                 continue
+            # Check names
             matched = False
             name_match_result = re.match(rule.rule.name, name)
             if name_match_result and name_match_result.group() == name:

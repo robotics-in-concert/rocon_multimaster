@@ -74,6 +74,8 @@ class InteractiveInterface(object):
         result = None
         self._lock.acquire()
         rule_already_exists = False
+        # Could be a bit smarter here - given regex expressions an added
+        # rule may be redundant. It doesn't break the eventual behaviour though
         for watched_rule in self.watchlist[remote_rule.rule.type]:
             if watched_rule.gateway   == remote_rule.gateway and \
                watched_rule.rule.name == remote_rule.rule.name and \

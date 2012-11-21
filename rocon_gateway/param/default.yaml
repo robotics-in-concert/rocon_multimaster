@@ -23,6 +23,16 @@
 # firewall: true
 
 # Static rules.
+# Note that the pull_xxx rules negate any other default rules for 
+# the targeted gateways.
+#
+# pull_all:
+#    - gateway: gateway1
+#    - gateway: gateway2
+# flip_all:
+#    - gateway: gateway1
+#    - gateway: gateway2
+# 
 #default_advertisements: 
 #    - name: /chatter
 #      node: None
