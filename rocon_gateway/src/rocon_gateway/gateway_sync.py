@@ -61,14 +61,17 @@ class GatewaySync(object):
         self.is_connected = False
         default_rule_blacklist = ros_parameters.generateRules(self.param["default_blacklist"])
         
-        self.flipped_interface = FlippedInterface(firewall=self.param['firewall'],
-                                                  default_rule_blacklist=default_rule_blacklist, 
-                                                  default_rules=ros_parameters.generateRemoteRules(self.param["default_flips"])) 
-        self.pulled_interface = PulledInterface(  default_rule_blacklist=default_rule_blacklist,
-                                                  default_rules=ros_parameters.generateRemoteRules(self.param["default_pulls"]))
+        default_rules, all_targets = ros_parameters.generateRemoteRules(self.param["default_flips"])
+        self.flipped_interface = FlippedInterface(firewall = self.param['firewall'],
+                                                  default_rule_blacklist = default_rule_blacklist, 
+                                                  default_rules = default_rules,
+                                                  all_targets = all_targets)
+        default_rules, all_targets = ros_parameters.generateRemoteRules(self.param["default_pulls"]) 
+        self.pulled_interface = PulledInterface(  default_rule_blacklist = default_rule_blacklist,
+                                                  default_rules = default_rules,
+                                                  all_targets = all_targets)
         self.public_interface = PublicInterface(  default_rule_blacklist=default_rule_blacklist,
-                                                  default_rules=ros_parameters.generateRules(self.param['default_advertisements']))
-        
+                                                  default_rules = ros_parameters.generateRules(self.param['default_advertisements']))
         self.master = LocalMaster()
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.processRemoteGatewayFlipRequest

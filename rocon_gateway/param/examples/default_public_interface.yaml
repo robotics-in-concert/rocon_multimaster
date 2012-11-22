@@ -1,7 +1,0 @@
-pub:
-  - ['/chatter']
-  - ['/chatter2']
-sub:
-  - ['/chatter','/listener']
-srv:
-  - ['add_two_ints']

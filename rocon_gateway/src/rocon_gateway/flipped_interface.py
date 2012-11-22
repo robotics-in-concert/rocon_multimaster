@@ -27,7 +27,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
       (pubs/subs/services/actions) and rules controlling flips
       to other gateways. 
     '''
-    def __init__(self, firewall, default_rule_blacklist, default_rules):
+    def __init__(self, firewall, default_rule_blacklist, default_rules, all_targets):
         '''
           Initialises the flipped interface.
           
@@ -35,11 +35,13 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           @type Bool
           @param default_rule_blacklist : used when in flip all mode
           @type dictionary of gateway
-          @param default_rules : static rules to launch the interface with
+          @param default_rules : static rules to flip on startup
           @type gateway_msgs.msg.RemoteRule[]
+          @param all_targets : static flip all targets to flip to on startup
+          @type string[]
           
         '''
-        interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules)
+        interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules, all_targets)
 
         self.firewall = firewall 
         

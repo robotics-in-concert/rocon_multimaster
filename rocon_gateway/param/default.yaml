@@ -28,6 +28,13 @@
 # advertise_all: false
 
 ##############################################################################
+# External parameters
+##############################################################################
+
+# The default blacklist to use for flip_all/pull_all rules
+#   we include default_blacklist.yaml separately for an example 
+
+##############################################################################
 # Example static parameters - defaults for these are always empty
 ##############################################################################
 # Note that the pull_all, flip_all default rules negate any 
@@ -41,8 +48,8 @@
 #      node: None
 #      type: subscriber
 #
-# default_flips: 
-#    - gateway: pirate_gateway       # flip_all to this gateway 
+#default_flips: 
+#    - gateway: pirate_gateway       # flip_all to this gateway, blacklist is only the default_blacklist 
 #    - gateway: pirate_.*            # regex can also be used 
 #    - gateway: pirate_gateway       # flip to a specific rule to a gateway
 #      rule:  

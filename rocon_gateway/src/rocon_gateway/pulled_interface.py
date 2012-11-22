@@ -27,16 +27,18 @@ class PulledInterface(interactive_interface.InteractiveInterface):
       (pubs/subs/services/actions) and rules controlling flips
       to other gateways. 
     '''
-    def __init__(self, default_rule_blacklist, default_rules):
+    def __init__(self, default_rule_blacklist, default_rules, all_targets):
         '''
           Initialises the flipped interface.
           
           @param default_rule_blacklist : used when in flip all mode
           @type dictionary of gateway
-          @param default_rules : static rules to launch the interface with
+          @param default_rules : static rules to pull on startup
           @type gateway_msgs.msg.RemoteRule[]
+          @param all_targets : static pull all targets to pull to on startup
+          @type string[]
         '''
-        interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules)
+        interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules, all_targets)
         
         # Function aliases
         self.pulled = self.active

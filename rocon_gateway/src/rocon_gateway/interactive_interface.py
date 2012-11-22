@@ -25,12 +25,14 @@ class InteractiveInterface(object):
     '''
       Parent interface for flip and pull interfaces.
     '''
-    def __init__(self, default_rule_blacklist, default_rules):
+    def __init__(self, default_rule_blacklist, default_rules, all_targets):
         '''
-          @param default_rule_blacklist : used when in flip all mode
+          @param default_rule_blacklist : used when in flip/pull all mode
           @type dictionary of gateway
-          @param default_rules : static rules to launch the interface with
+          @param default_rules : static rules to flip/pull on startup
           @type gateway_msgs.msg.RemoteRule[]
+          @param all_targets : static flip/pull all targets to flip/pull to on startup
+          @type string[]
         '''
         # Rules that are active, ie have been flipped or pulled from remote gateways 
         # keys are connection_types, elements are lists of RemoteRule objects
@@ -55,6 +57,8 @@ class InteractiveInterface(object):
         # Load up static rules.
         for rule in default_rules:
             self.addRule(rule)
+        for gateway in all_targets:
+            self.addAll(gateway,[]) # don't add the complexity of extra blacklists yet, maybe later
         
         
     ##########################################################################
