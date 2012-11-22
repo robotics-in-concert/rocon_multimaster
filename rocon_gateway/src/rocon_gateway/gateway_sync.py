@@ -72,6 +72,8 @@ class GatewaySync(object):
                                                   all_targets = all_targets)
         self.public_interface = PublicInterface(  default_rule_blacklist=default_rule_blacklist,
                                                   default_rules = ros_parameters.generateRules(self.param['default_advertisements']))
+        if self.param['advertise_all']:
+            self.public_interface.advertiseAll([]) # no extra blacklist beyond the default (keeping it simple in yaml for now)
         self.master = LocalMaster()
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.processRemoteGatewayFlipRequest
