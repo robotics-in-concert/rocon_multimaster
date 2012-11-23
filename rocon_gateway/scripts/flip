@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+#       
+# License: BSD
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#
+
+##############################################################################
+# Imports
+##############################################################################
+
+import roslib; roslib.load_manifest('rocon_gateway')
+import rospy
+import argparse
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Flip a local connection to a remote gateway')
+    parser.add_argument('-g', '--gateway', help='name/regex of the target remote gateway')
+    parser.add_argument('-n', '--name', help='name/regex of the local connection')
+    parser.add_argument('-t', '--type', help="type of the local connection (publisher, subscriber, service, action_client, action_server, 'any'")
+    parser.add_argument('-d', '--node', help="node of the local connection (can be 'any')")
+    parser.add_argument('--cancel', action='store_true', help='cancel the flip')
+    args = parser.parse_args()
+    if args.cancel:
+        action_text = "cancelling"
+    else:
+        action_text = "flipping"
+    return args
+
+def resolve_gateways(gateway):
+    gateways = []
+    rospy.logwarn("Flip: retrieve remote gateway list from the hub")
+    if args.gateway:
+        rospy.logwarn("Flip: check that it matches an existing gateway")
+    else:
+        rospy.logwarn("Flip: requesting a gateway from the user")
+    return gateways
+
+def resolve_connections(name, type, node):
+    names = []
+    rospy.logwarn("Flip: contact ros master and build local connections database")
+    if args.name:
+        rospy.logwarn("Flip: check that it matches an existing name")
+    else:
+        rospy.logwarn("Flip: requesting a name from the user")
+    return gateways
+
+##############################################################################
+# Main
+##############################################################################
+
+if __name__ == '__main__':
+    
+    rospy.init_node('flip')
+    args = parse_arguments()
+    
+    gateways = resolve_gateways(args.gateway)
+    connections = resolve_gateways(args.gateway)
+        
+    rospy.loginfo("Flip : shutting down.")
+
