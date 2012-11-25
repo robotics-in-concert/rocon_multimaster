@@ -288,3 +288,27 @@ class LocalMaster(rosgraph.Master):
         name = roslib.names.anonymous_name(t)
         return name
 
+    
+    ##########################################################################
+    # Master utility methods for scripts
+    ##########################################################################
+
+    def findGatewayNamespace(self):
+        '''
+          Assists a script to find the (hopefully) unique gateway namespace.
+          Note that unique is a necessary condition, there should only be one
+          gateway per ros system.
+          
+          @return Namespace of the gateway node.
+          @rtype string
+        '''
+        unused_publishers, unused_subscribers, services = self.getSystemState()
+        for service in services:
+            service_name = service[0] # second part is the node name
+            if re.search(r'remote_gateway_info',service_name):
+                if service_name == '/remote_gateway_info':
+                    return "/";
+                else:
+                    return re.sub(r'/remote_gateway_info', '', service_name)
+        return None
+                        

@@ -8,16 +8,36 @@
 # Imports
 ##############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway')
-import rospy
+import sys
 import argparse
+import re
+import roslib 
+roslib.load_manifest('rocon_gateway')
+import rospy
+import rocon_gateway
+import gateway_msgs
+import rocon_gateway.console as console
+import rocon_gateway.utils as utils
 
+##############################################################################
+# Functions
+##############################################################################
+
+def print_debug(msg):
+    console.pretty_print("%s\n"%msg, console.green)
+
+def print_warning(msg):
+    console.pretty_print("%s\n"%msg, console.yellow)
+
+def print_error(msg):
+    console.pretty_print("%s\n"%msg, console.red)
+    
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Flip a local connection to a remote gateway')
-    parser.add_argument('-g', '--gateway', help='name/regex of the target remote gateway')
-    parser.add_argument('-n', '--name', help='name/regex of the local connection')
-    parser.add_argument('-t', '--type', help="type of the local connection (publisher, subscriber, service, action_client, action_server, 'any'")
-    parser.add_argument('-d', '--node', help="node of the local connection (can be 'any')")
+    parser.add_argument('-g', '--gateway', default=None, help='name/regex of the target remote gateway')
+    parser.add_argument('-n', '--name', default=None, help='name/regex of the local connection')
+    parser.add_argument('-t', '--type', default=None, help="type of the local connection (publisher, subscriber, service, action_client, action_server, 'any'")
+    parser.add_argument('-d', '--node', default=None, help="node of the local connection (can be 'any')")
     parser.add_argument('--cancel', action='store_true', help='cancel the flip')
     args = parser.parse_args()
     if args.cancel:
@@ -26,23 +46,92 @@ def parse_arguments():
         action_text = "flipping"
     return args
 
-def resolve_gateways(gateway):
-    gateways = []
-    rospy.logwarn("Flip: retrieve remote gateway list from the hub")
-    if args.gateway:
-        rospy.logwarn("Flip: check that it matches an existing gateway")
+def resolve_local_gateway():
+    console.pretty_print("Local Gateway\n",console.bold)
+    master = rocon_gateway.LocalMaster()
+    gateway_namespace = master.findGatewayNamespace()
+    if not gateway_namespace:
+        print_error("  Not found - did you start it?")
+        raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
+    print("  Namespace: %s"%gateway_namespace)
+    return gateway_namespace
+
+def resolve_remote_gateways(gateway, gateway_namespace):
+    console.pretty_print("Remote Gateway\n",console.bold)
+    '''
+      @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 
+    '''
+    remote_gateways = []
+    remote_gateway_info = rospy.ServiceProxy(gateway_namespace+'/remote_gateway_info', gateway_msgs.srv.RemoteGatewayInfo)
+    req = gateway_msgs.srv.RemoteGatewayInfoRequest()
+    req.gateways = []
+    resp = remote_gateway_info(req)
+    if len(resp.gateways) == 0:
+        print_error("  None found.")
+        raise rocon_gateway.GatewayError("Cannot proceed without a remote gateway target, aborting.")
+    if gateway:
+        for remote_gateway in resp.gateways:
+            if re.match(gateway,remote_gateway.name):
+                if remote_gateway.firewall:
+                    print_warning("  Remote gateway target matched, but it is firewalling flips [%s][%s]\n"%(gateway,remote_gateway))
+                else:
+                    remote_gateways.append(remote_gateway)
+        if not remote_gateways:
+            print_error("  No valid (matching) targets [%s]%s."%(gateway,str([remote_gateway.name for remote_gateway in resp.gateways])))
+            raise rocon_gateway.GatewayError("Cannot proceed without a valid remote gateway target")
     else:
-        rospy.logwarn("Flip: requesting a gateway from the user")
-    return gateways
+        index = 0;
+        max_index = len(resp.gateways) - 1
+        if max_index == 0:
+            print_debug("  No target gateway specified and only one visible.")
+            print_debug("  Automatically selecting %s"%resp.gateways[0].name)
+            remote_gateways.append(resp.gateways[0])
+        else:
+            print("  Select a gateway from the list below")
+            for remote_gateway in resp.gateways:
+                print("    " + str(index) + ") " + remote_gateway.name)
+                index +=1
+            chosen_index = raw_input("  Enter a value [0-%s]: "%str(max_index))
+            print_debug("  You selected %s."%resp.gateways[int(chosen_index)].name)
+            remote_gateways.append(resp.gateways[int(chosen_index)])
+    print("  Targets:")
+    for remote_gateway in remote_gateways: # This should always be populated by here, otherwise its a bug!
+        print("    %s"%remote_gateway.name)
+    return remote_gateways
 
 def resolve_connections(name, type, node):
-    names = []
-    rospy.logwarn("Flip: contact ros master and build local connections database")
-    if args.name:
-        rospy.logwarn("Flip: check that it matches an existing name")
+    console.pretty_print("Connection\n",console.bold)
+    # Connection Type
+    connection_type = None
+    if not type:
+        index = 0;
+        print("  Select a type from the list below")
+        for connection_type_string in utils.connection_type_strings_list:
+            print("    " + str(index) + ") " + connection_type_string)
+            index +=1
+        chosen_index = raw_input("  Enter a value [0-4]: ")
+        print_debug("  You selected %s."%utils.connection_types_list[int(chosen_index)])
+        connection_type = utils.connection_types_list[int(chosen_index)]
     else:
-        rospy.logwarn("Flip: requesting a name from the user")
-    return gateways
+        match = [utils.connection_types_list[index] for index, type_string in enumerate(utils.connection_type_strings_list) if type_string == type]
+        if not match:
+            print_error("  Invalid type string [%s]"%type)
+            raise rocon_gateway.GatewayError("Cannot proceed without a valid type string")
+        connection_type = match[0]
+    # Connection Name
+    master = rocon_gateway.LocalMaster()
+    connections = master.getConnectionState()[connection_type]
+    print connections
+    
+    print("  Type: %s"%connection_type)        
+    publishers, subscribers, services = master.getSystemState()
+    names = []
+    console.logwarn("contact ros master and build local connections database")
+    if args.name:
+        console.logwarn("check that it matches an existing name")
+    else:
+        console.logwarn("requesting a name from the user")
+    return names
 
 ##############################################################################
 # Main
@@ -53,8 +142,11 @@ if __name__ == '__main__':
     rospy.init_node('flip')
     args = parse_arguments()
     
-    gateways = resolve_gateways(args.gateway)
-    connections = resolve_gateways(args.gateway)
-        
-    rospy.loginfo("Flip : shutting down.")
+    try:
+        gateway_namespace = resolve_local_gateway()
+        remote_gateways = resolve_remote_gateways(args.gateway, gateway_namespace)
+    except rocon_gateway.GatewayError, unused_e:
+        print("Aborting")
+        sys.exit(1)
+    connections = resolve_connections(args.name, args.type, args.node)
 
