@@ -202,12 +202,11 @@ class LocalMaster(rosgraph.Master):
                     actions.append([base_topic, action_nodes])
                     # remove action entries from publishers/subscribers
                     for connection in pubs:
-                        if connection[0] in [base_topic + 'goal', base_topic + 'cancel']:
+                        if connection[0] in [base_topic + '/goal', base_topic + '/cancel']:
                             connection[1].remove(node)
                     for connection in subs:
-                        if connection[0] in [base_topic + 'status', base_topic + 'feedback', base_topic + 'result']:
+                        if connection[0] in [base_topic + '/status', base_topic + '/feedback', base_topic + '/result']:
                             connection[1].remove(node)
-
         pubs[:] = [connection for connection in pubs if len(connection[1]) != 0]
         subs[:] = [connection for connection in subs if len(connection[1]) != 0]
         return actions, pubs, subs
