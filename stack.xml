@@ -15,4 +15,6 @@
   <depend stack="ros_comm" /> <!-- rosgraph, rospy -->
   <depend stack="rocon_msgs" /> <!-- gateway_msgs -->
   <depend stack="zeroconf_msgs" /> <!-- zeroconf_msgs -->
+  <depend stack="common_tutorials"/> <!-- actionlib_tutorials -->
+  <depend stack="ros_tutorials"/> <!-- roscpp_tutorials -->
 </stack>
