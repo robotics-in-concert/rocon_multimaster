@@ -177,6 +177,16 @@ class LocalMaster(rosgraph.Master):
         return available
 
     def _getActions(self, pubs, subs):
+        '''
+          Return actions and pruned publisher, subscriber lists.
+          
+          @param publishers
+          @type list of publishers in the form returned by rosgraph.Master.getSystemState
+          @param subscribers
+          @type list of subscribers in the form returned by rosgraph.Master.getSystemState
+          @return list of actions, pruned_publishers, pruned_subscribers
+          @rtype [base_topic, [nodes]], as param type, as param type
+        '''
 
         actions = []
         for goal_candidate in pubs:
@@ -212,10 +222,30 @@ class LocalMaster(rosgraph.Master):
         return actions, pubs, subs
 
     def getActionServers(self, publishers, subscribers):
+        '''
+          Return action servers and pruned publisher, subscriber lists.
+          
+          @param publishers
+          @type list of publishers in the form returned by rosgraph.Master.getSystemState
+          @param subscribers
+          @type list of subscribers in the form returned by rosgraph.Master.getSystemState
+          @return list of actions, pruned_publishers, pruned_subscribers
+          @rtype [base_topic, [nodes]], as param type, as param type
+        '''
         actions, subs, pubs = self._getActions(subscribers,publishers)
         return actions, pubs, subs
 
     def getActionClients(self, publishers, subscribers):
+        '''
+          Return action clients and pruned publisher, subscriber lists.
+          
+          @param publishers
+          @type list of publishers in the form returned by rosgraph.Master.getSystemState
+          @param subscribers
+          @type list of subscribers in the form returned by rosgraph.Master.getSystemState
+          @return list of actions, pruned_publishers, pruned_subscribers
+          @rtype [base_topic, [nodes]], as param type, as param type
+        '''
         actions, pubs, subs = self._getActions(publishers,subscribers)
         return actions, pubs, subs
 

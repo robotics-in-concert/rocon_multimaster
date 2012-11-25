@@ -389,14 +389,20 @@ class GatewaySync(object):
           @type string
         '''
         new_flips, lost_flips = self.flipped_interface.update(connections, gateways)
-        # new_flips and lost_flips are RemoteRule lists with filled supplied name info from the master
         for connection_type in connections:
             for flip in new_flips[connection_type]:
+                # for actions, need to post flip details here
                 connections = self.master.generateConnectionDetails(flip.rule.type, flip.rule.name, flip.rule.node)
-                for connection in connections:
-                    rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
-                    self.hub.sendFlipRequest(flip.gateway, connection)
-                    self.hub.postFlipDetails(flip.gateway, connection.rule.name, connection.rule.type, connection.rule.node)
+                if connection_type == utils.ConnectionType.ACTION_CLIENT or connection_type == utils.ConnectionType.ACTION_SERVER:
+                    rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
+                    self.hub.postFlipDetails(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                    for connection in connections:
+                        self.hub.sendFlipRequest(flip.gateway, connection) # flip the individual pubs/subs
+                else:
+                    for connection in connections:
+                        rospy.loginfo("Flipping to %s : %s"%(flip.gateway,utils.formatRule(connection.rule)))
+                        self.hub.sendFlipRequest(flip.gateway, connection)
+                        self.hub.postFlipDetails(flip.gateway, connection.rule.name, connection.rule.type, connection.rule.node)
             for flip in lost_flips[connection_type]:
                 rospy.loginfo("Unflipping to %s : %s"%(flip.gateway,utils.formatRule(flip.rule)))
                 self.hub.sendUnflipRequest(flip.gateway, flip.rule)
