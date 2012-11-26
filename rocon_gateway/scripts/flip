@@ -19,45 +19,55 @@ import gateway_msgs
 import rocon_gateway.console as console
 import rocon_gateway.utils as utils
 
+class Flags(object):
+    flip = 'flip'
+    unflip = 'unflip'
+    
+##############################################################################
+# Logging
+##############################################################################
+
+class Logger(object):
+    def __init(self):
+        self.debug_flag = False
+        
+    def debug(self,msg):
+        if self.debug_flag:
+            console.pretty_print("%s\n"%msg, console.green)
+    
+    def green(self,msg):
+        console.pretty_print("%s\n"%msg, console.green)
+    
+    def warning(self,msg):
+        console.pretty_print("%s\n"%msg, console.yellow)
+    
+    def error(self,msg):
+        console.pretty_print("%s\n"%msg, console.red)
+
+logger = Logger()
+
 ##############################################################################
 # Functions
 ##############################################################################
-
-def print_debug(msg):
-    console.pretty_print("%s\n"%msg, console.green)
-
-def print_warning(msg):
-    console.pretty_print("%s\n"%msg, console.yellow)
-
-def print_error(msg):
-    console.pretty_print("%s\n"%msg, console.red)
     
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Flip a local connection to a remote gateway')
-    parser.add_argument('-g', '--gateway', default=None, help='name/regex of the target remote gateway')
-    parser.add_argument('-n', '--name', default=None, help='name/regex of the local connection')
-    parser.add_argument('-t', '--type', default=None, help="type of the local connection (publisher, subscriber, service, action_client, action_server, 'any'")
-    parser.add_argument('-d', '--node', default=None, help="node of the local connection (can be 'any')")
-    parser.add_argument('--cancel', action='store_true', help='cancel the flip')
+    parser.add_argument('-d', '--debug', action='store_true', help='print debugging information')
     args = parser.parse_args()
-    if args.cancel:
-        action_text = "cancelling"
-    else:
-        action_text = "flipping"
+    logger.debug_flag = args.debug
     return args
 
 def resolve_local_gateway():
-    console.pretty_print("Local Gateway\n",console.bold)
     master = rocon_gateway.LocalMaster()
     gateway_namespace = master.findGatewayNamespace()
     if not gateway_namespace:
-        print_error("  Not found - did you start it?")
+        logger.error("Could not find a local gateway - did you start it?")
         raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
-    print("  Namespace: %s"%gateway_namespace)
+    logger.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
 
-def resolve_remote_gateways(gateway, gateway_namespace):
-    console.pretty_print("Remote Gateway\n",console.bold)
+   
+def resolve_remote_gateways(gateway_namespace):
     '''
       @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 
     '''
@@ -67,105 +77,116 @@ def resolve_remote_gateways(gateway, gateway_namespace):
     req.gateways = []
     resp = remote_gateway_info(req)
     if len(resp.gateways) == 0:
-        print_error("  None found.")
-        raise rocon_gateway.GatewayError("Cannot proceed without a remote gateway target, aborting.")
-    if gateway:
-        for remote_gateway in resp.gateways:
-            if re.match(gateway,remote_gateway.name):
-                if remote_gateway.firewall:
-                    print_warning("  Remote gateway target matched, but it is firewalling flips [%s][%s]\n"%(gateway,remote_gateway))
-                else:
-                    remote_gateways.append(remote_gateway.name)
-        if not remote_gateways:
-            print_error("  No valid (matching) targets [%s]%s."%(gateway,str([remote_gateway.name for remote_gateway in resp.gateways])))
-            raise rocon_gateway.GatewayError("Cannot proceed without a valid remote gateway target")
+        raise rocon_gateway.GatewayError("No remote gateways to flip/unflip to, aborting.")
+    index = 0;
+    max_index = len(resp.gateways) - 1
+    if max_index == 0:
+        logger.debug("Automatically selecting target gateway %s (only one visible)"%resp.gateways[0].name)
+        remote_gateways.append(resp.gateways[0].name)
     else:
-        index = 0;
-        max_index = len(resp.gateways) - 1
-        if max_index == 0:
-            print_debug("  Automatically selecting %s (only one visible)"%resp.gateways[0].name)
-            remote_gateways.append(resp.gateways[0].name)
-        else:
-            print("  Select a gateway from the list below")
+        print("Select a target gateway:")
+        for remote_gateway in resp.gateways:
+            print("    " + str(index) + ") " + remote_gateway.name)
+            index +=1
+        input_response = raw_input("Enter [0-%s] or regex [e.g. pir.* or .*]: "%str(max_index))
+        try:
+            index = int(input_response)
+            remote_gateways.append(resp.gateways[index].name)
+        except ValueError, e: # It's a regex
             for remote_gateway in resp.gateways:
-                print("    " + str(index) + ") " + remote_gateway.name)
-                index +=1
-            chosen_index = raw_input("  Enter a value [0-%s]: "%str(max_index))
-            remote_gateways.append(resp.gateways[int(chosen_index)].name)
-    print("  Targets:")
-    for remote_gateway in remote_gateways: # This should always be populated by here, otherwise its a bug!
-        print("    %s"%remote_gateway)
+                if re.match(input_response, remote_gateway.name):
+                    remote_gateways.append(remote_gateway.name)
     return remote_gateways
 
-def resolve_connections(name, type, node):
-    console.pretty_print("Connections\n",console.bold)
-    # Connection Type
-    connection_type = None
-    if not type:
-        index = 0;
-        print("  Select a type from the list below")
-        for connection_type_string in utils.connection_type_strings_list:
-            print("    " + str(index) + ") " + connection_type_string)
-            index +=1
-        chosen_index = raw_input("  Enter a value [0-4]: ")
-        connection_type = utils.connection_types_list[int(chosen_index)]
+def resolve_flags():
+    '''
+      Currently only flip/unflip flag
+    '''
+    response = raw_input("> Flip or unflip connections (f/u): ")
+    while response != 'f' and response != 'u':
+        response = raw_input("> Valid options are (f/u): ")
+    if response == 'f':
+        return Flags.flip
     else:
-        match = [utils.connection_types_list[index] for index, type_string in enumerate(utils.connection_type_strings_list) if type_string == type]
-        if not match:
-            print_error("  Invalid type string [%s]"%type)
-            raise rocon_gateway.GatewayError("Cannot proceed without a valid type string")
-        connection_type = match[0]
-    # Connections
-    master = rocon_gateway.LocalMaster()
-    connections = master.getConnectionState()[connection_type]
-    if len(connections) == 0:
-        print_error("  No local %s connections found."%connection_type)
-        raise rocon_gateway.GatewayError("Cannot proceed without a remote gateway target, aborting.")
-    rules = []
-    if name:
-        for connection in connections:
-            if re.match(name, connection.rule.name):
-                if (node and (node == connection.rule.node)) or not node:
-                    rules.append(connection.rule)
-    else:
-        index = 0;
-        max_index = len(connections) - 1
-        if max_index == 0:
-            print_debug("  Automatically selecting %s (only one available)"%connections[0].rule.name)
-            rules.append(connections[0].rule)
-        else:
-            print("  Select a type from the list below")
-            for connection in connections:
-                print("    " + str(index) + ") " + connection.rule.name + "-" + connection.rule.node)
-                index +=1
-            chosen_index = raw_input("  Enter a value [0-%s]: "%str(max_index))
-            rules.append(connections[int(chosen_index)].rule)
-    for rule in rules:
-        print("  Connection:")
-        print("    Name: %s"%rule.name)
-        print("    Type: %s"%rule.type)
-        print("    Node: %s"%rule.node)
-        
-    return rules
+        return Flags.unflip 
 
-def flip_rules(gateway_namespace, remote_gateways, rules, cancel_flag):
-    console.pretty_print("Flip Interface\n",console.bold)
+def resolve_flipped_interface(gateway_namespace):
+    gateway_info = rospy.ServiceProxy(gateway_namespace+'/gateway_info', gateway_msgs.srv.GatewayInfo)
+    req = gateway_msgs.srv.GatewayInfoRequest()
+    resp = gateway_info(req)
+    if len(resp.flipped_connections) == 0:
+        raise rocon_gateway.GatewayError("No flipped connections to unflip, aborting.")
+    index = 0;
+    max_index = len(resp.flipped_connections) - 1
+    unflips = []
+    if max_index == 0:
+        logger.debug("Automatically selecting %s (only one visible)"%resp.flipped_connections.rule.name)
+        unflips.append(resp.flipped_connections.rule)
+    else:
+        print("Select a connection to unflip (gateway-name-type-node):")
+        for connection in resp.flipped_connections:
+            print("    " + str(index) + ") "),
+            console.pretty_print(connection.gateway,console.red)
+            print("-"),
+            console.pretty_print(connection.rule.name,console.green)
+            print("-"),
+            console.pretty_print(connection.rule.type,console.cyan)
+            print("-"),
+            console.pretty_print(connection.rule.node+"\n",console.yellow)
+            index +=1
+        input_response = raw_input("Enter [0-%s] or regex keyed by name [e.g. /cha.* or .*]: "%str(max_index))
+        try:
+            index = int(input_response)
+            unflips.append(resp.flipped_connections[index])
+        except ValueError, e: # It's a regex
+            for connection in resp.flipped_connections:
+                if re.match(input_response, connection.rule.name):
+                     unflips.append(connection)
+    return unflips
+
+def resolve_connections(remote_gateways):
+    master = rocon_gateway.LocalMaster()
+    connection_dictionary = master.getConnectionState()
+    connections = []
+    for connection_type in connection_dictionary:
+        connections.extend(connection_dictionary[connection_type])
+    # TODO prune topics that are already flipped to target gateways here 
+    # should never get zero connections in a ros system, don't check
+    rules = []
+    index = 0;
+    max_index = len(connections) - 1
+    flips = []
+    print("Select a connection to flip (name-type-node):")
+    for connection in connections:
+        print("    " + str(index) + ") "),
+        console.pretty_print(connection.rule.name,console.green)
+        print("-"),
+        console.pretty_print(connection.rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(connection.rule.node+"\n",console.yellow)
+        index +=1
+    input_response = raw_input("Enter [0-%s] or regex keyed by name [e.g. /cha.* or .*]: "%str(max_index))
+    try:
+        index = int(input_response)
+        for remote_gateway in remote_gateways:
+            flips.append(gateway_msgs.msg.RemoteRule(remote_gateway,connections[index].rule))
+    except ValueError, e: # It's a regex
+        for connection in connections:
+            if re.match(input_response, connection.rule.name):
+                 for remote_gateway in remote_gateways:
+                     flips.append(gateway_msgs.msg.RemoteRule(remote_gateway,connection.rule))
+    return flips
+
+def flip_rules(gateway_namespace, remote_rules, flag):
+    print gateway_namespace
     flip_service = rospy.ServiceProxy(gateway_namespace+'/flip',gateway_msgs.srv.Remote)
-    for remote_gateway in remote_gateways:
-        req = gateway_msgs.srv.RemoteRequest()
-        for rule in rules:
-            req.cancel = cancel_flag
-            # check that it isn't already flipped, or not there to be cancelled
-            req.remotes.append(gateway_msgs.msg.RemoteRule(remote_gateway,rule))
-        print("  Flip Request:")
-        print("    Gateway : %s"%remote_gateway)
-        print("    Cancel: %s"%cancel_flag)
-        for rule in rules:
-            print("      Rule : [%s,%s,%s]"%(rule.name,rule.type,rule.node))
-        confirm = raw_input("  Confirm (y/n): ")
-        if confirm == 'y':
-            console.pretty_print("    Flip request sent!\n", console.magenta)
-            resp = flip_service(req)
+    rospy.sleep(0.5)
+    req = gateway_msgs.srv.RemoteRequest()
+    for remote_rule in remote_rules:
+        req.cancel = True if flag == Flags.unflip else False
+        req.remotes.append(remote_rule)
+        print req
+        resp = flip_service(req)
 
 ##############################################################################
 # Main
@@ -177,13 +198,38 @@ if __name__ == '__main__':
     args = parse_arguments()
     gateway_namespace = None
     remote_gateways = None
+    flag = None
+    remote_rules = None
     
     try:
         gateway_namespace = resolve_local_gateway()
-        remote_gateways = resolve_remote_gateways(args.gateway, gateway_namespace)
-    except rocon_gateway.GatewayError, unused_e:
-        print("Aborting")
+        flag = resolve_flags()
+        if flag == Flags.unflip:
+            remote_rules = resolve_flipped_interface(gateway_namespace)
+        else:
+            remote_gateways = resolve_remote_gateways(gateway_namespace)
+            remote_rules = resolve_connections(remote_gateways)
+    except rocon_gateway.GatewayError, e:
+        logger.error(str(e))
         sys.exit(1)
-    rules = resolve_connections(args.name, args.type, args.node)
-    flip_rules(gateway_namespace, remote_gateways, rules, args.cancel)
-
+    console.pretty_print("Flip Information\n",console.bold)
+    print("  Local Gateway: %s"%gateway_namespace)
+    print("  Operation    : %s"%flag)
+    first_rule = True
+    print("  Flip Rules   : "),
+    for rule in remote_rules:
+        if first_rule:
+            first_rule = False
+        else:
+            print("               : "),
+        console.pretty_print(rule.gateway,console.red)
+        print("-"),
+        console.pretty_print(rule.rule.name,console.green)
+        print("-"),
+        console.pretty_print(rule.rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(rule.rule.node+"\n",console.yellow)
+    proceed = raw_input("Proceed? (y/n): ")
+    if proceed == 'y':
+        flip_rules(gateway_namespace, remote_rules, flag)
+    rospy.sleep(1)
