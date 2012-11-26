@@ -21,7 +21,7 @@ import rocon_gateway.utils as utils
 
 class Flags(object):
     flip = 'flip'
-    unflip = 'unflip'
+    cancel = 'cancel'
     
 ##############################################################################
 # Logging
@@ -100,31 +100,33 @@ def resolve_remote_gateways(gateway_namespace):
 
 def resolve_flags():
     '''
-      Currently only flip/unflip flag
+      Currently only flip/cancel flag
     '''
-    response = raw_input("> Flip or unflip connections (f/u): ")
+    response = raw_input("> Flip or cancel connections (f/u): ")
     while response != 'f' and response != 'u':
         response = raw_input("> Valid options are (f/u): ")
     if response == 'f':
         return Flags.flip
     else:
-        return Flags.unflip 
+        return Flags.cancel 
 
 def resolve_flipped_interface(gateway_namespace):
     gateway_info = rospy.ServiceProxy(gateway_namespace+'/gateway_info', gateway_msgs.srv.GatewayInfo)
     req = gateway_msgs.srv.GatewayInfoRequest()
     resp = gateway_info(req)
-    if len(resp.flipped_connections) == 0:
-        raise rocon_gateway.GatewayError("No flipped connections to unflip, aborting.")
+    if len(resp.flip_watchlist) == 0:
+        raise rocon_gateway.GatewayError("No flip rules to cancel, aborting.")
     index = 0;
-    max_index = len(resp.flipped_connections) - 1
+    max_index = len(resp.flip_watchlist) - 1
     unflips = []
     if max_index == 0:
-        logger.debug("Automatically selecting %s (only one visible)"%resp.flipped_connections.rule.name)
-        unflips.append(resp.flipped_connections.rule)
+        logger.debug("Automatically selecting %s (only one visible)"%resp.flip_watchlist.rule.name)
+        unflips.append(resp.flip_watchlist.rule)
     else:
-        print("Select a connection to unflip (gateway-name-type-node):")
-        for connection in resp.flipped_connections:
+        print("Select a flip rule to cancel (gateway-name-type-node):")
+        for connection in resp.flip_watchlist:
+            if connection.rule.node == "None":
+                connection.rule.node = r'.*' 
             print("    " + str(index) + ") "),
             console.pretty_print(connection.gateway,console.red)
             print("-"),
@@ -134,14 +136,9 @@ def resolve_flipped_interface(gateway_namespace):
             print("-"),
             console.pretty_print(connection.rule.node+"\n",console.yellow)
             index +=1
-        input_response = raw_input("Enter [0-%s] or regex keyed by name [e.g. /cha.* or .*]: "%str(max_index))
-        try:
-            index = int(input_response)
-            unflips.append(resp.flipped_connections[index])
-        except ValueError, e: # It's a regex
-            for connection in resp.flipped_connections:
-                if re.match(input_response, connection.rule.name):
-                     unflips.append(connection)
+        input_response = raw_input("Enter [0-%s]: "%str(max_index))
+        index = int(input_response)
+        unflips.append(resp.flip_watchlist[index])
     return unflips
 
 def resolve_connections(remote_gateways):
@@ -180,12 +177,12 @@ def resolve_connections(remote_gateways):
 def flip_rules(gateway_namespace, remote_rules, flag):
     print gateway_namespace
     flip_service = rospy.ServiceProxy(gateway_namespace+'/flip',gateway_msgs.srv.Remote)
-    rospy.sleep(0.5)
     req = gateway_msgs.srv.RemoteRequest()
     for remote_rule in remote_rules:
-        req.cancel = True if flag == Flags.unflip else False
+        req.cancel = True if flag == Flags.cancel else False
+        if remote_rule.rule.node == r'.*': # ugly hack
+            remote_rule.rule.node = '' 
         req.remotes.append(remote_rule)
-        print req
         resp = flip_service(req)
 
 ##############################################################################
@@ -204,7 +201,7 @@ if __name__ == '__main__':
     try:
         gateway_namespace = resolve_local_gateway()
         flag = resolve_flags()
-        if flag == Flags.unflip:
+        if flag == Flags.cancel:
             remote_rules = resolve_flipped_interface(gateway_namespace)
         else:
             remote_gateways = resolve_remote_gateways(gateway_namespace)

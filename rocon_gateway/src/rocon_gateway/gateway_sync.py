@@ -193,6 +193,7 @@ class GatewaySync(object):
           @return service response
           @rtype gateway_msgs.srv.RemoteResponse
         '''
+        print request
         response = gateway_msgs.srv.RemoteResponse()
         for remote in request.remotes:
             response.result, response.error_message = self._rosServiceFlipChecks(remote.gateway)
