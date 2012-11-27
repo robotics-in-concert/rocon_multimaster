@@ -1,0 +1,179 @@
+#!/usr/bin/env python
+#       
+# License: BSD
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#
+
+##############################################################################
+# Imports
+##############################################################################
+
+import sys
+import argparse
+import re
+import roslib 
+roslib.load_manifest('rocon_gateway')
+import rospy
+import rocon_gateway
+import gateway_msgs
+import rocon_gateway.console as console
+import rocon_gateway.utils as utils
+
+##############################################################################
+# Logging
+##############################################################################
+
+class Logger(object):
+        
+    def debug(self,msg):
+        console.pretty_print("%s\n"%msg, console.green)
+    
+    def warning(self,msg):
+        console.pretty_print("%s\n"%msg, console.yellow)
+    
+    def error(self,msg):
+        console.pretty_print("%s\n"%msg, console.red)
+
+logger = Logger()
+
+##############################################################################
+# Functions
+##############################################################################
+    
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Prettifies remote gateway info')
+    args = parser.parse_args()
+    return args
+
+def resolve_local_gateway():
+    master = rocon_gateway.LocalMaster()
+    gateway_namespace = master.findGatewayNamespace()
+    if not gateway_namespace:
+        logger.error("Could not find a local gateway - did you start it?")
+        raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
+    logger.debug("Found a local gateway at %s"%gateway_namespace)
+    return gateway_namespace
+   
+def resolve_gateway_info(gateway_namespace):
+    '''
+      @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 
+    '''
+    gateway_info = rospy.ServiceProxy(gateway_namespace+'/gateway_info', gateway_msgs.srv.GatewayInfo)
+    req = gateway_msgs.srv.GatewayInfoRequest()
+    resp = gateway_info(req)
+    return resp
+
+##############################################################################
+# Main
+##############################################################################
+
+if __name__ == '__main__':
+    
+    rospy.init_node('pull')
+    args = parse_arguments()
+    gateway_namespace = None
+    gateway_info = None
+    
+    try:
+        gateway_namespace = resolve_local_gateway()
+        gateway = resolve_gateway_info(gateway_namespace)
+    except rocon_gateway.GatewayError, e:
+        logger.error(str(e))
+        sys.exit(1)
+    console.pretty_print("Gateway\n", console.bold)
+    print("  Namespace: %s"%gateway_namespace)
+    print("  Name     : %s"%gateway.name)
+    print("  Connected: %s"%gateway.connected)
+    print("  On Hub   : %s"%gateway.hub_name)
+    print("  Firewall : %s"%gateway.firewall)
+
+    print("  Public Watchlist")
+    if len(gateway.public_watchlist) == 0:
+        print("       : -")
+    for rule in gateway.public_watchlist:
+        print("       : "),
+        console.pretty_print(rule.name,console.green)
+        print("-"),
+        console.pretty_print(rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(rule.node+"\n",console.yellow)
+
+    print("  Public Interface")
+    if len(gateway.public_interface) == 0:
+        print("       : -")
+    for rule in gateway.public_interface:
+        print("       : "),
+        console.pretty_print(rule.name,console.green)
+        print("-"),
+        console.pretty_print(rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(rule.node+"\n",console.yellow)
+
+    print("  Flip Watchlist")
+    if len(gateway.flip_watchlist) == 0:
+        print("       : -")
+    for remote_rule in gateway.flip_watchlist:
+        if remote_rule.rule.node == 'None':
+            remote_rule.rule.node = '.*'
+        print("       : "),
+        console.pretty_print(remote_rule.gateway,console.red)
+        print("-"),
+        console.pretty_print(remote_rule.rule.name,console.green)
+        print("-"),
+        console.pretty_print(remote_rule.rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(remote_rule.rule.node+"\n",console.yellow)
+
+    print("  Flipped Connections")
+    if len(gateway.flipped_connections) == 0:
+        print("       : -")
+    for remote_rule in gateway.flipped_connections:
+        print("       : "),
+        console.pretty_print(remote_rule.gateway,console.red)
+        print("-"),
+        console.pretty_print(remote_rule.rule.name,console.green)
+        print("-"),
+        console.pretty_print(remote_rule.rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(remote_rule.rule.node+"\n",console.yellow)
+
+    print("  Flipped in Connections")
+    if len(gateway.flipped_in_connections) == 0:
+        print("       : -")
+    for remote_rule in gateway.flipped_connections:
+        print("       : "),
+        console.pretty_print(remote_rule.gateway,console.red)
+        print("-"),
+        console.pretty_print(remote_rule.rule.name,console.green)
+        print("-"),
+        console.pretty_print(remote_rule.rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(remote_rule.rule.node+"\n",console.yellow)
+
+    print("  Pull Watchlist")
+    if len(gateway.pull_watchlist) == 0:
+        print("       : -")
+    for remote_rule in gateway.pull_watchlist:
+        if remote_rule.rule.node == 'None':
+            remote_rule.rule.node = '.*'
+        print("       : "),
+        console.pretty_print(remote_rule.gateway,console.red)
+        print("-"),
+        console.pretty_print(remote_rule.rule.name,console.green)
+        print("-"),
+        console.pretty_print(remote_rule.rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(remote_rule.rule.node+"\n",console.yellow)
+
+    print("  Pulled Connections")
+    if len(gateway.pulled_connections) == 0:
+        print("       : -")
+    for remote_rule in gateway.pulled_connections:
+        print("       : "),
+        console.pretty_print(remote_rule.gateway,console.red)
+        print("-"),
+        console.pretty_print(remote_rule.rule.name,console.green)
+        print("-"),
+        console.pretty_print(remote_rule.rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(remote_rule.rule.node+"\n",console.yellow)
