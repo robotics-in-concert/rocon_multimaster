@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_demos/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tutorials/LICENSE 
 #
 
-import roslib; roslib.load_manifest('rocon_gateway_demos')
+import roslib; roslib.load_manifest('rocon_gateway_tutorials')
 import rospy
 import rocon_gateway
-import rocon_gateway_demos
+import rocon_gateway_tutorials
 from gateway_msgs.msg import *
 from gateway_msgs.srv import *
 import argparse
@@ -17,11 +17,11 @@ import sys
   Tests a single flip rule.
   
   Usage:
-    1 > roslaunch rocon_gateway_demos pirate_hub.launch
-    2a> roslaunch rocon_gateway_demos pirate_gateway_tutorials.launch
-    3a> roslaunch rocon_gateway_demos pirate_gateway.launch
-    2b> rosrun rocon_gateway_demos flip_all.py
-    2c> rosrun rocon_gateway_demos flip_all.py --cancel
+    1 > roslaunch rocon_gateway_tutorials pirate_hub.launch
+    2a> roslaunch rocon_gateway_tutorials pirate_gateway_tutorials.launch
+    3a> roslaunch rocon_gateway_tutorials pirate_gateway.launch
+    2b> rosrun rocon_gateway_tutorials flip_all.py
+    2c> rosrun rocon_gateway_tutorials flip_all.py --cancel
 """
 
 if __name__ == '__main__':
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     rospy.init_node('flip_all')
 
     try:
-        gateway = rocon_gateway_demos.findFirstRemoteGateway()
+        gateway = rocon_gateway_tutorials.findFirstRemoteGateway()
     except rocon_gateway.GatewayError as e:
         rospy.logerr("Flip Test : %s, aborting."%(str(e)))
         sys.exit(1)

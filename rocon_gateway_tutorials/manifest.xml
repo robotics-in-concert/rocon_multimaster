@@ -1,6 +1,6 @@
 <package>
   <catkin/>
-  <description brief="collection of gateway demos">
+  <description brief="collection of gateway tutorials">
 
      Collection of gateway demos illustrating usage of the gateway model.
 
@@ -8,7 +8,7 @@
   <author>Daniel Stonier</author>
   <license>BSD</license>
   <review status="experimental" notes=""/>
-  <url>http://ros.org/wiki/rocon_gateway_demos</url>
+  <url>http://ros.org/wiki/rocon_gateway_tutorials</url>
   <depend package="rocon_gateway_hub"/>
   <depend package="rocon_gateway"/>
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_demos/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tutorials/LICENSE 
 #
 
 __author__ = "Daniel Stonier, Jihoon Lee, Piyush Khandelwal"

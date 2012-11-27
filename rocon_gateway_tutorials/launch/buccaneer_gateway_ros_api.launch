@@ -1,16 +1,13 @@
 <!--
-  Works with rocon_gateway_demos/buccaneer_hub.launch 
-  on the same machine (different ROS_MASTER_URI). 
+  Works with rocon_gateway_tutorials/buccaneer_hub.launch. 
   
-  This one has no auto-discovery mode. Instead it uses direct
-  configuration with the typical default settings for a local ubuntu 
-  redis server from the parameter server.
+  This one does not use zeroconf to assist with discovery of the hub. 
+  Use the /gateway/connect_hub service to provide a uri for connection.
 -->
 <launch>
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
-    <rosparam param="hub_uri">http://localhost:6380</rosparam>
     <rosparam param="name">buccaneer_gateway</rosparam>
   </node>
 </launch>

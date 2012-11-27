@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tests/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tutorials/LICENSE 
 #
 
 ##############################################################################
 # Imports
 ##############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway_demos')
+import roslib; roslib.load_manifest('rocon_gateway_tutorials')
 import rospy
 import rocon_gateway
 from gateway_msgs.srv import *

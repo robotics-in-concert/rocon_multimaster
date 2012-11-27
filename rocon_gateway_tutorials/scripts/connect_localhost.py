@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_demos/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tutorials/LICENSE 
 #
 
-import roslib; roslib.load_manifest('rocon_gateway_demos')
+import roslib; roslib.load_manifest('rocon_gateway_tutorials')
 import rospy
 import gateway_msgs.srv
 from gateway_msgs.srv import ConnectHub
@@ -15,9 +15,9 @@ import argparse
   a gateway to a hub.
   
   Usage:
-    1 > roslaunch rocon_gateway_demos buccaneer_hub.launch
-    2a> roslaunch rocon_gateway_demos buccaneer_gateway_ros_api.launch
-    2b> rosrun rocon_gateway_demos connect_localhost.py
+    1 > roslaunch rocon_gateway_tutorials buccaneer_hub.launch
+    2a> roslaunch rocon_gateway_tutorials buccaneer_gateway_ros_api.launch
+    2b> rosrun rocon_gateway_tutorials connect_localhost.py
 """
 
 if __name__ == '__main__':

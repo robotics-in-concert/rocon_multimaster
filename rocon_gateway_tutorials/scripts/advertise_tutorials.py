@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_demos/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tutorials/LICENSE 
 #
 ##############################################################################
 # Imports
 ##############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway_demos')
+import roslib; roslib.load_manifest('rocon_gateway_tutorials')
 import rospy
 import rocon_gateway
-import rocon_gateway_demos
+import rocon_gateway_tutorials
 from gateway_msgs.msg import *
 from gateway_msgs.srv import *
 import argparse
@@ -30,7 +30,7 @@ class Context(object):
         self.req = AdvertiseRequest() 
         self.req.cancel = cancel_flag
         self.rule = Rule()
-        self.names, self.nodes = rocon_gateway_demos.createTutorialDictionaries(regex)
+        self.names, self.nodes = rocon_gateway_tutorials.createTutorialDictionaries(regex)
         
     def advertise(self, type):
         self.req.rules = []
@@ -51,15 +51,15 @@ class Context(object):
   Tests advertisements, either for all tutorials (default) or one by one (via args).
   
   Usage:
-    1 > roslaunch rocon_gateway_demos pirate_hub.launch
-    2a> roslaunch rocon_gateway_demos pirate_gateway_tutorials.launch
-    3a> roslaunch rocon_gateway_demos pirate_gateway.launch
-    2b> rosrun rocon_gateway_demos advertise_tutorials.py
+    1 > roslaunch rocon_gateway_tutorials pirate_hub.launch
+    2a> roslaunch rocon_gateway_tutorials pirate_gateway_tutorials.launch
+    3a> roslaunch rocon_gateway_tutorials pirate_gateway.launch
+    2b> rosrun rocon_gateway_tutorials advertise_tutorials.py
     2c> rosservice call /gateway/gateway_info
     3b> rosservice call /gateway/remote_gateway_info []
-    2d> rosrun rocon_gateway_demos advertise_tutorials.py --cancel
-    2e> rosrun rocon_gateway_demos advertise_tutorials.py --regex
-    2f> rosrun rocon_gateway_demos advertise_tutorials.py --regex --cancel
+    2d> rosrun rocon_gateway_tutorials advertise_tutorials.py --cancel
+    2e> rosrun rocon_gateway_tutorials advertise_tutorials.py --regex
+    2f> rosrun rocon_gateway_tutorials advertise_tutorials.py --regex --cancel
 """
 
 if __name__ == '__main__':
