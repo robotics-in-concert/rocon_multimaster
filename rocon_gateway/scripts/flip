@@ -51,7 +51,7 @@ logger = Logger()
 ##############################################################################
     
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Flip a local connection to a remote gateway')
+    parser = argparse.ArgumentParser(description='Interactive tool for flipping a local connection to a remote gateway')
     parser.add_argument('-d', '--debug', action='store_true', help='print debugging information')
     args = parser.parse_args()
     logger.debug_flag = args.debug
@@ -202,7 +202,6 @@ def resolve_connections(gateway_namespace, remote_gateways, flipped_connections)
     return flips
 
 def flip_rules(gateway_namespace, remote_rules, flag):
-    print gateway_namespace
     flip_service = rospy.ServiceProxy(gateway_namespace+'/flip',gateway_msgs.srv.Remote)
     req = gateway_msgs.srv.RemoteRequest()
     for remote_rule in remote_rules:

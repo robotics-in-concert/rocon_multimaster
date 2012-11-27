@@ -1,0 +1,213 @@
+#!/usr/bin/env python
+#       
+# License: BSD
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#
+
+##############################################################################
+# Imports
+##############################################################################
+
+import sys
+import argparse
+import re
+import roslib 
+roslib.load_manifest('rocon_gateway')
+import rospy
+import rocon_gateway
+import gateway_msgs
+import rocon_gateway.console as console
+import rocon_gateway.utils as utils
+
+class Flags(object):
+    advertise = 'advertise'
+    cancel = 'cancel'
+    
+##############################################################################
+# Logging
+##############################################################################
+
+class Logger(object):
+    def __init(self):
+        self.debug_flag = False
+        
+    def debug(self,msg):
+        if self.debug_flag:
+            console.pretty_print("%s\n"%msg, console.green)
+    
+    def green(self,msg):
+        console.pretty_print("%s\n"%msg, console.green)
+    
+    def warning(self,msg):
+        console.pretty_print("%s\n"%msg, console.yellow)
+    
+    def error(self,msg):
+        console.pretty_print("%s\n"%msg, console.red)
+
+logger = Logger()
+
+##############################################################################
+# Functions
+##############################################################################
+    
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Interactive tool for advertising local connections')
+    parser.add_argument('-d', '--debug', action='store_true', help='print debugging information')
+    args = parser.parse_args()
+    logger.debug_flag = args.debug
+    return args
+
+def resolve_local_gateway():
+    master = rocon_gateway.LocalMaster()
+    gateway_namespace = master.findGatewayNamespace()
+    if not gateway_namespace:
+        logger.error("Could not find a local gateway - did you start it?")
+        raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
+    logger.debug("Found a local gateway at %s"%gateway_namespace)
+    return gateway_namespace
+
+def resolve_flags():
+    '''
+      Currently only advertise/cancel flag
+    '''
+    response = raw_input("> Advertise or cancel advertisements (a/c): ")
+    while response != 'a' and response != 'c':
+        response = raw_input("> Valid options are (a/c): ")
+    if response == 'a':
+        return Flags.advertise
+    else:
+        return Flags.cancel 
+
+def resolve_public_interface(gateway_namespace):
+    gateway_info = rospy.ServiceProxy(gateway_namespace+'/gateway_info', gateway_msgs.srv.GatewayInfo)
+    req = gateway_msgs.srv.GatewayInfoRequest()
+    resp = gateway_info(req)
+    return resp.public_interface, resp.public_watchlist
+
+def resolve_unadvertise(advertise_watchlist):
+    if len(advertise_watchlist) == 0:
+        raise rocon_gateway.GatewayError("No advertisements to cancel, aborting.")
+    index = 0;
+    max_index = len(advertise_watchlist) - 1
+    unadvertisements = []
+    if max_index == 0:
+        logger.debug("Automatically selecting %s (only one visible)"%advertise_watchlist.rule.name)
+        unflips.append(advertise_watchlist.rule)
+    else:
+        print("Select an advertisement to cancel (gateway-name-type-node):")
+        for watch_rule in advertise_watchlist:
+            if watch_rule.node == "None" or watch_rule.node == '':
+                watch_rule.node = r'.*' 
+            print("    " + str(index) + ") "),
+            console.pretty_print(watch_rule.name,console.green)
+            print("-"),
+            console.pretty_print(watch_rule.type,console.cyan)
+            print("-"),
+            console.pretty_print(watch_rule.node+"\n",console.yellow)
+            index +=1
+        input_response = raw_input("Enter [0-%s]: "%str(max_index))
+        index = int(input_response)
+        unadvertisements.append(advertise_watchlist[index])
+    return unadvertisements
+
+def is_in_advertised_list(connection, advertisements):
+    for advertisement in advertisements:
+        if advertisement.name == connection.rule.name and \
+           advertisement.type == connection.rule.type and \
+           advertisement.node == connection.rule.node:
+                return True
+    return False
+
+def resolve_advertisements(gateway_namespace, advertisements):
+    master = rocon_gateway.LocalMaster()
+    connection_dictionary = master.getConnectionState()
+    connections = []
+    for connection_type in connection_dictionary:
+        connections.extend(connection_dictionary[connection_type])
+    connections[:] = [connection for connection in connections if not is_in_advertised_list(connection, advertisements)]
+    # some things you should never advertise
+    connections[:] = [connection for connection in connections if not re.match('.*set_logger_level', connection.rule.name)]
+    connections[:] = [connection for connection in connections if not re.match('.*get_loggers', connection.rule.name)]
+    connections[:] = [connection for connection in connections if not re.match('.*rosout', connection.rule.name)]
+    connections[:] = [connection for connection in connections if not re.match(gateway_namespace+'/.*', connection.rule.name)]
+    connections[:] = [connection for connection in connections if not re.match('.*zeroconf.*', connection.rule.name)]
+    max_index = len(connections) - 1
+    advertisement_rules = []
+    if max_index == 0:
+        logger.warning("Automatically selecting %s (only one visible)"%connections[0].rule.name)
+        advertisement_rules.append(connections[0].rule)
+    elif max_index < 0:
+        raise rocon_gateway.GatewayError("No advertisements possible (all are either advertised or blacklisted).")
+    else:
+        index = 0;
+        print("Select a connection to advertise (name-type-node):")
+        for connection in connections:
+            print("    " + str(index) + ") "),
+            console.pretty_print(connection.rule.name,console.green)
+            print("-"),
+            console.pretty_print(connection.rule.type,console.cyan)
+            print("-"),
+            console.pretty_print(connection.rule.node+"\n",console.yellow)
+            index +=1
+        input_response = raw_input("Enter [0-%s] or regex keyed by name [e.g. /cha.* or .*]: "%str(max_index))
+        try:
+            index = int(input_response)
+            advertisement_rules.append(connections[index].rule)
+        except ValueError, e: # It's a regex
+            for connection in connections:
+                if re.match(input_response, connection.rule.name):
+                     advertisement_rules.append(connection.rule)
+    return advertisement_rules
+
+def advertise(gateway_namespace, rules, flag):
+    advertise_service = rospy.ServiceProxy(gateway_namespace+'/advertise',gateway_msgs.srv.Advertise)
+    req = gateway_msgs.srv.AdvertiseRequest()
+    for rule in rules:
+        req.cancel = True if flag == Flags.cancel else False
+        if rule.node == r'.*': # ugly hack
+            rule.node = '' 
+        req.rules.append(rule)
+        resp = advertise_service(req)
+
+##############################################################################
+# Main
+##############################################################################
+
+if __name__ == '__main__':
+    
+    rospy.init_node('advertise')
+    args = parse_arguments()
+    gateway_namespace = None
+    flag = None
+    rules = None
+    
+    try:
+        gateway_namespace = resolve_local_gateway()
+        flag = resolve_flags()
+        advertisements, advertise_watchlist = resolve_public_interface(gateway_namespace)
+        if flag == Flags.cancel:
+            rules = resolve_unadvertise(advertise_watchlist)
+        else:
+            rules = resolve_advertisements(gateway_namespace, advertisements)
+    except rocon_gateway.GatewayError, e:
+        logger.error(str(e))
+        sys.exit(1)
+    console.pretty_print("Information\n",console.bold)
+    print("  Local Gateway: %s"%gateway_namespace)
+    print("  Operation    : %s"%flag)
+    first_rule = True
+    print("  Advertise Rules   : "),
+    for rule in rules:
+        if first_rule:
+            first_rule = False
+        else:
+            print("               : "),
+        console.pretty_print(rule.name,console.green)
+        print("-"),
+        console.pretty_print(rule.type,console.cyan)
+        print("-"),
+        console.pretty_print(rule.node+"\n",console.yellow)
+    proceed = raw_input("Proceed? (y/n): ")
+    if proceed == 'y':
+        advertise(gateway_namespace, rules, flag)
+    rospy.sleep(1)
