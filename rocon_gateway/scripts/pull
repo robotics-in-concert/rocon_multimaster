@@ -115,7 +115,7 @@ def resolve_unpulls(pull_watchlist):
     unpulls = []
     if max_index == 0:
         logger.debug("Automatically selecting %s (only one visible)"%pull_watchlist[0].rule.name)
-        unpulls.append(pull_watchlist[0].rule)
+        unpulls.append(gateway_msgs.msg.RemoteRule(pull_watchlist[0].gateway, pull_watchlist[0].rule))
     else:
         print("Select a pull rule to cancel (gateway-name-type-node):")
         for connection in pull_watchlist:
@@ -157,9 +157,8 @@ def resolve_connections(gateway_namespace, remote_gateway, remote_advertisements
     max_index = len(advertisements) - 1
     pulls = []
     if max_index == 0:
-        logger.debug("Automatically selecting %s (only one visible)"%pull_watchlist.rule.name)
-        for remote_gateway in remote_gateways:
-            pulls.append(gateway_msgs.msg.RemoteRule(remote_gateway, advertisements[0].rule))
+        logger.warning("Automatically selecting %s (only one visible)"%advertisements[0].name)
+        pulls.append(gateway_msgs.msg.RemoteRule(remote_gateway, advertisements[0]))
     elif max_index < 0:
         raise rocon_gateway.GatewayError("Nothing to pull (either already flipped or blacklisted).")
     else:
@@ -186,7 +185,6 @@ def resolve_connections(gateway_namespace, remote_gateway, remote_advertisements
     return pulls
 
 def pull_rules(gateway_namespace, remote_rules, flag):
-    print remote_rules
     pull_service = rospy.ServiceProxy(gateway_namespace+'/pull',gateway_msgs.srv.Remote)
     req = gateway_msgs.srv.RemoteRequest()
     for remote_rule in remote_rules:
@@ -231,6 +229,8 @@ if __name__ == '__main__':
             first_rule = False
         else:
             print("               : "),
+        console.pretty_print(remote_rule.gateway,console.red)
+        print("-"),
         console.pretty_print(remote_rule.rule.name,console.green)
         print("-"),
         console.pretty_print(remote_rule.rule.type,console.cyan)

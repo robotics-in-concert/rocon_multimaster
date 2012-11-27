@@ -288,7 +288,7 @@ class GatewaySync(object):
                     response.error_message = "pull rule already exists [%s:(%s,%s)]"%(remote.gateway,remote.rule.name,remote.rule.type)
                     break
             else: # request.cancel
-                for rule in request.rules:
+                for remote in request.remotes:
                     removed_pull_rules = self.pulled_interface.removeRule(remote)
                     if removed_pull_rules:
                         rospy.loginfo("Gateway : removed pull rule [%s:%s]"%(remote.gateway, remote.rule.name))
