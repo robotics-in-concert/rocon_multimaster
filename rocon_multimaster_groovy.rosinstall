@@ -6,7 +6,13 @@
 #
 # Zeroconf
 #   sudo apt-get install ros-groovy-zeroconf-avahi
-
+#
+# Monitoring
+#   sudo apt-get install rqt
+#
+# Tutorials
+#   sudo apt-get install ros-tutorials common-tutorials
+# 
 [
 # Official Ros Stacks
 {'setup-file': {'local-name': '/opt/ros/groovy/setup.sh'}},
