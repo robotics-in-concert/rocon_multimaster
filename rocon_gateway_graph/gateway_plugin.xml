@@ -1,0 +1,12 @@
+<library path="src">
+  <class name="Gateway Graph" type="rocon_gateway_graph.gateway_graph.GatewayGraph" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      Plugin for the multimaster gateway model.
+    </description>
+    <qtgui>
+      <label>Gateway Graph</label>
+      <icon type="file">src/rocon_gateway_graph/resources/images/rocon_logo.png</icon>
+      <statustip>Gateway Graph for Multimaster</statustip>
+    </qtgui>
+  </class>
+</library>

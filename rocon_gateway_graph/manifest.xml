@@ -1,0 +1,20 @@
+<package>
+  <description brief="rocon_gateway_graph">
+
+     rocon_gateway_graph
+
+  </description>
+  <author>Daniel Stonier</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rocon_gateway_graph</url>
+  <export>
+    <rqt_gui plugin="${prefix}/gateway_plugin.xml"/>
+  </export>
+  <depend package="qt_gui_py_common"/>
+  <depend package="rqt_gui"/>
+  <depend package="rqt_gui_py"/>
+  <depend package="rospy"/>
+</package>
+
+
