@@ -5,7 +5,7 @@
 ##############################################################################
 
 from __future__ import division
-#import os
+import os
 
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import QFile, QIODevice, Qt, Signal, QAbstractListModel
