@@ -137,6 +137,7 @@ class Hub(object):
           @type Bool
         '''
         self.name = '' # the hub name
+        self.uri = ''
         self._gateway_name = gateway_name # used to generate the unique name key later
         self._unique_gateway_name = '' # set when gateway is registered
         self._firewall = 1 if firewall else 0
@@ -159,6 +160,7 @@ class Hub(object):
             self.server = redis.Redis(connection_pool=self.pool)
             rospy.logdebug("Gateway : connected to the hub's redis server.")
             self._redis_pubsub_server = self.server.pubsub()
+            self.uri = str(ip) +":"+ str(portarg)
         except redis.exceptions.ConnectionError as e:
             rospy.logerror("Gateway : failed rule to the hub's redis server.")
             raise

@@ -121,6 +121,7 @@ class Gateway():
             response.name = self.gateway_sync.unresolved_name
         response.connected = self.gateway_sync.is_connected
         response.hub_name = self.gateway_sync.hub.name
+        response.hub_uri = self.gateway_sync.hub.uri
         response.firewall = self.param['firewall']
         response.flipped_connections = self.gateway_sync.flipped_interface.getFlippedConnections()
         response.flipped_in_connections = self.gateway_sync.flipped_interface.getLocalRegistrations()
