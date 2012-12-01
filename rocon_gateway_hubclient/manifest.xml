@@ -1,0 +1,16 @@
+<package>
+  <description brief="rocon_gateway_hubclient">
+
+     rocon_gateway_hubclient
+
+  </description>
+  <author>Jihoon</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rocon_gateway_hubclient</url>
+  <depend package="rospy"/>
+  <depend package="redis"/>
+
+</package>
+
+
