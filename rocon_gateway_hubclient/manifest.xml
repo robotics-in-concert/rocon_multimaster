@@ -10,6 +10,7 @@
   <url>http://ros.org/wiki/rocon_gateway_hubclient</url>
   <depend package="rospy"/>
   <depend package="redis"/>
+  <depend package="rocon_gateway"/>
 
 </package>
 

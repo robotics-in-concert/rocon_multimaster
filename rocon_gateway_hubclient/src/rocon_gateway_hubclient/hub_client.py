@@ -56,3 +56,11 @@ class HubClient(HubConnector):
         key = self._namespace + ":"+ key
         element = self._namespace + ":" + element
         self.server.srem(key,element)
+
+    def getValues(self,key):
+        key = self._namespace + ":"+ key
+        values = self.server.smembers(key)
+
+        values = [ v[len(self._namespace)+1:] for v in values]
+        return values
+
