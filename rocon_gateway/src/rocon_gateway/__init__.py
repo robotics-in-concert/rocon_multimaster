@@ -20,3 +20,4 @@ from .hub_api import resolveHub
 from .gateway_sync import GatewaySync
 from .flipped_interface import FlippedInterface
 from .master_api import LocalMaster
+from .gateway import Gateway

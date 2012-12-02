@@ -43,8 +43,8 @@ class HubClient(HubConnector):
         return True
 
     def registerKey(self,key,element):
-        key = self.namespace + ":"+self.key
-        element = self.namespace + ":" +self.element
+        key = self._namespace + ":"+ key
+        element = self._namespace + ":" + element
         
         if self.server.sadd(key,element):
             return True
@@ -53,7 +53,6 @@ class HubClient(HubConnector):
             return False
 
     def unregisterKey(self,key,element):
-        key = self.namespace + ":"+self.key
-        element = self.namespace + ":" +self.element
-        
+        key = self._namespace + ":"+ key
+        element = self._namespace + ":" + element
         self.server.srem(key,element)
