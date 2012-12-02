@@ -125,7 +125,7 @@ class InteractiveInterface(object):
                    (existing_rule.rule.name == remote_rule.rule.name):
                     existing_rules.append(existing_rule)
             for rule in existing_rules:
-                self.watchlist[remote_rule.rule.type].remove(existing_rule) # not terribly optimal
+                self.watchlist[remote_rule.rule.type].remove(rule) # not terribly optimal
             self._lock.release()
             return existing_rules
 

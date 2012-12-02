@@ -215,7 +215,7 @@ class GatewaySync(object):
             else: # request.cancel
                 removed_flip_rules = self.flipped_interface.removeRule(remote)
                 if removed_flip_rules:
-                    rospy.loginfo("Gateway : removed flip rule [%s:%s]"%(remote.gateway, remote.rule.name))
+                    rospy.loginfo("Gateway : removed flip rule [%s:(%s,%s)]"%(remote.gateway, remote.rule.name,remote.rule.type))
         
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
