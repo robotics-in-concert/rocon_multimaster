@@ -1,9 +1,0 @@
-<!-- 
-  Launches the gateway hub (redis data store) without publishing
-  it via zeroconf (avahi/bonjour/jmdns).
--->
-<launch>
-  <node pkg="rocon_gateway_hub" type="hub.py" name="gateway_hub">
-    <rosparam command="load" file="$(find rocon_gateway_hub)/param/default.yaml" />
-  </node>
-</launch>

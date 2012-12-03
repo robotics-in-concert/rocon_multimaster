@@ -1,13 +1,13 @@
 <package>
-  <description brief="rocon_gateway_hubclient">
+  <description brief="rocon_hub_client">
 
-     rocon_gateway_hubclient
+     Client api for easily accessing the rocon hub.
 
   </description>
   <author>Jihoon</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/rocon_gateway_hubclient</url>
+  <url>http://ros.org/wiki/rocon_hub_client</url>
   <depend package="rospy"/>
   <depend package="redis"/>
   <depend package="rocon_gateway"/>

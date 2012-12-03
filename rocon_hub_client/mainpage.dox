@@ -2,7 +2,7 @@
 \mainpage
 \htmlinclude manifest.html
 
-\b rocon_gateway_hubclient 
+\b rocon_hub_client 
 
 <!-- 
 Provide an overview of your package.

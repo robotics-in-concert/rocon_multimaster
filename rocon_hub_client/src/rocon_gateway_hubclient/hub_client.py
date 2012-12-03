@@ -1,6 +1,6 @@
 import rospy
 import threading
-import roslib; roslib.load_manifest('rocon_gateway_hubclient')
+import roslib; roslib.load_manifest('rocon_hubclient')
 import redis
 from .hub_connector import HubConnector
 

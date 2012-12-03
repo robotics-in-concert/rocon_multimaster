@@ -1,5 +1,5 @@
 <!-- 
-  Works with rocon_gateway_hub/hub.launch. 
+  Works with rocon_hub/hub.launch. 
 -->
 <launch>
   <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"/>

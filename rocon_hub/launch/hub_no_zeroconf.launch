@@ -1,10 +1,9 @@
-<!--
-  Simply launches a hub with a non-default hub name so we can 
-  test hubs in parallel. 
+<!-- 
+  Launches the gateway hub without zeroconf
 -->
 <launch>
   <node pkg="rocon_hub" type="hub.py" name="gateway_hub" output="screen">
     <rosparam command="load" file="$(find rocon_hub)/param/default.yaml" />
-    <rosparam param="name">Pirate Hub</rosparam>
+    <rosparam param="zeroconf">false</rosparam>
   </node>
 </launch>

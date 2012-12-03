@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_gateway_hub/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_hub/LICENSE 
 #
 
 ##############################################################################
@@ -11,7 +11,7 @@
 import os
 import socket
 import sys
-import roslib; roslib.load_manifest('rocon_gateway_hub')
+import roslib; roslib.load_manifest('rocon_hub')
 import rosgraph
 import rospkg
 
@@ -89,7 +89,7 @@ def check_if_executable_available(name):
       Aborts program execution with fatal error if not found.
     '''
     if which(name) is None:
-        sys.exit(logfatal("Hub : " + name + " not installed - hint 'rosdep install rocon_gateway_hub'."))
+        sys.exit(logfatal("Hub : " + name + " not installed - hint 'rosdep install rocon_hub'."))
 
 ##############################################################################
 # File Handling

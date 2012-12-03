@@ -1,9 +1,0 @@
-<!-- 
-  Launches the gateway hub without zeroconf
--->
-<launch>
-  <node pkg="rocon_gateway_hub" type="hub.py" name="gateway_hub" output="screen">
-    <rosparam command="load" file="$(find rocon_gateway_hub)/param/default.yaml" />
-    <rosparam param="zeroconf">false</rosparam>
-  </node>
-</launch>

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_hub/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_hub/LICENSE 
 #
 
 import roslib
-roslib.load_manifest('rocon_gateway_hub')
+roslib.load_manifest('rocon_hub')
 import rospy
 
 ###############################################################################

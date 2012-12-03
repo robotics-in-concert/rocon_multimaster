@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_gateway_hub/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_hub/LICENSE
 #
 ##############################################################################
 # Imports
@@ -15,14 +15,14 @@ import subprocess
 
 # Ros imports
 import roslib
-roslib.load_manifest('rocon_gateway_hub')
+roslib.load_manifest('rocon_hub')
 import rospy
 import rospkg
 try:
     import redis
 except ImportError:
     # actually unused right now while we use redis as a ros package
-    sys.exit("\n[ERROR] No python-redis found - 'rosdep install rocon_gateway_hub'\n")
+    sys.exit("\n[ERROR] No python-redis found - 'rosdep install rocon_hub'\n")
 
 # Local imports
 import utils
@@ -54,9 +54,9 @@ class RedisServer:
             shutil.rmtree(self._home_dir)
         os.makedirs(self._home_dir)
         rospack = rospkg.RosPack()
-        redis_conf_template = utils.read_template(os.path.join(rospack.get_path('rocon_gateway_hub'), 'redis', 'redis.conf'))
+        redis_conf_template = utils.read_template(os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis.conf'))
         redis_conf_template = instantiate_redis_conf_template(redis_conf_template, self._files['redis_conf_local'])
-        redis_local_template = utils.read_template(os.path.join(rospack.get_path('rocon_gateway_hub'), 'redis', 'redis.conf.local'))
+        redis_local_template = utils.read_template(os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis.conf.local'))
         redis_local_template = instantiate_local_conf_template(redis_local_template,
                                                                self._parameters['port'],
                                                                self._parameters['max_memory'],
