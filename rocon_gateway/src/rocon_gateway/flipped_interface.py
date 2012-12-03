@@ -1,14 +1,15 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
 #
 
 ##############################################################################
 # Imports
 ##############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway')
+import roslib
+roslib.load_manifest('rocon_gateway')
 from gateway_msgs.msg import Rule, RemoteRule, ConnectionType
 import copy
 import re
@@ -21,16 +22,17 @@ import interactive_interface
 # Flipped Interface
 ##############################################################################
 
+
 class FlippedInterface(interactive_interface.InteractiveInterface):
     '''
-      The flipped interface is the set of rules 
+      The flipped interface is the set of rules
       (pubs/subs/services/actions) and rules controlling flips
-      to other gateways. 
+      to other gateways.
     '''
     def __init__(self, firewall, default_rule_blacklist, default_rules, all_targets):
         '''
           Initialises the flipped interface.
-          
+
           @param firewall : flag to prevent this gateway from accepting flips
           @type Bool
           @param default_rule_blacklist : used when in flip all mode
@@ -39,12 +41,12 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           @type gateway_msgs.msg.RemoteRule[]
           @param all_targets : static flip all targets to flip to on startup
           @type string[]
-          
-        '''
-        interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules, all_targets)
 
-        self.firewall = firewall 
-        
+        '''
+        interactive_interface.InteractiveInterface.__init__(self, default_rule_blacklist, default_rules, all_targets)
+
+        self.firewall = firewall
+
         # Function aliases
         self.flipped = self.active
         self.flipAll = self.addAll
@@ -54,26 +56,26 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     # Monitoring
     ##########################################################################
 
-    def update(self,connections, gateways):
+    def update(self, connections, gateways):
         '''
-          Computes a new flipped interface and returns two dictionaries - 
+          Computes a new flipped interface and returns two dictionaries -
           removed and newly added flips so the watcher thread can take
           appropriate action (inform the remote gateways).
-          
+
           This is run in the watcher thread (warning: take care - other
           additions come from ros service calls in different threads!)
-          
+
           @param connections : list of all the system state connections from the local master
           @type connection type keyed dictionary of utils.Connection lists.
-          
+
           @param gateways : gateways that are available (registered on the hub)
           @type string
-          
-          @return new_flips, old_flips 
+
+          @return new_flips, old_flips
           @rtype pair of connection type keyed dictionary of gateway_msgs.msg.Rule lists.
         '''
         # SLOW, EASY METHOD
-        
+
         flipped = utils.createEmptyConnectionTypeDictionary()
         new_flips = utils.createEmptyConnectionTypeDictionary()
         removed_flips = utils.createEmptyConnectionTypeDictionary()
@@ -113,6 +115,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     ##########################################################################
     # Utility Methods
     ##########################################################################
+
         
     def _generateFlips(self, type, name, node, gateways):
         '''

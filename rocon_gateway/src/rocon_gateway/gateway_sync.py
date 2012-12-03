@@ -16,7 +16,8 @@ import copy
 import threading
 import httplib
 
-import roslib; roslib.load_manifest('rocon_gateway')
+import roslib
+roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph
 from std_msgs.msg import Empty
@@ -43,11 +44,6 @@ from .pulled_interface import PulledInterface
 # Gateway
 ##############################################################################
 
-'''
-    The roles of GatewaySync is below
-    1. communicate with ros master using xml rpc node
-    2. communicate with redis server
-'''
 
 class GatewaySync(object):
     '''
@@ -56,24 +52,24 @@ class GatewaySync(object):
 
     def __init__(self, param):
         self.param = param
-        self.unresolved_name = self.param['name'] # This gets used to build unique names after rule to the hub
-        self.unique_name = None # single string value set after hub rule (note: it is not a redis rocon:: rooted key!)
+        self.unresolved_name = self.param['name']  # This gets used to build unique names after rule to the hub
+        self.unique_name = None  # single string value set after hub rule (note: it is not a redis rocon:: rooted key!)
         self.is_connected = False
         default_rule_blacklist = ros_parameters.generateRules(self.param["default_blacklist"])
-        
+
         default_rules, all_targets = ros_parameters.generateRemoteRules(self.param["default_flips"])
         self.flipped_interface = FlippedInterface(firewall = self.param['firewall'],
-                                                  default_rule_blacklist = default_rule_blacklist, 
+                                                  default_rule_blacklist = default_rule_blacklist,
                                                   default_rules = default_rules,
                                                   all_targets = all_targets)
-        default_rules, all_targets = ros_parameters.generateRemoteRules(self.param["default_pulls"]) 
-        self.pulled_interface = PulledInterface(  default_rule_blacklist = default_rule_blacklist,
-                                                  default_rules = default_rules,
-                                                  all_targets = all_targets)
-        self.public_interface = PublicInterface(  default_rule_blacklist=default_rule_blacklist,
-                                                  default_rules = ros_parameters.generateRules(self.param['default_advertisements']))
+        default_rules, all_targets = ros_parameters.generateRemoteRules(self.param["default_pulls"])
+        self.pulled_interface = PulledInterface(default_rule_blacklist = default_rule_blacklist,
+                                                default_rules = default_rules,
+                                                all_targets = all_targets)
+        self.public_interface = PublicInterface(default_rule_blacklist=default_rule_blacklist,
+                                                default_rules = ros_parameters.generateRules(self.param['default_advertisements']))
         if self.param['advertise_all']:
-            self.public_interface.advertiseAll([]) # no extra blacklist beyond the default (keeping it simple in yaml for now)
+            self.public_interface.advertiseAll([])  # no extra blacklist beyond the default (keeping it simple in yaml for now)
         self.master = LocalMaster()
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.processRemoteGatewayFlipRequest
@@ -87,13 +83,13 @@ class GatewaySync(object):
     # Rule Logic
     ##########################################################################
 
-    def connectToHub(self,ip,port):
+    def connectToHub(self, ip, port):
         try:
-            self.hub.connect(ip,port)
+            self.hub.connect(ip, port)
             self.unique_name = self.hub.registerGateway()
             self.is_connected = True
         except Exception as e:
-            rospy.logerr("Gateway : %s"%str(e))
+            rospy.logerr("Gateway : %s" % str(e))
             return False
         return True
 
@@ -110,7 +106,7 @@ class GatewaySync(object):
     # Incoming commands from local system (ros service callbacks)
     ##########################################################################
 
-    def rosServiceAdvertise(self,request):
+    def rosServiceAdvertise(self, request):
         '''
           Puts/Removes a number of rules on the public interface watchlist.
           As local rules matching these rules become available/go away,
@@ -131,12 +127,12 @@ class GatewaySync(object):
                     for rule in request.rules:
                         if not self.public_interface.addRule(rule):
                             response.result = gateway_msgs.msg.Result.ADVERTISEMENT_EXISTS
-                            response.error_message = "advertisment rule already exists [%s:(%s,%s)]"%(rule.name, rule.type, rule.node)
+                            response.error_message = "advertisment rule already exists [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
                 else:
                     for rule in request.rules:
                         if not self.public_interface.removeRule(rule):
                             response.result = gateway_msgs.msg.Result.ADVERTISEMENT_NOT_FOUND
-                            response.error_message = "advertisment not found [%s:(%s,%s)]"%(rule.name, rule.type, rule.node)
+                            response.error_message = "advertisment not found [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
             except Exception as e:
                 rospy.logerr("Gateway : unknown advertise error [%s]."%str(e))
                 response.result = gateway_msgs.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
@@ -145,13 +141,13 @@ class GatewaySync(object):
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
-            rospy.logerr("Gateway : %s."%response.error_message)
+            rospy.logerr("Gateway : %s." % response.error_message)
         response.watchlist = self.public_interface.getWatchlist()
         return response
 
-    def rosServiceAdvertiseAll(self,request):
+    def rosServiceAdvertiseAll(self, request):
         '''
-          Toggles the advertise all mode. If advertising all, an additional 
+          Toggles the advertise all mode. If advertising all, an additional
           blacklist parameter can be supplied which includes all the topics that
           will not be advertised/watched for. This blacklist is added to the
           default blacklist of the public interface
@@ -173,21 +169,21 @@ class GatewaySync(object):
                     self.public_interface.unadvertiseAll()
             except Exception as e:
                 response.result = gateway_msgs.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
-                response.error_message = "unknown advertise all error [%s]"%(str(e))
+                response.error_message = "unknown advertise all error [%s]" % (str(e))
 
         # Let the watcher get on with the update asap
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
-            rospy.logerr("Gateway : %s."%response.error_message)
+            rospy.logerr("Gateway : %s." % response.error_message)
         response.blacklist = self.public_interface.getBlacklist()
         return response
 
-    def rosServiceFlip(self,request):
+    def rosServiceFlip(self, request):
         '''
           Puts flip rules on a watchlist which (un)flips them when they 
           become (un)available. 
-          
+
           @param request
           @type gateway_msgs.srv.RemoteRequest
           @return service response
@@ -197,11 +193,11 @@ class GatewaySync(object):
         for remote in request.remotes:
             response.result, response.error_message = self._rosServiceFlipChecks(remote.gateway)
             if response.result != gateway_msgs.msg.Result.SUCCESS:
-                rospy.logerr("Gateway : %s."%response.error_message)
+                rospy.logerr("Gateway : %s." % response.error_message)
                 return response
-              
+
         # result is currently SUCCESS
-        added_rules = []  
+        added_rules = []
         for remote in request.remotes:
             if not request.cancel:
                 flip_rule = self.flipped_interface.addRule(remote)
@@ -212,18 +208,18 @@ class GatewaySync(object):
                     response.result = gateway_msgs.msg.Result.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "flip rule already exists [%s:(%s,%s)]"%(remote.gateway,remote.rule.name,remote.rule.type)
                     break
-            else: # request.cancel
+            else:  # request.cancel
                 removed_flip_rules = self.flipped_interface.removeRule(remote)
                 if removed_flip_rules:
                     rospy.loginfo("Gateway : removed flip rule [%s:(%s,%s)]"%(remote.gateway, remote.rule.name,remote.rule.type))
-        
+
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
         else:
-            if added_rules: # completely abort any added rules
+            if added_rules:  # completely abort any added rules
                 for added_rule in added_rules:
                     self.flipped_interface.removeRule(added_rule)
-            rospy.logerr("Gateway : %s."%response.error_message)
+            rospy.logerr("Gateway : %s." % response.error_message)
         return response
 
     def rosServiceFlipAll(self,request):
