@@ -123,7 +123,7 @@ if __name__ == '__main__':
     print("  Flipped in Connections")
     if len(gateway.flipped_in_connections) == 0:
         print("       : -")
-    for remote_rule in gateway.flipped_connections:
+    for remote_rule in gateway.flipped_in_connections:
         print("       : "),
         console.pretty_print(remote_rule.gateway,console.red)
         print("-"),
