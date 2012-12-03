@@ -4,7 +4,8 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_tests/LICENSE 
 #
 
-import roslib; roslib.load_manifest('rocon_gateway_tests')
+import roslib
+roslib.load_manifest('rocon_gateway_tests')
 import rospy
 from rocon_gateway import FlippedInterface, createEmptyConnectionTypeDictionary, Connection
 from gateway_msgs.msg import Rule, ConnectionType, RemoteRule

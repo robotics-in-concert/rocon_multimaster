@@ -79,7 +79,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         flipped = utils.createEmptyConnectionTypeDictionary()
         new_flips = utils.createEmptyConnectionTypeDictionary()
         removed_flips = utils.createEmptyConnectionTypeDictionary()
-        diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
+        diff = lambda l1,l2: [x for x in l1 if x not in l2]  # diff of lists
         self._lock.acquire()
         # Prune flips that are not in the gateway list anymore, keep the rules though
         for connection_type in utils.connection_types:
@@ -87,7 +87,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         # Totally regenerate a new flipped interface, compare with old
         for connection_type in connections:
             for connection in connections[connection_type]:
-                flipped[connection_type].extend(self._generateFlips(connection.rule.type, connection.rule.name, connection.rule.node, gateways))
+                flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, gateways))
             new_flips[connection_type] = diff(flipped[connection_type],self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type],flipped[connection_type])
         self.flipped = copy.deepcopy(flipped)
@@ -117,7 +117,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     ##########################################################################
 
         
-    def _generateFlips(self, type, name, node, gateways):
+    def _generate_flips(self, type, name, node, gateways):
         '''
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can

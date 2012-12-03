@@ -1,14 +1,15 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
 #
 
 ##############################################################################
 # Imports
 ##############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway')
+import roslib
+roslib.load_manifest('rocon_gateway')
 import threading
 from gateway_msgs.msg import RemoteRule
 import re
@@ -20,6 +21,7 @@ import utils
 ##############################################################################
 # Classes
 ##############################################################################
+
 
 class InteractiveInterface(object):
     '''
@@ -38,8 +40,8 @@ class InteractiveInterface(object):
         # keys are connection_types, elements are lists of RemoteRule objects
         # This gets aliased to self.flipped or self.pulled as necessary in
         # the subclasses
-        self.active = utils.createEmptyConnectionTypeDictionary()   
-        
+        self.active = utils.createEmptyConnectionTypeDictionary()
+
         # Default rules used in the xxxAll modes
         self._default_blacklist = default_rule_blacklist # dictionary of gateway-gateway_msgs.msg.Rule lists, not RemoteRules!
         

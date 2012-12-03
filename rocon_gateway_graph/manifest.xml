@@ -15,6 +15,7 @@
   <depend package="rqt_gui"/>
   <depend package="rqt_gui_py"/>
   <depend package="rospy"/>
+  <depend package="rocon_gateway"/>
 </package>
 
 

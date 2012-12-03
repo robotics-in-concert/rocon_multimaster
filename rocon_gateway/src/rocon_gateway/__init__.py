@@ -21,3 +21,4 @@ from .gateway_sync import GatewaySync
 from .flipped_interface import FlippedInterface
 from .master_api import LocalMaster
 from .gateway import Gateway
+from .graph import Graph

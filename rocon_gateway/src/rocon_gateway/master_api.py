@@ -1,48 +1,49 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
 #
 
 ##############################################################################
 # Imports
 ##############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway')
+import roslib
+roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph
 import rostopic
 import rosservice
-import rosnode
 import roslib.names
 import re
 
 from gateway_msgs.msg import Rule, ConnectionType
-from utils import Connection, action_types
+from utils import Connection
 
 ##############################################################################
 # Master
 ##############################################################################
 
+
 class LocalMaster(rosgraph.Master):
     '''
-      Representing a ros master (local ros master). Just contains a 
+      Representing a ros master (local ros master). Just contains a
       few utility methods for retrieving master related information as well
-      as handles for registering and unregistering rules that have 
+      as handles for registering and unregistering rules that have
       been pulled or flipped in from another gateway.
     '''
 
     def __init__(self):
-        rosgraph.Master.__init__(self,rospy.get_name())
+        rosgraph.Master.__init__(self, rospy.get_name())
 
     ##########################################################################
     # Registration
     ##########################################################################
 
-    def register(self,registration):
+    def register(self, registration):
         '''
           Registers a rule with the local master.
-          
+
           @param registration : registration details
           @type utils.Registration
           
@@ -224,7 +225,7 @@ class LocalMaster(rosgraph.Master):
     def getActionServers(self, publishers, subscribers):
         '''
           Return action servers and pruned publisher, subscriber lists.
-          
+
           @param publishers
           @type list of publishers in the form returned by rosgraph.Master.getSystemState
           @param subscribers
@@ -232,13 +233,13 @@ class LocalMaster(rosgraph.Master):
           @return list of actions, pruned_publishers, pruned_subscribers
           @rtype [base_topic, [nodes]], as param type, as param type
         '''
-        actions, subs, pubs = self._getActions(subscribers,publishers)
+        actions, subs, pubs = self._getActions(subscribers, publishers)
         return actions, pubs, subs
 
     def getActionClients(self, publishers, subscribers):
         '''
           Return action clients and pruned publisher, subscriber lists.
-          
+
           @param publishers
           @type list of publishers in the form returned by rosgraph.Master.getSystemState
           @param subscribers
@@ -246,10 +247,10 @@ class LocalMaster(rosgraph.Master):
           @return list of actions, pruned_publishers, pruned_subscribers
           @rtype [base_topic, [nodes]], as param type, as param type
         '''
-        actions, pubs, subs = self._getActions(publishers,subscribers)
+        actions, pubs, subs = self._getActions(publishers, subscribers)
         return actions, pubs, subs
 
-    def getConnectionsFromPubSubList(self,list,type):
+    def getConnectionsFromPubSubList(self, list, type):
         connections = []
         for topic in list:
             topic_name = topic[0]
@@ -261,30 +262,30 @@ class LocalMaster(rosgraph.Master):
                     node_uri = self.lookupNode(node)
                 except:
                     continue
-                rule = Rule(type,topic_name,node)
-                connection = Connection(rule, topic_type,node_uri)
+                rule = Rule(type, topic_name, node)
+                connection = Connection(rule, topic_type, node_uri)
                 connections.append(connection)
         return connections
 
-    def getConnectionsFromActionList(self,list,type):
+    def getConnectionsFromActionList(self, list, type):
         connections = []
         for action in list:
             action_name = action[0]
             goal_topic = action_name + '/goal'
             goal_topic_type = rostopic.get_topic_type(goal_topic)
-            topic_type = re.sub('ActionGoal$', '', goal_topic_type[0]) #Base type for action
+            topic_type = re.sub('ActionGoal$', '', goal_topic_type[0])  #Base type for action
             nodes = action[1]
             for node in nodes:
                 try:
                     node_uri = self.lookupNode(node)
                 except:
                     continue
-                rule = Rule(type,action_name,node)
+                rule = Rule(type, action_name, node)
                 connection = Connection(rule, topic_type, node_uri)
                 connections.append(connection)
         return connections
 
-    def getConnectionsFromServiceList(self,list,type):
+    def getConnectionsFromServiceList(self, list, type):
         connections = []
         for service in list:
             service_name = service[0]
@@ -312,12 +313,11 @@ class LocalMaster(rosgraph.Master):
         connections[ConnectionType.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, ConnectionType.ACTION_CLIENT)
         return connections
 
-    def _getAnonymousNodeName(self,topic):
+    def _getAnonymousNodeName(self, topic):
         t = topic[1:len(topic)]
         name = roslib.names.anonymous_name(t)
         return name
 
-    
     ##########################################################################
     # Master utility methods for scripts
     ##########################################################################
@@ -327,17 +327,16 @@ class LocalMaster(rosgraph.Master):
           Assists a script to find the (hopefully) unique gateway namespace.
           Note that unique is a necessary condition, there should only be one
           gateway per ros system.
-          
+
           @return Namespace of the gateway node.
           @rtype string
         '''
         unused_publishers, unused_subscribers, services = self.getSystemState()
         for service in services:
-            service_name = service[0] # second part is the node name
-            if re.search(r'remote_gateway_info',service_name):
+            service_name = service[0]  # second part is the node name
+            if re.search(r'remote_gateway_info', service_name):
                 if service_name == '/remote_gateway_info':
-                    return "/";
+                    return "/"
                 else:
                     return re.sub(r'/remote_gateway_info', '', service_name)
         return None
-                        

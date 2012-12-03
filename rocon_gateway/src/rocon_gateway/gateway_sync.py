@@ -372,15 +372,15 @@ class GatewaySync(object):
     # Update interface states (usually from watcher thread)
     ##########################################################################
 
-    def updateFlipInterface(self,connections, gateways):
+    def update_flip_interface(self,connections, gateways):
         '''
           Process the list of local connections and check against
           the current flip rules and patterns for changes. If a rule
           has become (un)available take appropriate action.
-          
+
           @param connections : list of current local connections parsed from the master
           @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
-          
+
           @param gateways : list of remote gateway string id's
           @type string
         '''
@@ -404,7 +404,7 @@ class GatewaySync(object):
                 self.hub.sendUnflipRequest(flip.gateway, flip.rule)
                 self.hub.removeFlipDetails(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
 
-    def updatePulledInterface(self, connections, gateways ):
+    def update_pulled_interface(self, connections, gateways ):
         '''
           Process the list of local connections and check against
           the current pull rules and patterns for changes. If a rule
@@ -440,8 +440,8 @@ class GatewaySync(object):
                         self.master.unregister(existing_registration)
                         self.hub.removePullDetails(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
                         self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
-                
-    def updatePublicInterface(self, connections = None):
+
+    def update_public_interface(self, connections = None):
         ''' 
           Process the list of local connections and check against 
           the current rules and patterns for changes. If a rule 

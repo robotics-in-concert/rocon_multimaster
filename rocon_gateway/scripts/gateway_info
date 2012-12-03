@@ -20,23 +20,6 @@ import rocon_utilities.console as console
 import rocon_gateway.utils as utils
 
 ##############################################################################
-# Logging
-##############################################################################
-
-class Logger(object):
-        
-    def debug(self,msg):
-        console.pretty_print("%s\n"%msg, console.green)
-    
-    def warning(self,msg):
-        console.pretty_print("%s\n"%msg, console.yellow)
-    
-    def error(self,msg):
-        console.pretty_print("%s\n"%msg, console.red)
-
-logger = Logger()
-
-##############################################################################
 # Functions
 ##############################################################################
     
@@ -49,9 +32,9 @@ def resolve_local_gateway():
     master = rocon_gateway.LocalMaster()
     gateway_namespace = master.findGatewayNamespace()
     if not gateway_namespace:
-        logger.error("Could not find a local gateway - did you start it?")
+        console.error("Could not find a local gateway - did you start it?")
         raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
-    logger.debug("Found a local gateway at %s"%gateway_namespace)
+    console.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
    
 def resolve_gateway_info(gateway_namespace):
@@ -78,7 +61,7 @@ if __name__ == '__main__':
         gateway_namespace = resolve_local_gateway()
         gateway = resolve_gateway_info(gateway_namespace)
     except rocon_gateway.GatewayError, e:
-        logger.error(str(e))
+        console.error(str(e))
         sys.exit(1)
     console.pretty_print("Gateway\n", console.bold)
     print("  Namespace: %s"%gateway_namespace)

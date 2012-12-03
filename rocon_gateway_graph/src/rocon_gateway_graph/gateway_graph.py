@@ -1,4 +1,7 @@
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_graph/LICENSE 
+#!/usr/bin/env python
+#
+# License: BSD
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway_graph/LICENSE
 #
 ##############################################################################
 # Imports
@@ -28,6 +31,12 @@ from qt_gui.plugin import Plugin
 from qt_dotgraph.pydotfactory import PydotFactory
 # TODO: use pygraphviz instead, but non-deterministic layout will first be resolved in graphviz 2.30
 # from qtgui_plugin.pygraphvizfactory import PygraphvizFactory
+
+from rocon_gateway import Graph
+
+##############################################################################
+# Classes
+##############################################################################
 
 class RepeatedWordCompleter(QCompleter):
     """A completer that completes multiple times from a list"""
@@ -85,6 +94,7 @@ class GatewayGraph(Plugin):
         # self.dotcode_factory = PygraphvizFactory()
         self.dotcode_generator = RosGraphDotcodeGenerator()
         self.dot_to_qt = DotToQtGenerator()
+        self._gateway_graph = Graph()
 
         ui_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ui', 'gateway_graph.ui')
         loadUi(ui_file, self._widget, {'InteractiveGraphicsView': InteractiveGraphicsView})
@@ -94,6 +104,9 @@ class GatewayGraph(Plugin):
 
         self._scene = QGraphicsScene()
         self._widget.graphics_view.setScene(self._scene)
+
+        self._widget.refresh_graph_push_button.setIcon(QIcon.fromTheme('view-refresh'))
+        self._widget.refresh_graph_push_button.pressed.connect(self._update_gateway_graph)
 
         self._widget.graph_type_combo_box.insertItem(0, self.tr('Nodes only'), NODE_NODE_GRAPH)
         self._widget.graph_type_combo_box.insertItem(1, self.tr('Nodes/Topics (active)'), NODE_TOPIC_GRAPH)
@@ -123,9 +136,6 @@ class GatewayGraph(Plugin):
         self._widget.leaf_topics_check_box.clicked.connect(self._refresh_rosgraph)
         self._widget.quiet_check_box.clicked.connect(self._refresh_rosgraph)
 
-        self._widget.refresh_graph_push_button.setIcon(QIcon.fromTheme('view-refresh'))
-        self._widget.refresh_graph_push_button.pressed.connect(self._update_rosgraph)
-
         self._widget.highlight_connections_check_box.toggled.connect(self._redraw_graph_view)
         self._widget.auto_fit_graph_check_box.toggled.connect(self._redraw_graph_view)
         self._widget.fit_in_view_push_button.setIcon(QIcon.fromTheme('zoom-original'))
@@ -140,7 +150,7 @@ class GatewayGraph(Plugin):
         self._widget.save_as_image_push_button.setIcon(QIcon.fromTheme('image'))
         self._widget.save_as_image_push_button.pressed.connect(self._save_image)
 
-        self._update_rosgraph()
+        self._update_gateway_graph()
         self._deferred_fit_in_view.connect(self._fit_in_view, Qt.QueuedConnection)
         self._deferred_fit_in_view.emit()
         context.add_widget(self._widget)
@@ -174,7 +184,9 @@ class GatewayGraph(Plugin):
     def shutdown_plugin(self):
         pass
 
-    def _update_rosgraph(self):
+    def _update_gateway_graph(self):
+        self._gateway_graph.update()
+
         # re-enable controls customizing fetched ROS graph
         self._widget.graph_type_combo_box.setEnabled(True)
         self._widget.filter_line_edit.setEnabled(True)

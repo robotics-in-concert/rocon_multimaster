@@ -162,12 +162,13 @@ def getRuleFromList(list):
 # Regex
 ##########################################################################
 
+
 def isAllPattern(pattern):
-    ''' 
+    '''
       Convenience function for detecting the flip all pattern.
 
       @todo move to utils - should be shared with the public interface.
-      
+
       @param pattern : the name rule string for the flip all concept
       @type str
       @return true if matching, false otherwise
@@ -177,14 +178,14 @@ def isAllPattern(pattern):
         return True
     else:
         return False
-    
+
 
 ##########################################################################
 # Formatters
 ##########################################################################
 
 def formatRule(rule):
-    return '{type: %s, name/regex: %s, node-name/regex: %s}'%(rule.type,rule.name,rule.node)
+    return '{type: %s, name/regex: %s, node-name/regex: %s}' % (rule.type, rule.name, rule.node)
 
 ##########################################################################
 # Factories
@@ -192,8 +193,8 @@ def formatRule(rule):
 
 def createEmptyConnectionTypeDictionary():
     '''
-      Used to initialise a dictionary with rule type keys 
-      and empty lists. 
+      Used to initialise a dictionary with rule type keys
+      and empty lists.
     '''
     dic = {}
     for type in connection_types:
