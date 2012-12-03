@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
 #
 
 ##############################################################################
@@ -14,11 +14,12 @@ import sys
 # Methods
 ##############################################################################
 
+
 def console_has_colours(stream):
     if not hasattr(stream, "isatty"):
         return False
     if not stream.isatty():
-        return False # auto color only on TTYs
+        return False  # auto color only on TTYs
     try:
         import curses
         curses.setupterm()
@@ -32,13 +33,14 @@ has_colours = console_has_colours(sys.stdout)
 reset = "\x1b[0m"
 
 bold = '1'
-black, red, green, yellow, blue, magenta, cyan, white = [str(i) for i in range(30,38)]
-bold_black, bold_red, bold_green, bold_yellow, bold_blue, bold_magenta, bold_cyan, bold_white = [ '1;'+ str(i) for i in range(30,38)]
-colours = [ 
+black, red, green, yellow, blue, magenta, cyan, white = [str(i) for i in range(30, 38)]
+bold_black, bold_red, bold_green, bold_yellow, bold_blue, bold_magenta, bold_cyan, bold_white = ['1;' + str(i) for i in range(30, 38)]
+colours = [
            bold,
            black, red, green, yellow, blue, magenta, cyan, white,
-           bold_black, bold_red, bold_green, bold_yellow, bold_blue, bold_magenta, bold_cyan, bold_white 
-          ] 
+           bold_black, bold_red, bold_green, bold_yellow, bold_blue, bold_magenta, bold_cyan, bold_white
+          ]
+
 
 def pretty_print(msg, colour=white):
     if has_colours:
@@ -51,17 +53,21 @@ def pretty_print(msg, colour=white):
 # Console
 ##############################################################################
 
+
 def logdebug(message):
-    print("[debug] "+message)
+    pretty_print("[debug] " + message + "\n", green)
+
 
 def logwarn(message):
-    pretty_print("[warning] "+message+"\n",yellow)
+    pretty_print("[warning] " + message + "\n", yellow)
+
 
 def logerror(message):
-    pretty_print("[error] "+message+"\n", red)
+    pretty_print("[error] " + message + "\n", red)
+
 
 def logfatal(message):
-    pretty_print("[error] "+message+"\n", bold_red)
+    pretty_print("[error] " + message + "\n", bold_red)
 
 ##############################################################################
 # Main
@@ -70,7 +76,7 @@ def logfatal(message):
 if __name__ == '__main__':
     for colour in colours:
         pretty_print("dude\n", colour)
-    loginfo("info message")
+    logdebug("info message")
     logwarn("warning message")
     logerror("error message")
     logfatal("fatal message")

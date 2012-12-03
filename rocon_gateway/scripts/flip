@@ -16,7 +16,7 @@ roslib.load_manifest('rocon_gateway')
 import rospy
 import rocon_gateway
 import gateway_msgs
-import rocon_gateway.console as console
+import rocon_utilities.console as console
 import rocon_gateway.utils as utils
 
 class Flags(object):

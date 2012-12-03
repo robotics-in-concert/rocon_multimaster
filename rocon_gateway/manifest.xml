@@ -18,7 +18,7 @@
     <depend package="zeroconf_avahi"/>
   -->
   <depend package="redis"/>
-
+  <depend package="rocon_utilities"/>
 </package>
 
 
