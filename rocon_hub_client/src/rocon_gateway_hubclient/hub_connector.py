@@ -7,7 +7,7 @@ import zeroconf_msgs.srv
 from gateway_msgs.msg import *
 
 class HubConnector(object):
-    hub_service = "_ros-gateway-hub._tcp"
+    hub_service = "_ros-multimaster-hub._tcp"
     is_connected = False
 
     def __init__(self,whitelist,blacklist,is_zeroconf,connectFunc):
@@ -109,13 +109,3 @@ class HubConnector(object):
         else:
             rospy.loginfo("HubConnector : hub/ip not in non-empty whitelist [%s]",hub_name)
             return gateway_msgs.msg.Result.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST
-
-
-
-
-
-
-
-
-
-

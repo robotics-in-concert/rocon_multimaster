@@ -1,14 +1,15 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
 #
 
 ###############################################################################
 # Imports
 ###############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway')
+import roslib
+roslib.load_manifest('rocon_gateway')
 import rospy
 import zeroconf_msgs.srv
 
@@ -16,7 +17,7 @@ import zeroconf_msgs.srv
 # Constants
 ###############################################################################
 
-gateway_hub_service = "_ros-gateway-hub._tcp"
+gateway_hub_service = "_ros-multimaster-hub._tcp"
 
 ###############################################################################
 # Functions

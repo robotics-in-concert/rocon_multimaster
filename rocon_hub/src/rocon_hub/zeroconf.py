@@ -17,7 +17,6 @@ import rospy
 
 # Local imports
 from . import utils
-
 ##############################################################################
 # Functions
 ##############################################################################
@@ -38,5 +37,5 @@ def advertise_port_to_avahi(port, hub_name):
     # if you don't specify  stdout/stderr streams, then it will automatically go to the background
     # avahi-publish is a blocking call - it has to go to the background
     # also note, we don't worrry about cleaning it up as it will be killed with the parent process
-    subprocess.Popen(["avahi-publish", "-s", hub_name, "_ros-gateway-hub._tcp", str(port)])
-    rospy.loginfo("Hub : advertising '" + hub_name + "' on zeroconf [_ros-gateway-hub._tcp, port " + str(port) + "]")
+    subprocess.Popen(["avahi-publish", "-s", hub_name, "_ros-multimaster-hub._tcp", str(port)])
+    rospy.loginfo("Hub : advertising '" + hub_name + "' on zeroconf [_ros-multimaster-hub._tcp, port " + str(port) + "]")

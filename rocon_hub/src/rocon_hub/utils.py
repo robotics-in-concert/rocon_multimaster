@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_hub/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_hub/LICENSE
 #
 
 ##############################################################################
@@ -11,36 +11,43 @@
 import os
 import socket
 import sys
-import roslib; roslib.load_manifest('rocon_hub')
+import roslib
+roslib.load_manifest('rocon_hub')
 import rosgraph
-import rospkg
 
 ##############################################################################
 # Logging
 ##############################################################################
+
 
 class Console:
     bold = "\033[1m"
     reset = "\033[0;0m"
     red = "\033[31m"
 
+
 def red_string(msg):
     """bound string with console symbols for red output"""
     return Console.red + msg + Console.reset
+
 
 def bold_string(msg):
     """bound string with console symbols for bold output"""
     return Console.bold + msg + Console.reset
 
+
 def loginfo(message):
-    print("[ INFO] "+message+"\n")
+    print("[ INFO] " + message + "\n")
+
 
 def logerror(message):
-    print(red_string("[ERROR] "+message))
+    print(red_string("[ERROR] " + message))
+
 
 def logfatal(message):
-    print(red_string("[FATAL] "+message))
-    
+    print(red_string("[FATAL] " + message))
+
+
 ##############################################################################
 # Ros
 ##############################################################################
@@ -60,13 +67,14 @@ def check_master():
 # System
 ##############################################################################
 
+
 def which(program):
     '''
     Emulate in a cross platform way the linux shell command
     '''
     def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
- 
+
     fpath, unused_fname = os.path.split(program)
     if fpath:
         if is_exe(program):
@@ -78,14 +86,15 @@ def which(program):
                 return exe_file
     return None
 
+
 def check_if_executable_available(name):
     '''
       Ensure a particular executable is available on the system.
-      
+
       Could use package names and python-apt here to find if the package is
       available, but more reliable and general - just check if program binary
       is available.
-      
+
       Aborts program execution with fatal error if not found.
     '''
     if which(name) is None:
@@ -94,6 +103,7 @@ def check_if_executable_available(name):
 ##############################################################################
 # File Handling
 ##############################################################################
+
 
 def read_template(template_filename):
     '''
@@ -105,4 +115,3 @@ def read_template(template_filename):
     finally:
         f.close()
     return t
-
