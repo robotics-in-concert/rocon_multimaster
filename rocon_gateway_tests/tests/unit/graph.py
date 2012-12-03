@@ -23,4 +23,5 @@ if __name__ == '__main__':
     graph = Graph()
     rospy.sleep(1.0)
     graph.update()
-    console.error("Dude")
+    print graph._local_gateway
+    print graph._remote_gateways

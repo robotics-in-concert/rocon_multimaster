@@ -18,7 +18,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0,0,0,0,0">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0,0,0">
      <item>
       <widget class="QPushButton" name="refresh_graph_push_button">
        <property name="toolTip">
@@ -36,23 +36,6 @@
        </property>
        <property name="toolTip">
         <string>Choose graph type</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="filter_line_edit">
-       <property name="toolTip">
-        <string>Namespace filter, comma separated list of names/regexp to include or exclude. Example: -/rqt.*</string>
-       </property>
-       <property name="text">
-        <string notr="true">/</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="topic_filter_line_edit">
-       <property name="toolTip">
-        <string>Topic filter, comma separated list of names/regexp to include or exclude. Example: -/tf</string>
        </property>
       </widget>
      </item>
