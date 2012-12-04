@@ -17,14 +17,12 @@ import roslib
 # Implementation
 ##############################################################################
 
-# node/node connectivity
-NODE_NODE_GRAPH = 'node_node'
+# Show gateway connections where gateway flips/pulls are active
+GATEWAY_GATEWAY_GRAPH = 'gateway_gateway'
 # node/topic connections where an actual network connection exists
 NODE_TOPIC_GRAPH = 'node_topic'
 # all node/topic connections, even if no actual network connection
-NODE_TOPIC_ALL_GRAPH = 'node_topic_all'
-
-QUIET_NAMES = ['/diag_agg', '/runtime_logger', '/pr2_dashboard', '/rviz', '/rosout', '/cpu_monitor', '/monitor', '/hd_monitor', '/rxloggerlevel', '/clock', '/rqt']
+GATEWAY_ALL_GRAPH = 'gateway_all'
 
 
 def matches_any(name, patternlist):
@@ -56,10 +54,8 @@ class RosGraphDotcodeGenerator:
         else:
             dotcode_factory.add_edge_to_graph(dotgraph, edge.start, edge.end, label=edge.label)
 
-    def _add_node(self, node, rosgraphinst, dotcode_factory, dotgraph, quiet):
+    def _add_node(self, node, rosgraphinst, dotcode_factory, dotgraph):
         if node in rosgraphinst.bad_nodes:
-            if quiet:
-                return ''
             bn = rosgraphinst.bad_nodes[node]
             if bn.type == rosgraph.impl.graph.BadNode.DEAD:
                 dotcode_factory.add_node_to_graph(dotgraph,
@@ -79,7 +75,7 @@ class RosGraphDotcodeGenerator:
                                               shape='ellipse',
                                               url=node)
 
-    def _add_topic_node(self, node, dotcode_factory, dotgraph, quiet):
+    def _add_topic_node(self, node, dotcode_factory, dotgraph):
         label = rosgraph.impl.graph.node_topic(node)
         dotcode_factory.add_node_to_graph(dotgraph,
                                           nodename=label,
@@ -87,43 +83,25 @@ class RosGraphDotcodeGenerator:
                                           shape='box',
                                           url="topic:%s" % label)
 
-    def _quiet_filter(self, name):
-        # ignore viewers
-        for n in QUIET_NAMES:
-            if n in name:
-                return False
-        return True
-
-    def quiet_filter_topic_edge(self, edge):
-        for quiet_label in ['/time', '/clock', '/rosout']:
-            if quiet_label == edge.label:
-                return False
-        return self._quiet_filter(edge.start) and self._quiet_filter(edge.end)
-
-    def generate_namespaces(self, graph, graph_mode, quiet=False):
+    def generate_namespaces(self, graph, graph_mode):
         """
         Determine the namespaces of the nodes being displayed
         """
         namespaces = []
-        if graph_mode == NODE_NODE_GRAPH:
-            nodes = graph.nn_nodes
-            if quiet:
-                nodes = [n for n in nodes if not n in QUIET_NAMES]
+        if graph_mode == GATEWAY_GATEWAY_GRAPH:
+            nodes = graph.gateway_nodes
             namespaces = list(set([roslib.names.namespace(n) for n in nodes]))
 
         elif graph_mode == NODE_TOPIC_GRAPH or \
-                 graph_mode == NODE_TOPIC_ALL_GRAPH:
-            nn_nodes = graph.nn_nodes
-            nt_nodes = graph.nt_nodes
-            if quiet:
-                nn_nodes = [n for n in nn_nodes if not n in QUIET_NAMES]
-                nt_nodes = [n for n in nt_nodes if not n in QUIET_NAMES]
-            if nn_nodes or nt_nodes:
-                namespaces = [roslib.names.namespace(n) for n in nn_nodes]
+                 graph_mode == GATEWAY_ALL_GRAPH:
+            gateway_nodes = graph.gateway_nodes
+            connection_nodes = graph.connection_nodes
+            if gateway_nodes or connection_nodes:
+                namespaces = [roslib.names.namespace(n) for n in gateway_nodes]
             # an annoyance with the rosgraph library is that it
             # prepends a space to topic names as they have to have
             # different graph node namees from nodes. we have to strip here
-            namespaces.extend([roslib.names.namespace(n[1:]) for n in nt_nodes])
+            namespaces.extend([roslib.names.namespace(n[1:]) for n in connection_nodes])
 
         return list(set(namespaces))
 
@@ -132,10 +110,10 @@ class RosGraphDotcodeGenerator:
         # currently using and rule as the or rule generates orphan nodes with the current logic
         return [e for e in edges if e.start.strip() in nodenames and e.end.strip() in nodenames]
 
-    def _filter_orphaned_topics(self, nt_nodes, edges):
+    def _filter_orphaned_topics(self, connection_nodes, edges):
         '''remove topic graphnodes without connected ROS nodes'''
         removal_nodes = []
-        for n in nt_nodes:
+        for n in connection_nodes:
             keep = False
             for e in edges:
                 if (e.start.strip() == str(n).strip() or e.end.strip() == str(n).strip()):
@@ -144,8 +122,8 @@ class RosGraphDotcodeGenerator:
             if not keep:
                 removal_nodes.append(n)
         for n in removal_nodes:
-            nt_nodes.remove(n)
-        return nt_nodes
+            connection_nodes.remove(n)
+        return connection_nodes
 
     def _split_filter_string(self, ns_filter):
         '''splits a string after each comma, and treats tokens with leading dash as exclusions.
@@ -263,37 +241,44 @@ class RosGraphDotcodeGenerator:
                          ranksep=0.2,  # vertical distance between layers
                          rankdir='TB',  # direction of layout (TB top > bottom, LR left > right)
                          simplify=True,  # remove double edges
-                         quiet=False):
+                         ):
         """
         See generate_dotcode
         """
         includes, excludes = self._split_filter_string(ns_filter)
         topic_includes, topic_excludes = self._split_filter_string(topic_filter)
-        print "  Nodes"
-        print rosgraphinst.nn_nodes
-        print "  Topics"
-        print rosgraphinst.nt_nodes
-        print "  Edges"
+        print "  gateway_nodes"
+        print rosgraphinst.gateway_nodes
+        print "  connection_nodes"
+        print rosgraphinst.connection_nodes
+        print "  nn_edges"
         print rosgraphinst.nn_edges
         for edge in rosgraphinst.nn_edges:
-            print "...."
+            print edge
+        print "  nt_edges"
+        print rosgraphinst.nt_edges
+        for edge in rosgraphinst.nt_edges:
+            print edge
+        print "  nt_all_edges"
+        print rosgraphinst.nt_all_edges
+        for edge in rosgraphinst.nt_all_edges:
             print edge
 
-        nn_nodes = []
-        nt_nodes = []
+        gateway_nodes = []
+        connection_nodes = []
         # create the node definitions
-        if graph_mode == NODE_NODE_GRAPH:
-            nn_nodes = rosgraphinst.nn_nodes
-            nn_nodes = [n for n in nn_nodes if matches_any(n, includes) and not matches_any(n, excludes)]
+        if graph_mode == GATEWAY_GATEWAY_GRAPH:
+            gateway_nodes = rosgraphinst.gateway_nodes
+            gateway_nodes = [n for n in gateway_nodes if matches_any(n, includes) and not matches_any(n, excludes)]
             edges = rosgraphinst.nn_edges
             edges = [e for e in edges if matches_any(e.label, topic_includes) and not matches_any(e.label, topic_excludes)]
 
         elif graph_mode == NODE_TOPIC_GRAPH or \
-                 graph_mode == NODE_TOPIC_ALL_GRAPH:
-            nn_nodes = rosgraphinst.nn_nodes
-            nt_nodes = rosgraphinst.nt_nodes
-            nn_nodes = [n for n in nn_nodes if matches_any(n, includes) and not matches_any(n, excludes)]
-            nt_nodes = [n for n in nt_nodes if matches_any(n, topic_includes) and not matches_any(n, topic_excludes)]
+                 graph_mode == GATEWAY_ALL_GRAPH:
+            gateway_nodes = rosgraphinst.gateway_nodes
+            connection_nodes = rosgraphinst.connection_nodes
+            gateway_nodes = [n for n in gateway_nodes if matches_any(n, includes) and not matches_any(n, excludes)]
+            connection_nodes = [n for n in connection_nodes if matches_any(n, topic_includes) and not matches_any(n, topic_excludes)]
 
             # create the edge definitions, unwrap EdgeList objects into python lists
             if graph_mode == NODE_TOPIC_GRAPH:
@@ -301,40 +286,33 @@ class RosGraphDotcodeGenerator:
             else:
                 edges = [e for e in rosgraphinst.nt_all_edges]
 
-        print "  FNodes"
-        print nn_nodes
-        print "  FTopics"
-        print nt_nodes
-        print "  FEdges"
+        print "  Nodes"
+        print gateway_nodes
+        print "  Topics"
+        print connection_nodes
+        print "  Edges"
         for edge in edges:
-            print "...."
             print edge
         print edges
-
-        if quiet:
-            nn_nodes = filter(self._quiet_filter, nn_nodes)
-            nt_nodes = filter(self._quiet_filter, nt_nodes)
-            if graph_mode == NODE_NODE_GRAPH:
-                edges = filter(self.quiet_filter_topic_edge, edges)
 
         # for accumulating actions topics
         action_nodes = {}
 
-        if graph_mode != NODE_NODE_GRAPH and (hide_single_connection_topics or hide_dead_end_topics or accumulate_actions):
+        if graph_mode != GATEWAY_GATEWAY_GRAPH and (hide_single_connection_topics or hide_dead_end_topics or accumulate_actions):
             # maps outgoing and incoming edges to nodes
             node_connections = self._get_node_edge_map(edges)
 
-            nt_nodes, edges = self._filter_leaf_topics(nt_nodes,
+            connection_nodes, edges = self._filter_leaf_topics(connection_nodes,
                                          edges,
                                          node_connections,
                                          hide_single_connection_topics,
                                          hide_dead_end_topics)
 
             if accumulate_actions:
-                nt_nodes, edges, action_nodes = self._accumulate_action_topics(nt_nodes, edges, node_connections)
+                connection_nodes, edges, action_nodes = self._accumulate_action_topics(connection_nodes, edges, node_connections)
 
-        edges = self._filter_orphaned_edges(edges, list(nn_nodes) + list(nt_nodes))
-        nt_nodes = self._filter_orphaned_topics(nt_nodes, edges)
+        edges = self._filter_orphaned_edges(edges, list(gateway_nodes) + list(connection_nodes))
+        connection_nodes = self._filter_orphaned_topics(connection_nodes, edges)
 
         # create the graph
         # result = "digraph G {\n  rankdir=%(orientation)s;\n%(nodes_str)s\n%(edges_str)s}\n" % vars()
@@ -345,7 +323,7 @@ class RosGraphDotcodeGenerator:
 
         ACTION_TOPICS_SUFFIX = '/action_topics'
         namespace_clusters = {}
-        for n in (nt_nodes or []) + [action_prefix + ACTION_TOPICS_SUFFIX for (action_prefix, _) in action_nodes.items()]:
+        for n in (connection_nodes or []) + [action_prefix + ACTION_TOPICS_SUFFIX for (action_prefix, _) in action_nodes.items()]:
             # cluster topics with same namespace
             if (cluster_namespaces_level > 0 and
                 str(n).count('/') > 1 and
@@ -353,25 +331,25 @@ class RosGraphDotcodeGenerator:
                 namespace = str(n).split('/')[1]
                 if namespace not in namespace_clusters:
                     namespace_clusters[namespace] = dotcode_factory.add_subgraph_to_graph(dotgraph, namespace, rank=rank, rankdir=orientation, simplify=simplify)
-                self._add_topic_node(n, dotcode_factory=dotcode_factory, dotgraph=namespace_clusters[namespace], quiet=quiet)
+                self._add_topic_node(n, dotcode_factory=dotcode_factory, dotgraph=namespace_clusters[namespace])
             else:
-                self._add_topic_node(n, dotcode_factory=dotcode_factory, dotgraph=dotgraph, quiet=quiet)
+                self._add_topic_node(n, dotcode_factory=dotcode_factory, dotgraph=dotgraph)
 
         # for ROS node, if we have created a namespace clusters for
         # one of its peer topics, drop it into that cluster
-        if nn_nodes is not None:
-            for n in nn_nodes:
+        if gateway_nodes is not None:
+            for n in gateway_nodes:
                 if (cluster_namespaces_level > 0 and
                     str(n).count('/') >= 1 and
                     len(str(n).split('/')[1]) > 0 and
                     str(n).split('/')[1] in namespace_clusters):
                     namespace = str(n).split('/')[1]
-                    self._add_node(n, rosgraphinst=rosgraphinst, dotcode_factory=dotcode_factory, dotgraph=namespace_clusters[namespace], quiet=quiet)
+                    self._add_node(n, rosgraphinst=rosgraphinst, dotcode_factory=dotcode_factory, dotgraph=namespace_clusters[namespace])
                 else:
-                    self._add_node(n, rosgraphinst=rosgraphinst, dotcode_factory=dotcode_factory, dotgraph=dotgraph, quiet=quiet)
+                    self._add_node(n, rosgraphinst=rosgraphinst, dotcode_factory=dotcode_factory, dotgraph=dotgraph)
 
         for e in edges:
-            self._add_edge(e, dotcode_factory, dotgraph=dotgraph, is_topic=(graph_mode == NODE_NODE_GRAPH))
+            self._add_edge(e, dotcode_factory, dotgraph=dotgraph, is_topic=(graph_mode == GATEWAY_GATEWAY_GRAPH))
 
         for (action_prefix, node_connections) in action_nodes.items():
             if 'outgoing' in node_connections:
@@ -397,14 +375,14 @@ class RosGraphDotcodeGenerator:
                          ranksep=0.2,  # vertical distance between layers
                          rankdir='TB',  # direction of layout (TB top > bottom, LR left > right)
                          simplify=True,  # remove double edges
-                         quiet=False):
+                         ):
         """
         @param rosgraphinst: RosGraph instance
         @param ns_filter: nodename filter
         @type  ns_filter: string
         @param topic_filter: topicname filter
         @type  ns_filter: string
-        @param graph_mode str: NODE_NODE_GRAPH | NODE_TOPIC_GRAPH | NODE_TOPIC_ALL_GRAPH
+        @param graph_mode str: GATEWAY_GATEWAY_GRAPH | NODE_TOPIC_GRAPH | GATEWAY_ALL_GRAPH
         @type  graph_mode: str
         @param orientation: rankdir value (see ORIENTATIONS dict)
         @type  dotcode_factory: object
@@ -430,6 +408,6 @@ class RosGraphDotcodeGenerator:
                          ranksep=ranksep,
                          rankdir=rankdir,
                          simplify=simplify,
-                         quiet=quiet)
+                         )
         dotcode = dotcode_factory.create_dot(dotgraph)
         return dotcode
