@@ -206,7 +206,7 @@ class RosGraphDotcodeGenerator:
         See generate_dotcode
         """
         includes, excludes = self._split_filter_string(ns_filter)
-        topic_includes, topic_excludes = self._split_filter_string(topic_filter)
+        connection_includes, connection_excludes = self._split_filter_string(topic_filter)
 
         gateway_nodes = []
         connection_nodes = []
@@ -215,7 +215,7 @@ class RosGraphDotcodeGenerator:
             gateway_nodes = rosgraphinst.gateway_nodes
             gateway_nodes = [n for n in gateway_nodes if matches_any(n, includes) and not matches_any(n, excludes)]
             edges = rosgraphinst.gateway_edges
-            edges = [e for e in edges if matches_any(e.label, topic_includes) and not matches_any(e.label, topic_excludes)]
+            edges = [e for e in edges if matches_any(e.label, connection_includes) and not matches_any(e.label, connection_excludes)]
 
         elif graph_mode == GATEWAY_PULLED_GRAPH or graph_mode == GATEWAY_FLIPPED_GRAPH:
             # create the edge definitions, unwrap EdgeList objects into python lists
@@ -228,7 +228,7 @@ class RosGraphDotcodeGenerator:
             gateway_nodes = rosgraphinst.gateway_nodes
             # filtering the lists
             gateway_nodes = [n for n in gateway_nodes if matches_any(n, includes) and not matches_any(n, excludes)]
-            connection_nodes = [n for n in connection_nodes if matches_any(n, topic_includes) and not matches_any(n, topic_excludes)]
+            connection_nodes = [n for n in connection_nodes if matches_any(n, connection_includes) and not matches_any(n, connection_excludes)]
 
         hide_unused_advertisements = not show_all_advertisements
         if graph_mode == GATEWAY_PULLED_GRAPH and hide_unused_advertisements:

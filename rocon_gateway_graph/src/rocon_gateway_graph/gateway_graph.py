@@ -12,7 +12,7 @@ import os
 
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import QFile, QIODevice, Qt, Signal, QAbstractListModel
-from python_qt_binding.QtGui import QFileDialog, QGraphicsScene, QIcon, QImage, QPainter, QWidget, QCompleter
+from python_qt_binding.QtGui import QFileDialog, QGraphicsScene, QIcon, QImage, QPainter, QWidget, QCompleter, QBrush, QColor, QPen
 from python_qt_binding.QtSvg import QSvgGenerator
 
 import roslib
@@ -24,7 +24,6 @@ import rostopic
 from .dotcode import RosGraphDotcodeGenerator, GATEWAY_GATEWAY_GRAPH, GATEWAY_FLIPPED_GRAPH, GATEWAY_PULLED_GRAPH
 from .interactive_graphics_view import InteractiveGraphicsView
 from qt_dotgraph.dot_to_qt import DotToQtGenerator
-#from rqt_gui_py.plugin import Plugin
 from qt_gui.plugin import Plugin
 
 # pydot requires some hacks
@@ -91,7 +90,6 @@ class GatewayGraph(Plugin):
         super(GatewayGraph, self).__init__(context)
         self.initialised = False
         self.setObjectName('Gateway Graph')
-        self._graph = None
         self._current_dotcode = None
 
         self._widget = QWidget()
@@ -101,7 +99,7 @@ class GatewayGraph(Plugin):
         # self.dotcode_factory = PygraphvizFactory()
         self.dotcode_generator = RosGraphDotcodeGenerator()
         self.dot_to_qt = DotToQtGenerator()
-        self._gateway_graph = Graph()
+        self._graph = Graph()
 
         ui_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ui', 'gateway_graph.ui')
         loadUi(ui_file, self._widget, {'InteractiveGraphicsView': InteractiveGraphicsView})
@@ -194,14 +192,9 @@ class GatewayGraph(Plugin):
         self._widget.watchlist_check_box.setEnabled(True)
         self._widget.all_advertisements_check_box.setEnabled(True)
 
-        self._graph = rosgraph.impl.graph.Graph()
-        self._graph.set_master_stale(5.0)
-        self._graph.set_node_stale(5.0)
         self._graph.update()
-
-        self._gateway_graph.update()
-        self.node_completionmodel.refresh(self._gateway_graph.gateway_nodes)
-        self.topic_completionmodel.refresh(self._gateway_graph.flipped_nodes)
+        self.node_completionmodel.refresh(self._graph.gateway_nodes)
+        self.topic_completionmodel.refresh(self._graph.flipped_nodes)
         self._refresh_rosgraph()
 
     def _refresh_rosgraph(self):
@@ -222,7 +215,7 @@ class GatewayGraph(Plugin):
         show_all_advertisements = self._widget.all_advertisements_check_box.isChecked()
 
         return self.dotcode_generator.generate_dotcode(
-            rosgraphinst=self._gateway_graph,  # self._graph,
+            rosgraphinst=self._graph,
             ns_filter=ns_filter,
             topic_filter=topic_filter,
             graph_mode=graph_mode,
@@ -272,7 +265,13 @@ class GatewayGraph(Plugin):
                                                             highlight_level=highlight_level,
                                                             same_label_siblings=True)
 
+        # if we wish to make special nodes, do that here (maybe subclass GraphItem, just like NodeItem does)
         for node_item in nodes.itervalues():
+            if node_item._label.text() == self._graph.local_gateway_name():
+                orange = QColor(232, 132, 3)
+                node_item._default_color = orange
+                node_item.set_color(orange)
+                print "Local gateway: %s" % self._graph.local_gateway_name()
             self._scene.addItem(node_item)
         for edge_items in edges.itervalues():
             for edge_item in edge_items:

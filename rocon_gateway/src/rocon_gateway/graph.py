@@ -55,6 +55,12 @@ class Graph(object):
         self._gateway_info = rospy.ServiceProxy(self.gateway_namespace + '/gateway_info', gateway_msgs.srv.GatewayInfo)
         self._remote_gateway_info = rospy.ServiceProxy(self.gateway_namespace + '/remote_gateway_info', gateway_msgs.srv.RemoteGatewayInfo)
 
+    def local_gateway_name(self):
+        if self._local_gateway:
+            return self._local_gateway.name
+        else:
+            return ''
+
     def update(self):
         if not self._resolve_gateway_namespace():
             return
@@ -103,7 +109,6 @@ class Graph(object):
                 self.pulled_nodes.append(connection_id)
                 self.pulled_edges.add(Edge(remote_rule.gateway, connection_id))
                 self.pulled_edges.add(Edge(connection_id, remote_gateway.name))
-
 
     def _resolve_gateway_namespace(self):
         '''
