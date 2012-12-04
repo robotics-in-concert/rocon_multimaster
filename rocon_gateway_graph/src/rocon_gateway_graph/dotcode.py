@@ -151,7 +151,7 @@ class RosGraphDotcodeGenerator:
             node_connections[edge.end].incoming.append(edge)
         return node_connections
 
-    def _filter_leaf_topics(self,
+    def _filter_leaves(self,
                             nodes_in,
                             edges_in,
                             node_connections,
@@ -233,7 +233,7 @@ class RosGraphDotcodeGenerator:
         hide_unused_advertisements = not show_all_advertisements
         if graph_mode == GATEWAY_PULLED_GRAPH and hide_unused_advertisements:
             node_connections = self._get_node_edge_map(edges)
-            connection_nodes, edges = self._filter_leaf_topics(connection_nodes,
+            connection_nodes, edges = self._filter_leaves(connection_nodes,
                                          edges,
                                          node_connections,
                                          hide_unused_advertisements,
@@ -241,7 +241,7 @@ class RosGraphDotcodeGenerator:
 #        if graph_mode != GATEWAY_GATEWAY_GRAPH and (hide_unused_advertisements or hide_dead_end_topics or accumulate_actions):
 #            # maps outgoing and incoming edges to nodes
 #            node_connections = self._get_node_edge_map(edges)
-#            connection_nodes, edges = self._filter_leaf_topics(connection_nodes,
+#            connection_nodes, edges = self._filter_leaves(connection_nodes,
 #                                         edges,
 #                                         node_connections,
 #                                         hide_unused_advertisements,
