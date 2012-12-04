@@ -79,7 +79,7 @@ class HubConnector(object):
         new_services = lambda l1,l2: [x for x in l1 if x not in l2] 
                                         
         for service in new_services(resp.services,previously_found_hubs):
-            (ip, port) = rocon_gateway.zeroconf.resolveAddress(service)
+            (ip, port) = rocon_gateway.zeroconf.resolve_address(service)
             found_hubs.append((ip,port))
 
         return found_hubs
@@ -89,7 +89,7 @@ class HubConnector(object):
             rospy.logwarn("HubConnector : gateway is already connected, aborting connection attempt.")
             return gateway_msgs.msg.Result.HUB_CONNECTION_ALREADY_EXISTS
         try:
-            hub_name = rocon_gateway.resolveHub(ip,port)
+            hub_name = rocon_gateway.resolve_hub(ip,port)
             rospy.loginfo("HubConnector : resolved hub name [%s].", hub_name)
         except redis.exceptions.ConnectionError:
             rospy.logerr("HubConnector : couldn't connect to the hub [%s:%s]", ip, port)

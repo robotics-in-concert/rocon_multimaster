@@ -186,7 +186,7 @@ class Gateway():
         new_services = lambda l1,l2: [x for x in l1 if x not in l2]
         for service in new_services(resp.services,previously_found_hubs):
             previously_found_hubs.append(service)
-            (ip, port) = rocon_gateway.zeroconf.resolveAddress(service)
+            (ip, port) = rocon_gateway.zeroconf.resolve_address(service)
             rospy.loginfo("Gateway : discovered hub zeroconf service at " + str(ip) + ":"+str(service.port))
             connect_result = self._connect(ip,port)
             if connect_result == gateway_msgs.msg.Result.SUCCESS:

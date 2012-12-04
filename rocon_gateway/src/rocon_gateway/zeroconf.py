@@ -23,7 +23,7 @@ gateway_hub_service = "_ros-multimaster-hub._tcp"
 # Functions
 ###############################################################################
 
-def resolveAddress(msg):
+def resolve_address(msg):
     '''
       Resolves a zeroconf address into ip/port portions.
       @var msg : zeroconf_msgs.DiscoveredService 
