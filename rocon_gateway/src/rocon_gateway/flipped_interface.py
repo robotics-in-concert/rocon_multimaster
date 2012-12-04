@@ -56,7 +56,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     # Monitoring
     ##########################################################################
 
-    def update(self, connections, gateways):
+    def update(self, connections, gateways,unique_name):
         '''
           Computes a new flipped interface and returns two dictionaries -
           removed and newly added flips so the watcher thread can take
@@ -87,7 +87,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         # Totally regenerate a new flipped interface, compare with old
         for connection_type in connections:
             for connection in connections[connection_type]:
-                flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, gateways))
+                flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, gateways,unique_name))
             new_flips[connection_type] = diff(flipped[connection_type],self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type],flipped[connection_type])
         self.flipped = copy.deepcopy(flipped)
@@ -117,7 +117,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     ##########################################################################
 
         
-    def _generate_flips(self, type, name, node, gateways):
+    def _generate_flips(self, type, name, node, gateways,unique_name):
         '''
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can
@@ -151,19 +151,19 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                     matched_gateways.append(gateway)
             if not matched_gateways:
                 continue
+
             # Check names
-            matched = False
-            name_match_result = re.match(flip_rule.rule.name, name)
-            if name_match_result and name_match_result.group() == name:
-                if utils.isAllPattern(flip_rule.rule.name):
-                    if self._isInBlacklist(flip_rule.gateway, type, name, node):
-                        continue
-                if flip_rule.rule.node:
-                    node_match_result = re.match(flip_rule.rule.node,node)
-                    if node_match_result and node_match_result.group() == node:
-                        matched = True
-                else: # flip_rule.rule.node is None so we don't care about matching the node
-                    matched = True
+            rule_name = flip_rule.rule.name
+            matched = self.is_matched(flip_rule,rule_name,name,node)
+
+            if not matched:
+                rule_name = unique_name + '/' + flip_rule.rule.name
+                matched = self.is_matched(flip_rule,rule_name,name,node)
+
+            if not matched: 
+                rule_name = '/' + flip_rule.rule.name
+                matched = self.is_matched(flip_rule,rule_name,name,node)
+
             if matched:
                 for gateway in matched_gateways:
                     matched_flip = copy.deepcopy(flip_rule)

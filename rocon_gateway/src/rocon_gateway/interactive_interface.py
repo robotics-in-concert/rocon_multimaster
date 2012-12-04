@@ -191,6 +191,21 @@ class InteractiveInterface(object):
     # Accessors for Gateway Info
     ##########################################################################
 
+    def is_matched(self,rule,rule_name,name,node):
+        matched = False
+        name_match_result = re.match(rule_name, name)
+        if name_match_result and name_match_result.group() == name:
+            if utils.isAllPattern(rule_name):
+                if self._isInBlacklist(rule.gateway, type, name,node):
+                    return False
+            if rule.rule.node:
+                node_match_result = re.match(rule.rule.node,node)
+                if node_match_result and node_match_result.group() == node:
+                    matched = True
+            else:
+                matched = True
+        return matched
+
     def getLocalRegistrations(self):
         '''
           Gets the local registrations for GatewayInfo consumption (flipped ins/pulls).

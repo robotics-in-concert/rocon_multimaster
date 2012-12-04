@@ -18,7 +18,7 @@ import utils
 import interactive_interface
 
 ##############################################################################
-# Flipped Interface
+# Pulled Interface
 ##############################################################################
 
 class PulledInterface(interactive_interface.InteractiveInterface):
@@ -45,7 +45,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         self.pullAll = self.addAll
         self.unPullAll = self.removeAll
 
-    def update(self,connections, gateway = None):
+    def update(self,connections, gateway,unique_name):
         '''
           Computes a new pulled interface from the incoming connections list
            and returns two dictionaries - 
@@ -64,7 +64,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         self._lock.acquire()
         for connection_type in connections:
             for connection in connections[connection_type]:
-                flipped[connection_type].extend(self._generatePulls(connection.rule.type, connection.rule.name, connection.rule.node, gateway))
+                flipped[connection_type].extend(self._generatePulls(connection.rule.type, connection.rule.name, connection.rule.node, gateway,unique_name))
             new_flips[connection_type] = diff(flipped[connection_type],self.pulled[connection_type])
             removed_flips[connection_type] = diff(self.pulled[connection_type],flipped[connection_type])
         self.pulled = copy.deepcopy(flipped)
@@ -93,7 +93,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
     # Utility Methods
     ##########################################################################
         
-    def _generatePulls(self, type, name, node, gateway = None):
+    def _generatePulls(self, type, name, node, gateway,unique_name):
         '''
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can
@@ -122,18 +122,17 @@ class PulledInterface(interactive_interface.InteractiveInterface):
             if gateway and not re.match(rule.gateway,gateway):
                 continue
             # Check names
-            matched = False
-            name_match_result = re.match(rule.rule.name, name)
-            if name_match_result and name_match_result.group() == name:
-                if utils.isAllPattern(rule.rule.name):
-                    if self._isInBlacklist(rule.gateway, type, name, node):
-                        continue
-                if rule.rule.node:
-                    node_match_result = re.match(rule.rule.node,node)
-                    if node_match_result and node_match_result.group() == node:
-                        matched = True
-                else: # rule.rule.node is None so we don't care about matching the node
-                    matched = True
+            rule_name = rule.rule.name
+            matched = self.is_matched(rule,name,node)
+
+            if not matched:
+                rule_name = unique_name + '/' + rule.rule.name
+                matched = self.is_matched(rule,rule_name,name,node)
+
+            if not matched: 
+                rule_name = '/' + rule.rule.name
+                matched = self.is_matched(rule,rule_name,name,node)
+
             if matched:
                 matched_flip = copy.deepcopy(rule)
                 matched_flip.rule.name = name # just in case we used a regex
