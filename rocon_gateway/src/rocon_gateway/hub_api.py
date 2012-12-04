@@ -15,6 +15,7 @@ import rospy
 import re
 import utils
 import gateway_msgs.msg
+import rosgraph
 from .exceptions import UnavailableGatewayError
 
 ###############################################################################
@@ -177,7 +178,7 @@ class Hub(object):
             rospy.logerror("Gateway : failed rule to the hub's redis server.")
             raise
 
-    def register_gateway(self):
+    def register_gateway(self, ip):
         '''
           Register a gateway with the hub. Note that you must have already
           connected before calling this function.
@@ -203,6 +204,8 @@ class Hub(object):
         unused_ret = self.server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
         self._redis_keys['firewall'] = create_gateway_key(self._unique_gateway_name, 'firewall')
         self.server.set(self._redis_keys['firewall'], self._firewall)
+        self._redis_keys['ip'] = create_gateway_key(self._unique_gateway_name, 'ip')
+        self.server.set(self._redis_keys['ip'], ip)
         self._redis_channels['gateway'] = self._redis_keys['gateway']
         self._redis_pubsub_server.subscribe(self._redis_channels['gateway'])
         self.remote_gateway_listener_thread = RedisListenerThread(self._redis_pubsub_server, self._remote_gateway_request_callbacks)
@@ -247,11 +250,13 @@ class Hub(object):
           @rtype gateway_msgs.msg.RemotGateway or None
         '''
         firewall = self.server.get(create_gateway_key(gateway, 'firewall'))
+        ip = self.server.get(create_gateway_key(gateway, 'ip'))
         if firewall is None:
             return None  # equivalent to saying no gateway of this id found
         else:
             remote_gateway = gateway_msgs.msg.RemoteGateway()
             remote_gateway.name = gateway
+            remote_gateway.ip = ip
             remote_gateway.firewall = True if int(firewall) else False
             remote_gateway.public_interface = []
             encoded_advertisements = self.server.smembers(create_gateway_key(gateway, 'advertisements'))

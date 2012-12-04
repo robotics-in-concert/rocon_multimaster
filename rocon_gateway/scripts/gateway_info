@@ -64,11 +64,12 @@ if __name__ == '__main__':
         console.error(str(e))
         sys.exit(1)
     console.pretty_print("Gateway\n", console.bold)
-    print("  Namespace: %s"%gateway_namespace)
-    print("  Name     : %s"%gateway.name)
-    print("  Connected: %s"%gateway.connected)
-    print("  On Hub   : %s"%gateway.hub_name)
-    print("  Firewall : %s"%gateway.firewall)
+    print("  Namespace   : %s"%gateway_namespace)
+    print("  Name        : %s"%gateway.name)
+    print("  Ip/Hostname : %s"%gateway.ip)
+    print("  Connected   : %s"%gateway.connected)
+    print("  On Hub      : %s"%gateway.hub_name)
+    print("  Firewall    : %s"%gateway.firewall)
 
     print("  Public Watchlist")
     if len(gateway.public_watchlist) == 0:

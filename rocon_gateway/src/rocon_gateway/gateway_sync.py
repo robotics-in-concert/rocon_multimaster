@@ -46,6 +46,7 @@ class GatewaySync(object):
         self.param = param
         self.unresolved_name = self.param['name']  # This gets used to build unique names after rule to the hub
         self.unique_name = None  # single string value set after hub rule (note: it is not a redis rocon:: rooted key!)
+        self._ip = None
         self.is_connected = False
         default_rule_blacklist = ros_parameters.generateRules(self.param["default_blacklist"])
 
@@ -80,10 +81,12 @@ class GatewaySync(object):
     def connect_to_hub(self, ip, port):
         try:
             self.hub.connect(ip, port)
-            self.unique_name = self.hub.register_gateway()
+            self._ip = self.master.get_ros_ip()
+            self.unique_name = self.hub.register_gateway(self._ip)
             self.is_connected = True
         except Exception as e:
-            rospy.logerr("Gateway : %s" % str(e))
+            print "Exception"
+            rospy.logerr("Gateway : error connecting to the hub %s" % str(e))
             return False
         return True
 
@@ -382,7 +385,7 @@ class GatewaySync(object):
         for connection_type in connections:
             for flip in new_flips[connection_type]:
                 # for actions, need to post flip details here
-                connections = self.master.generateConnectionDetails(flip.rule.type, flip.rule.name, flip.rule.node)
+                connections = self.master.generate_connection_details(flip.rule.type, flip.rule.name, flip.rule.node)
                 if connection_type == utils.ConnectionType.ACTION_CLIENT or connection_type == utils.ConnectionType.ACTION_SERVER:
                     rospy.loginfo("Flipping to %s : %s" % (flip.gateway, utils.formatRule(flip.rule)))
                     self.hub.postFlipDetails(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)

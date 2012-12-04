@@ -35,7 +35,8 @@ def resolve_local_gateway():
         console.error("Could not find a local gateway - did you start it?")
         raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
     console.debug("Found a local gateway at %s"%gateway_namespace)
-    return gateway_namespace
+    ip = master.get_ros_ip()
+    return gateway_namespace, ip
    
 def resolve_remote_gateways(gateway_namespace):
     '''
@@ -58,19 +59,23 @@ if __name__ == '__main__':
     args = parse_arguments()
     gateway_namespace = None
     remote_gateways = None
+    ip = None
     
     try:
-        gateway_namespace = resolve_local_gateway()
+        gateway_namespace, ip = resolve_local_gateway()
         remote_gateways = resolve_remote_gateways(gateway_namespace)
     except rocon_gateway.GatewayError, e:
         console.error(str(e))
         sys.exit(1)
     console.pretty_print("Local Gateway\n", console.bold)
     print("  Namespace: %s"%gateway_namespace)
+    print("  Ip/Hostname: %s"%ip)
+    # I wanted to put local ip here 
     for gateway in remote_gateways:
         console.pretty_print("Remote Gateway\n",console.bold)
-        print("  Name    : %s"%gateway.name)
-        print("  Firewall: %s"%gateway.firewall)
+        print("  Name       : %s"%gateway.name)
+        print("  Ip/Hostname: %s"%gateway.ip)
+        print("  Firewall   : %s"%gateway.firewall)
 
         print("  Public Interface")
         if len(gateway.public_interface) == 0:

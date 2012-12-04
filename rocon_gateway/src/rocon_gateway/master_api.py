@@ -8,6 +8,7 @@
 # Imports
 ##############################################################################
 
+import os
 import roslib
 roslib.load_manifest('rocon_gateway')
 import rospy
@@ -16,6 +17,7 @@ import rostopic
 import rosservice
 import roslib.names
 import re
+from urlparse import urlparse
 
 from gateway_msgs.msg import Rule, ConnectionType
 from utils import Connection
@@ -46,129 +48,144 @@ class LocalMaster(rosgraph.Master):
 
           @param registration : registration details
           @type utils.Registration
-          
+
           @return the updated registration object (only adds an anonymously generated local node name)
           @rtype utils.Registration
         '''
-        registration.local_node = self._getAnonymousNodeName(registration.connection.rule.node)    
-        rospy.loginfo("Gateway : registering a new node [%s] for [%s]"%(registration.local_node,registration))
-        
+        registration.local_node = self._getAnonymousNodeName(registration.connection.rule.node)
+        rospy.loginfo("Gateway : registering a new node [%s] for [%s]" % (registration.local_node, registration))
+
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
         # already have handle that.
 
         node_master = rosgraph.Master(registration.local_node)
         if registration.connection.rule.type == ConnectionType.PUBLISHER:
-            node_master.registerPublisher(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
             return registration
         elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
-            node_master.registerSubscriber(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
             return registration
         elif registration.connection.rule.type == ConnectionType.SERVICE:
             if rosservice.get_service_node(registration.connection.rule.name):
-                rospy.logwarn("Gateway : tried to register a service that is already locally available, aborting [%s]"%registration.connection.rule.name)
+                rospy.logwarn("Gateway : tried to register a service that is already locally available, aborting [%s]" % registration.connection.rule.name)
                 return None
             else:
-                node_master.registerService(registration.connection.rule.name,registration.connection.type_info,registration.connection.xmlrpc_uri)
+                node_master.registerService(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
                 return registration
         elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
-            node_master.registerSubscriber(registration.connection.rule.name+"/goal",registration.connection.type_info+"ActionGoal",registration.connection.xmlrpc_uri)
-            node_master.registerSubscriber(registration.connection.rule.name+"/cancel","actionlib_msgs/GoalID",registration.connection.xmlrpc_uri)
-            node_master.registerPublisher(registration.connection.rule.name+"/status","actionlib_msgs/GoalStatusArray",registration.connection.xmlrpc_uri)
-            node_master.registerPublisher(registration.connection.rule.name+"/feedback",registration.connection.type_info+"ActionFeedback",registration.connection.xmlrpc_uri)
-            node_master.registerPublisher(registration.connection.rule.name+"/result",registration.connection.type_info+"ActionResult",registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name + "/goal", registration.connection.type_info + "ActionGoal", registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name + "/cancel", "actionlib_msgs/GoalID", registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name + "/status", "actionlib_msgs/GoalStatusArray", registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name + "/feedback", registration.connection.type_info + "ActionFeedback", registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name + "/result", registration.connection.type_info + "ActionResult", registration.connection.xmlrpc_uri)
             return registration
         elif registration.connection.rule.type == ConnectionType.ACTION_CLIENT:
-            node_master.registerPublisher(registration.connection.rule.name+"/goal",registration.connection.type_info+"ActionGoal",registration.connection.xmlrpc_uri)
-            node_master.registerPublisher(registration.connection.rule.name+"/cancel","actionlib_msgs/GoalID",registration.connection.xmlrpc_uri)
-            node_master.registerSubscriber(registration.connection.rule.name+"/status","actionlib_msgs/GoalStatusArray",registration.connection.xmlrpc_uri)
-            node_master.registerSubscriber(registration.connection.rule.name+"/feedback",registration.connection.type_info+"ActionFeedback",registration.connection.xmlrpc_uri)
-            node_master.registerSubscriber(registration.connection.rule.name+"/result",registration.connection.type_info+"ActionResult",registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name + "/goal", registration.connection.type_info + "ActionGoal", registration.connection.xmlrpc_uri)
+            node_master.registerPublisher(registration.connection.rule.name + "/cancel", "actionlib_msgs/GoalID", registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name + "/status", "actionlib_msgs/GoalStatusArray", registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name + "/feedback", registration.connection.type_info + "ActionFeedback", registration.connection.xmlrpc_uri)
+            node_master.registerSubscriber(registration.connection.rule.name + "/result", registration.connection.type_info + "ActionResult", registration.connection.xmlrpc_uri)
             return registration
         return None
 
-    def unregister(self,registration):
+    def unregister(self, registration):
         '''
           Unregisters a rule with the local master.
-          
+
           @param registration : registration details for an existing gateway registered rule
           @type utils.Registration
         '''
         node_master = rosgraph.Master(registration.local_node)
-        rospy.loginfo("Gateway : unregistering local node [%s] for [%s]"%(registration.local_node,registration))
+        rospy.loginfo("Gateway : unregistering local node [%s] for [%s]" % (registration.local_node, registration))
         if registration.connection.rule.type == ConnectionType.PUBLISHER:
-            node_master.unregisterPublisher(registration.connection.rule.name,registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name, registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
-            node_master.unregisterSubscriber(registration.connection.rule.name,registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name, registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.SERVICE:
-            node_master.unregisterService(registration.connection.rule.name,registration.connection.type_info)
+            node_master.unregisterService(registration.connection.rule.name, registration.connection.type_info)
         elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
-            node_master.unregisterSubscriber(registration.connection.rule.name+"/goal",registration.connection.xmlrpc_uri)
-            node_master.unregisterSubscriber(registration.connection.rule.name+"/cancel",registration.connection.xmlrpc_uri)
-            node_master.unregisterPublisher(registration.connection.rule.name+"/status",registration.connection.xmlrpc_uri)
-            node_master.unregisterPublisher(registration.connection.rule.name+"/feedback",registration.connection.xmlrpc_uri)
-            node_master.unregisterPublisher(registration.connection.rule.name+"/result",registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name + "/goal", registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name + "/cancel", registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name + "/status", registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name + "/feedback", registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name + "/result", registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.ACTION_CLIENT:
-            node_master.unregisterPublisher(registration.connection.rule.name+"/goal",registration.connection.xmlrpc_uri)
-            node_master.unregisterPublisher(registration.connection.rule.name+"/cancel",registration.connection.xmlrpc_uri)
-            node_master.unregisterSubscriber(registration.connection.rule.name+"/status",registration.connection.xmlrpc_uri)
-            node_master.unregisterSubscriber(registration.connection.rule.name+"/feedback",registration.connection.xmlrpc_uri)
-            node_master.unregisterSubscriber(registration.connection.rule.name+"/result",registration.connection.xmlrpc_uri)
-        
+            node_master.unregisterPublisher(registration.connection.rule.name + "/goal", registration.connection.xmlrpc_uri)
+            node_master.unregisterPublisher(registration.connection.rule.name + "/cancel", registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name + "/status", registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name + "/feedback", registration.connection.xmlrpc_uri)
+            node_master.unregisterSubscriber(registration.connection.rule.name + "/result", registration.connection.xmlrpc_uri)
+
     ##########################################################################
     # Master utility methods
     ##########################################################################
-    
-    def generateConnectionDetails(self, type, name, node):
+
+    def generate_connection_details(self, type, name, node):
         '''
         Creates all the extra details to create a connection object from a
         rule.
-        
+
         @param type : the connection type (one of gateway_msgs.msg.ConnectionType)
         @type string
         @param name : the name of the connection
         @type string
         @param node : the master node name it comes from
         @param string
-        
+
         @return the utils.Connection object complete with type_info and xmlrpc_uri
         @type utils.Connection
         '''
         xmlrpc_uri = self.lookupNode(node)
         connections = []
         if type == ConnectionType.PUBLISHER or type == ConnectionType.SUBSCRIBER:
-            type_info = rostopic.get_topic_type(name)[0] # message type
-            connections.append(Connection(Rule(type, name, node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name)[0]  # message type
+            connections.append(Connection(Rule(type, name, node), type_info, xmlrpc_uri))
         elif type == ConnectionType.SERVICE:
             type_info = rosservice.get_service_uri(name)
-            connections.append(Connection(Rule(type, name, node),type_info,xmlrpc_uri))
+            connections.append(Connection(Rule(type, name, node), type_info, xmlrpc_uri))
         elif type == ConnectionType.ACTION_SERVER:
-            type_info = rostopic.get_topic_type(name+'/goal')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/goal', node),type_info,xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name+'/cancel')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/cancel', node),type_info,xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name+'/status')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/status', node),type_info,xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name+'/feedback')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/feedback', node),type_info,xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name+'/result')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/result', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name + '/goal', node), type_info, xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/cancel')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name + '/cancel', node), type_info, xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/status')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/status', node), type_info, xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/feedback')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/feedback', node), type_info, xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/result')[0] # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/result', node), type_info, xmlrpc_uri))
         elif type == ConnectionType.ACTION_CLIENT:
-            type_info = rostopic.get_topic_type(name+'/goal')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/goal', node),type_info,xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name+'/cancel')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name+'/cancel', node),type_info,xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name+'/status')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/status', node),type_info,xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name+'/feedback')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/feedback', node),type_info,xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name+'/result')[0] # message type
-            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name+'/result', node),type_info,xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/goal', node), type_info, xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
+            connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/cancel', node), type_info, xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/status')[0]  # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name + '/status', node), type_info, xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/feedback')[0]  # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name + '/feedback', node), type_info, xmlrpc_uri))
+            type_info = rostopic.get_topic_type(name + '/result')[0]  # message type
+            connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name + '/result', node), type_info, xmlrpc_uri))
         return connections
-    
-    def _getMasterUri(self):
-        return rosgraph.get_master_uri()
 
-    def _isTopicNodeInList(self,topic,node,list):
+    def get_ros_ip(self):
+        o = urlparse(rosgraph.get_master_uri())
+        if o.hostname == 'localhost':
+            ros_ip = ''
+            try:
+                ros_ip = os.environ['ROS_IP']
+            except Exception:
+                try:
+                    # often people use this one instead
+                    ros_ip = os.environ['ROS_HOSTNAME']
+                except Exception:
+                    # should probably check other means here - e.g. first of the system ipconfig
+                    rospy.logwarn("Gateway: no valid ip found for this host, just setting 'localhost'")
+                    return 'localhost'
+            return ros_ip
+        else:
+            return o.hostname
+
+    def _isTopicNodeInList(self, topic, node, list):
         # check if cancel available
         available = False
         for candidate in list:
@@ -180,7 +197,7 @@ class LocalMaster(rosgraph.Master):
     def _getActions(self, pubs, subs):
         '''
           Return actions and pruned publisher, subscriber lists.
-          
+
           @param publishers
           @type list of publishers in the form returned by rosgraph.Master.getSystemState
           @param subscribers

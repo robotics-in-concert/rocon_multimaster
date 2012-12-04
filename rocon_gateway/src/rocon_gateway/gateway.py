@@ -116,11 +116,14 @@ class Gateway():
 
     def ros_service_gateway_info(self, msg):
         response = gateway_msgs.srv.GatewayInfoResponse()
-        # Should add something about connected status here
         if self.gateway_sync.unique_name != None:
             response.name = self.gateway_sync.unique_name
         else:
             response.name = self.gateway_sync.unresolved_name
+        if self.gateway_sync._ip != None:
+            response.ip = self.gateway_sync._ip
+        else:
+            response.ip = 'unavailable'
         response.connected = self.gateway_sync.is_connected
         response.hub_name = self.gateway_sync.hub.name
         response.hub_uri = self.gateway_sync.hub.uri
