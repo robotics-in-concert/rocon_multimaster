@@ -14,11 +14,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>ROS Graph</string>
+   <string>Gateway Graph</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0,0,0">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0,0,0,0,0">
      <item>
       <widget class="QPushButton" name="refresh_graph_push_button">
        <property name="toolTip">
@@ -38,6 +38,12 @@
         <string>Choose graph type</string>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="filter_line_edit"/>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="topic_filter_line_edit"/>
      </item>
      <item>
       <spacer name="horizontalSpacer">
@@ -122,16 +128,6 @@
         </property>
         <property name="text">
          <string>leaf topics</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="quiet_check_box">
-        <property name="toolTip">
-         <string>Hide common debugging nodes</string>
-        </property>
-        <property name="text">
-         <string>Hide Debug</string>
         </property>
        </widget>
       </item>
