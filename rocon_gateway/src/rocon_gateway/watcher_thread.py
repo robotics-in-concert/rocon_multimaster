@@ -60,7 +60,7 @@ class WatcherThread(threading.Thread):
                     rospy.logwarn("Gateway : received 'ResponseNotReady' from master api")
                     self._sleep()
                     continue
-                gateways = self._hub.listRemoteGatewayNames()
+                gateways = self._hub.list_remote_gateway_names()
                 self._gateway.update_flip_interface(connections, gateways)
                 self._gateway.update_public_interface(connections)
                 self._gateway.update_pulled_interface(connections, gateways)

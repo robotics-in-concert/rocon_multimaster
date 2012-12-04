@@ -16,7 +16,7 @@ import zeroconf
 from .exceptions import GatewayError
 from .utils import connection_types, createEmptyConnectionTypeDictionary, Connection
 from .ros_parameters import setupRosParameters
-from .hub_api import resolveHub
+from .hub_api import resolve_hub
 from .gateway_sync import GatewaySync
 from .flipped_interface import FlippedInterface
 from .master_api import LocalMaster

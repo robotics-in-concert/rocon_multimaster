@@ -21,6 +21,7 @@ import interactive_interface
 # Pulled Interface
 ##############################################################################
 
+
 class PulledInterface(interactive_interface.InteractiveInterface):
     '''
       The flipped interface is the set of rules 
@@ -30,7 +31,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
     def __init__(self, default_rule_blacklist, default_rules, all_targets):
         '''
           Initialises the flipped interface.
-          
+
           @param default_rule_blacklist : used when in flip all mode
           @type dictionary of gateway
           @param default_rules : static rules to pull on startup
@@ -39,7 +40,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
           @type string[]
         '''
         interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules, all_targets)
-        
+
         # Function aliases
         self.pulled = self.active
         self.pullAll = self.addAll
@@ -48,10 +49,10 @@ class PulledInterface(interactive_interface.InteractiveInterface):
     def update(self,connections, gateway,unique_name):
         '''
           Computes a new pulled interface from the incoming connections list
-           and returns two dictionaries - 
+           and returns two dictionaries -
           removed and newly added pulls so the watcher thread can take
           appropriate action ((un)registrations).
-          
+
           This is run in the watcher thread (warning: take care - other
           additions come from ros service calls in different threads!)
         '''
@@ -123,15 +124,14 @@ class PulledInterface(interactive_interface.InteractiveInterface):
                 continue
             # Check names
             rule_name = rule.rule.name
-            matched = self.is_matched(rule,name,node)
-
+            matched = self.is_matched(rule, rule_name, name, node)
             if not matched:
-                rule_name = unique_name + '/' + rule.rule.name
-                matched = self.is_matched(rule,rule_name,name,node)
+                rule_name = '/' + unique_name + '/' + rule.rule.name
+                matched = self.is_matched(rule, rule_name, name, node)
 
             if not matched: 
                 rule_name = '/' + rule.rule.name
-                matched = self.is_matched(rule,rule_name,name,node)
+                matched = self.is_matched(rule, rule_name, name, node)
 
             if matched:
                 matched_flip = copy.deepcopy(rule)
@@ -144,7 +144,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
     # Pulled Interface Specific Methods
     ##########################################################################
     
-    def listRemoteGatewayNames(self):
+    def list_remote_gateway_names(self):
         '''
           Collects all gateways that it should watch for (i.e. those 
           currently handled by existing registrations).

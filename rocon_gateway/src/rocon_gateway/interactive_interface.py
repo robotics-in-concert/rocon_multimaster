@@ -36,21 +36,21 @@ class InteractiveInterface(object):
           @param all_targets : static flip/pull all targets to flip/pull to on startup
           @type string[]
         '''
-        # Rules that are active, ie have been flipped or pulled from remote gateways 
+        # Rules that are active, ie have been flipped or pulled from remote gateways
         # keys are connection_types, elements are lists of RemoteRule objects
         # This gets aliased to self.flipped or self.pulled as necessary in
         # the subclasses
         self.active = utils.createEmptyConnectionTypeDictionary()
 
         # Default rules used in the xxxAll modes
-        self._default_blacklist = default_rule_blacklist # dictionary of gateway-gateway_msgs.msg.Rule lists, not RemoteRules!
-        
+        self._default_blacklist = default_rule_blacklist  # dictionary of gateway-gateway_msgs.msg.Rule lists, not RemoteRules!
+
         # keys are connection_types, elements are lists of gateway_msgs.msg.RemoteRule objects
         self.watchlist = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local rules to flip  
-        
+
         # keys are connection_types, elements are lists of utils.Registration objects
-        self.registrations = utils.createEmptyConnectionTypeDictionary() # Flips from remote gateways that have been locally registered
-        
+        self.registrations = utils.createEmptyConnectionTypeDictionary()  # Flips from remote gateways that have been locally registered
+
         # Blacklists when doing flip all - different for each gateway, each value is one of our usual rule type dictionaries
         self._blacklist = {}
 
@@ -60,20 +60,19 @@ class InteractiveInterface(object):
         for rule in default_rules:
             self.addRule(rule)
         for gateway in all_targets:
-            self.addAll(gateway,[]) # don't add the complexity of extra blacklists yet, maybe later
-        
-        
+            self.addAll(gateway,[])  # don't add the complexity of extra blacklists yet, maybe later
+
     ##########################################################################
     # Rules
     ##########################################################################
-        
+
     def addRule(self, remote_rule):
         '''
           Add a remote rule to the watchlist for monitoring.
-          
+
           @param remote_rule : the remote rule to add to the watchlist
           @type gateway_msgs.msg.RemoteRule
-          
+
           @return the remote rule, or None if the rule already exists.
           @rtype gateway_msgs.msg.RemoteRule || None
         '''
@@ -97,11 +96,11 @@ class InteractiveInterface(object):
     def removeRule(self, remote_rule):
         '''
           Remove a rule. Be a bit careful looking for a rule to remove, depending
-          on the node name, which can be set (exact rule/node name match) or 
+          on the node name, which can be set (exact rule/node name match) or
           None in which case all nodes of that kind of flip will match.
-          
+
           Handle the remapping appropriately.
-          
+
           @param remote_rule : the remote rule to remove from the watchlist.
           @type gateway_msgs.msg.RemoteRule
          
@@ -127,21 +126,21 @@ class InteractiveInterface(object):
                    (existing_rule.rule.name == remote_rule.rule.name):
                     existing_rules.append(existing_rule)
             for rule in existing_rules:
-                self.watchlist[remote_rule.rule.type].remove(rule) # not terribly optimal
+                self.watchlist[remote_rule.rule.type].remove(rule)  # not terribly optimal
             self._lock.release()
             return existing_rules
 
     def addAll(self, gateway, blacklist):
         '''
           Instead of watching/acting on specific rules, take action
-          on everything except for rules in a blacklist.  
-          
+          on everything except for rules in a blacklist.
+
           @param gateway : target remote gateway string id
           @type str
-          
+
           @param blacklist : do not act on rules matching these patterns
           @type gateway_msgs.msg.Rule[]
-          
+
           @return success or failure depending on if it ahs already been set or not
           @rtype Bool
         '''
@@ -170,7 +169,7 @@ class InteractiveInterface(object):
     def removeAll(self, gateway):
         '''
           Remove the add all rule for the specified gateway.
-          
+
           @param gateway : target remote gateway string id
           @type str
         '''
@@ -184,22 +183,22 @@ class InteractiveInterface(object):
                     try:
                         self.watchlist[connection_type].remove(rule)
                     except ValueError:
-                        pass # should never get here
+                        pass  # should never get here
         self._lock.release()
 
     ##########################################################################
     # Accessors for Gateway Info
     ##########################################################################
 
-    def is_matched(self,rule,rule_name,name,node):
+    def is_matched(self, rule, rule_name, name, node):
         matched = False
         name_match_result = re.match(rule_name, name)
         if name_match_result and name_match_result.group() == name:
             if utils.isAllPattern(rule_name):
-                if self._isInBlacklist(rule.gateway, type, name,node):
+                if self._isInBlacklist(rule.gateway, type, name, node):
                     return False
             if rule.rule.node:
-                node_match_result = re.match(rule.rule.node,node)
+                node_match_result = re.match(rule.rule.node, node)
                 if node_match_result and node_match_result.group() == node:
                     matched = True
             else:
@@ -209,11 +208,11 @@ class InteractiveInterface(object):
     def getLocalRegistrations(self):
         '''
           Gets the local registrations for GatewayInfo consumption (flipped ins/pulls).
-          
+
           We don't need to show the service and node uri's here.
-          
+
           Basic operation : convert Registration -> RemoteRule for each registration
-          
+
           @return the list of registrations corresponding to remote interactions
           @rtype RemoteRule[]
         '''
@@ -231,7 +230,7 @@ class InteractiveInterface(object):
     def getWatchlist(self):
         '''
           Gets the watchlist for GatewayInfo consumption.
-          
+
           @return the list of flip rules that are being watched
           @rtype gateway_msgs.msg.RemoteRule[]
         '''
@@ -247,29 +246,29 @@ class InteractiveInterface(object):
     ##########################################################################
     # Utilities
     ##########################################################################
-    
-    def findRegistrationMatch(self,remote_gateway,remote_name,remote_node,connection_type):
+
+    def findRegistrationMatch(self, remote_gateway, remote_name, remote_node, connection_type):
         '''
           Check to see if a registration exists. Note that it doesn't use the
-          local node name in the check. We will get things like unflip requests that 
+          local node name in the check. We will get things like unflip requests that
           don't have this variable set (that gets autogenerated when registering
           the flip), but we need to find the matching registration.
-          
+
           We then return the registration that matches.
-          
+
           @param remote_gateway : string remote gateway id
           @type string
           @param remote_name, remote_node, connection_type : remote connection details
           @type string
-          
+
           @return matching registration or none
           @rtype utils.Registration
         '''
-        
+
         matched_registration = None
         self._lock.acquire()
         for registration in self.registrations[connection_type]:
-            if (registration.remote_gateway  == remote_gateway) and \
+            if (registration.remote_gateway == remote_gateway) and \
                (registration.connection.rule.name == remote_name) and \
                (registration.connection.rule.node == remote_node) and \
                (registration.connection.rule.type == connection_type):
@@ -284,16 +283,16 @@ class InteractiveInterface(object):
         '''
           Check if a particular connection is in the blacklist. Use this to
           filter connections from the flipAll command.
-          
+
           @todo move to utils - should be shared with the public interface.
         '''
         for blacklist_rule in self._blacklist[gateway][type]:
             name_match_result = re.match(blacklist_rule.name, name)
             if name_match_result and name_match_result.group() == name:
                 if blacklist_rule.node:
-                    node_match_result = re.match(blacklist_rule.node,node)
+                    node_match_result = re.match(blacklist_rule.node, node)
                     if node_match_result and node_match_result.group() == node:
                         return True
-                else: # rule.connection.node is None so we don't care about matching the node
+                else:  # rule.connection.node is None so we don't care about matching the node
                     return True
         return False

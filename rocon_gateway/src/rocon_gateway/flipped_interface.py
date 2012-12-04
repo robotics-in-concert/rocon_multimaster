@@ -157,7 +157,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
             matched = self.is_matched(flip_rule,rule_name,name,node)
 
             if not matched:
-                rule_name = unique_name + '/' + flip_rule.rule.name
+                rule_name = '/' + unique_name + '/' + flip_rule.rule.name
                 matched = self.is_matched(flip_rule,rule_name,name,node)
 
             if not matched: 
@@ -177,7 +177,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     # Accessors for Gateway Info
     ##########################################################################
 
-    def getFlippedConnections(self):
+    def get_flipped_connections(self):
         '''
           Gets the flipped connections list for GatewayInfo consumption.
           
