@@ -21,7 +21,7 @@ import rosgraph.impl.graph
 import rosservice
 import rostopic
 
-from .dotcode import RosGraphDotcodeGenerator, NODE_NODE_GRAPH, NODE_TOPIC_ALL_GRAPH, NODE_TOPIC_GRAPH
+from .dotcode import RosGraphDotcodeGenerator, GATEWAY_GATEWAY_GRAPH, NODE_TOPIC_ALL_GRAPH, NODE_TOPIC_GRAPH
 from .interactive_graphics_view import InteractiveGraphicsView
 from qt_dotgraph.dot_to_qt import DotToQtGenerator
 #from rqt_gui_py.plugin import Plugin
@@ -35,7 +35,51 @@ from qt_dotgraph.pydotfactory import PydotFactory
 from rocon_gateway import Graph
 
 ##############################################################################
-# Classes
+# Utility Classes
+##############################################################################
+
+
+class RepeatedWordCompleter(QCompleter):
+    """A completer that completes multiple times from a list"""
+
+    def init(self, parent=None):
+        QCompleter.init(self, parent)
+
+    def pathFromIndex(self, index):
+        path = QCompleter.pathFromIndex(self, index)
+        lst = str(self.widget().text()).split(',')
+        if len(lst) > 1:
+            path = '%s, %s' % (','.join(lst[:-1]), path)
+        return path
+
+    def splitPath(self, path):
+        path = str(path.split(',')[-1]).lstrip(' ')
+        return [path]
+
+
+class NamespaceCompletionModel(QAbstractListModel):
+    """Ros package and stacknames"""
+    def __init__(self, linewidget, topics_only):
+        super(QAbstractListModel, self).__init__(linewidget)
+        self.names = []
+
+    def refresh(self, names):
+        namesset = set()
+        for n in names:
+            namesset.add(str(n).strip())
+            namesset.add("-%s" % (str(n).strip()))
+        self.names = sorted(namesset)
+
+    def rowCount(self, parent):
+        return len(self.names)
+
+    def data(self, index, role):
+        if index.isValid() and (role == Qt.DisplayRole or role == Qt.EditRole):
+            return self.names[index.row()]
+        return None
+
+##############################################################################
+# Gateway Classes
 ##############################################################################
 
 
@@ -66,14 +110,15 @@ class GatewayGraph(Plugin):
             self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
 
         self._scene = QGraphicsScene()
+        self._scene.setBackgroundBrush(Qt.white)
         self._widget.graphics_view.setScene(self._scene)
 
         self._widget.refresh_graph_push_button.setIcon(QIcon.fromTheme('view-refresh'))
         self._widget.refresh_graph_push_button.pressed.connect(self._update_gateway_graph)
 
-        self._widget.graph_type_combo_box.insertItem(0, self.tr('Nodes only'), NODE_NODE_GRAPH)
-        self._widget.graph_type_combo_box.insertItem(1, self.tr('Nodes/Topics (active)'), NODE_TOPIC_GRAPH)
-        self._widget.graph_type_combo_box.insertItem(2, self.tr('Nodes/Topics (all)'), NODE_TOPIC_ALL_GRAPH)
+        self._widget.graph_type_combo_box.insertItem(0, self.tr('Gateways only'), GATEWAY_GATEWAY_GRAPH)
+        self._widget.graph_type_combo_box.insertItem(1, self.tr('Unused (prev. nodes/topics'), NODE_TOPIC_GRAPH)
+        self._widget.graph_type_combo_box.insertItem(2, self.tr('Gateways/Connections'), NODE_TOPIC_ALL_GRAPH)
         self._widget.graph_type_combo_box.setCurrentIndex(0)
         self._widget.graph_type_combo_box.currentIndexChanged.connect(self._refresh_rosgraph)
 
@@ -136,7 +181,7 @@ class GatewayGraph(Plugin):
         self._widget.dead_sinks_check_box.setEnabled(True)
         self._widget.leaf_topics_check_box.setEnabled(True)
         self._widget.quiet_check_box.setEnabled(True)
-        
+
         self._graph = rosgraph.impl.graph.Graph()
         self._graph.set_master_stale(5.0)
         self._graph.set_node_stale(5.0)
@@ -163,7 +208,7 @@ class GatewayGraph(Plugin):
         quiet = self._widget.quiet_check_box.isChecked()
 
         return self.dotcode_generator.generate_dotcode(
-            rosgraphinst=self._graph,
+            rosgraphinst=self._gateway_graph,  #self._graph,
             ns_filter='/',
             topic_filter='/',
             graph_mode=graph_mode,
