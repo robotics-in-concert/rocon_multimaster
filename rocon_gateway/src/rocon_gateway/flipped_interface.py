@@ -151,19 +151,10 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                     matched_gateways.append(gateway)
             if not matched_gateways:
                 continue
+
             # Check names
-            matched = False
-            name_match_result = re.match(flip_rule.rule.name, name)
-            if name_match_result and name_match_result.group() == name:
-                if utils.isAllPattern(flip_rule.rule.name):
-                    if self._isInBlacklist(flip_rule.gateway, type, name, node):
-                        continue
-                if flip_rule.rule.node:
-                    node_match_result = re.match(flip_rule.rule.node,node)
-                    if node_match_result and node_match_result.group() == node:
-                        matched = True
-                else: # flip_rule.rule.node is None so we don't care about matching the node
-                    matched = True
+            matched = self.is_matched(flip_rule,name,node)
+
             if matched:
                 for gateway in matched_gateways:
                     matched_flip = copy.deepcopy(flip_rule)
