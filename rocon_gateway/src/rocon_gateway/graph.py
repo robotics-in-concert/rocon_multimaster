@@ -39,10 +39,11 @@ class Graph(object):
         self._local_gateway = None
         self._remote_gateways = None
         self.gateway_nodes = []  # Gateway nodes
-        self.connection_nodes = []  # Topic nodes
-        self.nn_edges = []  # Gateway-Gateway edges
-        self.nt_edges = []  # Gateway-Topic edges
-        self.nt_all_edges = []  # All unconnected node-topics or topic-nodes
+        self.flipped_nodes = []  # Flip connection nodes (i.e. topic name)
+        self.pulled_nodes = []
+        self.pulled_edges = []  # Gateway-Topic edges
+        self.gateway_edges = []  # Gateway-Gateway edges
+        self.flipped_edges = []  # All unconnected node-topics or topic-nodes
 
         # Rubbish to clear out once rocon_gateway_graph is integrated
         self.bad_nodes = []
@@ -66,24 +67,43 @@ class Graph(object):
         # Gateways
         self.gateway_nodes.append(self._local_gateway.name)
         self.gateway_nodes.extend([remote_gateway.name for remote_gateway in self._remote_gateways])
-        # Connected Gateways
-        self.nn_edges = EdgeList()
-        self.nt_edges = EdgeList()
-        self.nt_all_edges = EdgeList()
+        # Edges
+        self.pulled_edges = EdgeList()
+        self.gateway_edges = EdgeList()
+        self.pulled_edges = EdgeList()
+        self.flipped_edges = EdgeList()
         # Check local gateway
         for remote_rule in self._local_gateway.flipped_connections:
-            self.nn_edges.add(Edge(self._local_gateway.name, remote_rule.gateway))
+            self.gateway_edges.add(Edge(self._local_gateway.name, remote_rule.gateway))
             # this adds a bloody magic space, to help disambiguate node names from topic names
-            topic_identifier = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
-            self.connection_nodes.append(topic_identifier)
-            self.nt_edges.add(Edge(self._local_gateway.name, topic_identifier))
-            self.nt_edges.add(Edge(topic_identifier, remote_rule.gateway))
-            self.nt_all_edges.add(Edge(self._local_gateway.name, topic_identifier))
-            self.nt_all_edges.add(Edge(topic_identifier, remote_rule.gateway))
+            connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
+            self.flipped_nodes.append(connection_id)
+            self.flipped_edges.add(Edge(self._local_gateway.name, connection_id))
+            self.flipped_edges.add(Edge(connection_id, remote_rule.gateway))
+        for remote_rule in self._local_gateway.pulled_connections:
+            connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
+            self.pulled_nodes.append(connection_id)
+            self.pulled_edges.add(Edge(self._local_gateway.name, connection_id))
+            self.pulled_edges.add(Edge(connection_id, remote_rule.gateway))
+        for rule in self._local_gateway.public_interface:
+            print "pulled edge: %s->%s" % (self._local_gateway.name, connection_id)
+            connection_id = rosgraph.impl.graph.topic_node(rule.name + '-' + rule.type)
+            self.pulled_nodes.append(connection_id)
+            self.pulled_edges.add(Edge(self._local_gateway.name, connection_id))
         # Check remote gateways
+        # TODO add flipped and pulled here.
         for remote_gateway in self._remote_gateways:
             for remote_rule in remote_gateway.flipped_interface:
-                self.nn_edges.add(Edge(remote_gateway.name, remote_rule.gateway))
+                connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
+                self.flipped_nodes.append(connection_id)
+                self.gateway_edges.add(Edge(remote_gateway.name, connection_id))
+                self.gateway_edges.add(Edge(connection_id, remote_rule.gateway))
+            for remote_rule in remote_gateway.pulled_interface:
+                connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
+                self.pulled_nodes.append(connection_id)
+                self.pulled_edges.add(Edge(remote_rule.gateway, connection_id))
+                self.pulled_edges.add(Edge(connection_id, remote_gateway.name))
+
 
     def _resolve_gateway_namespace(self):
         '''

@@ -102,32 +102,22 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="actionlib_check_box">
-        <property name="toolTip">
-         <string>Action topics summarized into one virtual topic node</string>
-        </property>
-        <property name="text">
-         <string>actions</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="dead_sinks_check_box">
+       <widget class="QCheckBox" name="watchlist_check_box">
         <property name="toolTip">
          <string>Show or hide topics with publishers only</string>
         </property>
         <property name="text">
-         <string>dead sinks</string>
+         <string>watchlist</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="leaf_topics_check_box">
+       <widget class="QCheckBox" name="all_advertisements_check_box">
         <property name="toolTip">
          <string>Show or hide topics with one connection only</string>
         </property>
         <property name="text">
-         <string>leaf topics</string>
+         <string>all advertisements</string>
         </property>
        </widget>
       </item>

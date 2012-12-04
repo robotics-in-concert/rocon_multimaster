@@ -21,7 +21,7 @@ import rosgraph.impl.graph
 import rosservice
 import rostopic
 
-from .dotcode import RosGraphDotcodeGenerator, GATEWAY_GATEWAY_GRAPH, GATEWAY_ALL_GRAPH, NODE_TOPIC_GRAPH
+from .dotcode import RosGraphDotcodeGenerator, GATEWAY_GATEWAY_GRAPH, GATEWAY_FLIPPED_GRAPH, GATEWAY_PULLED_GRAPH
 from .interactive_graphics_view import InteractiveGraphicsView
 from qt_dotgraph.dot_to_qt import DotToQtGenerator
 #from rqt_gui_py.plugin import Plugin
@@ -116,9 +116,9 @@ class GatewayGraph(Plugin):
         self._widget.refresh_graph_push_button.setIcon(QIcon.fromTheme('view-refresh'))
         self._widget.refresh_graph_push_button.pressed.connect(self._update_gateway_graph)
 
-        self._widget.graph_type_combo_box.insertItem(0, self.tr('Gateways only'), GATEWAY_GATEWAY_GRAPH)
-        self._widget.graph_type_combo_box.insertItem(1, self.tr('Unused (prev. nodes/topics'), NODE_TOPIC_GRAPH)
-        self._widget.graph_type_combo_box.insertItem(2, self.tr('Gateways/Connections'), GATEWAY_ALL_GRAPH)
+        self._widget.graph_type_combo_box.insertItem(0, self.tr('Gateways'), GATEWAY_GATEWAY_GRAPH)
+        self._widget.graph_type_combo_box.insertItem(1, self.tr('Pulled Connections'), GATEWAY_PULLED_GRAPH)
+        self._widget.graph_type_combo_box.insertItem(2, self.tr('Flipped Connections'), GATEWAY_FLIPPED_GRAPH)
         self._widget.graph_type_combo_box.setCurrentIndex(0)
         self._widget.graph_type_combo_box.currentIndexChanged.connect(self._refresh_rosgraph)
 
@@ -138,9 +138,8 @@ class GatewayGraph(Plugin):
         self._widget.topic_filter_line_edit.setCompleter(topic_completer)
 
         self._widget.namespace_cluster_check_box.clicked.connect(self._refresh_rosgraph)
-        self._widget.actionlib_check_box.clicked.connect(self._refresh_rosgraph)
-        self._widget.dead_sinks_check_box.clicked.connect(self._refresh_rosgraph)
-        self._widget.leaf_topics_check_box.clicked.connect(self._refresh_rosgraph)
+        self._widget.watchlist_check_box.clicked.connect(self._refresh_rosgraph)
+        self._widget.all_advertisements_check_box.clicked.connect(self._refresh_rosgraph)
 
         self._widget.highlight_connections_check_box.toggled.connect(self._redraw_graph_view)
         self._widget.auto_fit_graph_check_box.toggled.connect(self._redraw_graph_view)
@@ -166,9 +165,8 @@ class GatewayGraph(Plugin):
         instance_settings.set_value('filter_line_edit_text', self._widget.filter_line_edit.text())
         instance_settings.set_value('topic_filter_line_edit_text', self._widget.topic_filter_line_edit.text())
         instance_settings.set_value('namespace_cluster_check_box_state', self._widget.namespace_cluster_check_box.isChecked())
-        instance_settings.set_value('actionlib_check_box_state', self._widget.actionlib_check_box.isChecked())
-        instance_settings.set_value('dead_sinks_check_box_state', self._widget.dead_sinks_check_box.isChecked())
-        instance_settings.set_value('leaf_topics_check_box_state', self._widget.leaf_topics_check_box.isChecked())
+        instance_settings.set_value('watchlist_check_box_state', self._widget.watchlist_check_box.isChecked())
+        instance_settings.set_value('all_advertisements_check_box_state', self._widget.all_advertisements_check_box.isChecked())
         instance_settings.set_value('auto_fit_graph_check_box_state', self._widget.auto_fit_graph_check_box.isChecked())
         instance_settings.set_value('highlight_connections_check_box_state', self._widget.highlight_connections_check_box.isChecked())
 
@@ -177,9 +175,8 @@ class GatewayGraph(Plugin):
         self._widget.filter_line_edit.setText(instance_settings.value('filter_line_edit_text', ''))
         self._widget.topic_filter_line_edit.setText(instance_settings.value('topic_filter_line_edit_text', '/'))
         self._widget.namespace_cluster_check_box.setChecked(instance_settings.value('namespace_cluster_check_box_state', True) in [True, 'true'])
-        self._widget.actionlib_check_box.setChecked(instance_settings.value('actionlib_check_box_state', True) in [True, 'true'])
-        self._widget.dead_sinks_check_box.setChecked(instance_settings.value('dead_sinks_check_box_state', True) in [True, 'true'])
-        self._widget.leaf_topics_check_box.setChecked(instance_settings.value('leaf_topics_check_box_state', True) in [True, 'true'])
+        self._widget.watchlist_check_box.setChecked(instance_settings.value('watchlist_check_box_state', True) in [True, 'true'])
+        self._widget.all_advertisements_check_box.setChecked(instance_settings.value('all_advertisements_check_box_state', False) in [False, 'false'])
         self._widget.auto_fit_graph_check_box.setChecked(instance_settings.value('auto_fit_graph_check_box_state', True) in [True, 'true'])
         self._widget.highlight_connections_check_box.setChecked(instance_settings.value('highlight_connections_check_box_state', True) in [True, 'true'])
         self.initialised = True
@@ -189,15 +186,13 @@ class GatewayGraph(Plugin):
         pass
 
     def _update_gateway_graph(self):
-
         # re-enable controls customizing fetched ROS graph
         self._widget.graph_type_combo_box.setEnabled(True)
         self._widget.filter_line_edit.setEnabled(True)
         self._widget.topic_filter_line_edit.setEnabled(True)
         self._widget.namespace_cluster_check_box.setEnabled(True)
-        self._widget.actionlib_check_box.setEnabled(True)
-        self._widget.dead_sinks_check_box.setEnabled(True)
-        self._widget.leaf_topics_check_box.setEnabled(True)
+        self._widget.watchlist_check_box.setEnabled(True)
+        self._widget.all_advertisements_check_box.setEnabled(True)
 
         self._graph = rosgraph.impl.graph.Graph()
         self._graph.set_master_stale(5.0)
@@ -206,7 +201,7 @@ class GatewayGraph(Plugin):
 
         self._gateway_graph.update()
         self.node_completionmodel.refresh(self._gateway_graph.gateway_nodes)
-        self.topic_completionmodel.refresh(self._gateway_graph.connection_nodes)
+        self.topic_completionmodel.refresh(self._gateway_graph.flipped_nodes)
         self._refresh_rosgraph()
 
     def _refresh_rosgraph(self):
@@ -223,19 +218,17 @@ class GatewayGraph(Plugin):
             namespace_cluster = 1
         else:
             namespace_cluster = 0
-        accumulate_actions = self._widget.actionlib_check_box.isChecked()
-        hide_dead_end_topics = self._widget.dead_sinks_check_box.isChecked()
-        hide_single_connection_topics = self._widget.leaf_topics_check_box.isChecked()
+        hide_dead_end_topics = self._widget.watchlist_check_box.isChecked()
+        show_all_advertisements = self._widget.all_advertisements_check_box.isChecked()
 
         return self.dotcode_generator.generate_dotcode(
             rosgraphinst=self._gateway_graph,  # self._graph,
             ns_filter=ns_filter,
             topic_filter=topic_filter,
             graph_mode=graph_mode,
-            hide_single_connection_topics=hide_single_connection_topics,
+            show_all_advertisements=show_all_advertisements,
             hide_dead_end_topics=hide_dead_end_topics,
             cluster_namespaces_level=namespace_cluster,
-            accumulate_actions=accumulate_actions,
             dotcode_factory=self.dotcode_factory,
             orientation=orientation,
             )
@@ -307,9 +300,8 @@ class GatewayGraph(Plugin):
         self._widget.filter_line_edit.setEnabled(False)
         self._widget.topic_filter_line_edit.setEnabled(False)
         self._widget.namespace_cluster_check_box.setEnabled(False)
-        self._widget.actionlib_check_box.setEnabled(False)
-        self._widget.dead_sinks_check_box.setEnabled(False)
-        self._widget.leaf_topics_check_box.setEnabled(False)
+        self._widget.watchlist_check_box.setEnabled(False)
+        self._widget.all_advertisements_check_box.setEnabled(False)
 
         self._update_graph_view(dotcode)
 

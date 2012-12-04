@@ -19,10 +19,10 @@ import roslib
 
 # Show gateway connections where gateway flips/pulls are active
 GATEWAY_GATEWAY_GRAPH = 'gateway_gateway'
-# node/topic connections where an actual network connection exists
-NODE_TOPIC_GRAPH = 'node_topic'
-# all node/topic connections, even if no actual network connection
-GATEWAY_ALL_GRAPH = 'gateway_all'
+# Show pulled connections between the gateways
+GATEWAY_PULLED_GRAPH = 'gateway_pulled'
+# Show flipped connections between the gateways
+GATEWAY_FLIPPED_GRAPH = 'gateway_flipped'
 
 
 def matches_any(name, patternlist):
@@ -92,10 +92,10 @@ class RosGraphDotcodeGenerator:
             nodes = graph.gateway_nodes
             namespaces = list(set([roslib.names.namespace(n) for n in nodes]))
 
-        elif graph_mode == NODE_TOPIC_GRAPH or \
-                 graph_mode == GATEWAY_ALL_GRAPH:
+        elif graph_mode == GATEWAY_PULLED_GRAPH or \
+                 graph_mode == GATEWAY_FLIPPED_GRAPH:
             gateway_nodes = graph.gateway_nodes
-            connection_nodes = graph.connection_nodes
+            connection_nodes = graph.flipped_nodes
             if gateway_nodes or connection_nodes:
                 namespaces = [roslib.names.namespace(n) for n in gateway_nodes]
             # an annoyance with the rosgraph library is that it
@@ -187,55 +187,15 @@ class RosGraphDotcodeGenerator:
             nodes.remove(n)
         return nodes, edges
 
-    def _accumulate_action_topics(self, nodes_in, edges_in, node_connections):
-        '''takes topic nodes, edges and node connections.
-        Returns topic nodes where action topics have been removed,
-        edges where the edges to action topics have been removed, and
-        a map with the connection to each virtual action topic node'''
-        removal_nodes = []
-        action_nodes = {}
-        # do not manipulate incoming structures
-        nodes = copy.copy(nodes_in)
-        edges = copy.copy(edges_in)
-        for n in nodes:
-            if str(n).endswith('/feedback'):
-                prefix = str(n)[:-len('/feedback')].strip()
-                action_topic_nodes = []
-                action_topic_edges_out = set()
-                action_topic_edges_in = set()
-                for suffix in ['/status', '/result', '/goal', '/cancel', '/feedback']:
-                    for n2 in nodes:
-                        if str(n2).strip() == prefix + suffix:
-                            action_topic_nodes.append(n2)
-                            if n2 in node_connections:
-                                action_topic_edges_out.update(node_connections[n2].outgoing)
-                                action_topic_edges_in.update(node_connections[n2].incoming)
-                if len(action_topic_nodes) == 5:
-                    # found action
-                    removal_nodes.extend(action_topic_nodes)
-                    for e in action_topic_edges_out:
-                        if e in edges:
-                            edges.remove(e)
-                    for e in action_topic_edges_in:
-                        if e in edges:
-                            edges.remove(e)
-                    action_nodes[prefix] = {'topics': action_topic_nodes,
-                                            'outgoing': action_topic_edges_out,
-                                            'incoming': action_topic_edges_in}
-        for n in removal_nodes:
-            nodes.remove(n)
-        return nodes, edges, action_nodes
-
     def generate_dotgraph(self,
                          rosgraphinst,
                          ns_filter,
                          topic_filter,
                          graph_mode,
                          dotcode_factory,
-                         hide_single_connection_topics=False,
+                         show_all_advertisements=False,
                          hide_dead_end_topics=False,
                          cluster_namespaces_level=0,
-                         accumulate_actions=True,
                          orientation='LR',
                          rank='same',  # None, same, min, max, source, sink
                          ranksep=0.2,  # vertical distance between layers
@@ -247,22 +207,6 @@ class RosGraphDotcodeGenerator:
         """
         includes, excludes = self._split_filter_string(ns_filter)
         topic_includes, topic_excludes = self._split_filter_string(topic_filter)
-        print "  gateway_nodes"
-        print rosgraphinst.gateway_nodes
-        print "  connection_nodes"
-        print rosgraphinst.connection_nodes
-        print "  nn_edges"
-        print rosgraphinst.nn_edges
-        for edge in rosgraphinst.nn_edges:
-            print edge
-        print "  nt_edges"
-        print rosgraphinst.nt_edges
-        for edge in rosgraphinst.nt_edges:
-            print edge
-        print "  nt_all_edges"
-        print rosgraphinst.nt_all_edges
-        for edge in rosgraphinst.nt_all_edges:
-            print edge
 
         gateway_nodes = []
         connection_nodes = []
@@ -270,46 +214,38 @@ class RosGraphDotcodeGenerator:
         if graph_mode == GATEWAY_GATEWAY_GRAPH:
             gateway_nodes = rosgraphinst.gateway_nodes
             gateway_nodes = [n for n in gateway_nodes if matches_any(n, includes) and not matches_any(n, excludes)]
-            edges = rosgraphinst.nn_edges
+            edges = rosgraphinst.gateway_edges
             edges = [e for e in edges if matches_any(e.label, topic_includes) and not matches_any(e.label, topic_excludes)]
 
-        elif graph_mode == NODE_TOPIC_GRAPH or \
-                 graph_mode == GATEWAY_ALL_GRAPH:
+        elif graph_mode == GATEWAY_PULLED_GRAPH or graph_mode == GATEWAY_FLIPPED_GRAPH:
+            # create the edge definitions, unwrap EdgeList objects into python lists
+            if graph_mode == GATEWAY_PULLED_GRAPH:
+                edges = [e for e in rosgraphinst.pulled_edges]
+                connection_nodes = rosgraphinst.pulled_nodes
+            else:
+                edges = [e for e in rosgraphinst.flipped_edges]
+                connection_nodes = rosgraphinst.flipped_nodes
             gateway_nodes = rosgraphinst.gateway_nodes
-            connection_nodes = rosgraphinst.connection_nodes
+            # filtering the lists
             gateway_nodes = [n for n in gateway_nodes if matches_any(n, includes) and not matches_any(n, excludes)]
             connection_nodes = [n for n in connection_nodes if matches_any(n, topic_includes) and not matches_any(n, topic_excludes)]
 
-            # create the edge definitions, unwrap EdgeList objects into python lists
-            if graph_mode == NODE_TOPIC_GRAPH:
-                edges = [e for e in rosgraphinst.nt_edges]
-            else:
-                edges = [e for e in rosgraphinst.nt_all_edges]
-
-        print "  Nodes"
-        print gateway_nodes
-        print "  Topics"
-        print connection_nodes
-        print "  Edges"
-        for edge in edges:
-            print edge
-        print edges
-
-        # for accumulating actions topics
-        action_nodes = {}
-
-        if graph_mode != GATEWAY_GATEWAY_GRAPH and (hide_single_connection_topics or hide_dead_end_topics or accumulate_actions):
-            # maps outgoing and incoming edges to nodes
+        hide_unused_advertisements = not show_all_advertisements
+        if graph_mode == GATEWAY_PULLED_GRAPH and hide_unused_advertisements:
             node_connections = self._get_node_edge_map(edges)
-
             connection_nodes, edges = self._filter_leaf_topics(connection_nodes,
                                          edges,
                                          node_connections,
-                                         hide_single_connection_topics,
+                                         hide_unused_advertisements,
                                          hide_dead_end_topics)
-
-            if accumulate_actions:
-                connection_nodes, edges, action_nodes = self._accumulate_action_topics(connection_nodes, edges, node_connections)
+#        if graph_mode != GATEWAY_GATEWAY_GRAPH and (hide_unused_advertisements or hide_dead_end_topics or accumulate_actions):
+#            # maps outgoing and incoming edges to nodes
+#            node_connections = self._get_node_edge_map(edges)
+#            connection_nodes, edges = self._filter_leaf_topics(connection_nodes,
+#                                         edges,
+#                                         node_connections,
+#                                         hide_unused_advertisements,
+#                                         hide_dead_end_topics)
 
         edges = self._filter_orphaned_edges(edges, list(gateway_nodes) + list(connection_nodes))
         connection_nodes = self._filter_orphaned_topics(connection_nodes, edges)
@@ -321,9 +257,8 @@ class RosGraphDotcodeGenerator:
                                              simplify=simplify,
                                              rankdir=orientation)
 
-        ACTION_TOPICS_SUFFIX = '/action_topics'
         namespace_clusters = {}
-        for n in (connection_nodes or []) + [action_prefix + ACTION_TOPICS_SUFFIX for (action_prefix, _) in action_nodes.items()]:
+        for n in (connection_nodes or []):
             # cluster topics with same namespace
             if (cluster_namespaces_level > 0 and
                 str(n).count('/') > 1 and
@@ -351,13 +286,6 @@ class RosGraphDotcodeGenerator:
         for e in edges:
             self._add_edge(e, dotcode_factory, dotgraph=dotgraph, is_topic=(graph_mode == GATEWAY_GATEWAY_GRAPH))
 
-        for (action_prefix, node_connections) in action_nodes.items():
-            if 'outgoing' in node_connections:
-                for out_edge in node_connections.outgoing:
-                    dotcode_factory.add_edge_to_graph(dotgraph, action_prefix[1:] + ACTION_TOPICS_SUFFIX, out_edge.end)
-            if 'incoming' in node_connections:
-                for in_edge in node_connections.incoming:
-                    dotcode_factory.add_edge_to_graph(dotgraph, in_edge.start, action_prefix[1:] + ACTION_TOPICS_SUFFIX)
         return dotgraph
 
     def generate_dotcode(self,
@@ -366,10 +294,9 @@ class RosGraphDotcodeGenerator:
                          topic_filter,
                          graph_mode,
                          dotcode_factory,
-                         hide_single_connection_topics=False,
+                         show_all_advertisements=False,
                          hide_dead_end_topics=False,
                          cluster_namespaces_level=0,
-                         accumulate_actions=True,
                          orientation='LR',
                          rank='same',  # None, same, min, max, source, sink
                          ranksep=0.2,  # vertical distance between layers
@@ -382,7 +309,7 @@ class RosGraphDotcodeGenerator:
         @type  ns_filter: string
         @param topic_filter: topicname filter
         @type  ns_filter: string
-        @param graph_mode str: GATEWAY_GATEWAY_GRAPH | NODE_TOPIC_GRAPH | GATEWAY_ALL_GRAPH
+        @param graph_mode str: GATEWAY_GATEWAY_GRAPH | GATEWAY_PULLED_GRAPH | GATEWAY_FLIPPED_GRAPH
         @type  graph_mode: str
         @param orientation: rankdir value (see ORIENTATIONS dict)
         @type  dotcode_factory: object
@@ -390,7 +317,6 @@ class RosGraphDotcodeGenerator:
         @param hide_single_connection_topics: if true remove topics with just one connection
         @param hide_dead_end_topics: if true remove topics with publishers only
         @param cluster_namespaces_level: if > 0 places box around members of same namespace (TODO: multiple namespace layers)
-        @param accumulate_actions: if true each 5 action topic graph nodes are shown as single graph node
         @return: dotcode generated from graph singleton
         @rtype: str
         """
@@ -399,10 +325,9 @@ class RosGraphDotcodeGenerator:
                          topic_filter=topic_filter,
                          graph_mode=graph_mode,
                          dotcode_factory=dotcode_factory,
-                         hide_single_connection_topics=hide_single_connection_topics,
+                         show_all_advertisements=show_all_advertisements,
                          hide_dead_end_topics=hide_dead_end_topics,
                          cluster_namespaces_level=cluster_namespaces_level,
-                         accumulate_actions=accumulate_actions,
                          orientation=orientation,
                          rank=rank,
                          ranksep=ranksep,
