@@ -191,11 +191,11 @@ class InteractiveInterface(object):
     # Accessors for Gateway Info
     ##########################################################################
 
-    def is_matched(self,rule,name,node):
+    def is_matched(self,rule,rule_name,name,node):
         matched = False
-        name_match_result = re.match(rule.rule.name, name)
+        name_match_result = re.match(rule_name, name)
         if name_match_result and name_match_result.group() == name:
-            if utils.isAllPattern(rule.rule.name):
+            if utils.isAllPattern(rule_name):
                 if self._isInBlacklist(rule.gateway, type, name,node):
                     return False
             if rule.rule.node:

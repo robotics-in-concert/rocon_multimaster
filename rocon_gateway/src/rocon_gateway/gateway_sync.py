@@ -384,7 +384,7 @@ class GatewaySync(object):
           @param gateways : list of remote gateway string id's
           @type string
         '''
-        new_flips, lost_flips = self.flipped_interface.update(connections, gateways)
+        new_flips, lost_flips = self.flipped_interface.update(connections, gateways,self.unique_name)
         for connection_type in connections:
             for flip in new_flips[connection_type]:
                 # for actions, need to post flip details here
@@ -418,7 +418,7 @@ class GatewaySync(object):
         '''
         for gateway in gateways + self.pulled_interface.listRemoteGatewayNames():
             connections = self.hub.getRemoteConnectionState(gateway)
-            new_pulls, lost_pulls = self.pulled_interface.update(connections, gateway)
+            new_pulls, lost_pulls = self.pulled_interface.update(connections, gateway,self.unique_name)
             for connection_type in connections:
                 for pull in new_pulls[connection_type]:
                     for connection in connections[pull.rule.type]:
