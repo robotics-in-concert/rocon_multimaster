@@ -34,7 +34,7 @@ def resolve_address(msg):
         ip = msg.ipv4_addresses[0]
     return (ip,msg.port)
     
-def setupRosServices():
+def setup_ros_services():
     '''
       Looks to see if it can find the zeroconf services that
       will help it auto-discover a hub. If it finds them, 

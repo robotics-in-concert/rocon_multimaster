@@ -91,13 +91,13 @@ class PublicInterface(object):
         for connection_type in utils.connection_types:
             for rule in default_rules[connection_type]:
                 print rule
-                self.addRule(rule)
+                self.add_rule(rule)
 
     ##########################################################################
     # Public Interfaces
     ##########################################################################
 
-    def addRule(self, rule):
+    def add_rule(self, rule):
         '''
         Watch for a new public rule, as described for by the incoming message.
         
@@ -116,7 +116,7 @@ class PublicInterface(object):
         rospy.loginfo("Gateway : (req) advertise %s"%utils.formatRule(rule))
         return result
 
-    def removeRule(self, rule): 
+    def remove_rule(self, rule): 
         ''' 
         Attempt to remove a watchlist rule from the public interface. Be a
         bit careful looking for a rule to remove, depending on the node name,

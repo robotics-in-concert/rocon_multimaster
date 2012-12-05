@@ -58,15 +58,15 @@ class InteractiveInterface(object):
 
         # Load up static rules.
         for rule in default_rules:
-            self.addRule(rule)
+            self.add_rule(rule)
         for gateway in all_targets:
-            self.addAll(gateway,[])  # don't add the complexity of extra blacklists yet, maybe later
+            self.add_all(gateway,[])  # don't add the complexity of extra blacklists yet, maybe later
 
     ##########################################################################
     # Rules
     ##########################################################################
 
-    def addRule(self, remote_rule):
+    def add_rule(self, remote_rule):
         '''
           Add a remote rule to the watchlist for monitoring.
 
@@ -93,7 +93,7 @@ class InteractiveInterface(object):
         self._lock.release()
         return result
 
-    def removeRule(self, remote_rule):
+    def remove_rule(self, remote_rule):
         '''
           Remove a rule. Be a bit careful looking for a rule to remove, depending
           on the node name, which can be set (exact rule/node name match) or
@@ -130,7 +130,7 @@ class InteractiveInterface(object):
             self._lock.release()
             return existing_rules
 
-    def addAll(self, gateway, blacklist):
+    def add_all(self, gateway, blacklist):
         '''
           Instead of watching/acting on specific rules, take action
           on everything except for rules in a blacklist.
@@ -161,12 +161,12 @@ class InteractiveInterface(object):
             remote_rule.rule.type = connection_type
             # Remove all other rules for that gateway
             self.watchlist[connection_type][:] = [rule for rule in self.watchlist[connection_type] if rule.gateway != gateway]
-            # basically self.addRule() - do it manually here so we don't deadlock locks
+            # basically self.add_rule() - do it manually here so we don't deadlock locks
             self.watchlist[connection_type].append(remote_rule)
         self._lock.release()
         return True
 
-    def removeAll(self, gateway):
+    def remove_all(self, gateway):
         '''
           Remove the add all rule for the specified gateway.
 
@@ -179,7 +179,7 @@ class InteractiveInterface(object):
         for connection_type in utils.connection_types:
             for rule in self.watchlist[connection_type]:
                 if rule.gateway == gateway:
-                    # basically self.removeRule() - do it manually here so we don't deadlock locks
+                    # basically self.remove_rule() - do it manually here so we don't deadlock locks
                     try:
                         self.watchlist[connection_type].remove(rule)
                     except ValueError:
@@ -282,7 +282,7 @@ class InteractiveInterface(object):
     def _isInBlacklist(self, gateway, type, name, node):
         '''
           Check if a particular connection is in the blacklist. Use this to
-          filter connections from the flipAll command.
+          filter connections from the flip_all command.
 
           @todo move to utils - should be shared with the public interface.
         '''

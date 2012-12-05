@@ -133,29 +133,29 @@ def serialize(data):
 def deserialize(str_msg):
     return convert(json.loads(str_msg))
 
-def serializeConnection(connection):
+def serialize_connection(connection):
     return serialize([connection.rule.type,connection.rule.name,connection.rule.node,connection.type_info,connection.xmlrpc_uri])
 
-def deserializeConnection(connection_str):
+def deserialize_connection(connection_str):
     list = deserialize(connection_str)
     rule = Rule(list[0],list[1],list[2])
     return Connection(rule, list[3], list[4])
 
-def serializeConnectionRequest(command, source, connection):
+def serialize_connection_request(command, source, connection):
     return serialize([command,source,connection.rule.type,connection.rule.name,connection.rule.node,connection.type_info,connection.xmlrpc_uri])
 
-def serializeRuleRequest(command,source,rule):
+def serialize_rule_request(command,source,rule):
     return serialize([command,source,rule.type,rule.name,rule.node])
 
-def deserializeRequest(request_str):
+def deserialize_request(request_str):
     list = deserialize(request_str)
     return list[0], list[1], list[2:]
 
-def getConnectionFromList(list):
+def get_connection_from_list(list):
     rule = Rule(list[0],list[1],list[2])
     return Connection(rule,list[3],list[4])
 
-def getRuleFromList(list):
+def get_rule_from_list(list):
     return Rule(list[0],list[1],list[2])
 
 ##########################################################################

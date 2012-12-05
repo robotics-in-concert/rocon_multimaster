@@ -36,13 +36,13 @@ class Gateway():
     def __init__(self):
         self.gateway_sync = None  # hub and local ros master connection
 
-        self.param = rocon_gateway.setupRosParameters()
+        self.param = rocon_gateway.setup_ros_parameters()
         self.gateway_sync = rocon_gateway.GatewaySync(self.param)  # maybe pass in the whole params dictionary?
         self._gateway_services = self._setup_ros_services()
 
         self._zeroconf_services = {}
         if not self._attempt_direct_connection():
-            self._zeroconf_services = rocon_gateway.zeroconf.setupRosServices()
+            self._zeroconf_services = rocon_gateway.zeroconf.setup_ros_services()
 
     ##########################################################################
     # Main Loop

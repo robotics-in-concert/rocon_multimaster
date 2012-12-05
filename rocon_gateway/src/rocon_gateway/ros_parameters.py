@@ -15,7 +15,7 @@ import utils
 # Functions
 ###############################################################################
 
-def setupRosParameters():
+def setup_ros_parameters():
     '''
     Returns the gateway parameters from the ros param server.
     Most of these should be fairly self explanatory.
@@ -47,7 +47,7 @@ def setupRosParameters():
 
     return param
 
-def generateRules(param):
+def generate_rules(param):
     '''
       Converts a param of the suitable type (see default_blacklist.yaml)
       into a dictionary of Rule types.
@@ -69,7 +69,7 @@ def generateRules(param):
         rules[rule.type].append(rule)
     return rules
 
-def generateRemoteRules(param):
+def generate_remote_rules(param):
     ''' 
        Converts a param of the suitable type (default_flips, default_pulls) into
        a list of RemoteRule objects and a list of target gateways for flip_all/pull_all.

@@ -59,7 +59,7 @@ if __name__ == '__main__':
     rospy.loginfo("************* Update after a new flip rule *************")
     rospy.loginfo("Expected Result: the system connection is not yet present")
     rospy.loginfo("so should return empty results (no matches) from the update.")
-    flipped_interface.addRule(flip_rule)
+    flipped_interface.add_rule(flip_rule)
     new_flips, old_flips = flipped_interface.update(system_connections)
     # should return empty dictionaries
     print_flips(new_flips,old_flips)
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     rospy.loginfo("************* Update after flip rule removed acquired *************")
     rospy.loginfo("Expected Result: should see a match existing in old flips.")
     
-    if not flipped_interface.removeRule(flip_rule):
+    if not flipped_interface.remove_rule(flip_rule):
         rospy.logerr("Failed to remove an existing rule from the flip rules.")
     
     new_flips, old_flips = flipped_interface.update(system_connections)

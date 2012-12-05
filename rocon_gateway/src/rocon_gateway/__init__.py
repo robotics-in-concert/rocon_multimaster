@@ -15,7 +15,7 @@ __date__ = "2012-08-29"
 import zeroconf
 from .exceptions import GatewayError
 from .utils import connection_types, createEmptyConnectionTypeDictionary, Connection
-from .ros_parameters import setupRosParameters
+from .ros_parameters import setup_ros_parameters
 from .hub_api import resolve_hub
 from .gateway_sync import GatewaySync
 from .flipped_interface import FlippedInterface

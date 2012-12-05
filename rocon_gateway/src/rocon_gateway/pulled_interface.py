@@ -43,8 +43,8 @@ class PulledInterface(interactive_interface.InteractiveInterface):
 
         # Function aliases
         self.pulled = self.active
-        self.pullAll = self.addAll
-        self.unPullAll = self.removeAll
+        self.pull_all = self.add_all
+        self.unpull_all = self.remove_all
 
     def update(self,connections, gateway,unique_name):
         '''

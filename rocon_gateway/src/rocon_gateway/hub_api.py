@@ -116,13 +116,13 @@ class RedisListenerThread(threading.Thread):
         '''
         for r in self._redis_pubsub_server.listen():
             if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
-                command, source, contents = utils.deserializeRequest(r['data'])
+                command, source, contents = utils.deserialize_request(r['data'])
                 rospy.logdebug("Gateway : redis listener received a channel publication from %s : [%s]" % (source, command))
                 if command == 'flip':
-                    registration = utils.Registration(utils.getConnectionFromList(contents), source)
+                    registration = utils.Registration(utils.get_connection_from_list(contents), source)
                     self._remote_gateway_request_callbacks['flip'](registration)
                 elif command == 'unflip':
-                    self._remote_gateway_request_callbacks['unflip'](utils.getRuleFromList(contents), source)
+                    self._remote_gateway_request_callbacks['unflip'](utils.get_rule_from_list(contents), source)
                 else:
                     rospy.logerr("Gateway : received an unknown command from the hub.")
 
@@ -261,7 +261,7 @@ class Hub(object):
             remote_gateway.public_interface = []
             encoded_advertisements = self.server.smembers(create_gateway_key(gateway, 'advertisements'))
             for encoded_advertisement in encoded_advertisements:
-                advertisement = utils.deserializeConnection(encoded_advertisement)
+                advertisement = utils.deserialize_connection(encoded_advertisement)
                 remote_gateway.public_interface.append(advertisement.rule)
             remote_gateway.flipped_interface = []
             encoded_flips = self.server.smembers(create_gateway_key(gateway, 'flips'))
@@ -311,7 +311,7 @@ class Hub(object):
         key = create_gateway_key(gateway, 'advertisements')
         public_interface = self.server.smembers(key)
         for connection_str in public_interface:
-            connection = utils.deserializeConnection(connection_str)
+            connection = utils.deserialize_connection(connection_str)
             connections[connection.rule.type].append(connection)
         return connections
 
@@ -352,7 +352,7 @@ class Hub(object):
           @raise .exceptions.ConnectionTypeError: if connection arg is invalid.
         '''
         key = create_gateway_key(self._unique_gateway_name, 'advertisements')
-        msg_str = utils.serializeConnection(connection)
+        msg_str = utils.serialize_connection(connection)
         self.server.sadd(key, msg_str)
 
     def unadvertise(self, connection):
@@ -364,10 +364,10 @@ class Hub(object):
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
         key = create_gateway_key(self._unique_gateway_name,'advertisements')
-        msg_str = utils.serializeConnection(connection)
+        msg_str = utils.serialize_connection(connection)
         self.server.srem(key,msg_str)
 
-    def postFlipDetails(self, gateway, name, type, node):
+    def post_flip_details(self, gateway, name, type, node):
         '''
           Post flip details to the redis server. This has no actual functionality,
           it is just useful for debugging with the remote_gateway_info service.
@@ -385,7 +385,7 @@ class Hub(object):
         serialized_data = utils.serialize([gateway, name, type, node])
         self.server.sadd(key, serialized_data)
 
-    def removeFlipDetails(self, gateway, name, type, node):
+    def remove_flip_details(self, gateway, name, type, node):
         '''
           Post flip details to the redis server. This has no actual functionality,
           it is just useful for debugging with the remote_gateway_info service.
@@ -403,7 +403,7 @@ class Hub(object):
         serialized_data = utils.serialize([gateway, name, type, node])
         self.server.srem(key, serialized_data)
 
-    def postPullDetails(self, gateway, name, type, node):
+    def post_pull_details(self, gateway, name, type, node):
         '''
           Post pull details to the hub. This has no actual functionality,
           it is just useful for debugging with the remote_gateway_info service.
@@ -421,7 +421,7 @@ class Hub(object):
         serialized_data = utils.serialize([gateway, name, type, node])
         self.server.sadd(key, serialized_data)
 
-    def removePullDetails(self, gateway, name, type, node):
+    def remove_pull_details(self, gateway, name, type, node):
         '''
           Post pull details to the hub. This has no actual functionality,
           it is just useful for debugging with the remote_gateway_info service.
@@ -443,7 +443,7 @@ class Hub(object):
     # Gateway-Gateway Communications
     ##########################################################################
 
-    def sendFlipRequest(self, gateway, connection):
+    def send_flip_request(self, gateway, connection):
         '''
           Sends a message to the remote gateway via redis pubsub channel. This is called from the
           watcher thread, when a flip rule gets activated.
@@ -471,48 +471,48 @@ class Hub(object):
           @param str
         '''
         source = key_base_name(self._redis_keys['gateway'])
-        cmd = utils.serializeConnectionRequest('flip', source, connection)
+        cmd = utils.serialize_connection_request('flip', source, connection)
         try:
             self.server.publish(create_key(gateway),cmd)
         except Exception as e:
             return False
         return True
 
-    def sendUnflipRequest(self, gateway, rule):
+    def send_unflip_request(self, gateway, rule):
         if rule.type == gateway_msgs.msg.ConnectionType.ACTION_CLIENT:
             action_name = rule.name
             rule.type = gateway_msgs.msg.ConnectionType.PUBLISHER
             rule.name = action_name + "/goal"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
             rule.name = action_name + "/cancel"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
             rule.type = gateway_msgs.msg.ConnectionType.SUBSCRIBER
             rule.name = action_name + "/feedback"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
             rule.name = action_name + "/status"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
             rule.name = action_name + "/result"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
         elif rule.type == gateway_msgs.msg.ConnectionType.ACTION_SERVER:
             action_name = rule.name
             rule.type = gateway_msgs.msg.ConnectionType.SUBSCRIBER
             rule.name = action_name + "/goal"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
             rule.name = action_name + "/cancel"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
             rule.type = gateway_msgs.msg.ConnectionType.PUBLISHER
             rule.name = action_name + "/feedback"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
             rule.name = action_name + "/status"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
             rule.name = action_name + "/result"
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
         else:
-            self._sendUnflipRequest(gateway, rule)
+            self._send_unflip_request(gateway, rule)
 
-    def _sendUnflipRequest(self, gateway, rule):
+    def _send_unflip_request(self, gateway, rule):
         source = key_base_name(self._redis_keys['gateway'])
-        cmd = utils.serializeRuleRequest('unflip', source, rule)
+        cmd = utils.serialize_rule_request('unflip', source, rule)
         try:
             self.server.publish(create_key(gateway), cmd)
         except Exception as e:

@@ -48,20 +48,20 @@ class GatewaySync(object):
         self.unique_name = None  # single string value set after hub rule (note: it is not a redis rocon:: rooted key!)
         self._ip = None
         self.is_connected = False
-        default_rule_blacklist = ros_parameters.generateRules(self.param["default_blacklist"])
+        default_rule_blacklist = ros_parameters.generate_rules(self.param["default_blacklist"])
 
-        default_rules, all_targets = ros_parameters.generateRemoteRules(self.param["default_flips"])
+        default_rules, all_targets = ros_parameters.generate_remote_rules(self.param["default_flips"])
         self.flipped_interface = FlippedInterface(
                                                   firewall = self.param['firewall'],
                                                   default_rule_blacklist = default_rule_blacklist,
                                                   default_rules = default_rules,
                                                   all_targets = all_targets)
-        default_rules, all_targets = ros_parameters.generateRemoteRules(self.param["default_pulls"])
+        default_rules, all_targets = ros_parameters.generate_remote_rules(self.param["default_pulls"])
         self.pulled_interface = PulledInterface(default_rule_blacklist = default_rule_blacklist,
                                                 default_rules = default_rules,
                                                 all_targets = all_targets)
         self.public_interface = PublicInterface(default_rule_blacklist=default_rule_blacklist,
-                                                default_rules = ros_parameters.generateRules(self.param['default_advertisements'])
+                                                default_rules = ros_parameters.generate_rules(self.param['default_advertisements'])
                                                 )
         if self.param['advertise_all']:
             self.public_interface.advertiseAll([])  # no extra blacklist beyond the default (keeping it simple in yaml for now)
@@ -94,7 +94,7 @@ class GatewaySync(object):
         self.watcher_thread.shutdown()
         for connection_type in utils.connection_types:
             for flip in self.flipped_interface.flipped[connection_type]:
-                self.hub.sendUnflipRequest(flip.gateway, flip.rule)
+                self.hub.send_unflip_request(flip.gateway, flip.rule)
             for registration in self.flipped_interface.registrations[connection_type]:
                 self.master.unregister(registration)
         self.hub.unregister_gateway()
@@ -122,12 +122,12 @@ class GatewaySync(object):
             try:
                 if not request.cancel:
                     for rule in request.rules:
-                        if not self.public_interface.addRule(rule):
+                        if not self.public_interface.add_rule(rule):
                             response.result = gateway_msgs.msg.Result.ADVERTISEMENT_EXISTS
                             response.error_message = "advertisment rule already exists [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
                 else:
                     for rule in request.rules:
-                        if not self.public_interface.removeRule(rule):
+                        if not self.public_interface.remove_rule(rule):
                             response.result = gateway_msgs.msg.Result.ADVERTISEMENT_NOT_FOUND
                             response.error_message = "advertisment not found [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
             except Exception as e:
@@ -197,7 +197,7 @@ class GatewaySync(object):
         added_rules = []
         for remote in request.remotes:
             if not request.cancel:
-                flip_rule = self.flipped_interface.addRule(remote)
+                flip_rule = self.flipped_interface.add_rule(remote)
                 if flip_rule:
                     added_rules.append(flip_rule)
                     rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]" % (flip_rule.gateway, flip_rule.rule.name, flip_rule.rule.type))
@@ -206,7 +206,7 @@ class GatewaySync(object):
                     response.error_message = "flip rule already exists [%s:(%s,%s)]" % (remote.gateway, remote.rule.name, remote.rule.type)
                     break
             else:  # request.cancel
-                removed_flip_rules = self.flipped_interface.removeRule(remote)
+                removed_flip_rules = self.flipped_interface.remove_rule(remote)
                 if removed_flip_rules:
                     rospy.loginfo("Gateway : removed flip rule [%s:(%s,%s)]" % (remote.gateway, remote.rule.name, remote.rule.type))
 
@@ -215,7 +215,7 @@ class GatewaySync(object):
         else:
             if added_rules:  # completely abort any added rules
                 for added_rule in added_rules:
-                    self.flipped_interface.removeRule(added_rule)
+                    self.flipped_interface.remove_rule(added_rule)
             rospy.logerr("Gateway : %s." % response.error_message)
         return response
 
@@ -233,13 +233,13 @@ class GatewaySync(object):
         response.result, response.error_message = self._ros_service_flip_checks(request.gateway)
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             if not request.cancel:
-                if self.flipped_interface.flipAll(request.gateway, request.blacklist):
+                if self.flipped_interface.flip_all(request.gateway, request.blacklist):
                     rospy.loginfo("Gateway : flipping all to gateway '%s'" % (request.gateway))
                 else:
                     response.result = gateway_msgs.msg.Result.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "already flipping all to gateway '%s' " + request.gateway
             else:  # request.cancel
-                self.flipped_interface.unFlipAll(request.gateway)
+                self.flipped_interface.un_flip_all(request.gateway)
                 rospy.loginfo("Gateway : cancelling a previous flip all request [%s]" % (request.gateway))
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
@@ -271,7 +271,7 @@ class GatewaySync(object):
         added_rules = []
         for remote in request.remotes:
             if not request.cancel:
-                pull_rule = self.pulled_interface.addRule(remote)
+                pull_rule = self.pulled_interface.add_rule(remote)
                 if pull_rule:
                     added_rules.append(pull_rule)
                     rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]" % (pull_rule.gateway, pull_rule.rule.name, pull_rule.rule.type))
@@ -281,7 +281,7 @@ class GatewaySync(object):
                     break
             else:  # request.cancel
                 for remote in request.remotes:
-                    removed_pull_rules = self.pulled_interface.removeRule(remote)
+                    removed_pull_rules = self.pulled_interface.remove_rule(remote)
                     if removed_pull_rules:
                         rospy.loginfo("Gateway : removed pull rule [%s:%s]" % (remote.gateway, remote.rule.name))
         if response.result == gateway_msgs.msg.Result.SUCCESS:
@@ -289,7 +289,7 @@ class GatewaySync(object):
         else:
             if added_rules:  # completely abort any added rules
                 for added_rule in added_rules:
-                    self.pulled_interface.removeRule(added_rule)
+                    self.pulled_interface.remove_rule(added_rule)
             rospy.logerr("Gateway : %s." % response.error_message)
         return response
 
@@ -307,13 +307,13 @@ class GatewaySync(object):
         response.result, response.error_message = self._ros_service_remote_checks(request.gateway)
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             if not request.cancel:
-                if self.pulled_interface.pullAll(request.gateway, request.blacklist):
+                if self.pulled_interface.pull_all(request.gateway, request.blacklist):
                     rospy.loginfo("Gateway : pulling all from gateway '%s'" % (request.gateway))
                 else:
                     response.result = gateway_msgs.msg.Result.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "already pulling all from gateway '%s' " + request.gateway
             else:  # request.cancel
-                self.pulled_interface.unPullAll(request.gateway)
+                self.pulled_interface.unpull_all(request.gateway)
                 rospy.loginfo("Gateway : cancelling a previous pull all request [%s]" % (request.gateway))
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
@@ -388,18 +388,18 @@ class GatewaySync(object):
                 connections = self.master.generate_connection_details(flip.rule.type, flip.rule.name, flip.rule.node)
                 if connection_type == utils.ConnectionType.ACTION_CLIENT or connection_type == utils.ConnectionType.ACTION_SERVER:
                     rospy.loginfo("Flipping to %s : %s" % (flip.gateway, utils.formatRule(flip.rule)))
-                    self.hub.postFlipDetails(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                    self.hub.post_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
                     for connection in connections:
-                        self.hub.sendFlipRequest(flip.gateway, connection)  # flip the individual pubs/subs
+                        self.hub.send_flip_request(flip.gateway, connection)  # flip the individual pubs/subs
                 else:
                     for connection in connections:
                         rospy.loginfo("Flipping to %s : %s" % (flip.gateway, utils.formatRule(connection.rule)))
-                        self.hub.sendFlipRequest(flip.gateway, connection)
-                        self.hub.postFlipDetails(flip.gateway, connection.rule.name, connection.rule.type, connection.rule.node)
+                        self.hub.send_flip_request(flip.gateway, connection)
+                        self.hub.post_flip_details(flip.gateway, connection.rule.name, connection.rule.type, connection.rule.node)
             for flip in lost_flips[connection_type]:
                 rospy.loginfo("Unflipping to %s : %s" % (flip.gateway, utils.formatRule(flip.rule)))
-                self.hub.sendUnflipRequest(flip.gateway, flip.rule)
-                self.hub.removeFlipDetails(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                self.hub.send_unflip_request(flip.gateway, flip.rule)
+                self.hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
 
     def update_pulled_interface(self, connections, gateways):
         '''
@@ -429,13 +429,13 @@ class GatewaySync(object):
                         registration = utils.Registration(connection, gateway)
                         new_registration = self.master.register(registration)
                         self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
-                        self.hub.postPullDetails(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
+                        self.hub.post_pull_details(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
                 for pull in lost_pulls[connection_type]:
                     # Unregister this pull
                     existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
                     if existing_registration:
                         self.master.unregister(existing_registration)
-                        self.hub.removePullDetails(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
+                        self.hub.remove_pull_details(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
                         self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
 
     def update_public_interface(self, connections=None):

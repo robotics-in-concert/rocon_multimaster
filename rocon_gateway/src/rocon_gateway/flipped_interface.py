@@ -49,8 +49,8 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
         # Function aliases
         self.flipped = self.active
-        self.flipAll = self.addAll
-        self.unFlipAll = self.removeAll
+        self.flip_all = self.add_all
+        self.unflip_all = self.remove_all
 
     ##########################################################################
     # Monitoring
