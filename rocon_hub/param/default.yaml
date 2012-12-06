@@ -1,7 +1,7 @@
 # Default values are commented with a #.
 
 # String identifier for the gateway hub
-name: Gateway Hub
+name: Rocon Hub
 
 # Port on which to start the redis server
 port: 6380
