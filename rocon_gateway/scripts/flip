@@ -81,7 +81,7 @@ def resolve_remote_gateways(gateway_namespace):
     index = 0;
     max_index = len(resp.gateways) - 1
     if max_index == 0:
-        logger.debug("Automatically selecting target gateway %s (only one visible)"%resp.gateways[0].name)
+        logger.warning("Automatically selecting target gateway %s (only one visible)"%resp.gateways[0].name)
         remote_gateways.append(resp.gateways[0].name)
     else:
         print("Select a target gateway:")
@@ -98,13 +98,14 @@ def resolve_remote_gateways(gateway_namespace):
                     remote_gateways.append(remote_gateway.name)
     return remote_gateways
 
+
 def resolve_flags():
     '''
       Currently only flip/cancel flag
     '''
-    response = raw_input("> Flip or cancel connections (f/u): ")
-    while response != 'f' and response != 'u':
-        response = raw_input("> Valid options are (f/u): ")
+    response = raw_input("> Create or cancel a flip rule (f/c): ")
+    while response != 'f' and response != 'c':
+        response = raw_input("> Valid options are (f/c): ")
     if response == 'f':
         return Flags.flip
     else:
@@ -123,8 +124,8 @@ def resolve_unflips(flip_watchlist):
     max_index = len(flip_watchlist) - 1
     unflips = []
     if max_index == 0:
-        logger.debug("Automatically selecting %s (only one visible)"%flip_watchlist.rule.name)
-        unflips.append(flip_watchlist.rule)
+        logger.warning("Automatically selecting %s (only one flip rule in the watchlist)"%flip_watchlist[0].rule.name)
+        unflips.append(flip_watchlist[0])
     else:
         print("Select a flip rule to cancel (gateway-name-type-node):")
         for connection in flip_watchlist:
@@ -171,16 +172,12 @@ def resolve_connections(gateway_namespace, remote_gateways, flipped_connections)
     connections[:] = [connection for connection in connections if not re.match('.*zeroconf.*', connection.rule.name)]
     max_index = len(connections) - 1
     flips = []
-    if max_index == 0:
-        logger.debug("Automatically selecting %s (only one visible)"%flip_watchlist.rule.name)
-        for remote_gateway in remote_gateways:
-            flips.append(gateway_msgs.msg.RemoteRule(remote_gateway, connections[0].rule))
-    elif max_index < 0:
-        raise rocon_gateway.GatewayError("Nothing to flip (either already flipped or blacklisted).")
+    if max_index < 0:
+        raise rocon_gateway.GatewayError("Nothing to flip (all either already flipped or blacklisted).")
     else:
         rules = []
         index = 0;
-        print("Select a connection to flip (name-type-node):")
+        print("Select connection by index or regex name based pattern")
         for connection in connections:
             print("    " + str(index) + ") "),
             console.pretty_print(connection.rule.name,console.green)
@@ -195,10 +192,14 @@ def resolve_connections(gateway_namespace, remote_gateways, flipped_connections)
             for remote_gateway in remote_gateways:
                 flips.append(gateway_msgs.msg.RemoteRule(remote_gateway,connections[index].rule))
         except ValueError, e: # It's a regex
+            matched = False
             for connection in connections:
                 if re.match(input_response, connection.rule.name):
-                     for remote_gateway in remote_gateways:
-                         flips.append(gateway_msgs.msg.RemoteRule(remote_gateway,connection.rule))
+                    matched = True
+                    for remote_gateway in remote_gateways:
+                        flips.append(gateway_msgs.msg.RemoteRule(remote_gateway,connection.rule))
+            if not matched:
+                raise rocon_gateway.GatewayError("No matching connections found, aborting")
     return flips
 
 def flip_rules(gateway_namespace, remote_rules, flag):
@@ -229,7 +230,7 @@ if __name__ == '__main__':
         flag = resolve_flags()
         flipped_connections, flip_watchlist = resolve_flipped_interface(gateway_namespace)
         if flag == Flags.cancel:
-            remote_rules = resolve_unflips(gateway_namespace, flip_watchlist)
+            remote_rules = resolve_unflips(flip_watchlist)
         else:
             remote_gateways = resolve_remote_gateways(gateway_namespace)
             remote_rules = resolve_connections(gateway_namespace, remote_gateways, flipped_connections)

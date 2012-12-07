@@ -93,9 +93,9 @@ def resolve_remote_gateways(gateway_namespace):
         return resp.gateways[index].name, resp.gateways[index].public_interface
 
 def resolve_flags():
-    response = raw_input("> Pull or unpull connections (p/u): ")
-    while response != 'p' and response != 'u':
-        response = raw_input("> Valid options are (p/u): ")
+    response = raw_input("> Pull or cancel a pulled connections (p/c): ")
+    while response != 'p' and response != 'c':
+        response = raw_input("> Valid options are (p/c): ")
     if response == 'p':
         return Flags.pull
     else:
