@@ -1,12 +1,12 @@
 <package>
-  <description brief="rocon_gateway">
+  <description brief="Portals for a ros system">
 
-     rocon_gateway
+     Gateways provide a means for multiple ros systems to interact with each other.
 
   </description>
-  <author>Jihoon</author>
+  <author>Daniel Stonier, Jihoon Lee, </author>
   <license>BSD</license>
-  <review status="unreviewed" notes=""/>
+  <review status="experimental" notes=""/>
   <url>http://ros.org/wiki/rocon_gateway</url>
   <depend package="rospy"/>
   <depend package="roslib"/>
