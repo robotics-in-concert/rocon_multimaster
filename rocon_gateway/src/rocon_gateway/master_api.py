@@ -16,9 +16,12 @@ import rosgraph
 import rostopic
 import rosservice
 import roslib.names
+from rosmaster.util import xmlrpcapi
+try:
+    import urllib.parse as urlparse  # Python 3.x
+except ImportError:
+    import urlparse
 import re
-from urlparse import urlparse
-
 from gateway_msgs.msg import Rule, ConnectionType
 from utils import Connection
 
@@ -63,7 +66,8 @@ class LocalMaster(rosgraph.Master):
             node_master.registerPublisher(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
             return registration
         elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
-            node_master.registerSubscriber(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
+            pub_uri_list = node_master.registerSubscriber(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
+            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name, pub_uri_list)
             return registration
         elif registration.connection.rule.type == ConnectionType.SERVICE:
             if rosservice.get_service_node(registration.connection.rule.name):
@@ -73,6 +77,7 @@ class LocalMaster(rosgraph.Master):
                 node_master.registerService(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
                 return registration
         elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
+            # TODO : call xmlrpcapi to notify of existing publishers for subscriber creation
             node_master.registerSubscriber(registration.connection.rule.name + "/goal", registration.connection.type_info + "ActionGoal", registration.connection.xmlrpc_uri)
             node_master.registerSubscriber(registration.connection.rule.name + "/cancel", "actionlib_msgs/GoalID", registration.connection.xmlrpc_uri)
             node_master.registerPublisher(registration.connection.rule.name + "/status", "actionlib_msgs/GoalStatusArray", registration.connection.xmlrpc_uri)
@@ -168,7 +173,7 @@ class LocalMaster(rosgraph.Master):
         return connections
 
     def get_ros_ip(self):
-        o = urlparse(rosgraph.get_master_uri())
+        o = urlparse.urlparse(rosgraph.get_master_uri())
         if o.hostname == 'localhost':
             ros_ip = ''
             try:
