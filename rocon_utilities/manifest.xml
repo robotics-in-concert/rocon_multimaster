@@ -1,5 +1,4 @@
 <package>
-  <catkin/>
   <description brief="rocon_utilities">
 
      Python utilities for the rocon_multimaster stack.

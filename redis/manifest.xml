@@ -1,5 +1,4 @@
 <package>
-  <catkin/>
   <description brief="patched code for redis-py">
 
      The python redis client has a minor issue - it hangs on ctrl-c.
