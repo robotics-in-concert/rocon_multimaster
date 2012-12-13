@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+#       
+# License: BSD
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#
+
+##############################################################################
+# Imports
+##############################################################################
+
+import sys
+import roslib 
+roslib.load_manifest('rocon_gateway')
+import rospy
+import rosgraph
+import xmlrpclib
+    
+##############################################################################
+# Main
+##############################################################################
+
+if __name__ == '__main__':
+    
+    rospy.init_node('dude')
+    xmlrpc = xmlrpclib.ServerProxy('http://snorriwork64:59646/')
+    print xmlrpc.getSubscriptions('/listener')
+    print xmlrpc.getPublications('/listener')
+    code, status_message, bus_info = xmlrpc.getBusInfo('/listener')
+    # connection_id, destination_id, direction (iob), type, name ], ... ] 
+    #[[0, '/rosout', 'o', 'TCPROS', '/rosout'], [1, 'http://snorriwork64:58523/', 'i', 'TCPROS', '/chatter']]
+    print bus_info
+    bus_stats = xmlrpc.getBusStats('/listener')
+    print bus_stats
+    #handler = rospy.impl.masterslave.ROSHandler(rospy.get_name(),rosgraph.get_master_uri()) 
+    #print handler.getPublications('/listener')
+    #print handler.getSubscriptions('/listener')
