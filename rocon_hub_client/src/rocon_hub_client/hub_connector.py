@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+#
+# License: BSD
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_hub_client/LICENSE
+#
+
+##############################################################################
+# Imports
+##############################################################################
+
 import rospy
 import rocon_gateway
 import redis
@@ -24,18 +34,18 @@ class HubConnector(object):
 
     def connect(self,hub_uri=None):
         if hub_uri:
-            return self.directConnect(hub_uri)
+            return self.direct_connect(hub_uri)
         else:
             return self.zeroconfConnect()
 
-    def directConnect(self,hub_uri):
+    def direct_connect(self,hub_uri):
         '''
             If hub_uri is provided, attempt a direct connection
         '''
         (ip, port) = hub_uri.split(':')
 
         if self._connect(ip, int(port)) == gateway_msgs.msg.Result.SUCCESS:
-            rospy.loginfo("HubConnector : made directo connection to Hub [%s]"%hub_uri)
+            rospy.loginfo("HubConnector : made direct connection to the hub [%s]"%hub_uri)
             self.is_connected = True
             return True
         else:
@@ -43,11 +53,11 @@ class HubConnector(object):
             return False
 
 
-    def zeroconfConnect(self):
+    def zeroconf_connect(self):
         while not rospy.is_shutdown() and not self.is_connected:
             rospy.sleep(1.0)
             if self._zeroconf_services:
-                found_hubs = self._scanForZeroconfHubs()
+                found_hubs = self._scan_for_zeroconf_hubs()
                 for (ip, port) in found_hubs:
                     rospy.loginfo("HubConnector : discovered hub zeroconf service at " + str(ip) + ":" + str(port))
                     if self._connect(ip,port) == gateway_msgs.msg.Result.SUCCESS:
@@ -58,7 +68,7 @@ class HubConnector(object):
         return self.is_connected
 
 
-    def _scanForZeroconfHubs(self):
+    def _scan_for_zeroconf_hubs(self):
         ''' 
             Does a quick scan on zeroconf for gateway hubs. If new ones are
             found, and it is not on the blacklist, it attempts a connection.

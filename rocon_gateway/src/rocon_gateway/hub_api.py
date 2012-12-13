@@ -114,17 +114,20 @@ class RedisListenerThread(threading.Thread):
 
           The command 'unflip' is the same, not including args 5 and 6.
         '''
-        for r in self._redis_pubsub_server.listen():
-            if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
-                command, source, contents = utils.deserialize_request(r['data'])
-                rospy.logdebug("Gateway : redis listener received a channel publication from %s : [%s]" % (source, command))
-                if command == 'flip':
-                    registration = utils.Registration(utils.get_connection_from_list(contents), source)
-                    self._remote_gateway_request_callbacks['flip'](registration)
-                elif command == 'unflip':
-                    self._remote_gateway_request_callbacks['unflip'](utils.get_rule_from_list(contents), source)
-                else:
-                    rospy.logerr("Gateway : received an unknown command from the hub.")
+        try:
+            for r in self._redis_pubsub_server.listen():
+                if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
+                    command, source, contents = utils.deserialize_request(r['data'])
+                    rospy.logdebug("Gateway : redis listener received a channel publication from %s : [%s]" % (source, command))
+                    if command == 'flip':
+                        registration = utils.Registration(utils.get_connection_from_list(contents), source)
+                        self._remote_gateway_request_callbacks['flip'](registration)
+                    elif command == 'unflip':
+                        self._remote_gateway_request_callbacks['unflip'](utils.get_rule_from_list(contents), source)
+                    else:
+                        rospy.logerr("Gateway : received an unknown command from the hub.")
+        except redis.exceptions.ConnectionError:
+            rospy.logwarn("Gateway : lost connection to the hub (probably shut down)")
 
 ##############################################################################
 # Hub Manager - Redis Implementation
@@ -230,8 +233,9 @@ class Hub(object):
             self._redis_channels = {}
             self._unique_gateway_name = ''
             self.name = ''
-        except Exception as unused_e:
-            rospy.logerr("Gateway : error unregistering gateway from the hub (need better error handling here).")
+        except redis.exceptions.ConnectionError:
+            # usually just means the hub has gone down just before us, let it go quietly
+            # rospy.logwarn("Gateway : problem unregistering from the hub (likely that hub shutdown before the gateway).")
             return False
         rospy.loginfo("Gateway : unregistering gateway from the hub.")
         return True
