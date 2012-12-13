@@ -9,6 +9,7 @@
 ##############################################################################
 
 import os
+import socket
 import roslib
 roslib.load_manifest('rocon_gateway')
 import rospy
@@ -24,6 +25,7 @@ except ImportError:
 import re
 from gateway_msgs.msg import Rule, ConnectionType
 from utils import Connection
+from exceptions import GatewayError
 
 ##############################################################################
 # Master
@@ -55,7 +57,7 @@ class LocalMaster(rosgraph.Master):
           @return the updated registration object (only adds an anonymously generated local node name)
           @rtype utils.Registration
         '''
-        registration.local_node = self._getAnonymousNodeName(registration.connection.rule.node)
+        registration.local_node = self._get_anonymous_node_name(registration.connection.rule.node)
         rospy.loginfo("Gateway : registering a new node [%s] for [%s]" % (registration.local_node, registration))
 
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
@@ -105,6 +107,9 @@ class LocalMaster(rosgraph.Master):
         if registration.connection.rule.type == ConnectionType.PUBLISHER:
             node_master.unregisterPublisher(registration.connection.rule.name, registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
+            # Get publishers connected to this subscriber, hit it with an update request, then unregister
+            # empty list makes sense, but what if there's topics back at home we can't see?
+            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name, [])
             node_master.unregisterSubscriber(registration.connection.rule.name, registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.SERVICE:
             node_master.unregisterService(registration.connection.rule.name, registration.connection.type_info)
@@ -151,13 +156,13 @@ class LocalMaster(rosgraph.Master):
         elif type == ConnectionType.ACTION_SERVER:
             type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
             connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name + '/goal', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/cancel')[0] # message type
+            type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
             connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name + '/cancel', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/status')[0] # message type
+            type_info = rostopic.get_topic_type(name + '/status')[0]  # message type
             connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/status', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/feedback')[0] # message type
+            type_info = rostopic.get_topic_type(name + '/feedback')[0]  # message type
             connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/feedback', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/result')[0] # message type
+            type_info = rostopic.get_topic_type(name + '/result')[0]  # message type
             connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/result', node), type_info, xmlrpc_uri))
         elif type == ConnectionType.ACTION_CLIENT:
             type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
@@ -215,17 +220,17 @@ class LocalMaster(rosgraph.Master):
         for goal_candidate in pubs:
             if re.search('goal$', goal_candidate[0]):
                 # goal found, extract base topic
-                base_topic = re.sub('\/goal$','',goal_candidate[0])
+                base_topic = re.sub('\/goal$', '', goal_candidate[0])
                 nodes = goal_candidate[1]
                 action_nodes = []
 
                 # there may be multiple nodes -- for each node search for the other topics
                 for node in nodes:
                     is_action = True
-                    is_action &= self._isTopicNodeInList(base_topic + '/cancel',node,pubs)
-                    is_action &= self._isTopicNodeInList(base_topic + '/status',node,subs)
-                    is_action &= self._isTopicNodeInList(base_topic + '/feedback',node,subs)
-                    is_action &= self._isTopicNodeInList(base_topic + '/result',node,subs)
+                    is_action &= self._isTopicNodeInList(base_topic + '/cancel', node, pubs)
+                    is_action &= self._isTopicNodeInList(base_topic + '/status', node, subs)
+                    is_action &= self._isTopicNodeInList(base_topic + '/feedback', node, subs)
+                    is_action &= self._isTopicNodeInList(base_topic + '/result', node, subs)
 
                     if is_action:
                         action_nodes.append(node)
@@ -335,7 +340,7 @@ class LocalMaster(rosgraph.Master):
         connections[ConnectionType.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, ConnectionType.ACTION_CLIENT)
         return connections
 
-    def _getAnonymousNodeName(self, topic):
+    def _get_anonymous_node_name(self, topic):
         t = topic[1:len(topic)]
         name = roslib.names.anonymous_name(t)
         return name
