@@ -22,7 +22,7 @@
 # watch_loop_period: 10
 
 # Used to block/permit remote gateway's from flipping to this gateway.
-# firewall: true
+firewall: true
 
 # Make everything (except the default_blacklist) publicly available for pulling
 # advertise_all: false
