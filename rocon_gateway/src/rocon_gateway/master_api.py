@@ -10,6 +10,7 @@
 
 import os
 import socket
+import errno
 import roslib
 roslib.load_manifest('rocon_gateway')
 import rospy
@@ -112,29 +113,44 @@ class LocalMaster(rosgraph.Master):
         if registration.connection.rule.type == ConnectionType.PUBLISHER:
             node_master.unregisterPublisher(registration.connection.rule.name, registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
-            # This unfortunately is a game breaker - it destroys all connections, not just those
-            # connected to this master, see #125.
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name, [])
-            node_master.unregisterSubscriber(registration.connection.rule.name, registration.connection.xmlrpc_uri)
+            self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name)
         elif registration.connection.rule.type == ConnectionType.SERVICE:
             node_master.unregisterService(registration.connection.rule.name, registration.connection.type_info)
         elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
-            node_master.unregisterSubscriber(registration.connection.rule.name + "/goal", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/goal", [])
-            node_master.unregisterSubscriber(registration.connection.rule.name + "/cancel", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/cancel", [])
+            self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/goal")
+            self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/cancel")
             node_master.unregisterPublisher(registration.connection.rule.name + "/status", registration.connection.xmlrpc_uri)
             node_master.unregisterPublisher(registration.connection.rule.name + "/feedback", registration.connection.xmlrpc_uri)
             node_master.unregisterPublisher(registration.connection.rule.name + "/result", registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.ACTION_CLIENT:
             node_master.unregisterPublisher(registration.connection.rule.name + "/goal", registration.connection.xmlrpc_uri)
             node_master.unregisterPublisher(registration.connection.rule.name + "/cancel", registration.connection.xmlrpc_uri)
-            node_master.unregisterSubscriber(registration.connection.rule.name + "/status", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/status", [])
-            node_master.unregisterSubscriber(registration.connection.rule.name + "/feedback", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/feedback", [])
-            node_master.unregisterSubscriber(registration.connection.rule.name + "/result", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/result", [])
+            self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/status")
+            self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/feedback")
+            self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/result")
+
+    def _unregister_subscriber(self, node_master, xmlrpc_uri, name):
+        '''
+          It is a special case as it requires xmlrpc handling to inform the subscriber of
+          the disappearance of publishers it was connected to. It also needs to handle the
+          case when that information doesn't get to the subscriber because it is down.
+
+          @param node_master : node-master xmlrpc method handler
+          @param xmlrpc_uri : the uri of the node (xmlrpc server)
+          @type string
+          @param name : fully resolved subscriber name
+        '''
+        # This unfortunately is a game breaker - it destroys all connections, not just those
+        # connected to this master, see #125.
+        try:
+            xmlrpcapi(xmlrpc_uri).publisherUpdate('/master', name, [])
+        except socket.error, v:
+            errorcode = v[0]
+            if errorcode != errno.ECONNREFUSED:
+                raise  # better handling here would be ideal
+            else:
+                pass  # subscriber stopped on the other side, don't worry about it
+        node_master.unregisterSubscriber(name, xmlrpc_uri)
 
     ##########################################################################
     # Master utility methods
