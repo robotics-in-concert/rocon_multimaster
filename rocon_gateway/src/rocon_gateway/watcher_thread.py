@@ -14,6 +14,7 @@ import threading
 import httplib
 
 from gateway_msgs.msg import Rule, ConnectionType
+from .exceptions import HubConnectionLostError
 
 ##############################################################################
 # Watcher
@@ -60,11 +61,14 @@ class WatcherThread(threading.Thread):
                     rospy.logwarn("Gateway : received 'ResponseNotReady' from master api")
                     self._sleep()
                     continue
-                gateways = self._hub.list_remote_gateway_names()
+                try:
+                    gateways = self._hub.list_remote_gateway_names()
+                except HubConnectionLostError:
+                    rospy.logwarn("Gateway : lost connection to the hub, watcher thread aborting.")
+                    break
                 self._gateway.update_flip_interface(connections, gateways)
                 self._gateway.update_public_interface(connections)
                 self._gateway.update_pulled_interface(connections, gateways)
-
             self._sleep()
 
     def _sleep(self):
