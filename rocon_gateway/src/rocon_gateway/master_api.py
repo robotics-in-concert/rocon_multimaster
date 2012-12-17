@@ -70,7 +70,7 @@ class LocalMaster(rosgraph.Master):
             node_master.registerPublisher(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
             return registration
         elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
-            self._register_subscriber(node_master, registration.connection.type_info, registration.connection.xmlrpc_uri, registration.connection.rule.name)
+            self._register_subscriber(node_master, registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
             return registration
         elif registration.connection.rule.type == ConnectionType.SERVICE:
             if rosservice.get_service_node(registration.connection.rule.name):
@@ -81,10 +81,8 @@ class LocalMaster(rosgraph.Master):
                 return registration
         elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
             # Need to update these with self._register_subscriber
-            pub_uri_list = node_master.registerSubscriber(registration.connection.rule.name + "/goal", registration.connection.type_info + "ActionGoal", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/goal", pub_uri_list)
-            pub_uri_list = node_master.registerSubscriber(registration.connection.rule.name + "/cancel", "actionlib_msgs/GoalID", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/cancel", pub_uri_list)
+            self._register_subscriber(node_master, registration.connection.rule.name + "/goal", registration.connection.type_info + "ActionGoal", registration.connection.xmlrpc_uri)
+            self._register_subscriber(node_master, registration.connection.rule.name + "/cancel", "actionlib_msgs/GoalID", registration.connection.xmlrpc_uri)
             node_master.registerPublisher(registration.connection.rule.name + "/status", "actionlib_msgs/GoalStatusArray", registration.connection.xmlrpc_uri)
             node_master.registerPublisher(registration.connection.rule.name + "/feedback", registration.connection.type_info + "ActionFeedback", registration.connection.xmlrpc_uri)
             node_master.registerPublisher(registration.connection.rule.name + "/result", registration.connection.type_info + "ActionResult", registration.connection.xmlrpc_uri)
@@ -92,12 +90,9 @@ class LocalMaster(rosgraph.Master):
         elif registration.connection.rule.type == ConnectionType.ACTION_CLIENT:
             node_master.registerPublisher(registration.connection.rule.name + "/goal", registration.connection.type_info + "ActionGoal", registration.connection.xmlrpc_uri)
             node_master.registerPublisher(registration.connection.rule.name + "/cancel", "actionlib_msgs/GoalID", registration.connection.xmlrpc_uri)
-            pub_uri_list = node_master.registerSubscriber(registration.connection.rule.name + "/status", "actionlib_msgs/GoalStatusArray", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/status", pub_uri_list)
-            pub_uri_list = node_master.registerSubscriber(registration.connection.rule.name + "/feedback", registration.connection.type_info + "ActionFeedback", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/feedback", pub_uri_list)
-            pub_uri_list = node_master.registerSubscriber(registration.connection.rule.name + "/result", registration.connection.type_info + "ActionResult", registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/result", pub_uri_list)
+            self._register_subscriber(node_master, registration.connection.rule.name + "/status", "actionlib_msgs/GoalStatusArray", registration.connection.xmlrpc_uri)
+            self._register_subscriber(node_master, registration.connection.rule.name + "/feedback", registration.connection.type_info + "ActionFeedback", registration.connection.xmlrpc_uri)
+            self._register_subscriber(node_master, registration.connection.rule.name + "/result", registration.connection.type_info + "ActionResult", registration.connection.xmlrpc_uri)
             return registration
         return None
 
@@ -129,7 +124,7 @@ class LocalMaster(rosgraph.Master):
             self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/feedback")
             self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/result")
 
-    def _register_subscriber(self, node_master, type_info, xmlrpc_uri, name):
+    def _register_subscriber(self, node_master, name, type_info, xmlrpc_uri):
         '''
           This one is not necessary, since you can pretty much guarantee the
           existence of the subscriber here, but it pays to be safe - we've seen
