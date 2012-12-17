@@ -18,7 +18,6 @@ import rosgraph
 import rostopic
 import rosservice
 import roslib.names
-import xmlrpclib  # for connecting to subscriber node slave xmlrpc's
 from rosmaster.util import xmlrpcapi
 try:
     import urllib.parse as urlparse  # Python 3.x
@@ -27,7 +26,6 @@ except ImportError:
 import re
 from gateway_msgs.msg import Rule, ConnectionType
 from utils import Connection
-from exceptions import GatewayError
 
 ##############################################################################
 # Master
