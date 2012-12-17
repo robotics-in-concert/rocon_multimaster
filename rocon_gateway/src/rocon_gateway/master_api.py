@@ -70,8 +70,7 @@ class LocalMaster(rosgraph.Master):
             node_master.registerPublisher(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
             return registration
         elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
-            pub_uri_list = node_master.registerSubscriber(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
-            xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name, pub_uri_list)
+            self._register_subscriber(node_master, registration.connection.type_info, registration.connection.xmlrpc_uri, registration.connection.rule.name)
             return registration
         elif registration.connection.rule.type == ConnectionType.SERVICE:
             if rosservice.get_service_node(registration.connection.rule.name):
@@ -81,6 +80,7 @@ class LocalMaster(rosgraph.Master):
                 node_master.registerService(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
                 return registration
         elif registration.connection.rule.type == ConnectionType.ACTION_SERVER:
+            # Need to update these with self._register_subscriber
             pub_uri_list = node_master.registerSubscriber(registration.connection.rule.name + "/goal", registration.connection.type_info + "ActionGoal", registration.connection.xmlrpc_uri)
             xmlrpcapi(registration.connection.xmlrpc_uri).publisherUpdate('/master', registration.connection.rule.name + "/goal", pub_uri_list)
             pub_uri_list = node_master.registerSubscriber(registration.connection.rule.name + "/cancel", "actionlib_msgs/GoalID", registration.connection.xmlrpc_uri)
@@ -128,6 +128,33 @@ class LocalMaster(rosgraph.Master):
             self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/status")
             self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/feedback")
             self._unregister_subscriber(node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/result")
+
+    def _register_subscriber(self, node_master, type_info, xmlrpc_uri, name):
+        '''
+          This one is not necessary, since you can pretty much guarantee the
+          existence of the subscriber here, but it pays to be safe - we've seen
+          some errors come out here when the ROS_MASTER_URI was only set to
+          localhost.
+
+          @param node_master : node-master xmlrpc method handler
+          @param type_info : type of the subscriber message
+          @param xmlrpc_uri : the uri of the node (xmlrpc server)
+          @type string
+          @param name : fully resolved subscriber name
+        '''
+        # This unfortunately is a game breaker - it destroys all connections, not just those
+        # connected to this master, see #125.
+        pub_uri_list = node_master.registerSubscriber(name, type_info, xmlrpc_uri)
+        try:
+            xmlrpcapi(xmlrpc_uri).publisherUpdate('/master', name, pub_uri_list)
+        except socket.error, v:
+            errorcode = v[0]
+            if errorcode != errno.ECONNREFUSED:
+                rospy.logerr("Gateway : error registering subscriber (was ROS_MASTER_URI on the remote still set to localhost?)")
+                rospy.logerr("Gateway : errorcode [%s] xmlrpc_uri [%s]" % (str(errorcode), xmlrpc_uri))
+                raise  # better handling here would be ideal
+            else:
+                pass  # subscriber stopped on the other side, don't worry about it
 
     def _unregister_subscriber(self, node_master, xmlrpc_uri, name):
         '''
