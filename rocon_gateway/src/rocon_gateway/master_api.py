@@ -150,7 +150,7 @@ class LocalMaster(rosgraph.Master):
         except socket.error, v:
             errorcode = v[0]
             if errorcode != errno.ECONNREFUSED:
-                rospy.logerr("Gateway : error registering subscriber (was ROS_MASTER_URI on the remote still set to localhost?)")
+                rospy.logerr("Gateway : error registering subscriber (is ROS_MASTER_URI and ROS_HOSTNAME or ROS_IP correctly set?)")
                 rospy.logerr("Gateway : errorcode [%s] xmlrpc_uri [%s]" % (str(errorcode), xmlrpc_uri))
                 raise  # better handling here would be ideal
             else:
