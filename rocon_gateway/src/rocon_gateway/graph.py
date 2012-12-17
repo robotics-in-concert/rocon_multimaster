@@ -102,13 +102,19 @@ class Graph(object):
             for remote_rule in remote_gateway.flipped_interface:
                 connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
                 self.flipped_nodes.append(connection_id)
-                self.gateway_edges.add(Edge(remote_gateway.name, connection_id))
-                self.gateway_edges.add(Edge(connection_id, remote_rule.gateway))
+                self.flipped_edges.add(Edge(remote_gateway.name, connection_id))
+                self.flipped_edges.add(Edge(connection_id, remote_rule.gateway))
+                self.gateway_edges.add(Edge(remote_gateway.name, remote_rule.gateway))
             for remote_rule in remote_gateway.pulled_interface:
                 connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
                 self.pulled_nodes.append(connection_id)
                 self.pulled_edges.add(Edge(remote_rule.gateway, connection_id))
                 self.pulled_edges.add(Edge(connection_id, remote_gateway.name))
+                self.gateway_edges.add(Edge(remote_gateway.name, remote_rule.gateway))
+        print "****************** Flipped Nodes ******************"
+        print self.flipped_nodes
+        print "****************** Gateway Edges ******************"
+        print self.gateway_edges
 
     def _resolve_gateway_namespace(self):
         '''
