@@ -17,5 +17,6 @@
   <depend stack="zeroconf_msgs" /> <!-- zeroconf_msgs -->
   <depend stack="common_tutorials"/> <!-- actionlib_tutorials -->
   <depend stack="ros_tutorials"/> <!-- roscpp_tutorials -->
-  <depend stack="rqt_core"/> <!-- roscpp_tutorials -->
+  <depend stack="qt_gui_core"/> <!-- qt_gui_py_common -->
+  <depend stack="rqt_core"/> <!-- rqt_lots -->
 </stack>
