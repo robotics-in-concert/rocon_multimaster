@@ -26,3 +26,7 @@ class UnavailableGatewayError(Exception):
 # invalid
 class ConnectionTypeError(GatewayError):
     pass
+
+
+class HubConnectionLostError(GatewayError):
+    pass

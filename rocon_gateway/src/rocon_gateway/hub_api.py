@@ -16,7 +16,7 @@ import re
 import utils
 import gateway_msgs.msg
 import rosgraph
-from .exceptions import UnavailableGatewayError
+from .exceptions import UnavailableGatewayError, HubConnectionLostError
 
 ###############################################################################
 # Utility Functions
@@ -289,7 +289,11 @@ class Hub(object):
         if not self.server:
             rospy.logerr("Gateway : cannot retrive remote gateway names [not connected to a hub]")
             return []
-        gateway_keys = self.server.smembers(self._redis_keys['gatewaylist'])
+        try:
+            gateway_keys = self.server.smembers(self._redis_keys['gatewaylist'])
+        except redis.ConnectionError as unused_e:
+            rospy.logwarn("Concert Client : lost connection to the hub (probably shut down)")
+            raise HubConnectionLostError()
         gateways = []
         for gateway in gateway_keys:
             if key_base_name(gateway) != self._unique_gateway_name:
@@ -301,9 +305,12 @@ class Hub(object):
           Use this when gateway can be a regular expression and
           we need to check it off against list_remote_gateway_names()
         '''
-        for remote_gateway in self.list_remote_gateway_names():
-            if re.match(gateway, remote_gateway):
-                return True
+        try:
+            for remote_gateway in self.list_remote_gateway_names():
+                if re.match(gateway, remote_gateway):
+                    return True
+        except HubConnectionLostError:
+            raise
         return False
 
     def get_remote_connection_state(self, gateway):
