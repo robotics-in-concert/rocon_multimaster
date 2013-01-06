@@ -20,10 +20,8 @@
 {'other': {'local-name': '/opt/ros/groovy/share'}},
 {'other': {'local-name': '/opt/ros/groovy/stacks'}},
 
-# Multimaster
 {'git': {'local-name': 'rocon_multimaster', 'version': 'master', 'uri':'https://github.com/robotics-in-concert/rocon_multimaster.git'}},
-  
-# Messages  
-{'git': {'local-name': 'rocon_msgs', 'version': 'master', 'uri': 'https://github.com/robotics-in-concert/rocon_msgs.git'}}
-
+{'git': {'local-name': 'rocon_msgs', 'version': 'master', 'uri': 'https://github.com/robotics-in-concert/rocon_msgs.git'}},
+{'git': {'local-name': 'rocon_tutorials', 'version': 'master', 'uri': 'https://github.com/robotics-in-concert/rocon_tutorials.git'}},
+{'git': {'local-name': 'rocon_rqt_plugins', 'version': 'master', 'uri': 'https://github.com/robotics-in-concert/rocon_rqt_plugins.git'}}
 ]
