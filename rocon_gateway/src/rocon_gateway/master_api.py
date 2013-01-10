@@ -139,6 +139,7 @@ class LocalMaster(rosgraph.Master):
         # connected to this master, see #125.
         pub_uri_list = node_master.registerSubscriber(name, type_info, xmlrpc_uri)
         try:
+            #rospy.loginfo("register_subscriber [%s][%s][%s]" % (name, xmlrpc_uri, pub_uri_list))
             xmlrpcapi(xmlrpc_uri).publisherUpdate('/master', name, pub_uri_list)
         except socket.error, v:
             errorcode = v[0]
