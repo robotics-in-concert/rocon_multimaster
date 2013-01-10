@@ -94,7 +94,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
     # Utility Methods
     ##########################################################################
         
-    def _generatePulls(self, type, name, node, gateway,unique_name):
+    def _generatePulls(self, type, name, node, gateway, unique_name):
         '''
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can
@@ -120,7 +120,10 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         matched_flip_rules = []
         for rule in self.watchlist[type]:
             # This is a bit different to _generateFlips - does it need to be? DJS
-            if gateway and not re.match(rule.gateway,gateway):
+            if not gateway:
+                continue
+            gateway_match_result = re.match(rule.gateway,gateway)
+            if not (gateway_match_result and gateway_match_result.group() == gateway):
                 continue
             # Check names
             rule_name = rule.rule.name
@@ -135,8 +138,9 @@ class PulledInterface(interactive_interface.InteractiveInterface):
 
             if matched:
                 matched_flip = copy.deepcopy(rule)
-                matched_flip.rule.name = name # just in case we used a regex
-                matched_flip.rule.node = node # just in case we used a regex
+                matched_flip.gateway = gateway  # just in case we used a regex
+                matched_flip.rule.name = name   # just in case we used a regex
+                matched_flip.rule.node = node   # just in case we used a regex
                 matched_flip_rules.append(matched_flip)
         return matched_flip_rules
     
