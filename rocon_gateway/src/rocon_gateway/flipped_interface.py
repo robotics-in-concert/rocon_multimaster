@@ -147,7 +147,8 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
             # Check if the flip rule corresponds to an existing gateway
             matched_gateways = []
             for gateway in gateways:
-                if re.match(flip_rule.gateway, gateway):
+                gateway_match_result = re.match(flip_rule.gateway, gateway)
+                if gateway_match_result and gateway_match_result.group() == gateway:
                     matched_gateways.append(gateway)
             if not matched_gateways:
                 continue
