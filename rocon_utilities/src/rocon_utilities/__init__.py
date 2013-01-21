@@ -13,3 +13,4 @@ __email__ = "d.stonier@gmail.com"
 __date__ = "2012-11-30"
 
 import console
+from launch import main as launch
