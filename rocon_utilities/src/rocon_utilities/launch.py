@@ -129,11 +129,7 @@ def main():
         parameters = {}
         parameters['package'] = launch.get('package')
         parameters['name'] = launch.get('name')
-        parameters['port'] = launch.get('port')
-#        if launch.get('screen', "false").lower() == "true":
-#            parameters['screen'] = "--screen"
-#        else:
-#            parameters['screen'] = ""
+        parameters['port'] = launch.get('port', '11311')
         launchers.append(parameters)
     if args.screen:
         roslaunch_options = "--screen"
