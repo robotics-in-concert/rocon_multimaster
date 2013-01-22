@@ -48,6 +48,7 @@ def get_roslaunch_pid(parent_pid):
       Get the pid of the roslaunch process running in the terminal
       specified by the parent pid.
     '''
+    #print("Parent pid: %d"%parent_pid)
     ps_command = subprocess.Popen("ps -o pid -o comm --ppid %d --noheaders" % parent_pid, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     ps_output = ps_command.stdout.read()
     retcode = ps_command.wait()
@@ -64,6 +65,8 @@ def get_roslaunch_pid(parent_pid):
 def signal_handler(sig, frame):
     global processes
     global roslaunch_pids
+    for p in processes:
+        roslaunch_pids.extend(get_roslaunch_pid(p.pid))
     # kill roslaunch's
     for pid in roslaunch_pids:
         try:
@@ -71,9 +74,9 @@ def signal_handler(sig, frame):
         except OSError:
             continue
     for pid in roslaunch_pids:
-        print("Waiting for roslaanch to terminate [pid: %d]" % pid)
+        console.pretty_println("Terminating roslaunch [pid: %d]" % pid, console.bold)
         wait_pid(pid)
-        print("Terminated roslaunch [pid: %d]" % pid)
+        #console.pretty_println("Terminated roslaunch [pid: %d]" % pid, console.bold)
     sleep(1)
     # now kill konsoles
     for p in processes:
@@ -85,6 +88,7 @@ def parse_arguments():
     terminal_group = parser.add_mutually_exclusive_group()
     terminal_group.add_argument('-k', '--konsole', action='store_false', help='spawn individual ros systems via multiple konsole terminals')
     terminal_group.add_argument('-g', '--gnome', action='store_true', help='spawn individual ros systems via multiple gnome terminals')
+    terminal_group.add_argument('--screen', action='store_true', help='run each roslaunch with the --screen option')
     # Force package, launcher pairs, I like this better than roslaunch style which is a bit vague
     parser.add_argument('package', nargs='?', default='', help='name of the package in which to find the concert launcher')
     parser.add_argument('launcher', nargs=1, help='name of the concert launch configuration (xml) file')
@@ -122,14 +126,22 @@ def main():
     # should check for root concert tag
     launchers = []
     for launch in root.findall('launch'):
-        launchers.append((launch.get('package'), launch.get('name')))
-    port = 11311
+        parameters = {}
+        parameters['package'] = launch.get('package')
+        parameters['name'] = launch.get('name')
+        parameters['port'] = launch.get('port')
+#        if launch.get('screen', "false").lower() == "true":
+#            parameters['screen'] = "--screen"
+#        else:
+#            parameters['screen'] = ""
+        launchers.append(parameters)
+    if args.screen:
+        roslaunch_options = "--screen"
+    else:
+        roslaunch_options = ""
     for launcher in launchers:
-        print("Launching [%s, %s] on port %s" % (launcher[0], launcher[1], port))
-        p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch --port %s %s %s" % (port, launcher[0], launcher[1])], preexec_fn=preexec)  # use --hold with konsole for debugging
+        console.pretty_println("Launching [%s, %s] on port %s" % (launcher['package'], launcher['name'], launcher['port']), console.bold)
+        p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s %s" %
+                              (roslaunch_options, launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
         processes.append(p)
-        port = port + 1
-    sleep(1)
-    for p in processes:
-        roslaunch_pids.extend(get_roslaunch_pid(p.pid))
     signal.pause()

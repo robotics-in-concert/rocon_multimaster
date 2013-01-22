@@ -49,6 +49,16 @@ def pretty_print(msg, colour=white):
     else:
         sys.stdout.write(msg)
 
+
+def pretty_println(msg, colour=white):
+    if has_colours:
+        seq = "\x1b[%sm" % (colour) + msg + reset
+        sys.stdout.write(seq)
+        sys.stdout.write("\n")
+    else:
+        sys.stdout.write(msg)
+
+
 ##############################################################################
 # Console
 ##############################################################################
