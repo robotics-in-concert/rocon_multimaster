@@ -120,24 +120,29 @@ def main():
         rocon_launcher = roslaunch.rlutil.resolve_launch_arguments(args.launcher)[0]
     else:
         rocon_launcher = roslaunch.rlutil.resolve_launch_arguments([args.package] + args.launcher)[0]
-    #arguments = roslaunch.rlutil.resolve_launch_arguments(args.launchers)
-    tree = ElementTree.parse(rocon_launcher)
-    root = tree.getroot()
-    # should check for root concert tag
-    launchers = []
-    for launch in root.findall('launch'):
-        parameters = {}
-        parameters['package'] = launch.get('package')
-        parameters['name'] = launch.get('name')
-        parameters['port'] = launch.get('port', '11311')
-        launchers.append(parameters)
     if args.screen:
         roslaunch_options = "--screen"
     else:
         roslaunch_options = ""
+    tree = ElementTree.parse(rocon_launcher)
+    root = tree.getroot()
+    # should check for root concert tag
+    launchers = []
+    ports = []
+    for launch in root.findall('launch'):
+        parameters = {}
+        parameters['options'] = roslaunch_options
+        parameters['package'] = launch.get('package')
+        parameters['name'] = launch.get('name')
+        parameters['port'] = launch.get('port', '11311')
+        if parameters['port'] in ports:
+            parameters['options'] = parameters['options'] + " " + "--wait"
+        else:
+            ports.append(parameters['port'])
+        launchers.append(parameters)
     for launcher in launchers:
         console.pretty_println("Launching [%s, %s] on port %s" % (launcher['package'], launcher['name'], launcher['port']), console.bold)
         p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s %s" %
-                              (roslaunch_options, launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
+                              (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
         processes.append(p)
     signal.pause()
