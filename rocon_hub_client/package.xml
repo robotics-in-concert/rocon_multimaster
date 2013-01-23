@@ -7,7 +7,7 @@
   <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
   <maintainer email="jihoonl@rnd.yujinrobot.com">Jihoon Lee</maintainer>
   <license>BSD</license>
-  <url type="website">http://wiki.ros.org/rocon_hub_client</url>
+  <url type="website">http://ros.org/wiki/rocon_hub_client</url>
   <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
   <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
   <author email="d.stonier@gmail.com">Daniel Stonier</author> -->

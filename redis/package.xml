@@ -13,7 +13,7 @@
   </description>
   <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
   <license>BSD</license>
-  <url type="website">http://wiki.ros.org/redis</url>
+  <url type="website">http://ros.org/wiki/redis</url>
   <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
   <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
   <author email="d.stonier@gmail.com">Daniel Stonier</author> -->
