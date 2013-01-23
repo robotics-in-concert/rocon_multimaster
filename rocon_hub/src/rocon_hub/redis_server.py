@@ -14,8 +14,6 @@ import shutil
 import subprocess
 
 # Ros imports
-import roslib
-roslib.load_manifest('rocon_hub')
 import rospy
 import rospkg
 try:

@@ -7,8 +7,6 @@
 # Imports
 ##############################################################################
 
-import roslib
-roslib.load_manifest('rocon_gateway')
 import rospy
 import threading
 import httplib

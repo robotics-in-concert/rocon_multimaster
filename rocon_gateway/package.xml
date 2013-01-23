@@ -1,0 +1,35 @@
+<package>
+  <name>rocon_gateway</name>
+  <version>0.2.1</version>
+  <description>
+    A hub acts as a shared key-value store for multiple ros 
+    systems (primarily used by gateways).
+  </description>
+  <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
+  <maintainer email="jihoonl@rnd.yujinrobot.com">Jihoon Lee</maintainer>
+  <maintainer email="piyushk@gmail.com">Piyush Khandelwal</maintainer>
+  <license>BSD</license>
+  <url type="website">http://wiki.ros.org/rocon_gateway</url>
+  <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
+  <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
+  <author email="d.stonier@gmail.com">Daniel Stonier</author> -->
+  <author email="jihoonl@rnd.yujinrobot.com">Jihoon Lee</author>
+  <author email="piyushk@gmail.com">Piyush Khandelwal</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>redis</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>rocon_utilities</run_depend>
+  <run_depend>roslib</run_depend>
+  <run_depend>zeroconf_msgs</run_depend>
+  <run_depend>gateway_msgs</run_depend>
+  <!-- 
+    Don't hardcode a dependency to a particular platform's zeroconf implementation 
+    even if it does appeal to us ubuntu eggheads.
+    <run_depend>zeroconf_avahi</run_depend> 
+  -->
+  <export>
+    <rosdoc config="rosdoc.yaml"/>
+  </export>
+</package>

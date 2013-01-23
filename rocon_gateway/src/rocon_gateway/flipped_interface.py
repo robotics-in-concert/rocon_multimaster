@@ -8,8 +8,6 @@
 # Imports
 ##############################################################################
 
-import roslib
-roslib.load_manifest('rocon_gateway')
 from gateway_msgs.msg import Rule, RemoteRule, ConnectionType
 import copy
 import re

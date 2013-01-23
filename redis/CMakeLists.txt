@@ -1,20 +1,15 @@
-#!/usr/bin/env python
-#       
-# License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
-#
-
 ##############################################################################
-# Imports
+# CMake
 ##############################################################################
 
-import roslib
-roslib.load_manifest('rocon_utilities')
-import rocon_utilities
+cmake_minimum_required(VERSION 2.8.3)
+project(redis)
 
 ##############################################################################
-# Main
+# Catkin
 ##############################################################################
 
-if __name__ == '__main__':
-    rocon_utilities.launch()
+find_package(catkin REQUIRED)
+catkin_package()
+
+catkin_python_setup()

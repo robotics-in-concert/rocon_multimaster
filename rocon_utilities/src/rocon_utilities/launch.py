@@ -14,8 +14,6 @@ import subprocess
 import signal
 import sys
 from time import sleep
-import roslib
-roslib.load_manifest('rocon_utilities')
 import roslaunch
 # Can call roslaunch.main(argv) directly
 from .system import which, wait_pid

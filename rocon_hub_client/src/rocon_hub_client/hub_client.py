@@ -8,8 +8,6 @@
 ##############################################################################
 
 import rospy
-import roslib
-roslib.load_manifest('rocon_hub_client')
 import redis
 from .hub_connector import HubConnector
 

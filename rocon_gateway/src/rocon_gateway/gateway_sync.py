@@ -10,8 +10,6 @@
 
 import httplib
 
-import roslib
-roslib.load_manifest('rocon_gateway')
 import rospy
 
 # Ros msgs

@@ -11,8 +11,6 @@
 import os
 import socket
 import errno
-import roslib
-roslib.load_manifest('rocon_gateway')
 import rospy
 import rosgraph
 import rostopic

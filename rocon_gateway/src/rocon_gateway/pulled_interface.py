@@ -8,7 +8,6 @@
 # Imports
 ##############################################################################
 
-import roslib; roslib.load_manifest('rocon_gateway')
 from gateway_msgs.msg import RemoteRule
 import copy
 import re

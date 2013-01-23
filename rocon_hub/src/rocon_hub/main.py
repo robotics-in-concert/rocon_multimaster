@@ -7,8 +7,6 @@
 import sys
 
 # Ros imports
-import roslib
-roslib.load_manifest('rocon_hub')
 import rospy
 
 # Local imports

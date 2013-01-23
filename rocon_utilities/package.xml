@@ -1,0 +1,21 @@
+<package>
+  <name>rocon_utilities</name>
+  <version>0.2.1</version>
+  <description>
+    Utility python code for rocon packages.
+  </description>
+  <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
+  <license>BSD</license>
+  <url type="website">http://wiki.ros.org/rocon_utilities</url>
+  <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
+  <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
+  <author email="d.stonier@gmail.com">Daniel Stonier</author> -->
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>rospy</run_depend>
+
+  <export>
+    <rosdoc config="rosdoc.yaml"/>
+  </export>
+</package>

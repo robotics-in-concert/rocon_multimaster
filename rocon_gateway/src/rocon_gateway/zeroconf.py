@@ -8,8 +8,6 @@
 # Imports
 ###############################################################################
 
-import roslib
-roslib.load_manifest('rocon_gateway')
 import rospy
 import zeroconf_msgs.srv
 

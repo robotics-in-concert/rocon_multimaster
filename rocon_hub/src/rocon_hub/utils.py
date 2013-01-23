@@ -11,8 +11,6 @@
 import os
 import socket
 import sys
-import roslib
-roslib.load_manifest('rocon_hub')
 import rosgraph
 
 ##############################################################################

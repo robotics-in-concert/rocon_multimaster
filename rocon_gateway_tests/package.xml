@@ -1,0 +1,32 @@
+<package>
+  <name>rocon_gateway_tests</name>
+  <version>0.2.1</version>
+  <description>
+    Start of some testing programs for gateways - needs alot of work though
+    and currently broken.
+  </description>
+  <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
+  <maintainer email="jihoonl@rnd.yujinrobot.com">Jihoon Lee</maintainer>
+  <maintainer email="piyushk@gmail.com">Piyush Khandelwal</maintainer>
+  <license>BSD</license>
+  <url type="website">http://wiki.ros.org/rocon_gateway_tests</url>
+  <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
+  <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
+  <author email="d.stonier@gmail.com">Daniel Stonier</author> -->
+  <author email="jihoonl@rnd.yujinrobot.com">Jihoon Lee</author>
+  <author email="piyushk@gmail.com">Piyush Khandelwal</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>rospy</run_depend>
+  <run_depend>rocon_gateway</run_depend>
+  <run_depend>rostest</run_depend>
+  <run_depend>roscpp_tutorials</run_depend>
+  <run_depend>rospy_tutorials</run_depend>
+  <run_depend>actionlib_tutorials</run_depend>
+  <run_depend>gateway_msgs</run_depend>
+
+  <export>
+    <rosdoc config="rosdoc.yaml"/>
+  </export>
+</package>

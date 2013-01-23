@@ -11,8 +11,6 @@
 import sys
 import argparse
 import re
-import roslib 
-roslib.load_manifest('rocon_gateway')
 import rospy
 import rocon_gateway
 import gateway_msgs

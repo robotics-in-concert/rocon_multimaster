@@ -9,8 +9,6 @@
 
 import redis
 import threading
-import roslib
-roslib.load_manifest('rocon_gateway')
 import rospy
 import re
 import utils

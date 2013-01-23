@@ -4,8 +4,6 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
 #
 
-import roslib
-roslib.load_manifest('rocon_gateway')
 import rospy
 import re
 from gateway_msgs.msg import Rule, RemoteRule

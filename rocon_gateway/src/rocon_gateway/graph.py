@@ -11,8 +11,6 @@
 # Imports
 ##############################################################################
 
-import roslib
-roslib.load_manifest('rocon_gateway')
 import rospy
 import gateway_msgs.srv
 from master_api import LocalMaster
