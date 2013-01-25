@@ -46,17 +46,19 @@ def get_roslaunch_pid(parent_pid):
       Get the pid of the roslaunch process running in the terminal
       specified by the parent pid.
     '''
-    #print("Parent pid: %d"%parent_pid)
     ps_command = subprocess.Popen("ps -o pid -o comm --ppid %d --noheaders" % parent_pid, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     ps_output = ps_command.stdout.read()
     retcode = ps_command.wait()
-    assert retcode == 0, "ps command returned %d" % retcode
     pids = []
-    for pair in ps_output.split("\n")[:-1]:
-        [pid, command] = pair.lstrip(' ').split(" ")
-        if command == 'roslaunch':
-            pids.append(int(pid))
-        #os.kill(int(pid_str), sig)
+    if retcode == 0:
+        for pair in ps_output.split("\n")[:-1]:
+            [pid, command] = pair.lstrip(' ').split(" ")
+            if command == 'roslaunch':
+                pids.append(int(pid))
+    else:
+        # Presume this roslaunch was killed by ctrl-c or terminated already.
+        # Am not worrying about classifying between the above presumption and real errors for now
+        pass
     return pids
 
 
