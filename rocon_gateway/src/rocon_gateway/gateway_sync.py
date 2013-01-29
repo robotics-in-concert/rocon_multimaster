@@ -247,11 +247,8 @@ class GatewaySync(object):
 
     def ros_service_pull(self, request):
         '''
-          Puts a single rule on a watchlist and (un)flips it to a particular
-          gateway when it becomes (un)available. Note that this can also
-          completely reconfigure the fully qualified name for the rule when
-          flipping (remapping). If not specified, it will simply reroot rule
-          under <unique_gateway_name>.
+          Puts a single rule on a watchlist and pulls it from a particular
+          gateway when it becomes (un)available. 
 
           @param request
           @type gateway_msgs.srv.RemoteRequest
@@ -259,8 +256,9 @@ class GatewaySync(object):
           @rtype gateway_msgs.srv.RemoteResponse
         '''
         response = gateway_msgs.srv.RemoteResponse()
+
         for remote in request.remotes:
-            response.result, response.error_message = self._ros_service_flip_checks(remote.gateway)
+            response.result, response.error_message = self._ros_service_remote_checks(remote.gateway)
             if response.result != gateway_msgs.msg.Result.SUCCESS:
                 rospy.logerr("Gateway : %s." % response.error_message)
                 return response

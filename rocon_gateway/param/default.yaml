@@ -5,7 +5,8 @@
 ## Uri for the hub - set this if you want to manually
 ## find the gateway hub instead of via zeroconf.
 ## Typical setting for a redis server on ubuntu would
-## be: http://localhost:6379
+## be: http://localhost:6379. We usually start our own
+## redis server, which can usually be found on 6380.
 # hub_uri: 
 
 ## Hub whitelist/blacklists - use these to control 
