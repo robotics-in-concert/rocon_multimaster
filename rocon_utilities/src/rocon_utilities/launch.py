@@ -86,8 +86,8 @@ def signal_handler(sig, frame):
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Rocon's multiple master launcher.")
     terminal_group = parser.add_mutually_exclusive_group()
-    terminal_group.add_argument('-k', '--konsole', action='store_false', help='spawn individual ros systems via multiple konsole terminals')
-    terminal_group.add_argument('-g', '--gnome', action='store_true', help='spawn individual ros systems via multiple gnome terminals')
+    terminal_group.add_argument('-k', '--konsole', default=False,action='store_true', help='spawn individual ros systems via multiple konsole terminals')
+    terminal_group.add_argument('-g', '--gnome', default=False, action='store_true', help='spawn individual ros systems via multiple gnome terminals')
     terminal_group.add_argument('--screen', action='store_true', help='run each roslaunch with the --screen option')
     # Force package, launcher pairs, I like this better than roslaunch style which is a bit vague
     parser.add_argument('package', nargs='?', default='', help='name of the package in which to find the concert launcher')
@@ -102,6 +102,7 @@ def main():
     global roslaunch_pids
     signal.signal(signal.SIGINT, signal_handler)
     args = parse_arguments()
+    print str(args)
     if not which('konsole') and not which('gnome-terminal'):
         console.error("Cannot find a suitable terminal [konsole, gnome-termional]")
         sys.exit(1)
@@ -116,6 +117,12 @@ def main():
             console.error("Cannot find 'gnome-terminal' [hint: try --konsole instead]")
             sys.exit(1)
         terminal = 'gnome-terminal'
+    else: # Use konsole for default
+        if not which('konsole'):
+            console.error("Cannot find 'konsole' [hint: try --gnome for gnome-terminal instead]")
+            sys.exit(1)
+        terminal = 'konsole'
+
     if args.package == '':
         rocon_launcher = roslaunch.rlutil.resolve_launch_arguments(args.launcher)[0]
     else:
@@ -140,9 +147,15 @@ def main():
         else:
             ports.append(parameters['port'])
         launchers.append(parameters)
+    print str(launchers)
     for launcher in launchers:
         console.pretty_println("Launching [%s, %s] on port %s" % (launcher['package'], launcher['name'], launcher['port']), console.bold)
-        p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s %s" %
+
+        if terminal == 'konsole':
+            p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s %s" %
+                              (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
+        elif terminal == 'gnome-terminal':
+            p = subprocess.Popen([terminal, '-e', "/bin/bash", "-e", "roslaunch %s --port %s %s %s" %
                               (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
         processes.append(p)
     signal.pause()
