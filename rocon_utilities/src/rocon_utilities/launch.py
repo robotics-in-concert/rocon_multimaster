@@ -102,7 +102,6 @@ def main():
     global roslaunch_pids
     signal.signal(signal.SIGINT, signal_handler)
     args = parse_arguments()
-    print str(args)
     if not which('konsole') and not which('gnome-terminal'):
         console.error("Cannot find a suitable terminal [konsole, gnome-termional]")
         sys.exit(1)
@@ -147,7 +146,6 @@ def main():
         else:
             ports.append(parameters['port'])
         launchers.append(parameters)
-    print str(launchers)
     for launcher in launchers:
         console.pretty_println("Launching [%s, %s] on port %s" % (launcher['package'], launcher['name'], launcher['port']), console.bold)
 
