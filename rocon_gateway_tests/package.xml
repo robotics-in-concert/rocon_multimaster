@@ -23,7 +23,8 @@
   <run_depend>rostest</run_depend>
   <run_depend>roscpp_tutorials</run_depend>
   <run_depend>rospy_tutorials</run_depend>
-  <run_depend>actionlib_tutorials</run_depend>
+  <!-- Not yet catkinized, just avoid it for now. -->
+  <!-- <run_depend>actionlib_tutorials</run_depend> -->
   <run_depend>gateway_msgs</run_depend>
 
   <export>
