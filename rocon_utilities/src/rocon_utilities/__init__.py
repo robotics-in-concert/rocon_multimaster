@@ -14,3 +14,4 @@ __date__ = "2012-11-30"
 
 import console
 from launch import main as launch
+from gateways import create_gateway_rule, create_gateway_remote_rule
