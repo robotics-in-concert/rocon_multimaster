@@ -6,14 +6,14 @@
     systems (primarily used by gateways).
   </description>
   <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
-  <maintainer email="jihoonl@rnd.yujinrobot.com">Jihoon Lee</maintainer>
+  <maintainer email="jihoonlee.in@gmail.com">Jihoon Lee</maintainer>
   <maintainer email="piyushk@gmail.com">Piyush Khandelwal</maintainer>
   <license>BSD</license>
   <url type="website">http://ros.org/wiki/rocon_hub</url>
   <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
   <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
   <author email="d.stonier@gmail.com">Daniel Stonier</author> -->
-  <author email="jihoonl@rnd.yujinrobot.com">Jihoon Lee</author>
+  <author email="jihoonlee.in@gmail.com">Jihoon Lee</author>
   <author email="piyushk@gmail.com">Piyush Khandelwal</author>
 
   <buildtool_depend>catkin</buildtool_depend>
