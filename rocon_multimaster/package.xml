@@ -19,6 +19,8 @@
   <author email="jihoonl@rnd.yujinrobot.com">Jihoon Lee</author>
   <author email="piyushk@gmail.com">Piyush Khandelwal</author>
 
+  <run_depend>rocon_msgs</run_depend>
+
   <run_depend>redis</run_depend>
   <run_depend>rocon_hub</run_depend>
   <run_depend>rocon_utilities</run_depend>
