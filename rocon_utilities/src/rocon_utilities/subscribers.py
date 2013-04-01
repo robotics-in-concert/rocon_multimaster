@@ -14,11 +14,12 @@ import rospy
 # Support Classes
 ##############################################################################
 
-class SubscriberListener():
+
+class SubscriberProxy():
     '''
-      Support class for wait_for_subscriber.
+      Works like a service proxy, but using a subscriber instead.
     '''
-    def __init__(self, topic, msg_type, timeout):
+    def __init__(self, topic, msg_type):
         '''
           @param topic : the topic name to subscriber to
           @type str
@@ -30,29 +31,27 @@ class SubscriberListener():
         '''
         rospy.Subscriber(topic, msg_type, self._callback)
         self._data = None
-        self._timeout = timeout
 
-    def wait_for_data(self):
+    def __call__(self, timeout=None):
+        '''
+          Returns immediately with the latest data or waits for
+          incoming data.
+        '''
         r = rospy.Rate(10)
         start_time = rospy.get_time()
         while not rospy.is_shutdown() and self._data == None:
             r.sleep()
-            if self._timeout:
-                if rospy.get_time() - start_time > self._timeout:
+            if timeout:
+                if rospy.get_time() - start_time > timeout:
                     break
         return self._data
-        
+
+    def wait_for_next(self, timeout=None):
+        '''
+          Makes sure any current data is cleared and waits for new data.
+        '''
+        self._data = None
+        return self.__call__(timeout)
+
     def _callback(self, data):
         self._data = data
-
-##############################################################################
-# Methods
-##############################################################################
-
-def wait_for_subscriber(topic, msg_type, timeout = None):
-    '''
-      Use this to effect a fake service. This is usually used with a latched
-      subscriber to provide service updates with zero latency.
-    '''
-    listener = SubscriberListener(topic, msg_type, timeout)
-    return listener.wait_for_data()
