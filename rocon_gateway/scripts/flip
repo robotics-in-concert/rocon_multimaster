@@ -111,7 +111,7 @@ def resolve_flags():
         return Flags.cancel 
 
 def resolve_flipped_interface(gateway_namespace):
-    gateway_info = rocon_utilities.wait_for_subscriber(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)
+    gateway_info = rocon_utilities.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)()
     return gateway_info.flipped_connections, gateway_info.flip_watchlist
 
 def resolve_unflips(flip_watchlist):
