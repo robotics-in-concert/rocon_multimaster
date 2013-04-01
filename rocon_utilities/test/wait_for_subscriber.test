@@ -1,0 +1,4 @@
+<launch>
+  <node name="latched_oneshot_talker" pkg="rocon_utilities" type="latched_oneshot_talker.py" />
+  <node name="wait_for_subscriber" pkg="rocon_utilities" type="wait_for_subscriber.py" />
+</launch>
