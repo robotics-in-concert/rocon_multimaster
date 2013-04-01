@@ -11,7 +11,6 @@ import rospy
 import threading
 import httplib
 
-from gateway_msgs.msg import Rule, ConnectionType
 from .exceptions import HubConnectionLostError
 
 ##############################################################################
