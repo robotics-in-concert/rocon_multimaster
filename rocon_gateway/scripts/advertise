@@ -16,6 +16,7 @@ import rocon_gateway
 import gateway_msgs
 import rocon_utilities.console as console
 import rocon_gateway.utils as utils
+import rocon_utilities
 
 class Flags(object):
     advertise = 'advertise'
@@ -77,10 +78,8 @@ def resolve_flags():
         return Flags.cancel 
 
 def resolve_public_interface(gateway_namespace):
-    gateway_info = rospy.ServiceProxy(gateway_namespace+'/gateway_info', gateway_msgs.srv.GatewayInfo)
-    req = gateway_msgs.srv.GatewayInfoRequest()
-    resp = gateway_info(req)
-    return resp.public_interface, resp.public_watchlist
+    gateway_info = rocon_utilities.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)()
+    return gateway_info.public_interface, gateway_info.public_watchlist
 
 def resolve_unadvertise(advertise_watchlist):
     if len(advertise_watchlist) == 0:
