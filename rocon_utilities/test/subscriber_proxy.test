@@ -1,4 +1,4 @@
 <launch>
-  <node name="latched_oneshot_talker" pkg="rocon_utilities" type="latched_oneshot_talker.py" />
-  <node name="subscriber_proxy" pkg="rocon_utilities" type="subscriber_proxy.py" />
+  <node name="latched_talker" pkg="rocon_utilities" type="latched_talker.py" />
+  <test test-name="subscriber_proxy" pkg="rocon_utilities" type="subscriber_proxy.py" />
 </launch>

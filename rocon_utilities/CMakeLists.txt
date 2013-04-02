@@ -9,7 +9,7 @@ project(rocon_utilities)
 # Catkin
 ##############################################################################
 
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED rosunit rostest)
 catkin_package()
 
 catkin_python_setup()
@@ -18,9 +18,9 @@ catkin_python_setup()
 # Tests
 ##############################################################################
 
-#add_rostest(test/rosparam.test)
+add_rostest(test/subscriber_proxy.test)
 
-catkin_add_nosetests(test)
+#catkin_add_nosetests(test)
 
 ##############################################################################
 # Installs
