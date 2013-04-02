@@ -4,11 +4,11 @@ from distutils.core import setup
 from catkin_pkg.python_setup import generate_distutils_setup
 
 d = generate_distutils_setup(
-    packages=['rocon_utilities'],
+    packages=['rocon_test'],
     package_dir={'': 'src'},
-    scripts=['scripts/rocon_launch',
+    scripts=['scripts/rocon_test',
              ],
-    requires=['rospy']
+    requires=['rospy', 'roslaunch', 'rocon_utilities']
 )
 
 setup(**d)
