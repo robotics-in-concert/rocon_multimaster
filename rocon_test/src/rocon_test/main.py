@@ -22,11 +22,13 @@ from rostest.rostestutil import printRostestSummary, xmlResultsFile, \
                                 createXMLRunner
 
 # Local imports
-import rocon_test_logging
+import loggers
+import runner
 
 ##############################################################################
 # Methods
 ##############################################################################
+
 
 def help_string():
     overview = 'Launches a rocon multi-launch test.\n\n'
@@ -36,34 +38,21 @@ def help_string():
  "
     return overview + instructions
 
+
 def _parse_arguments():
     parser = argparse.ArgumentParser(description=help_string(), formatter_class=RawTextHelpFormatter)
     parser.add_argument('package', nargs='?', default=None, help='name of the package in which to find the test configuration')
     parser.add_argument('test', nargs=1, help='name of the test configuration (xml) file')
-
-#    parser.add_argument('-j', '--jobs', type=int, metavar='JOBS', default=None, nargs='?', help='Specifies the number of jobs (commands) to run simultaneously. Defaults to the environment variable ROS_PARALLEL_JOBS and falls back to the number of CPU cores.')
-#    parser.add_argument('--force-cmake', action='store_true', help='Invoke "cmake" even if it has been executed before [false]')
-#    parser.add_argument('-p', '--pre-clean', action='store_true', help='Clean build temporaries before making [false]')
-#    group = parser.add_mutually_exclusive_group()
-#    group.add_argument('-i', '--install', action='store_true', help='Run install step after making [false]')
-#    group.add_argument('-t', '--tests', action='store_true', help='Make tests [false]')
-#    group.add_argument('-r', '--run_tests', action='store_true', help='Make and run tests [false]')
-#    parser.add_argument('--no-color', action='store_true', help='Disables colored ouput')
-#    parser.add_argument('--pkg', help='Invoke "make" on a specific package only')
-#    parser.add_argument('--cmake-args', dest='cmake_args', nargs='*', type=str,
-#        help='Arbitrary arguments which are passes to CMake. It must be passed after other arguments since it collects all following options.')
-#    parser.add_argument('--make-args', dest='make_args', nargs='*', type=str,
-#        help='Arbitrary arguments which are passes to make. It must be passed after other arguments since it collects all following options. This is only necessary in combination with --cmake-args since else all unknown arguments are passed to make anyway.')
+    parser.add_argument('--screen', action='store_true', help='run each roslaunch with the --screen option')
     args = parser.parse_args()
     # Stop it from being a list (happens when nargs is an integer)
     args.test = args.test[0]
-    #(options, args) = parser.parse_args()
-#    try:
-#        args = roslaunch.rlutil.resolve_launch_arguments(args)
-#    except roslaunch.core.RLException as e:
-#        raise RuntimeError(str(e))
-#    return (options, args)
+    if args.screen:
+        args.screen = "--screen"
+    else:
+        args.screen = ""
     return args
+
 
 def test_main():
     args = _parse_arguments()
@@ -72,36 +61,40 @@ def test_main():
             raise RuntimeError("Test launcher file does not exist [%s]." % args.test)
         else:
             args.package = rospkg.get_package_name(args.test)
-    args.test = rocon_utilities.find_resource(args.package, args.test)  # raises an IO error if there is a problem.
-    (logger, log_name) = rocon_test_logging.generate_log_name(args.package, args.test)
-    try:
-        test_case = rostest.runner.createUnitTest(args.package, args.test)
-        suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
+    rocon_launcher = rocon_utilities.find_resource(args.package, args.test)  # raises an IO error if there is a problem.
+    (logger, log_name) = loggers.generate_log_name(args.package, rocon_launcher)
+    #test_case = runner.create_unit_test(rocon_launcher, args.screen)
+    launchers = rocon_utilities.parse_rocon_launcher(rocon_launcher, args.screen)
+    for launcher in launchers:
+        print("%s" % launcher)
+        try:
+            test_case = runner.create_unit_test(launcher['package'], launcher['path'])
+            suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
 
-        is_rostest = True
-        results_file = xmlResultsFile(args.package, log_name, is_rostest)        
-        xml_runner = createXMLRunner(args.package, log_name, \
-                                         results_file=results_file, \
-                                         is_rostest=is_rostest)
-        result = xml_runner.run(suite)
-    finally:
-        # really make sure that all of our processes have been killed
-        test_parents = rostest.runner.getRostestParents()
-        for r in test_parents:
-            logger.info("finally rostest parent tearDown [%s]", r)
-            r.tearDown()
-        del test_parents[:]
-        from roslaunch.pmon import pmon_shutdown
-        logger.info("calling pmon_shutdown")
-        pmon_shutdown()
-        logger.info("... done calling pmon_shutdown")
+            is_rostest = True
+            results_file = xmlResultsFile(args.package, log_name, is_rostest)
+            xml_runner = createXMLRunner(args.package, log_name, \
+                                             results_file=results_file, \
+                                             is_rostest=is_rostest)
+            result = xml_runner.run(suite)
+        finally:
+            # really make sure that all of our processes have been killed
+            test_parents = rostest.runner.getRostestParents()
+            for r in test_parents:
+                logger.info("finally rostest parent tearDown [%s]", r)
+                r.tearDown()
+            del test_parents[:]
+            from roslaunch.pmon import pmon_shutdown
+            logger.info("calling pmon_shutdown")
+            pmon_shutdown()
+            logger.info("... done calling pmon_shutdown")
     # print config errors after test has run so that we don't get caught up in .xml results
     config = rostest.runner.getConfig()
     if config:
         if config.config_errors:
-            print("\n[ROSTEST WARNINGS]"+'-'*62+'\n', file=sys.stderr)
+            print("\n[ROSTEST WARNINGS]" + '-' * 62 + '\n', file=sys.stderr)
         for err in config.config_errors:
-            print(" * %s"%err, file=sys.stderr)
+            print(" * %s" % err, file=sys.stderr)
         print('')
 
     # summary is worthless if textMode is on as we cannot scrape .xml results

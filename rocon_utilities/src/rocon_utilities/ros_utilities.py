@@ -22,17 +22,17 @@ def find_resource(package, resource):
       Convenience wrapper around roslib to find a resource (file) inside
       a package. It checks the output, and provides the appropriate
       error if there is one.
-      
+
       @param package : ros package
       @param resource : some file inside the specified package
       @return str : absolute path to the file
-      
-      @raise IOError : raised if there is nothing found or multiple objects found. 
+
+      @raise IOError : raised if there is nothing found or multiple objects found.
     '''
     try:
         resolved = roslib.packages.find_resource(package, resource)
         if not resolved:
-            raise IOError("cannot locate [%s] in package [%s]"%(resource, package))
+            raise IOError("cannot locate [%s] in package [%s]" % (resource, package))
         elif len(resolved) == 1:
             return resolved[0]
         elif len(resolved) > 1:
@@ -40,8 +40,6 @@ def find_resource(package, resource):
     except rospkg.ResourceNotFound:
         raise IOError("[%s] is not a package or launch file name" % package)
     return None
-    
-
 
 ##############################################################################
 # Subscriber Proxy

@@ -15,10 +15,12 @@ import signal
 import sys
 from time import sleep
 import roslaunch
-# Can call roslaunch.main(argv) directly
+
+# Local imports
 from .system import which, wait_pid
 import rocon_utilities.console as console
 import xml.etree.ElementTree as ElementTree
+import ros_utilities
 
 ##############################################################################
 # Global variables
@@ -82,13 +84,16 @@ def signal_handler(sig, frame):
     for p in processes:
         p.terminate()
 
+
 def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
     '''
       Parses an rocon multi-launcher (xml file).
-      
+
       @param rocon_launcher : xml file in rocon_launch format
       @param default_roslaunch_options : options to pass to roslaunch (usually "--screen")
       @return launchers : list with launcher parameters as dictionary elements of the list.
+
+      @raise IOError : if it can't find any of the individual launchers on the filesystem.
     '''
     tree = ElementTree.parse(rocon_launcher)
     root = tree.getroot()
@@ -101,6 +106,7 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
         parameters['options'] = default_roslaunch_options
         parameters['package'] = launch.get('package')
         parameters['name'] = launch.get('name')
+        parameters['path'] = ros_utilities.find_resource(parameters['package'], parameters['name'])  # raises an IO error if there is a problem.
         parameters['port'] = launch.get('port', str(default_port))
         if parameters['port'] == str(default_port):
             default_port += 1
@@ -115,9 +121,9 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Rocon's multiple master launcher.")
     terminal_group = parser.add_mutually_exclusive_group()
-    terminal_group.add_argument('-k', '--konsole', default=False,action='store_true', help='spawn individual ros systems via multiple konsole terminals')
+    terminal_group.add_argument('-k', '--konsole', default=False, action='store_true', help='spawn individual ros systems via multiple konsole terminals')
     terminal_group.add_argument('-g', '--gnome', default=False, action='store_true', help='spawn individual ros systems via multiple gnome terminals')
-    terminal_group.add_argument('--screen', action='store_true', help='run each roslaunch with the --screen option')
+    parser.add_argument('--screen', action='store_true', help='run each roslaunch with the --screen option')
     # Force package, launcher pairs, I like this better than roslaunch style which is a bit vague
     parser.add_argument('package', nargs='?', default='', help='name of the package in which to find the concert launcher')
     parser.add_argument('launcher', nargs=1, help='name of the concert launch configuration (xml) file')
@@ -145,7 +151,7 @@ def main():
             console.error("Cannot find 'gnome-terminal' [hint: try --konsole instead]")
             sys.exit(1)
         terminal = 'gnome-terminal'
-    else: # Use konsole for default
+    else:  # Use konsole for default
         if not which('konsole'):
             console.error("Cannot find 'konsole' [hint: try --gnome for gnome-terminal instead]")
             sys.exit(1)
