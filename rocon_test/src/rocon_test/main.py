@@ -14,14 +14,15 @@ import os
 import sys
 import unittest
 import rostest.runner
-import roslaunch.rlutil
-import roslaunch.core
-import logging
+import rocon_utilities
 import rospkg
 import argparse
 from argparse import RawTextHelpFormatter
 from rostest.rostestutil import printRostestSummary, xmlResultsFile, \
-                                createXMLRunner, rostest_name_from_path
+                                createXMLRunner
+
+# Local imports
+import rocon_test_logging
 
 ##############################################################################
 # Methods
@@ -66,25 +67,20 @@ def _parse_arguments():
 
 def test_main():
     args = _parse_arguments()
-    #logfile_name = configure_logging()
-    logger = logging.getLogger('rocon_test')
-    roslaunch.core.add_printlog_handler(logger.info)
-    roslaunch.core.add_printerrlog_handler(logger.error)
     if not args.package:
         if not os.path.isfile(args.test):
             raise RuntimeError("Test launcher file does not exist [%s]." % args.test)
         else:
             args.package = rospkg.get_package_name(args.test)
-    r = rospkg.RosPack()
-    pkg_dir = r.get_path(args.package)
-    outname = rostest_name_from_path(pkg_dir, args.test)  # underscored pkg_dir relative name (e.g. launch/pirate_chatter.multilaunch -> launch_pirate_chatter
+    args.test = rocon_utilities.find_resource(args.package, args.test)  # raises an IO error if there is a problem.
+    (logger, log_name) = rocon_test_logging.generate_log_name(args.package, args.test)
     try:
         test_case = rostest.runner.createUnitTest(args.package, args.test)
         suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
 
         is_rostest = True
-        results_file = xmlResultsFile(args.package, outname, is_rostest)        
-        xml_runner = createXMLRunner(args.package, outname, \
+        results_file = xmlResultsFile(args.package, log_name, is_rostest)        
+        xml_runner = createXMLRunner(args.package, log_name, \
                                          results_file=results_file, \
                                          is_rostest=is_rostest)
         result = xml_runner.run(suite)

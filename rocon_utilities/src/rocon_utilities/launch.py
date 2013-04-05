@@ -82,6 +82,35 @@ def signal_handler(sig, frame):
     for p in processes:
         p.terminate()
 
+def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
+    '''
+      Parses an rocon multi-launcher (xml file).
+      
+      @param rocon_launcher : xml file in rocon_launch format
+      @param default_roslaunch_options : options to pass to roslaunch (usually "--screen")
+      @return launchers : list with launcher parameters as dictionary elements of the list.
+    '''
+    tree = ElementTree.parse(rocon_launcher)
+    root = tree.getroot()
+    # should check for root concert tag
+    launchers = []
+    ports = []
+    default_port = 11311
+    for launch in root.findall('launch'):
+        parameters = {}
+        parameters['options'] = default_roslaunch_options
+        parameters['package'] = launch.get('package')
+        parameters['name'] = launch.get('name')
+        parameters['port'] = launch.get('port', str(default_port))
+        if parameters['port'] == str(default_port):
+            default_port += 1
+        if parameters['port'] in ports:
+            parameters['options'] = parameters['options'] + " " + "--wait"
+        else:
+            ports.append(parameters['port'])
+        launchers.append(parameters)
+    return launchers
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Rocon's multiple master launcher.")
@@ -130,22 +159,7 @@ def main():
         roslaunch_options = "--screen"
     else:
         roslaunch_options = ""
-    tree = ElementTree.parse(rocon_launcher)
-    root = tree.getroot()
-    # should check for root concert tag
-    launchers = []
-    ports = []
-    for launch in root.findall('launch'):
-        parameters = {}
-        parameters['options'] = roslaunch_options
-        parameters['package'] = launch.get('package')
-        parameters['name'] = launch.get('name')
-        parameters['port'] = launch.get('port', '11311')
-        if parameters['port'] in ports:
-            parameters['options'] = parameters['options'] + " " + "--wait"
-        else:
-            ports.append(parameters['port'])
-        launchers.append(parameters)
+    launchers = parse_rocon_launcher(rocon_launcher, roslaunch_options)
     for launcher in launchers:
         console.pretty_println("Launching [%s, %s] on port %s" % (launcher['package'], launcher['name'], launcher['port']), console.bold)
 
