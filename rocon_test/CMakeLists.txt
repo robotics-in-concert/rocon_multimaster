@@ -20,8 +20,8 @@ catkin_python_setup()
 # Installs
 ##############################################################################
 
-install(DIRECTORY test DESTINATION ${CATKIN_PACKAGE_SHARED_DESTINATION} USE_SOURCE_PERMISSIONS)
-install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARED_DESTINATION})
+install(DIRECTORY test DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION} USE_SOURCE_PERMISSIONS)
+install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(
     PROGRAMS 
         scripts/listener.py
