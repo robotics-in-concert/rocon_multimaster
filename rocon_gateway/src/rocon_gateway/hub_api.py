@@ -76,6 +76,9 @@ def resolve_hub(ip, port):
       against the gateway whitelist/blacklists to determine if a rule
       should proceed or not.
 
+      Be careful, if this returns None, it means the redis server is
+      found but hub_name not yet set or not set at all.
+
       @return string - hub name
     '''
     r = redis.Redis(host=ip, port=port)
