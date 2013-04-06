@@ -22,3 +22,9 @@ catkin_python_setup()
 
 install(DIRECTORY test DESTINATION ${CATKIN_PACKAGE_SHARED_DESTINATION} USE_SOURCE_PERMISSIONS)
 install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARED_DESTINATION})
+install(
+    PROGRAMS 
+        scripts/listener.py
+        scripts/talker.py
+    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+    )

@@ -81,11 +81,12 @@ def test_main():
     finally:
         # really make sure that all of our processes have been killed
         test_parents = runner.get_rocon_test_parents()
+        # don't know why this is appearing in the test window instead of getting logged
+        #printlog("Rostest parent tearDown")
         for r in test_parents:
-            printlog("Rostest parent tearDown [%s]", r)
             r.tearDown()
         del test_parents[:]
-        printlog("calling pmon_shutdown")
+        #printlog("calling pmon_shutdown")
         pmon_shutdown()
     subtest_results = runner.get_results()
 
