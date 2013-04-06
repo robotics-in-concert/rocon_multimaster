@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find rocon_gateway_tests)/launch/include/local_gateway.launch"/>
+  <node pkg="rocon_gateway_tests" type="graph.py" name="graph"  output="screen"/>
+</launch>

@@ -1,3 +1,0 @@
-<launch>
-  <node pkg="roscpp_tutorials" type="talker" name="talker"  output="screen"/>
-</launch>

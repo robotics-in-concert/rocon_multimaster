@@ -1,0 +1,8 @@
+<launch>
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
+    <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <rosparam param="hub_uri">http://localhost:6380</rosparam>
+    <rosparam param="name">local_gateway</rosparam>
+  </node>
+</launch>

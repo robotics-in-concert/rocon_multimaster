@@ -79,8 +79,11 @@ class GatewaySync(object):
 
     def connect_to_hub(self, ip, port):
         try:
+            print("Connect")
             self.hub.connect(ip, port)
+            print("get ros ip")
             self._ip = self.master.get_ros_ip()
+            print("register gateway")
             self.unique_name = self.hub.register_gateway(self._ip)
             self.is_connected = True
         except Exception as e:
