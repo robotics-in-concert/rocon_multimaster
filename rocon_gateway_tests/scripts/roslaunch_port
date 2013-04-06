@@ -1,3 +1,0 @@
-#!/bin/sh
-
-roslaunch $1 $2 --port=$3 --screen

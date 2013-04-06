@@ -1,0 +1,5 @@
+<concert>
+  <launch package="rocon_hub" name="hub_no_zeroconf.launch" port="11311"/>
+  <launch package="rocon_gateway_tests" name="graph.launch" port="11312"/>
+</concert>
+

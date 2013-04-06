@@ -1,6 +1,0 @@
-<concert>
-  <launch package="rocon_gateway_tutorials" name="pirate_hub.launch" port="11311"/>
-  <launch package="rocon_gateway_tutorials" name="pirate_gateway_talker.launch" port="11312"/>
-  <launch package="rocon_utilities" name="subscriber_proxy.launch" port="11313"/>
-</concert>
-
