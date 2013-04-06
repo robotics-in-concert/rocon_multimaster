@@ -88,7 +88,7 @@ def setUp(self):
       This could be prone to problems if someone puts multiple launchers in
       rocon launcher with the same master port (untested).
     '''
-    # new test_parent for each run. we are a bit inefficient as it would be possible to
+    # new parent for each run. we are a bit inefficient as it would be possible to
     # reuse the roslaunch base infrastructure for each test, but the roslaunch code
     # is not abstracted well enough yet
     for rocon_launch_configuration in self.rocon_launch_configurations:
@@ -96,7 +96,7 @@ def setUp(self):
         launcher = rocon_launch_configuration.launcher
         o = urlparse(config.master.uri)
         if not config.tests:
-            rocon_launch_configuration.test_parent = roslaunch.parent.ROSLaunchParent(
+            rocon_launch_configuration.parent = roslaunch.parent.ROSLaunchParent(
                                                             roslaunch.core.generate_run_id(),
                                                             [launcher["path"]],
                                                             is_core=True,
@@ -105,17 +105,17 @@ def setUp(self):
                                                             force_screen=False,
                                                             is_rostest=False
                                                             )
-            rocon_launch_configuration.test_parent._load_config()
-            rocon_launch_configuration.test_parent.start()
+            rocon_launch_configuration.parent._load_config()
+            rocon_launch_configuration.parent.start()
         else:
-            rocon_launch_configuration.test_parent = ROSTestLaunchParent(config, [launcher["path"]], port=o.port)
-            rocon_launch_configuration.test_parent.setUp()
+            rocon_launch_configuration.parent = ROSTestLaunchParent(config, [launcher["path"]], port=o.port)
+            rocon_launch_configuration.parent.setUp()
             # the config attribute makes it easy for tests to access the ROSLaunchConfig instance
             # Should we do this - it doesn't make a whole lot of sense?
-            #rocon_launch_configuration.configuration = rocon_launch_configuration.test_parent.config
-            _add_rocon_test_parent(rocon_launch_configuration.test_parent)
+            #rocon_launch_configuration.configuration = rocon_launch_configuration.parent.config
+            _add_rocon_test_parent(rocon_launch_configuration.parent)
         printlog("Setup Test Parent ..................%s" % self.test_file)
-        printlog("  Run Id............................%s" % rocon_launch_configuration.test_parent.run_id)
+        printlog("  Run Id............................%s" % rocon_launch_configuration.parent.run_id)
         printlog("  File..............................%s" % rocon_launch_configuration.launcher["path"])
         printlog("  Port..............................%s" % o.port)
         if not config.tests:
@@ -131,15 +131,15 @@ def tearDown(self):
     printlog("Tear Down...........................%s" % self.test_file)
     for rocon_launch_configuration in self.rocon_launch_configurations:
         config = rocon_launch_configuration.configuration
-        test_parent = rocon_launch_configuration.test_parent
+        parent = rocon_launch_configuration.parent
         launcher = rocon_launch_configuration.launcher
         if config.tests:
-            if test_parent:
-                test_parent.tearDown()
-                printlog("  Run Id............................%s" % test_parent.run_id)
+            if parent:
+                parent.tearDown()
+                printlog("  Run Id............................%s" % parent.run_id)
                 printlog("  Launcher..........................%s" % launcher["path"])
         else:
-            test_parent.shutdown()
+            parent.shutdown()
 
 
 ## generate test failure if tests with same name in launch file
@@ -175,15 +175,15 @@ def rocon_test_runner(test, test_launch_configuration, test_pkg):
         printlog("Launching tests")
         done = False
         while not done:
-            test_parent = test_launch_configuration.test_parent
-            self.assert_(test_parent is not None, "ROSTestParent initialization failed")
+            parent = test_launch_configuration.parent
+            self.assert_(parent is not None, "ROSTestParent initialization failed")
             test_name = test.test_name
             printlog("  Name..............................%s" % test_name)
 
             #launch the other nodes
-            #for test_parent in self.test_parents:
+            #for parent in self.parents:
             # DJS - will this mean I miss starting up othe test parents?
-            unused_succeeded, failed = test_parent.launch()
+            unused_succeeded, failed = parent.launch()
             self.assert_(not failed, "Test Fixture Nodes %s failed to launch" % failed)
 
             #setup the test
@@ -204,7 +204,7 @@ def rocon_test_runner(test, test_launch_configuration, test_pkg):
             printlog("Running test %s" % test_name)
             timeout_failure = False
             try:
-                test_parent.run_test(test)
+                parent.run_test(test)
             except roslaunch.launch.RLTestTimeoutException as unused_e:
                 if test.retry:
                     timeout_failure = True
@@ -250,7 +250,7 @@ def create_unit_rocon_test(rocon_launcher, launchers):
     rocon_launch_configurations = []
     for launcher in launchers:
         rocon_launch_configurations.append(RoconTestLaunchConfiguration(launcher))
-    # pass in config to class as a property so that test_parent can be initialized
+    # pass in config to class as a property so that parent can be initialized
     classdict = {'setUp': setUp, 'tearDown': tearDown,
                  'rocon_launch_configurations': rocon_launch_configurations,
                  'test_file': rocon_launcher}
