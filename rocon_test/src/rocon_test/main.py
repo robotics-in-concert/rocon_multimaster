@@ -24,7 +24,7 @@ from roslaunch.pmon import pmon_shutdown
 
 # Local imports
 import loggers
-from loggers import printlog
+#from loggers import printlog
 import runner
 
 ##############################################################################

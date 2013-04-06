@@ -52,7 +52,6 @@ _config = None
 
 def _add_rocon_test_parent(runner):
     global _test_parents, _config
-    printlog("_addRocontestParent [%s]", runner)
     _test_parents.append(runner)
     _config = runner.config
 
@@ -92,21 +91,37 @@ def setUp(self):
     # new test_parent for each run. we are a bit inefficient as it would be possible to
     # reuse the roslaunch base infrastructure for each test, but the roslaunch code
     # is not abstracted well enough yet
-    self.test_parents = []
     for rocon_launch_configuration in self.rocon_launch_configurations:
         config = rocon_launch_configuration.configuration
         launcher = rocon_launch_configuration.launcher
         o = urlparse(config.master.uri)
-        rocon_launch_configuration.test_parent = ROSTestLaunchParent(config, [launcher["path"]], port=o.port)
-        rocon_launch_configuration.test_parent.setUp()
-        # the config attribute makes it easy for tests to access the ROSLaunchConfig instance
-        # Should we do this - it doesn't make a whole lot of sense?
-        #rocon_launch_configuration.configuration = rocon_launch_configuration.test_parent.config
-        _add_rocon_test_parent(rocon_launch_configuration.test_parent)
+        if not config.tests:
+            rocon_launch_configuration.test_parent = roslaunch.parent.ROSLaunchParent(
+                                                            roslaunch.core.generate_run_id(),
+                                                            [launcher["path"]],
+                                                            is_core=True,
+                                                            port=o.port,
+                                                            verbose=False,
+                                                            force_screen=False,
+                                                            is_rostest=False
+                                                            )
+            rocon_launch_configuration.test_parent._load_config()
+            rocon_launch_configuration.test_parent.start()
+        else:
+            rocon_launch_configuration.test_parent = ROSTestLaunchParent(config, [launcher["path"]], port=o.port)
+            rocon_launch_configuration.test_parent.setUp()
+            # the config attribute makes it easy for tests to access the ROSLaunchConfig instance
+            # Should we do this - it doesn't make a whole lot of sense?
+            #rocon_launch_configuration.configuration = rocon_launch_configuration.test_parent.config
+            _add_rocon_test_parent(rocon_launch_configuration.test_parent)
         printlog("Setup Test Parent ..................%s" % self.test_file)
         printlog("  Run Id............................%s" % rocon_launch_configuration.test_parent.run_id)
         printlog("  File..............................%s" % rocon_launch_configuration.launcher["path"])
         printlog("  Port..............................%s" % o.port)
+        if not config.tests:
+            printlog("  Tests.............................no")
+        else:
+            printlog("  Tests.............................yes")
 
 
 def tearDown(self):
@@ -115,10 +130,16 @@ def tearDown(self):
     '''
     printlog("Tear Down...........................%s" % self.test_file)
     for rocon_launch_configuration in self.rocon_launch_configurations:
-        if rocon_launch_configuration.test_parent:
-            rocon_launch_configuration.test_parent.tearDown()
-            printlog("  Run Id............................%s" % rocon_launch_configuration.test_parent.run_id)
-            printlog("  Launcher..........................%s" % rocon_launch_configuration.launcher["path"])
+        config = rocon_launch_configuration.configuration
+        test_parent = rocon_launch_configuration.test_parent
+        launcher = rocon_launch_configuration.launcher
+        if config.tests:
+            if test_parent:
+                test_parent.tearDown()
+                printlog("  Run Id............................%s" % test_parent.run_id)
+                printlog("  Launcher..........................%s" % launcher["path"])
+        else:
+            test_parent.shutdown()
 
 
 ## generate test failure if tests with same name in launch file
