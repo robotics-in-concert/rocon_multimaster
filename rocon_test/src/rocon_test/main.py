@@ -18,12 +18,13 @@ import rocon_utilities
 import rospkg
 import argparse
 from argparse import RawTextHelpFormatter
-from rostest.rostestutil import printRostestSummary, createXMLRunner
+from rostest.rostestutil import printRostestSummary
 import rosunit
 from roslaunch.pmon import pmon_shutdown
 
 # Local imports
 import loggers
+from loggers import printlog
 import runner
 
 ##############################################################################
@@ -66,14 +67,10 @@ def _parse_arguments():
 def test_main():
     (package, name, launch_arguments) = _parse_arguments()
     rocon_launcher = rocon_utilities.find_resource(package, name)  # raises an IO error if there is a problem.
-    logger = loggers.logger
     log_name = loggers.generate_log_name(package, rocon_launcher)
     results_file = rosunit.xml_results_file(package, log_name, is_rostest=True)
     launchers = rocon_utilities.parse_rocon_launcher(rocon_launcher, launch_arguments)
 
-    ################################
-    # Rocon test style
-    ################################
     try:
         test_case = runner.create_unit_rocon_test(rocon_launcher, launchers)
         suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
@@ -85,39 +82,16 @@ def test_main():
         # really make sure that all of our processes have been killed
         test_parents = runner.get_rocon_test_parents()
         for r in test_parents:
-            logger.info("finally rostest parent tearDown [%s]", r)
+            printlog("Rostest parent tearDown [%s]", r)
             r.tearDown()
         del test_parents[:]
-        logger.info("calling pmon_shutdown")
+        printlog("calling pmon_shutdown")
         pmon_shutdown()
     subtest_results = runner.get_results()
 
-#    ################################
-#    # Rostest style
-#    ################################
-#    for launcher in launchers:
-#        try:
-#            test_case = runner.create_unit_test(launcher['package'], launcher['path'])
-#            suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
-#            xml_runner = rostest.rostestutil.createXMLRunner(package, log_name, \
-#                                             results_file=results_file, \
-#                                             is_rostest=True)
-#            result = xml_runner.run(suite)
-#        finally:
-#            # really make sure that all of our processes have been killed
-#            test_parents = rostest.runner.getRostestParents()
-#            for r in test_parents:
-#                logger.info("finally rostest parent tearDown [%s]", r)
-#                r.tearDown()
-#            del test_parents[:]
-#            from roslaunch.pmon import pmon_shutdown
-#            logger.info("calling pmon_shutdown")
-#            pmon_shutdown()
-#            logger.info("... done calling pmon_shutdown")
-    # print config errors after test has run so that we don't get caught up in .xml results
-#    # summary is worthless if textMode is on as we cannot scrape .xml results
-#    subtest_results = rostest.runner.getResults()
-
+    ################################
+    # Post stuff
+    ################################
     config = rostest.runner.getConfig()
     if config:
         if config.config_errors:
@@ -125,7 +99,6 @@ def test_main():
         for err in config.config_errors:
             print(" * %s" % err, file=sys.stderr)
         print('')
-
     printRostestSummary(result, subtest_results)
 
     if not result.wasSuccessful():
