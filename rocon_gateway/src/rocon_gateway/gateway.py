@@ -169,7 +169,7 @@ class Gateway():
                     return True
                 else:
                     rospy.sleep(0.3)
-            rospy.logwarn("Gateway : failed direct connection attempt to hub [%s]" % self.param['hub_uri'])
+            rospy.logwarn("Gateway : couldn't connect to the hub (probably not up yet) [%s]" % self.param['hub_uri'])
         return False
 
     def _scan_for_zeroconf_hubs(self, previously_found_hubs):
@@ -208,7 +208,7 @@ class Gateway():
             else:
                 return gateway_msgs.Result.HUB_CONNECTION_UNRESOLVABLE  # could probably use a distinct error result for this instead.
         except redis.exceptions.ConnectionError:
-            rospy.logwarn("Gateway : couldn't connect to the hub (probably not up yet) [%s:%s]", ip, port)
+            #rospy.logwarn("Gateway : couldn't connect to the hub (probably not up yet) [%s:%s]", ip, port)
             return gateway_msgs.Result.HUB_CONNECTION_UNRESOLVABLE
         if ip in self.param['hub_blacklist']:
             rospy.loginfo("Gateway : ignoring blacklisted hub [%s]",ip)

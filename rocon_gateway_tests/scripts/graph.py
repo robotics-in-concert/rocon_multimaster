@@ -7,21 +7,43 @@
 # Imports
 ##############################################################################
 
-import roslib
-roslib.load_manifest('rocon_gateway')
 import rospy
+import sys
 import rocon_utilities.console as console
 from rocon_gateway import Graph
 from rocon_gateway import GatewayError
+import unittest
+import rosunit
 
 ##############################################################################
 # Main
 ##############################################################################
 
+class TestGraph(unittest.TestCase):
+
+    def setUp(self):
+        rospy.init_node('test_graph')
+        self.graph = Graph()
+        rospy.sleep(1.0)
+        self.graph.update()
+
+    def test_graph(self):
+        print("********************************************************************")
+        print("* Local Gateway")
+        print("********************************************************************")
+        print self.graph._local_gateway
+        print("********************************************************************")
+        print("* Remote Gateway")
+        print("********************************************************************")
+        print self.graph._remote_gateways
+        for remote_gateway in self.graph._remote_gateways:
+            self.assertEquals("remote_gateway", remote_gateway.name)
+
+    def tearDown(self):
+        pass
+
+NAME = 'test_graph'
 if __name__ == '__main__':
-    rospy.init_node('test_graph')
-    graph = Graph()
-    rospy.sleep(1.0)
-    graph.update()
-    print graph._local_gateway
-    print graph._remote_gateways
+    rosunit.unitrun('test_graph', NAME, TestGraph, sys.argv, coverage_packages=['rocon_gateway'])
+
+        
