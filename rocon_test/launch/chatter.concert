@@ -1,0 +1,5 @@
+<concert>
+  <launch package="rocon_test" name="talker.launch" port="11311"/>
+  <launch package="rocon_test" name="listener.launch" port="11312"/>
+</concert>
+

@@ -1,0 +1,4 @@
+<launch>
+  <test test-name="listener" pkg="rocon_test" type="listener.py"/>
+  <node name="latched_talker" pkg="rocon_test" type="talker.py" output="screen"/>
+</launch>

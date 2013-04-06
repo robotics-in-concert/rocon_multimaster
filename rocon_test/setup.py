@@ -8,7 +8,7 @@ d = generate_distutils_setup(
     package_dir={'': 'src'},
     scripts=['scripts/rocon_test',
              ],
-    requires=['rospy', 'roslaunch', 'rocon_utilities']
+    requires=['rospy', 'roslaunch', 'rostest', 'rosunit']
 )
 
 setup(**d)

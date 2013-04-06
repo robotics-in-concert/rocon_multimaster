@@ -18,8 +18,9 @@ import rocon_utilities
 import rospkg
 import argparse
 from argparse import RawTextHelpFormatter
-from rostest.rostestutil import printRostestSummary, xmlResultsFile, \
-                                createXMLRunner
+from rostest.rostestutil import printRostestSummary, createXMLRunner
+import rosunit
+from roslaunch.pmon import pmon_shutdown
 
 # Local imports
 import loggers
@@ -40,6 +41,9 @@ def help_string():
 
 
 def _parse_arguments():
+    '''
+    @raise IOError : if no package name is given and the rocon launcher cannot be found on the filesystem.
+    '''
     parser = argparse.ArgumentParser(description=help_string(), formatter_class=RawTextHelpFormatter)
     parser.add_argument('package', nargs='?', default=None, help='name of the package in which to find the test configuration')
     parser.add_argument('test', nargs=1, help='name of the test configuration (xml) file')
@@ -51,44 +55,69 @@ def _parse_arguments():
         args.screen = "--screen"
     else:
         args.screen = ""
-    return args
+    if not args.package:
+        if not os.path.isfile(args.test):
+            raise IOError("Test launcher file does not exist [%s]." % args.test)
+        else:
+            args.package = rospkg.get_package_name(args.test)
+    return (args.package, args.test, args.screen)
 
 
 def test_main():
-    args = _parse_arguments()
-    if not args.package:
-        if not os.path.isfile(args.test):
-            raise RuntimeError("Test launcher file does not exist [%s]." % args.test)
-        else:
-            args.package = rospkg.get_package_name(args.test)
-    rocon_launcher = rocon_utilities.find_resource(args.package, args.test)  # raises an IO error if there is a problem.
-    (logger, log_name) = loggers.generate_log_name(args.package, rocon_launcher)
-    #test_case = runner.create_unit_test(rocon_launcher, args.screen)
-    launchers = rocon_utilities.parse_rocon_launcher(rocon_launcher, args.screen)
-    for launcher in launchers:
-        print("%s" % launcher)
-        try:
-            test_case = runner.create_unit_test(launcher['package'], launcher['path'])
-            suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
+    (package, name, launch_arguments) = _parse_arguments()
+    rocon_launcher = rocon_utilities.find_resource(package, name)  # raises an IO error if there is a problem.
+    logger = loggers.logger
+    log_name = loggers.generate_log_name(package, rocon_launcher)
+    results_file = rosunit.xml_results_file(package, log_name, is_rostest=True)
+    launchers = rocon_utilities.parse_rocon_launcher(rocon_launcher, launch_arguments)
 
-            is_rostest = True
-            results_file = xmlResultsFile(args.package, log_name, is_rostest)
-            xml_runner = createXMLRunner(args.package, log_name, \
-                                             results_file=results_file, \
-                                             is_rostest=is_rostest)
-            result = xml_runner.run(suite)
-        finally:
-            # really make sure that all of our processes have been killed
-            test_parents = rostest.runner.getRostestParents()
-            for r in test_parents:
-                logger.info("finally rostest parent tearDown [%s]", r)
-                r.tearDown()
-            del test_parents[:]
-            from roslaunch.pmon import pmon_shutdown
-            logger.info("calling pmon_shutdown")
-            pmon_shutdown()
-            logger.info("... done calling pmon_shutdown")
+    ################################
+    # Rocon test style
+    ################################
+    try:
+        test_case = runner.create_unit_rocon_test(rocon_launcher, launchers)
+        suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
+        xml_runner = rosunit.create_xml_runner(package, log_name, \
+                                         results_file=results_file, \
+                                         is_rostest=True)
+        result = xml_runner.run(suite)
+    finally:
+        # really make sure that all of our processes have been killed
+        test_parents = runner.get_rocon_test_parents()
+        for r in test_parents:
+            logger.info("finally rostest parent tearDown [%s]", r)
+            r.tearDown()
+        del test_parents[:]
+        logger.info("calling pmon_shutdown")
+        pmon_shutdown()
+    subtest_results = runner.get_results()
+
+#    ################################
+#    # Rostest style
+#    ################################
+#    for launcher in launchers:
+#        try:
+#            test_case = runner.create_unit_test(launcher['package'], launcher['path'])
+#            suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
+#            xml_runner = rostest.rostestutil.createXMLRunner(package, log_name, \
+#                                             results_file=results_file, \
+#                                             is_rostest=True)
+#            result = xml_runner.run(suite)
+#        finally:
+#            # really make sure that all of our processes have been killed
+#            test_parents = rostest.runner.getRostestParents()
+#            for r in test_parents:
+#                logger.info("finally rostest parent tearDown [%s]", r)
+#                r.tearDown()
+#            del test_parents[:]
+#            from roslaunch.pmon import pmon_shutdown
+#            logger.info("calling pmon_shutdown")
+#            pmon_shutdown()
+#            logger.info("... done calling pmon_shutdown")
     # print config errors after test has run so that we don't get caught up in .xml results
+#    # summary is worthless if textMode is on as we cannot scrape .xml results
+#    subtest_results = rostest.runner.getResults()
+
     config = rostest.runner.getConfig()
     if config:
         if config.config_errors:
@@ -97,8 +126,6 @@ def test_main():
             print(" * %s" % err, file=sys.stderr)
         print('')
 
-    # summary is worthless if textMode is on as we cannot scrape .xml results
-    subtest_results = rostest.runner.getResults()
     printRostestSummary(result, subtest_results)
 
     if not result.wasSuccessful():
