@@ -110,10 +110,6 @@ class Graph(object):
                 self.pulled_edges.add(Edge(remote_rule.gateway, connection_id))
                 self.pulled_edges.add(Edge(connection_id, remote_gateway.name))
                 self.gateway_edges.add(Edge(remote_gateway.name, remote_rule.gateway))
-        print "****************** Flipped Nodes ******************"
-        print self.flipped_nodes
-        print "****************** Gateway Edges ******************"
-        print self.gateway_edges
 
     def _resolve_gateway_namespace(self):
         '''
