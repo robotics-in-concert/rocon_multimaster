@@ -4,5 +4,6 @@
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
     <rosparam param="hub_uri">http://localhost:6380</rosparam>
     <rosparam param="name">remote_gateway</rosparam>
+    <rosparam param="firewall">false</rosparam>
   </node>
 </launch>

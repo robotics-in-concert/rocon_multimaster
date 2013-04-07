@@ -1,0 +1,79 @@
+##############################################################################
+# Core parameters - defaults are commented with a #
+##############################################################################
+
+## Uri for the hub - set this if you want to manually
+## find the gateway hub instead of via zeroconf.
+## Typical setting for a redis server on ubuntu would
+## be: http://localhost:6379. We usually start our own
+## redis server, which can usually be found on 6380.
+# hub_uri: 
+
+## Hub whitelist/blacklists - use these to control 
+## which hubs you wish to work with.
+## Hubs are referred to either by ip or hub name. 
+# hub_whitelist: []
+# hub_blacklist: []
+
+## Gateway name - this is a human readable convenience only
+# name: 'gateway'
+
+## Watch loop period - how long the watcher should sleep
+## inbetween checking if system state needs synchronisation
+# watch_loop_period: 10
+
+# Used to block/permit remote gateway's from flipping to this gateway.
+firewall: true
+
+# Make everything (except the default_blacklist) publicly available for pulling
+# advertise_all: false
+
+##############################################################################
+# External parameters
+##############################################################################
+
+# The default blacklist to use for flip_all/pull_all rules
+#   we include default_blacklist.yaml separately for an example 
+
+##############################################################################
+# Example static parameters - defaults for these are always empty
+##############################################################################
+# Note that the pull_all, flip_all default rules negate any 
+# other default rules for the targeted gateways.
+#
+# default_advertisements: 
+#    - name: /chatter
+#      node: None
+#      type: publisher
+#    - name: /chat.*
+#      node: None
+#      type: subscriber
+#
+default_flips:
+#    - gateway: pirate_.*            # regex can also be used 
+#    - gateway: pirate_gateway       # flip to a specific rule to a gateway
+    - gateway: remote_gateway       # flip_all to this gateway, blacklist is only the default_blacklist 
+      rule:  
+        name: /chatter
+        node: None
+        type: publisher
+#    - gateway: pirate_.*            # regex can be used for the rule too
+#      rule:  
+#        name: /chat.*
+#        node: None
+#        type: subscriber
+#
+# default_pulls:
+#    - gateway: pirate_gateway 
+#    - gateway: pirate_.* 
+#    - gateway: pirate_gateway
+#      rule:  
+#        name: /chatter
+#        node: None
+#        type: publisher
+#    - gateway: pirate_.*
+#      rule:  
+#        name: /chat.*
+#        node: None
+#        type: subscriber
+        
