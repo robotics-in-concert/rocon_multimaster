@@ -60,7 +60,7 @@ class SubscriberProxy():
           @type rospy.Duration()
           @return msg type data or None
         '''
-        rospy.Subscriber(topic, msg_type, self._callback)
+        self._subscriber = rospy.Subscriber(topic, msg_type, self._callback)
         self._data = None
 
     def __call__(self, timeout=None):
@@ -73,11 +73,13 @@ class SubscriberProxy():
           @return latest data or None
         '''
         r = rospy.Rate(10)
-        start_time = rospy.get_time()
+        start_time = rospy.Time.now()
         while not rospy.is_shutdown() and self._data == None:
             r.sleep()
             if timeout:
-                if rospy.get_time() - start_time > timeout:
+                print type(timeout)
+                print type(start_time)
+                if rospy.Time.now() - start_time > timeout:
                     return None
         return self._data
 
@@ -87,6 +89,21 @@ class SubscriberProxy():
         '''
         self._data = None
         return self.__call__(timeout)
+
+    def wait_for_publishers(self):
+        '''
+          Blocks until publishers are seen.
+
+          @raise rospy.exceptions.ROSInterruptException if we are in shutdown.
+        '''
+        r = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            if self._subscriber.get_num_connections() != 0:
+                return
+            else:
+                r.sleep()
+        # we are shutting down
+        raise rospy.exceptions.ROSInterruptException
 
     def _callback(self, data):
         self._data = data
