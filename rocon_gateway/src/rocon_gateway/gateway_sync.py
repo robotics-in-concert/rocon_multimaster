@@ -40,8 +40,9 @@ class GatewaySync(object):
     The gateway between ros system and redis server
     '''
 
-    def __init__(self, param):
+    def __init__(self, param, publish_gateway_info):
         self.param = param
+        self._publish_gateway_info = publish_gateway_info
         self.unresolved_name = self.param['name']  # This gets used to build unique names after rule to the hub
         self.unique_name = None  # single string value set after hub rule (note: it is not a redis rocon:: rooted key!)
         self._ip = None
@@ -83,9 +84,9 @@ class GatewaySync(object):
             self.unique_name = self.hub.register_gateway(self._ip)
             self.is_connected = True
         except Exception as e:
-            print "Exception"
             rospy.logerr("Gateway : error connecting to the hub %s" % str(e))
             return False
+        self._publish_gateway_info()
         return True
 
     def shutdown(self):
@@ -135,6 +136,7 @@ class GatewaySync(object):
         # Let the watcher get on with the update asap
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
+            self._publish_gateway_info()
         else:
             rospy.logerr("Gateway : %s." % response.error_message)
         response.watchlist = self.public_interface.getWatchlist()
@@ -169,6 +171,7 @@ class GatewaySync(object):
         # Let the watcher get on with the update asap
         if response.result == gateway_msgs.msg.Result.SUCCESS:
             self.watcher_thread.trigger_update = True
+            self._publish_gateway_info()
         else:
             rospy.logerr("Gateway : %s." % response.error_message)
         response.blacklist = self.public_interface.getBlacklist()
@@ -209,6 +212,7 @@ class GatewaySync(object):
                     rospy.loginfo("Gateway : removed flip rule [%s:(%s,%s)]" % (remote.gateway, remote.rule.name, remote.rule.type))
 
         if response.result == gateway_msgs.msg.Result.SUCCESS:
+            self._publish_gateway_info()
             self.watcher_thread.trigger_update = True
         else:
             if added_rules:  # completely abort any added rules
@@ -240,6 +244,7 @@ class GatewaySync(object):
                 self.flipped_interface.un_flip_all(request.gateway)
                 rospy.loginfo("Gateway : cancelling a previous flip all request [%s]" % (request.gateway))
         if response.result == gateway_msgs.msg.Result.SUCCESS:
+            self._publish_gateway_info()
             self.watcher_thread.trigger_update = True
         else:
             rospy.logerr("Gateway : %s." % response.error_message)
@@ -281,6 +286,7 @@ class GatewaySync(object):
                     if removed_pull_rules:
                         rospy.loginfo("Gateway : removed pull rule [%s:%s]" % (remote.gateway, remote.rule.name))
         if response.result == gateway_msgs.msg.Result.SUCCESS:
+            self._publish_gateway_info()
             self.watcher_thread.trigger_update = True
         else:
             if added_rules:  # completely abort any added rules
@@ -312,6 +318,7 @@ class GatewaySync(object):
                 self.pulled_interface.unpull_all(request.gateway)
                 rospy.loginfo("Gateway : cancelling a previous pull all request [%s]" % (request.gateway))
         if response.result == gateway_msgs.msg.Result.SUCCESS:
+            self._publish_gateway_info()
             self.watcher_thread.trigger_update = True
         else:
             rospy.logerr("Gateway : %s." % response.error_message)
@@ -377,9 +384,11 @@ class GatewaySync(object):
           @param gateways : list of remote gateway string id's
           @type string
         '''
+        state_changed = False
         new_flips, lost_flips = self.flipped_interface.update(connections, gateways, self.unique_name)
         for connection_type in connections:
             for flip in new_flips[connection_type]:
+                state_changed = True
                 # for actions, need to post flip details here
                 connections = self.master.generate_connection_details(flip.rule.type, flip.rule.name, flip.rule.node)
                 if connection_type == utils.ConnectionType.ACTION_CLIENT or connection_type == utils.ConnectionType.ACTION_SERVER:
@@ -393,9 +402,13 @@ class GatewaySync(object):
                         self.hub.send_flip_request(flip.gateway, connection)
                         self.hub.post_flip_details(flip.gateway, connection.rule.name, connection.rule.type, connection.rule.node)
             for flip in lost_flips[connection_type]:
+                state_changed = True
                 rospy.loginfo("Unflipping to %s : %s" % (flip.gateway, utils.formatRule(flip.rule)))
                 self.hub.send_unflip_request(flip.gateway, flip.rule)
                 self.hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+        if state_changed:
+            self._publish_gateway_info()
+
 
     def update_pulled_interface(self, connections, gateways):
         '''
@@ -409,6 +422,7 @@ class GatewaySync(object):
           @param gateways : list of remote gateway string id's
           @type string
         '''
+        state_changed = False
         for gateway in gateways + self.pulled_interface.list_remote_gateway_names():
             connections = self.hub.get_remote_connection_state(gateway)
             new_pulls, lost_pulls = self.pulled_interface.update(connections, gateway, self.unique_name)
@@ -417,7 +431,7 @@ class GatewaySync(object):
                     for connection in connections[pull.rule.type]:
                         if connection.rule.name == pull.rule.name and \
                            connection.rule.node == pull.rule.node:
-                            corresponding_connection = connection
+                            #corresponding_connection = connection
                             break
                     # Register this pull
                     existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
@@ -426,6 +440,7 @@ class GatewaySync(object):
                         new_registration = self.master.register(registration)
                         self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
                         self.hub.post_pull_details(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
+                        state_changed = True
                 for pull in lost_pulls[connection_type]:
                     # Unregister this pull
                     existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
@@ -433,6 +448,9 @@ class GatewaySync(object):
                         self.master.unregister(existing_registration)
                         self.hub.remove_pull_details(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
                         self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
+                        state_changed = True
+        if state_changed:
+            self._publish_gateway_info()
 
     def update_public_interface(self, connections=None):
         '''
@@ -485,6 +503,7 @@ class GatewaySync(object):
                 new_registration = self.master.register(registration)
                 if new_registration:
                     self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
+                    self._publish_gateway_info()
 
     def process_remote_gateway_unflip_request(self, rule, remote_gateway):
         rospy.loginfo("Gateway : received an unflip request from gateway %s: %s" % (remote_gateway, utils.formatRule(rule)))
@@ -492,3 +511,4 @@ class GatewaySync(object):
         if existing_registration:
             self.master.unregister(existing_registration)
             self.flipped_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
+            self._publish_gateway_info()

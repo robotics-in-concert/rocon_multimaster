@@ -1,23 +1,23 @@
 <package>
-  <name>rocon_utilities</name>
+  <name>rocon_test</name>
   <version>0.3.0</version>
   <description>
-    Utility python code for rocon packages.
+    Rocon test framework (i.e. multi-launch rostest framework).
   </description>
   <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
   <license>BSD</license>
-  <url type="website">http://ros.org/wiki/rocon_utilities</url>
+  <url type="website">http://ros.org/wiki/rocon_test</url>
   <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
   <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
   <author email="d.stonier@gmail.com">Daniel Stonier</author> -->
 
   <buildtool_depend>catkin</buildtool_depend>
+
   <run_depend>rospy</run_depend>
-  
-  <!-- For Tests, could move tests out, but this is not a big overhead -->
-  <build_depend>rostest</build_depend>
+  <run_depend>rostest</run_depend>
   <run_depend>rosunit</run_depend>
-  <run_depend>std_msgs</run_depend>
+  <run_depend>rocon_utilities</run_depend>
+  <run_depend>roslaunch</run_depend>
 
   <export>
     <rosdoc config="rosdoc.yaml"/>

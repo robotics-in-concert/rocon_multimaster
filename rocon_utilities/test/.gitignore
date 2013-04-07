@@ -1,0 +1,3 @@
+nosetests.xml
+.coverage
+*.pyc
