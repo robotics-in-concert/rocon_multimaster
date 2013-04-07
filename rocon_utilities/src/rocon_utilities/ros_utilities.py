@@ -67,6 +67,10 @@ class SubscriberProxy():
         '''
           Returns immediately with the latest data or waits for
           incoming data.
+
+          @param timeout : time to wait for data, polling at 10Hz.
+          @type rospy.Duration
+          @return latest data or None
         '''
         r = rospy.Rate(10)
         start_time = rospy.get_time()
@@ -74,7 +78,7 @@ class SubscriberProxy():
             r.sleep()
             if timeout:
                 if rospy.get_time() - start_time > timeout:
-                    break
+                    return None
         return self._data
 
     def wait_for_next(self, timeout=None):
