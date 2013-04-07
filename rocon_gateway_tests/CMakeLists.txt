@@ -9,7 +9,13 @@ project(rocon_gateway_tests)
 # Catkin
 ##############################################################################
 
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED rocon_test)
 catkin_package()
 
 catkin_python_setup()
+
+##############################################################################
+# Tests
+##############################################################################
+
+add_rocon_test(test/multimaster/graph.test)
