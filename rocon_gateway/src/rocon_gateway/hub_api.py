@@ -13,7 +13,6 @@ import rospy
 import re
 import utils
 import gateway_msgs.msg
-import rosgraph
 from .exceptions import UnavailableGatewayError, HubConnectionLostError
 
 ###############################################################################
@@ -142,12 +141,12 @@ class Hub(object):
     pubsub = None
     callback = None
 
-    def __init__(self, remote_gateway_request_callbacks, gateway_name, firewall):
+    def __init__(self, remote_gateway_request_callbacks, unique_gateway_name, firewall):
         '''
           @param remote_gateway_request_callbacks : to handle redis responses
           @type list of function pointers (back to GatewaySync class
 
-          @param gateway_name : recommended name for this gateway
+          @param unique_gateway_name : unique_gateway_name
           @type string
 
           @param firewall : whether this gateway blocks flips or not (we publish this info)
@@ -155,14 +154,12 @@ class Hub(object):
         '''
         self.name = ''  # the hub name
         self.uri = ''
-        self._gateway_name = gateway_name  # used to generate the unique name key later
-        self._unique_gateway_name = ''  # set when gateway is registered
+        self._unique_gateway_name = unique_gateway_name
         self._firewall = 1 if firewall else 0
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
         self._redis_keys = {}
-        #self._redis_keys['gateway'] = '' # it's a unique id set when gateway is registered
-        #self._redis_keys['firewall'] = '' # it's also generated later when gateway is registered
-        self._redis_keys['index'] = create_hub_key('index')  # used for uniquely id'ing the gateway (client)
+        self._redis_keys['gateway'] = create_key(self._unique_gateway_name)
+        self._redis_keys['firewall'] = create_gateway_key(self._unique_gateway_name, 'firewall')
         self._redis_keys['gatewaylist'] = create_hub_key('gatewaylist')
         self._redis_channels = {}
         self._redis_pubsub_server = None
@@ -197,16 +194,10 @@ class Hub(object):
           @todo - maybe merge with 'connect', or at the least check if it
           is actually connected here first.
         '''
-        if self.server.sadd(self._redis_keys['gatewaylist'], create_key(self._gateway_name)):
-            self._unique_gateway_name = self._gateway_name
-            self._redis_keys['gateway'] = create_key(self._unique_gateway_name)
-        else:
-            unique_num = self.server.incr(self._redis_keys['index'])
-            self._unique_gateway_name = self._gateway_name + str(unique_num)
-            self._redis_keys['gateway'] = create_key(self._unique_gateway_name)
-            unused_ret = self.server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
+        if not self.server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):
+            # should never get here - unique should be unique
+            pass
         unused_ret = self.server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
-        self._redis_keys['firewall'] = create_gateway_key(self._unique_gateway_name, 'firewall')
         self.server.set(self._redis_keys['firewall'], self._firewall)
         self._redis_keys['ip'] = create_gateway_key(self._unique_gateway_name, 'ip')
         self.server.set(self._redis_keys['ip'], ip)
@@ -375,9 +366,9 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = create_gateway_key(self._unique_gateway_name,'advertisements')
+        key = create_gateway_key(self._unique_gateway_name, 'advertisements')
         msg_str = utils.serialize_connection(connection)
-        self.server.srem(key,msg_str)
+        self.server.srem(key, msg_str)
 
     def post_flip_details(self, gateway, name, type, node):
         '''
@@ -485,8 +476,8 @@ class Hub(object):
         source = key_base_name(self._redis_keys['gateway'])
         cmd = utils.serialize_connection_request('flip', source, connection)
         try:
-            self.server.publish(create_key(gateway),cmd)
-        except Exception as e:
+            self.server.publish(create_key(gateway), cmd)
+        except Exception as unused_e:
             return False
         return True
 
@@ -527,6 +518,6 @@ class Hub(object):
         cmd = utils.serialize_rule_request('unflip', source, rule)
         try:
             self.server.publish(create_key(gateway), cmd)
-        except Exception as e:
+        except Exception as unused_e:
             return False
         return True

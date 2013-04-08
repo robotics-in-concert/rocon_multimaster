@@ -116,10 +116,7 @@ class Gateway():
 
     def _publish_gateway_info(self):
         gateway_info = gateway_msgs.GatewayInfo()
-        if self.gateway_sync.unique_name != None:
-            gateway_info.name = self.gateway_sync.unique_name
-        else:
-            gateway_info.name = self.gateway_sync.unresolved_name
+        gateway_info.name = self.gateway_sync.unique_name
         if self.gateway_sync._ip != None:
             gateway_info.ip = self.gateway_sync._ip
         else:

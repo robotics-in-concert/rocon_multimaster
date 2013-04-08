@@ -9,10 +9,10 @@
 ##############################################################################
 
 import httplib
+import uuid
 
+# Ros
 import rospy
-
-# Ros msgs
 import gateway_msgs.msg
 import gateway_msgs.srv
 from gateway_msgs.msg import Rule
@@ -43,24 +43,24 @@ class GatewaySync(object):
     def __init__(self, param, publish_gateway_info):
         self.param = param
         self._publish_gateway_info = publish_gateway_info
-        self.unresolved_name = self.param['name']  # This gets used to build unique names after rule to the hub
-        self.unique_name = None  # single string value set after hub rule (note: it is not a redis rocon:: rooted key!)
+        key = uuid.uuid4()  # random 16 byte string, alternatively uuid.getnode() returns a hash based on the mac address, uuid.uid1() based on localhost and time
+        self.unique_name = self.param['name'] + key.hex  # append a unique hex string
         self._ip = None
         self.is_connected = False
         default_rule_blacklist = ros_parameters.generate_rules(self.param["default_blacklist"])
 
         default_rules, all_targets = ros_parameters.generate_remote_rules(self.param["default_flips"])
         self.flipped_interface = FlippedInterface(
-                                                  firewall = self.param['firewall'],
-                                                  default_rule_blacklist = default_rule_blacklist,
-                                                  default_rules = default_rules,
-                                                  all_targets = all_targets)
+                                                  firewall=self.param['firewall'],
+                                                  default_rule_blacklist=default_rule_blacklist,
+                                                  default_rules=default_rules,
+                                                  all_targets=all_targets)
         default_rules, all_targets = ros_parameters.generate_remote_rules(self.param["default_pulls"])
-        self.pulled_interface = PulledInterface(default_rule_blacklist = default_rule_blacklist,
-                                                default_rules = default_rules,
-                                                all_targets = all_targets)
+        self.pulled_interface = PulledInterface(default_rule_blacklist=default_rule_blacklist,
+                                                default_rules=default_rules,
+                                                all_targets=all_targets)
         self.public_interface = PublicInterface(default_rule_blacklist=default_rule_blacklist,
-                                                default_rules = ros_parameters.generate_rules(self.param['default_advertisements'])
+                                                default_rules=ros_parameters.generate_rules(self.param['default_advertisements'])
                                                 )
         if self.param['advertise_all']:
             self.public_interface.advertiseAll([])  # no extra blacklist beyond the default (keeping it simple in yaml for now)
@@ -68,7 +68,7 @@ class GatewaySync(object):
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.process_remote_gateway_flip_request
         self.remote_gateway_request_callbacks['unflip'] = self.process_remote_gateway_unflip_request
-        self.hub = Hub(self.remote_gateway_request_callbacks, self.unresolved_name, firewall=self.param['firewall'])
+        self.hub = Hub(self.remote_gateway_request_callbacks, self.unique_name, firewall=self.param['firewall'])
 
         # create a thread to watch local rule states
         self.watcher_thread = WatcherThread(self, self.param['watch_loop_period'])
@@ -253,7 +253,7 @@ class GatewaySync(object):
     def ros_service_pull(self, request):
         '''
           Puts a single rule on a watchlist and pulls it from a particular
-          gateway when it becomes (un)available. 
+          gateway when it becomes (un)available.
 
           @param request
           @type gateway_msgs.srv.RemoteRequest
@@ -408,7 +408,6 @@ class GatewaySync(object):
                 self.hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
         if state_changed:
             self._publish_gateway_info()
-
 
     def update_pulled_interface(self, connections, gateways):
         '''
