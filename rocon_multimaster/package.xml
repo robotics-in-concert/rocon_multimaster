@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>rocon_multimaster</name>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <description>
     This doesn't do everything you need for multimaster, however it does
     provide the building blocks common to most or all multimaster systems.
