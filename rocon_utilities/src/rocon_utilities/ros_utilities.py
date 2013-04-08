@@ -77,8 +77,6 @@ class SubscriberProxy():
         while not rospy.is_shutdown() and self._data == None:
             r.sleep()
             if timeout:
-                print type(timeout)
-                print type(start_time)
                 if rospy.Time.now() - start_time > timeout:
                     return None
         return self._data
