@@ -18,7 +18,7 @@ catkin_python_setup()
 # Tests
 ##############################################################################
 
-add_rostest(test/subscriber_proxy.launch)
+add_rostest(test/test_utilities.launch)
 
 #catkin_add_nosetests(test)
 

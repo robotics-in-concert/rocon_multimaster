@@ -13,7 +13,7 @@ class TestSubscriberProxy(unittest.TestCase):
         rospy.init_node('listener', anonymous=True)
         pass
 
-    def test_receive_data(self):
+    def test_subscriber_proxy(self):
         talker_data = rocon_utilities.SubscriberProxy('chatter', String)()
         self.assertEquals("dude", talker_data.data)
 
