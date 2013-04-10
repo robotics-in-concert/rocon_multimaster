@@ -3,7 +3,9 @@
   it via zeroconf (avahi/bonjour/jmdns).
 -->
 <launch>
+  <arg name="hub_name" default="Rocon Hub" />
   <node pkg="rocon_hub" type="hub.py" name="gateway_hub">
     <rosparam command="load" file="$(find rocon_hub)/param/default.yaml" />
+    <param name="name" value="$(arg hub_name)" />
   </node>
 </launch>
