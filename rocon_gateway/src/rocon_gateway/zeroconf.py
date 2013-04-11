@@ -21,35 +21,37 @@ gateway_hub_service = "_ros-multimaster-hub._tcp"
 # Functions
 ###############################################################################
 
+
 def resolve_address(msg):
     '''
       Resolves a zeroconf address into ip/port portions.
-      @var msg : zeroconf_msgs.DiscoveredService 
+      @var msg : zeroconf_msgs.DiscoveredService
       @return (string,int) : ip, port pair.
     '''
     ip = "localhost"
     if not msg.is_local:
         ip = msg.ipv4_addresses[0]
-    return (ip,msg.port)
-    
+    return (ip, msg.port)
+
+
 def setup_ros_services():
     '''
       Looks to see if it can find the zeroconf services that
-      will help it auto-discover a hub. If it finds them, 
+      will help it auto-discover a hub. If it finds them,
       it hooks up the required ros services with the zeroconf node.
-      
+
       @return success of the hookup
       @rtype bool
     '''
     zeroconf_services = {}
-    zeroconf_timeout = 5 # Amount of time to wait for the zeroconf services to appear
+    zeroconf_timeout = 5  # Amount of time to wait for the zeroconf services to appear
     rospy.loginfo("Gateway : looking to see if zeroconf services are available...")
     try:
         rospy.wait_for_service("zeroconf/add_listener", timeout=zeroconf_timeout)
-        zeroconf_services["add_listener"] = rospy.ServiceProxy("zeroconf/add_listener",zeroconf_msgs.srv.AddListener)
-        zeroconf_services["list_discovered_services"] = rospy.ServiceProxy("zeroconf/list_discovered_services",zeroconf_msgs.srv.ListDiscoveredServices)
-        if not zeroconf_services["add_listener"](service_type = gateway_hub_service):
-            zeroconf.services = {} # failure
+        zeroconf_services["add_listener"] = rospy.ServiceProxy("zeroconf/add_listener", zeroconf_msgs.srv.AddListener)
+        zeroconf_services["list_discovered_services"] = rospy.ServiceProxy("zeroconf/list_discovered_services", zeroconf_msgs.srv.ListDiscoveredServices)
+        if not zeroconf_services["add_listener"](service_type=gateway_hub_service):
+            zeroconf_services = {}  # failure
     except rospy.ROSException:
         rospy.logwarn("Gateway : timed out waiting for zeroconf services to become available.")
     return zeroconf_services
