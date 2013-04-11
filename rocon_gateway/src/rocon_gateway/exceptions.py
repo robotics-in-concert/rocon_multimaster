@@ -18,7 +18,7 @@ class GatewayError(Exception):
 
 # Raised when information for a specific gateway id is requested, but that
 # gateway is not connected to the hub
-class UnavailableGatewayError(Exception):
+class GatewayUnavailableError(Exception):
     pass
 
 
@@ -29,4 +29,14 @@ class ConnectionTypeError(GatewayError):
 
 
 class HubConnectionLostError(GatewayError):
+    pass
+
+
+# Raised when the gateway can't connect to the hub's redis server
+class HubUnavailableError(GatewayError):
+    pass
+
+
+# Raised when the hub's redis server has no key setting for the hub name.
+class HubNameNotFoundError(GatewayError):
     pass

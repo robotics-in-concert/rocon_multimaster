@@ -25,7 +25,7 @@ import ros_parameters
 from .hub_api import Hub
 from .master_api import LocalMaster
 from .watcher_thread import WatcherThread
-from .exceptions import UnavailableGatewayError
+from .exceptions import GatewayUnavailableError
 from .flipped_interface import FlippedInterface
 from .public_interface import PublicInterface
 from .pulled_interface import PulledInterface
@@ -346,7 +346,7 @@ class GatewaySync(object):
                 firewall_flag = self.hub.get_remote_gateway_firewall_flag(gateway)
                 if firewall_flag:
                     return gateway_msgs.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING, "remote gateway is firewalling flip requests, aborting [%s]" % gateway
-            except UnavailableGatewayError:
+            except GatewayUnavailableError:
                 pass  # handled earlier in rosServiceRemoteChecks
         return result, error_message
 

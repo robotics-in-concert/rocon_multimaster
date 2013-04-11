@@ -13,7 +13,8 @@ import rospy
 import re
 import utils
 import gateway_msgs.msg
-from .exceptions import UnavailableGatewayError, HubConnectionLostError
+from .exceptions import GatewayUnavailableError, HubConnectionLostError, \
+              HubNameNotFoundError, HubUnavailableError
 
 ###############################################################################
 # Utility Functions
@@ -75,13 +76,23 @@ def resolve_hub(ip, port):
       against the gateway whitelist/blacklists to determine if a rule
       should proceed or not.
 
-      Be careful, if this returns None, it means the redis server is
-      found but hub_name not yet set or not set at all.
 
-      @return string - hub name
+      @return string - hub name, None on failure (connection or setting)
+
+      @raise HubUnavailableError when failing connection to a redis server on ip:port
+      @raise HubNameNotFoundError if connected, but no hub name key present on redis server
     '''
-    r = redis.Redis(host=ip, port=port)
-    return r.get("rocon:hub:name")  # perhaps should store all key names somewhere central
+    try:
+        r = redis.Redis(host=ip, port=port)
+        hub_name = r.get("rocon:hub:name")  # perhaps should store all key names somewhere central
+        # Be careful, hub_name is None, it means the redis server is
+        # found but hub_name not yet set or not set at all.
+        if not hub_name:
+            raise HubNameNotFoundError()
+    except redis.exceptions.ConnectionError:
+        raise HubUnavailableError()
+    return hub_name
+
 
 ###############################################################################
 # Redis Callback Handler
@@ -329,13 +340,13 @@ class Hub(object):
           @return state of the flag
           @rtype Bool
 
-          @raise UnavailableGatewayError when specified gateway is not on the hub
+          @raise GatewayUnavailableError when specified gateway is not on the hub
         '''
         firewall = self.server.get(create_gateway_key(gateway, 'firewall'))
         if firewall is not None:
             return True if int(firewall) else False
         else:
-            raise UnavailableGatewayError
+            raise GatewayUnavailableError
 
     ##########################################################################
     # Posting Information to the Hub
