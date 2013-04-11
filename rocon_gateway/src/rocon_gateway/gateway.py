@@ -15,6 +15,9 @@ import gateway_msgs.srv as gateway_srvs
 from urlparse import urlparse
 import zeroconf_msgs.srv
 
+# Local imports
+import zeroconf
+
 ##############################################################################
 # Gateway Configuration and Main Loop Class
 ##############################################################################
@@ -37,10 +40,20 @@ class Gateway():
         self.gateway_sync = rocon_gateway.GatewaySync(self.param, self._publish_gateway_info)  # maybe pass in the whole params dictionary?
         self._gateway_services = self._setup_ros_services()
         self._gateway_publishers = self._setup_ros_publishers()
-
+        self._hub_discovery_thread = None
         self._zeroconf_services = {}
         if not self._attempt_direct_connection():
+            self._hub_discovery_thread = zeroconf.HubDiscovery(self.hub_discovery_update)
             self._zeroconf_services = rocon_gateway.zeroconf.setup_ros_services()
+
+    ##########################################################################
+    # Zeroconf
+    ##########################################################################
+
+    def hub_discovery_update(self, new_services):
+        for service in new_services:
+            (ip, port) = zeroconf.resolve_address(service)
+            rospy.loginfo("Gateway : discovered hub zeroconf service at " + str(ip) + ":" + str(port))
 
     ##########################################################################
     # Main Loop
@@ -64,6 +77,7 @@ class Gateway():
         '''
         try:
             self.gateway_sync.shutdown()
+            self._hub_discovery_thread.shutdown()
         except Exception as e:
             rospy.logerr("Gateway : error on shutdown [%s]" % str(e))
         rospy.logdebug("Gateway : redis server cleared of gateway information")

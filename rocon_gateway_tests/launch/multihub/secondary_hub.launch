@@ -1,0 +1,9 @@
+<!--
+  Used with multi-hub concert launcher.
+-->
+<launch>
+  <include file="$(find rocon_hub)/launch/hub.launch">
+    <arg name="hub_name" value="Secondary Hub" />
+    <arg name="hub_port" value="6381" />
+  </include>
+</launch>

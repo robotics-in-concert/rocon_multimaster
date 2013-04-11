@@ -4,8 +4,10 @@
 -->
 <launch>
   <arg name="hub_name" default="Rocon Hub" />
+  <arg name="hub_port" default="6380" />
   <node pkg="rocon_hub" type="hub.py" name="gateway_hub">
     <rosparam command="load" file="$(find rocon_hub)/param/default.yaml" />
     <param name="name" value="$(arg hub_name)" />
+    <param name="port" value="$(arg hub_port)" />
   </node>
 </launch>
