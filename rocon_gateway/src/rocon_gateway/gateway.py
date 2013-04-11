@@ -13,10 +13,10 @@ import redis
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
 from urlparse import urlparse
-import zeroconf_msgs.srv
 
 # Local imports
 import zeroconf
+import hub_sync
 
 ##############################################################################
 # Gateway Configuration and Main Loop Class
@@ -42,44 +42,30 @@ class Gateway():
         self._gateway_publishers = self._setup_ros_publishers()
         self._zeroconf_services = {}
         self._hub_discovery_thread = zeroconf.HubDiscovery(self.hub_discovery_update)
-        if not self._attempt_direct_connection():
-            self._zeroconf_services = rocon_gateway.zeroconf.setup_ros_services()
+        self._hub_sync = hub_sync.HubSync()
 
     ##########################################################################
     # Zeroconf
     ##########################################################################
 
-    def hub_discovery_update(self, new_services):
-        for service in new_services:
-            (ip, port) = zeroconf.resolve_address(service)
-            rospy.loginfo("Gateway : discovered hub zeroconf service at " + str(ip) + ":" + str(port))
+    def hub_discovery_update(self, ip, port):
+        rospy.loginfo("hub discovery update")
 
     ##########################################################################
     # Main Loop
     ##########################################################################
 
-    def spin(self):
-        previously_found_hubs = []
-        while not rospy.is_shutdown() and not self.gateway_sync.is_connected:
-            rospy.sleep(1.0)
-            if self._zeroconf_services:
-                self._scan_for_zeroconf_hubs(previously_found_hubs)
-            else:
-                # do nothing, just wait for a service call
-                rospy.logdebug("Gateway : waiting for hub uri input.")
-        rospy.spin()
-        self._shutdown()
-
     def _shutdown(self):
         '''
           Clears this gateway's information from the redis server.
         '''
+        rospy.loginfo("Gateway : shutting down.")
         try:
-            self.gateway_sync.shutdown()
+            #self.gateway_sync.shutdown()
+            self._hub_sync.shutdown()
             self._hub_discovery_thread.shutdown()
         except Exception as e:
             rospy.logerr("Gateway : error on shutdown [%s]" % str(e))
-        rospy.logdebug("Gateway : redis server cleared of gateway information")
 
     #############################################
     # Ros Pubs, Subs and Services
@@ -99,7 +85,7 @@ class Gateway():
 
     def _setup_ros_publishers(self):
         gateway_publishers = {}
-        gateway_publishers['gateway_info']  = rospy.Publisher('~gateway_info', gateway_msgs.GatewayInfo, latch=True)
+        gateway_publishers['gateway_info'] = rospy.Publisher('~gateway_info', gateway_msgs.GatewayInfo, latch=True)
         return gateway_publishers
 
     #############################################
@@ -182,33 +168,8 @@ class Gateway():
             rospy.logwarn("Gateway : couldn't connect to the hub (probably not up yet) [%s]" % self.param['hub_uri'])
         return False
 
-    def _scan_for_zeroconf_hubs(self, previously_found_hubs):
-        '''
-          Does a quick scan on zeroconf for gateway hubs. If new ones are
-          found, and it is not on the blacklist, it attempts a connection.
-
-          This gets run in the pre-spin part of the spin loop.
-
-          @param previously_found_hubs: zeroconf names of previously scanned hubs
-          @type  previously_found_hubs: list of str
-        '''
-        # Get discovered redis server list from zeroconf
-        req = zeroconf_msgs.srv.ListDiscoveredServicesRequest()
-        req.service_type = rocon_gateway.zeroconf.gateway_hub_service
-        resp = self._zeroconf_services["list_discovered_services"](req)
-        rospy.logdebug("Gateway : checking for autodiscovered gateway hubs")
-        new_services = lambda l1,l2: [x for x in l1 if x not in l2]
-        for service in new_services(resp.services,previously_found_hubs):
-            previously_found_hubs.append(service)
-            (ip, port) = rocon_gateway.zeroconf.resolve_address(service)
-            rospy.loginfo("Gateway : discovered hub zeroconf service at " + str(ip) + ":"+str(service.port))
-            connect_result = self._connect(ip,port)
-            if connect_result == gateway_msgs.Result.SUCCESS:
-                rospy.loginfo("Gateway : connected to hub [%s][%s]." % (self.gateway_sync.unique_name, self.gateway_sync.hub.name))
-                break
-
     def _connect(self, ip, port):
-        if self.gateway_sync.is_connected: 
+        if self.gateway_sync.is_connected:
             rospy.logwarn("Gateway : gateway is already connected, aborting connection attempt.")
             return gateway_msgs.Result.HUB_CONNECTION_ALREADY_EXISTS
         try:
@@ -235,3 +196,16 @@ class Gateway():
         else:
             rospy.loginfo("Gateway : hub/ip not in non-empty whitelist [%s]",hub_name)
             return gateway_msgs.Result.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST
+
+
+#    def spin(self):
+#        previously_found_hubs = []
+#        while not rospy.is_shutdown() and not self.gateway_sync.is_connected:
+#            rospy.sleep(1.0)
+#            if self._zeroconf_services:
+#                self._scan_for_zeroconf_hubs(previously_found_hubs)
+#            else:
+#                # do nothing, just wait for a service call
+#                rospy.logdebug("Gateway : waiting for hub uri input.")
+#        rospy.spin()
+#        self._shutdown()

@@ -19,5 +19,5 @@ if __name__ == '__main__':
     
     rospy.init_node('gateway')
     gateway = Gateway()
-    gateway.spin()
-    rospy.loginfo("Gateway : shutting down.")
+    rospy.spin()
+    gateway.shutdown()
