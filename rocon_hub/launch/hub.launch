@@ -1,6 +1,6 @@
 <!-- 
-  Launches the gateway hub (redis data store) without publishing
-  it via zeroconf (avahi/bonjour/jmdns).
+  Launches the gateway hub (redis data store) and publishes it via
+  zeroconf internally (via avahi-daemon through the hub.py script).
 -->
 <launch>
   <arg name="hub_name" default="Rocon Hub" />
