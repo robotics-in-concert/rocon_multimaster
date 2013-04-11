@@ -40,7 +40,6 @@ class Gateway():
         self.gateway_sync = rocon_gateway.GatewaySync(self.param, self._publish_gateway_info)  # maybe pass in the whole params dictionary?
         self._gateway_services = self._setup_ros_services()
         self._gateway_publishers = self._setup_ros_publishers()
-        self._zeroconf_services = {}
         self._hub_discovery_thread = zeroconf.HubDiscovery(self.hub_discovery_update)
         self._hub_sync = hub_sync.HubSync()
 

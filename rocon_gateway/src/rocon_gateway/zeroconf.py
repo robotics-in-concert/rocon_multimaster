@@ -73,8 +73,10 @@ class HubDiscovery(threading.Thread):
         self._discovered_hubs.extend(new_services)
         return new_services
 
+
+
 ###############################################################################
-# Internal Methods
+# Functions
 ###############################################################################
 
 def _resolve_address(msg):
@@ -101,6 +103,7 @@ def _zeroconf_services_available():
 def _add_listener():
     '''
       Looks for the zeroconf services and attempts to add a rocon hub listener.
+      Make sure this is called only after _zeroconf_services_available returns true.
     '''
     try:
         add_listener = rospy.ServiceProxy("zeroconf/add_listener", zeroconf_srvs.AddListener)
