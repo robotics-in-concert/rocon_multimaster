@@ -1,0 +1,9 @@
+<launch>
+  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen"/>
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
+    <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <!-- <rosparam param="hub_uri">http://localhost:6380</rosparam> -->
+    <rosparam param="name">Gateway</rosparam>
+  </node>
+</launch>
