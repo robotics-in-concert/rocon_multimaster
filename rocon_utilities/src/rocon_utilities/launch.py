@@ -13,6 +13,7 @@ import argparse
 import subprocess
 import signal
 import sys
+import re
 from time import sleep
 import roslaunch
 
@@ -132,30 +133,46 @@ def parse_arguments():
     return args
 
 
+def choose_terminal(gnome_flag, konsole_flag):
+    '''
+      Use ubuntu's x-terminal-emulator to choose the shell, or over-ride if it there is a flag.
+    '''
+    if konsole_flag:
+        if not which('konsole'):
+            console.error("Cannot find 'konsole' [hint: try --gnome for gnome-terminal instead]")
+            sys.exit(1)
+        return 'konsole'
+    elif gnome_flag:
+        if not which('gnome'):
+            console.error("Cannot find 'gnome' [hint: try --konsole for konsole instead]")
+            sys.exit(1)
+        return 'gnome'
+    else:
+        if not which('x-terminal-emulator'):
+            console.error("Cannot find 'x-terminal-emulator' [hint: try --gnome or --konsole instead]")
+            sys.exit(1)
+        p = subprocess.Popen([which('update-alternatives'), '--query', 'x-terminal-emulator'], stdout=subprocess.PIPE)
+        terminal = None
+        for line in p.stdout:
+            if line.startswith("Value:"):
+                terminal = os.path.basename(line.split()[1])
+                break
+        if terminal not in ["gnome", "konsole"]:
+            console.error("Unsupported terminal set for 'x-terminal-emulator' [%s][hint: try --gnome or --konsole instead]" % terminal)
+            sys.exit(1)
+        else:
+            return terminal
+
+
 def main():
     global processes
     global roslaunch_pids
     signal.signal(signal.SIGINT, signal_handler)
     args = parse_arguments()
-    if not which('konsole') and not which('gnome-terminal'):
-        console.error("Cannot find a suitable terminal [konsole, gnome-termional]")
+    if not which('konsole') and not which('gnome-terminal')and not which('x-terminal-emulator'):
+        console.error("Cannot find a suitable terminal [x-terminal-emulator, konsole, gnome-termional]")
         sys.exit(1)
-    terminal = None
-    if args.konsole:
-        if not which('konsole'):
-            console.error("Cannot find 'konsole' [hint: try --gnome for gnome-terminal instead]")
-            sys.exit(1)
-        terminal = 'konsole'
-    elif args.gnome:
-        if not which('gnome-terminal'):
-            console.error("Cannot find 'gnome-terminal' [hint: try --konsole instead]")
-            sys.exit(1)
-        terminal = 'gnome-terminal'
-    else:  # Use konsole for default
-        if not which('konsole'):
-            console.error("Cannot find 'konsole' [hint: try --gnome for gnome-terminal instead]")
-            sys.exit(1)
-        terminal = 'konsole'
+    terminal = choose_terminal(args.gnome, args.konsole)
 
     if args.package == '':
         rocon_launcher = roslaunch.rlutil.resolve_launch_arguments(args.launcher)[0]
