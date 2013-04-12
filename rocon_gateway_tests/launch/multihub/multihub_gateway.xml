@@ -10,4 +10,6 @@
     <rosparam param="hub_uri">http://localhost:6382</rosparam>
     <rosparam param="name">Gateway</rosparam>
   </node>
+  <node pkg="roscpp_tutorials" type="talker" name="talker"/>
+  <node pkg="roscpp_tutorials" type="listener" name="listener"/>
 </launch>

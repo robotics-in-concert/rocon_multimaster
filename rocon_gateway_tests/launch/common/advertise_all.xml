@@ -1,0 +1,6 @@
+<!--
+  Advertises all.
+-->
+<launch>
+  <node name="advertise_all" pkg="rocon_gateway_tests" type="advertise_all.py"/>
+</launch>

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_gateway/LICENSE
 #
 
 ##############################################################################
@@ -156,7 +156,7 @@ class PublicInterface(object):
             self.lock.release()
             return existing_rules
 
-    def advertiseAll(self, blacklist):
+    def advertise_all(self, blacklist):
         '''
           Allow all rules apart from the ones in the provided blacklist +
           default blacklist
@@ -167,7 +167,7 @@ class PublicInterface(object):
           @return failure if already advertising all, success otherwise
           @rtype bool
         '''
-        rospy.loginfo("Gateway : (req) advertise everything!")
+        rospy.loginfo("Gateway : received a request advertise everything!")
         self.lock.acquire()
 
         # Check if advertise all already enabled
@@ -182,6 +182,7 @@ class PublicInterface(object):
             allow_all_rule = Rule()
             allow_all_rule.name = '.*'
             allow_all_rule.type = connection_type
+            allow_all_rule.node = '.*'
             self.watchlist[connection_type].append(allow_all_rule)
 
         # generate blacklist (while making sure only unique rules get added)
@@ -193,12 +194,12 @@ class PublicInterface(object):
         self.lock.release()
         return True
 
-    def unadvertiseAll(self):
+    def unadvertise_all(self):
         '''
           Disallow the allow all mode, if enabled. If allow all mode is not
           enabled, remove everything from the public interface
         '''
-        rospy.loginfo("Gateway : (req) remove all advertisements!")
+        rospy.loginfo("Gateway : received a request to remove all advertisements!")
         self.lock.acquire()
 
         # stop advertising all
@@ -215,28 +216,28 @@ class PublicInterface(object):
     ##########################################################################
 
     def getInterface(self):
-        list = []
+        l = []
         self.lock.acquire()
         for connection_type in utils.connection_types:
-            list.extend([connection.rule for connection in self.public[connection_type]])
+            l.extend([connection.rule for connection in self.public[connection_type]])
         self.lock.release()
-        return list
+        return l
 
     def getWatchlist(self):
-        list = []
+        l = []
         self.lock.acquire()
         for connection_type in utils.connection_types:
-            list.extend(self.watchlist[connection_type])
+            l.extend(self.watchlist[connection_type])
         self.lock.release()
-        return list
+        return l
 
     def getBlacklist(self):
-        list = []
+        l = []
         self.lock.acquire()
         for connection_type in utils.connection_types:
-            list.extend(self.blacklist[connection_type])
+            l.extend(self.blacklist[connection_type])
         self.lock.release()
-        return list
+        return l
 
     ##########################################################################
     # Filter

@@ -32,8 +32,7 @@ def resolve_local_gateway():
     master = rocon_gateway.LocalMaster()
     gateway_namespace = master.findGatewayNamespace()
     if not gateway_namespace:
-        console.error("Could not find a local gateway - did you start it?")
-        raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
+        raise rocon_gateway.GatewayError("Could not find a local gateway - did you start it?")
     console.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
    

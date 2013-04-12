@@ -67,7 +67,7 @@ class GatewayNode():
         '''
           Hook that is triggered when the zeroconf module discovers a hub.
         '''
-        hub, unused_error_code = self._hub_manager.connect_to_hub(ip, port)
+        hub, unused_error_code, error_code_str = self._hub_manager.connect_to_hub(ip, port)
         if hub:
             hub.register_gateway(self._param['firewall'],
                                  self._unique_name,
@@ -75,6 +75,8 @@ class GatewayNode():
                                  self._gateway.ip
                                  )
             self._publish_gateway_info()
+        else:
+            rospy.logwarn("Gateway : %s" % error_code_str)
 
     def _hub_direct_attack(self, uri):
         '''
@@ -83,13 +85,15 @@ class GatewayNode():
           @param uri urlparse'able object with hostname/ip and port.
         '''
         o = urlparse(uri)
-        hub, unused_error_code = self._hub_manager.connect_to_hub_with_timeout(o.hostname, o.port)
+        hub, unused_error_code, error_code_str = self._hub_manager.connect_to_hub_with_timeout(o.hostname, o.port)
         if hub:
             hub.register_gateway(self._param['firewall'],
                                  self._unique_name,
                                  self._gateway.remote_gateway_request_callbacks,
                                  self._gateway.ip
                                  )
+        else:
+            rospy.logwarn("Gateway : %s" % error_code_str)
         self._publish_gateway_info()
 
     ##########################################################################

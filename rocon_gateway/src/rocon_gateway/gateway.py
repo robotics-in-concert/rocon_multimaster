@@ -9,7 +9,7 @@
 ###############################################################################
 
 import rospy
-import gateway_msgs as gateway_msgs
+import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
 
 # local imports
@@ -293,26 +293,27 @@ class Gateway(object):
           @rtype gateway_srvs.AdvertiseAllReponse
         '''
         response = gateway_srvs.AdvertiseAllResponse()
-#        response.result, response.error_message = self._ros_service_advertise_checks()
-#        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-#            try:
-#                if not request.cancel:
-#                    if not self.public_interface.advertiseAll(request.blacklist):
-#                        response.result = gateway_msgs.ErrorCodes.ADVERTISEMENT_EXISTS
-#                        response.error_message = "already advertising all."
-#                else:
-#                    self.public_interface.unadvertiseAll()
-#            except Exception as e:
-#                response.result = gateway_msgs.ErrorCodes.UNKNOWN_ADVERTISEMENT_ERROR
-#                response.error_message = "unknown advertise all error [%s]" % (str(e))
-#
-#        # Let the watcher get on with the update asap
-#        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-#            self.watcher_thread.trigger_update = True
-#            self._publish_gateway_info()
-#        else:
-#            rospy.logerr("Gateway : %s." % response.error_message)
-#        response.blacklist = self.public_interface.getBlacklist()
+        # This just checks if the gateway is connected - that shouldn't be necessary - just dump into the watchlist
+        #response.result, response.error_message = self._ros_service_advertise_checks()
+        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
+            try:
+                if not request.cancel:
+                    if not self.public_interface.advertise_all(request.blacklist):
+                        response.result = gateway_msgs.ErrorCodes.ADVERTISEMENT_EXISTS
+                        response.error_message = "already advertising all."
+                else:
+                    self.public_interface.unadvertise_all()
+            except Exception as e:
+                response.result = gateway_msgs.ErrorCodes.UNKNOWN_ADVERTISEMENT_ERROR
+                response.error_message = "unknown advertise all error [%s]" % (str(e))
+
+        # Let the watcher get on with the update asap
+        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
+            self.watcher_thread.trigger_update = True
+            self._publish_gateway_info()
+        else:
+            rospy.logerr("Gateway : %s." % response.error_message)
+        response.blacklist = self.public_interface.getBlacklist()
         return response
 
     def ros_service_flip(self, request):
@@ -463,10 +464,10 @@ class Gateway(object):
         return response
 
     def _ros_service_advertise_checks(self):
-#        if not self.is_connected:
-#            return gateway_msgs.ErrorCodes.NO_HUB_CONNECTION, "not connected to hub, aborting"
-#        else:
-#            return gateway_msgs.ErrorCodes.SUCCESS, ""
+        if not self.is_connected:
+            return gateway_msgs.ErrorCodes.NO_HUB_CONNECTION, "not connected to any hub, aborting"
+        else:
+            return gateway_msgs.ErrorCodes.SUCCESS, ""
         return None
 
     def _ros_service_flip_checks(self, gateway):
@@ -508,4 +509,3 @@ class Gateway(object):
 #        else:
 #            return gateway_msgs.ErrorCodes.SUCCESS, ""
         return None
-

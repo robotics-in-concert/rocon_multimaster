@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_gateway/LICENSE
 #
 
 ##############################################################################
@@ -15,9 +15,7 @@ import uuid
 import rospy
 import gateway_msgs.msg
 import gateway_msgs.srv
-from gateway_msgs.msg import Rule
-from gateway_msgs.srv import AdvertiseResponse
-from gateway_msgs.srv import AdvertiseAllResponse
+#from gateway_msgs.msg import Rule
 
 # Local imports
 import utils
