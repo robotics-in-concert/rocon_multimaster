@@ -1,229 +1,388 @@
 #!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_gateway/LICENSE
 #
-##############################################################################
+
+###############################################################################
 # Imports
-##############################################################################
+###############################################################################
 
 import rospy
-import rocon_gateway
-import redis
-import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
-from urlparse import urlparse
 
-# Local imports
-import zeroconf
-import hub_sync
-import hub_api
+# local imports
+import utils
+import ros_parameters
+from .watcher_thread import WatcherThread
+from .flipped_interface import FlippedInterface
+from .public_interface import PublicInterface
+from .pulled_interface import PulledInterface
+from .master_api import LocalMaster
 
-##############################################################################
-# Gateway Configuration and Main Loop Class
-##############################################################################
+###############################################################################
+# Thread
+###############################################################################
 
 
-class Gateway():
+class Gateway(object):
     '''
-      Currently this just provides getup and go for the gateway.
+      Used to synchronise with hubs.
     '''
-    ##########################################################################
-    # Init & Shutdown
-    ##########################################################################
-
-    def __init__(self):
-        self.param = rocon_gateway.setup_ros_parameters()
-        self.gateway_sync = rocon_gateway.GatewaySync(self.param, self._publish_gateway_info)  # maybe pass in the whole params dictionary?
-        self._gateway_services = self._setup_ros_services()
-        self._gateway_publishers = self._setup_ros_publishers()
-        self._hub_discovery_thread = zeroconf.HubDiscovery(self.hub_discovery_update)
-        self._hub_sync = hub_sync.HubSync()
-
-    def _shutdown(self):
+    def __init__(self, hub_manager, param, publish_gateway_info_callback):
         '''
-          Clears this gateway's information from the redis server.
+        @param param : a dictionary of many parameters set in ros_parameters.py
+
+        @param hub_manager : container for all the hubs this gateway connects to
+        @type hub_api.HubManmager
+
+        @param publish_gateway_info_callback : callback for publishing gateway info
         '''
-        rospy.loginfo("Gateway : shutting down.")
-        try:
-            #self.gateway_sync.shutdown()
-            self._hub_sync.shutdown()
-            self._hub_discovery_thread.shutdown()
-        except Exception as e:
-            rospy.logerr("Gateway : error on shutdown [%s]" % str(e))
+        self._param = param
+        self._hub_manager = hub_manager
+        self._publish_gateway_info = publish_gateway_info_callback
+#        self._ip = None
+#        self.is_connected = False
+        default_rule_blacklist = ros_parameters.generate_rules(self._param["default_blacklist"])
+        default_rules, all_targets = ros_parameters.generate_remote_rules(self._param["default_flips"])
+        self.flipped_interface = FlippedInterface(
+                                                  firewall=self._param['firewall'],
+                                                  default_rule_blacklist=default_rule_blacklist,
+                                                  default_rules=default_rules,
+                                                  all_targets=all_targets)
+        default_rules, all_targets = ros_parameters.generate_remote_rules(self._param["default_pulls"])
+        self.pulled_interface = PulledInterface(default_rule_blacklist=default_rule_blacklist,
+                                                default_rules=default_rules,
+                                                all_targets=all_targets)
+        self.public_interface = PublicInterface(default_rule_blacklist=default_rule_blacklist,
+                                                default_rules=ros_parameters.generate_rules(self._param['default_advertisements'])
+                                                )
+        if self._param['advertise_all']:
+            self.public_interface.advertiseAll([])  # no extra blacklist beyond the default (keeping it simple in yaml for now)
+        self.master = LocalMaster()
+        self.remote_gateway_request_callbacks = {}
+        self.remote_gateway_request_callbacks['flip'] = self.process_remote_gateway_flip_request
+        self.remote_gateway_request_callbacks['unflip'] = self.process_remote_gateway_unflip_request
+
+        # create a thread to watch local rule states
+        #self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
+
+    def shutdown(self):
+        pass
+        #self.watcher_thread.shutdown()
+#        for connection_type in utils.connection_types:
+#            for flip in self.flipped_interface.flipped[connection_type]:
+#                self.hub.send_unflip_request(flip.gateway, flip.rule)
+#            for registration in self.flipped_interface.registrations[connection_type]:
+#                self.master.unregister(registration)
 
     ##########################################################################
-    # Zeroconf
+    # Incoming commands from remote gateways
     ##########################################################################
 
-    def hub_discovery_update(self, ip, port):
-        rospy.loginfo("hub discovery update")
-        self._connect_to_hub(ip, port)
-
-    #############################################
-    # Hub Connection Methods
-    #############################################
-
-    def _attempt_direct_connection(self):
+    def process_remote_gateway_flip_request(self, registration):
         '''
-          If configured with a static hub_uri, attempt a direct connection.
+          Used as a callback for incoming requests on redis pubsub channels.
+          It gets assigned to RedisManager.callback.
 
-          @return success of the connection
-          @rtype bool
+          @param registration : fully detailed registration to be processed
+          @type utils.Registration
         '''
-        connection_timeout = rospy.Duration(5.0)
-        start_time = rospy.Time.now()
-        if self.param['hub_uri'] != '':
-            o = urlparse(self.param['hub_uri'])
-            while not rospy.is_shutdown() and not (rospy.Time.now() - start_time > connection_timeout):
-                if self._connect(o.hostname, o.port) == gateway_msgs.ErrorCodes.SUCCESS:
-                    rospy.loginfo("Gateway : made direct connection to hub [%s]" % self.param['hub_uri'])
-                    return True
-                else:
-                    rospy.sleep(0.3)
-            rospy.logwarn("Gateway : couldn't connect to the hub (probably not up yet) [%s]" % self.param['hub_uri'])
-        return False
-
-    def _connect_to_hub(self, ip, port):
-        try:
-            hub_name = hub_api.resolve_hub(ip, port)
-            rospy.loginfo("Gateway : resolved hub name [%s].", hub_name)
-        except hub_api.HubUnavailableError:
-            return gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
-        except hub_api.HubNameNotFoundError:
-            return gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND
-        if ip in self.param['hub_blacklist']:
-            rospy.loginfo("Gateway : ignoring blacklisted hub [%s]", ip)
-            return gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED
-        elif hub_name in self.param['hub_blacklist']:
-            rospy.loginfo("Gateway : ignoring blacklisted hub [%s]", hub_name)
-            return gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED
-        # Handle whitelist (ip or hub name)
-        if (len(self.param['hub_whitelist']) == 0) or (ip in self.param['hub_whitelist']) or (hub_name in self.param['hub_whitelist']):
-            print("connect, the real deal")
-            #if self.gateway_sync.connect_to_hub(ip, port):
-            #    return gateway_msgs.ErrorCodes.SUCCESS
-            #else:
-            #    return gateway_msgs.ErrorCodes.HUB_CONNECTION_FAILED
-        else:
-            rospy.loginfo("Gateway : hub/ip not in non-empty whitelist [%s]", hub_name)
-            return gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST
-
-#    def _connect(self, ip, port):
-#        if self.gateway_sync.is_connected:
-#            rospy.logwarn("Gateway : gateway is already connected, aborting connection attempt.")
-#            return gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS
-#        try:
-#            hub_name = rocon_gateway.resolve_hub(ip,port)
-#            if hub_name:
-#                rospy.loginfo("Gateway : resolved hub name [%s].", hub_name)
-#            else:
-#                return gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE  # could probably use a distinct error result for this instead.
-#        except redis.exceptions.ConnectionError:
-            #rospy.logwarn("Gateway : couldn't connect to the hub (probably not up yet) [%s:%s]", ip, port)
-#            return gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
-#        if ip in self.param['hub_blacklist']:
-#            rospy.loginfo("Gateway : ignoring blacklisted hub [%s]",ip)
-#            return gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED
-#        elif hub_name in self.param['hub_blacklist']:
-#            rospy.loginfo("Gateway : ignoring blacklisted hub [%s]",hub_name)
-#            return gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED
-#        # Handle whitelist (ip or hub name)
-#        if (len(self.param['hub_whitelist']) == 0) or (ip in self.param['hub_whitelist']) or (hub_name in self.param['hub_whitelist']):
-#            if self.gateway_sync.connect_to_hub(ip,port):
-#                return gateway_msgs.ErrorCodes.SUCCESS
-#            else:
-#                return gateway_msgs.ErrorCodes.HUB_CONNECTION_FAILED
+        pass
+#        if self.flipped_interface.firewall:
+#            rospy.logwarn("Gateway : firewalling a flip request %s" % registration)
 #        else:
-#            rospy.loginfo("Gateway : hub/ip not in non-empty whitelist [%s]",hub_name)
-#            return gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST
+#            rospy.loginfo("Gateway : received a flip request %s" % registration)
+#            # probably not necessary as the flipping gateway will already check this
+#            existing_registration = self.flipped_interface.findRegistrationMatch(registration.remote_gateway, registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
+#            if not existing_registration:
+#                new_registration = self.master.register(registration)
+#                if new_registration:
+#                    self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
+#                    self._publish_gateway_info()
+
+    def process_remote_gateway_unflip_request(self, rule, remote_gateway):
+        rospy.loginfo("Gateway : received an unflip request from gateway %s: %s" % (remote_gateway, utils.formatRule(rule)))
+#        existing_registration = self.flipped_interface.findRegistrationMatch(remote_gateway, rule.name, rule.node, rule.type)
+#        if existing_registration:
+#            self.master.unregister(existing_registration)
+#            self.flipped_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
+#            self._publish_gateway_info()
 
     ##########################################################################
-    # Ros Pubs, Subs and Services
+    # Incoming commands from local system (ros service callbacks)
     ##########################################################################
 
-    def _setup_ros_services(self):
-        gateway_services = {}
-        gateway_services['connect_hub']   = rospy.Service('~connect_hub',                   gateway_srvs.ConnectHub,       self.ros_service_connect_hub)
-        gateway_services['remote_gateway_info']  = rospy.Service('~remote_gateway_info',    gateway_srvs.RemoteGatewayInfo,self.ros_service_remote_gateway_info)
-        gateway_services['advertise']     = rospy.Service('~advertise',                     gateway_srvs.Advertise,        self.gateway_sync.ros_service_advertise)
-        gateway_services['advertise_all'] = rospy.Service('~advertise_all',                 gateway_srvs.AdvertiseAll,     self.gateway_sync.ros_service_advertise_all)        
-        gateway_services['flip']          = rospy.Service('~flip',                          gateway_srvs.Remote,    self.gateway_sync.ros_service_flip)        
-        gateway_services['flip_all']      = rospy.Service('~flip_all',                      gateway_srvs.RemoteAll, self.gateway_sync.ros_service_flip_all)
-        gateway_services['pull']          = rospy.Service('~pull',                          gateway_srvs.Remote,    self.gateway_sync.ros_service_pull)        
-        gateway_services['pull_all']      = rospy.Service('~pull_all',                      gateway_srvs.RemoteAll, self.gateway_sync.ros_service_pull_all)
-        return gateway_services
-
-    def _setup_ros_publishers(self):
-        gateway_publishers = {}
-        gateway_publishers['gateway_info'] = rospy.Publisher('~gateway_info', gateway_msgs.GatewayInfo, latch=True)
-        return gateway_publishers
-
-    ##########################################################################
-    # Ros Service Callbacks
-    ##########################################################################
-
-    def ros_service_connect_hub(self, request):
+    def ros_service_advertise(self, request):
         '''
-          Handle incoming requests to connect directly to a gateway hub.
+          Puts/Removes a number of rules on the public interface watchlist.
+          As local rules matching these rules become available/go away,
+          the public interface is modified accordingly. A manual update is done
+          at the end of the advertise call to quickly capture existing
+          rules
 
-          Requests are of the form of a uri (hostname:port pair) pointing to
-          the gateway hub.
+          @param request
+          @type gateway_srvs.AdvertiseRequest
+          @return service response
+          @rtgateway_srvs.srv.AdvertiseReponse
         '''
-        response = gateway_srvs.ConnectHubResponse()
-        o = urlparse(request.uri)
-        response.result = self._connect(o.hostname, o.port)
-        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-            rospy.loginfo("Gateway : made direct connection to hub [%s]" % request.uri)
-        elif response.result == gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED:
-            response.error_message = "cowardly refusing your request since that hub is blacklisted [%s]." % request.uri
-        elif response.result == gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS:
-            response.error_message = "(currently) can only connect to one hub at a time [%s]." % self.gateway_sync.hub.name
-        else:
-            response.error_message = "direct connection failed, probably not available [%s]." % request.uri
+        response = gateway_srvs.AdvertiseResponse()
+#        response.result, response.error_message = self._ros_service_advertise_checks()
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            try:
+#                if not request.cancel:
+#                    for rule in request.rules:
+#                        if not self.public_interface.add_rule(rule):
+#                            response.result = gateway_msgs.msg.Result.ADVERTISEMENT_EXISTS
+#                            response.error_message = "advertisment rule already exists [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
+#                else:
+#                    for rule in request.rules:
+#                        if not self.public_interface.remove_rule(rule):
+#                            response.result = gateway_msgs.msg.Result.ADVERTISEMENT_NOT_FOUND
+#                            response.error_message = "advertisment not found [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
+#            except Exception as e:
+#                rospy.logerr("Gateway : unknown advertise error [%s]." % str(e))
+#                response.result = gateway_msgs.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
+#
+#        # Let the watcher get on with the update asap
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            self.watcher_thread.trigger_update = True
+#            self._publish_gateway_info()
+#        else:
+#            rospy.logerr("Gateway : %s." % response.error_message)
+#        response.watchlist = self.public_interface.getWatchlist()
         return response
 
-    def _publish_gateway_info(self):
-        gateway_info = gateway_msgs.GatewayInfo()
-        gateway_info.name = self.gateway_sync.unique_name
-        if self.gateway_sync._ip != None:
-            gateway_info.ip = self.gateway_sync._ip
-        else:
-            gateway_info.ip = 'unavailable'
-        gateway_info.connected = self.gateway_sync.is_connected
-        gateway_info.hub_name = self.gateway_sync.hub.name
-        gateway_info.hub_uri = self.gateway_sync.hub.uri
-        gateway_info.firewall = self.param['firewall']
-        gateway_info.flipped_connections = self.gateway_sync.flipped_interface.get_flipped_connections()
-        gateway_info.flipped_in_connections = self.gateway_sync.flipped_interface.getLocalRegistrations()
-        gateway_info.flip_watchlist = self.gateway_sync.flipped_interface.getWatchlist()
-        gateway_info.pulled_connections = self.gateway_sync.pulled_interface.getLocalRegistrations()
-        gateway_info.pull_watchlist = self.gateway_sync.pulled_interface.getWatchlist()
-        gateway_info.public_watchlist = self.gateway_sync.public_interface.getWatchlist()
-        gateway_info.public_interface = self.gateway_sync.public_interface.getInterface()
-        self._gateway_publishers['gateway_info'].publish(gateway_info)
+    def ros_service_advertise_all(self, request):
+        '''
+          Toggles the advertise all mode. If advertising all, an additional
+          blacklist parameter can be supplied which includes all the topics that
+          will not be advertised/watched for. This blacklist is added to the
+          default blacklist of the public interface
 
-    def ros_service_remote_gateway_info(self, request):
-        response = gateway_srvs.RemoteGatewayInfoResponse()
-        requested_gateways = request.gateways if request.gateways else self.gateway_sync.hub.list_remote_gateway_names()
-        for gateway in requested_gateways:
-            remote_gateway_info = self.gateway_sync.hub.remote_gateway_info(gateway)
-            if remote_gateway_info:
-                response.gateways.append(remote_gateway_info)
-            else:
-                rospy.logwarn("Gateway : requested gateway info for unavailable gateway [%s]" % gateway)
+          @param request
+          @type gateway_srvs.AdvertiseAllRequest
+          @return service response
+          @rtype gateway_srvs.AdvertiseAllReponse
+        '''
+        response = gateway_srvs.AdvertiseAllResponse()
+#        response.result, response.error_message = self._ros_service_advertise_checks()
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            try:
+#                if not request.cancel:
+#                    if not self.public_interface.advertiseAll(request.blacklist):
+#                        response.result = gateway_msgs.msg.Result.ADVERTISEMENT_EXISTS
+#                        response.error_message = "already advertising all."
+#                else:
+#                    self.public_interface.unadvertiseAll()
+#            except Exception as e:
+#                response.result = gateway_msgs.msg.Result.UNKNOWN_ADVERTISEMENT_ERROR
+#                response.error_message = "unknown advertise all error [%s]" % (str(e))
+#
+#        # Let the watcher get on with the update asap
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            self.watcher_thread.trigger_update = True
+#            self._publish_gateway_info()
+#        else:
+#            rospy.logerr("Gateway : %s." % response.error_message)
+#        response.blacklist = self.public_interface.getBlacklist()
         return response
 
+    def ros_service_flip(self, request):
+        '''
+          Puts flip rules on a watchlist which (un)flips them when they
+          become (un)available.
+
+          @param request
+          @type gateway_srvs.RemoteRequest
+          @return service response
+          @rtype gateway_srvs.RemoteResponse
+        '''
+        response = gateway_srvs.RemoteResponse()
+#        for remote in request.remotes:
+#            response.result, response.error_message = self._ros_service_flip_checks(remote.gateway)
+#            if response.result != gateway_msgs.msg.Result.SUCCESS:
+#                rospy.logerr("Gateway : %s." % response.error_message)
+#                return response
+#
+#        # result is currently SUCCESS
+#        added_rules = []
+#        for remote in request.remotes:
+#            if not request.cancel:
+#                flip_rule = self.flipped_interface.add_rule(remote)
+#                if flip_rule:
+#                    added_rules.append(flip_rule)
+#                    rospy.loginfo("Gateway : added flip rule [%s:(%s,%s)]" % (flip_rule.gateway, flip_rule.rule.name, flip_rule.rule.type))
+#                else:
+#                    response.result = gateway_msgs.msg.Result.FLIP_RULE_ALREADY_EXISTS
+#                    response.error_message = "flip rule already exists [%s:(%s,%s)]" % (remote.gateway, remote.rule.name, remote.rule.type)
+#                    break
+#            else:  # request.cancel
+#                removed_flip_rules = self.flipped_interface.remove_rule(remote)
+#                if removed_flip_rules:
+#                    rospy.loginfo("Gateway : removed flip rule [%s:(%s,%s)]" % (remote.gateway, remote.rule.name, remote.rule.type))
+#
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            self._publish_gateway_info()
+#            self.watcher_thread.trigger_update = True
+#        else:
+#            if added_rules:  # completely abort any added rules
+#                for added_rule in added_rules:
+#                    self.flipped_interface.remove_rule(added_rule)
+#            rospy.logerr("Gateway : %s." % response.error_message)
+        return response
+
+    def ros_service_flip_all(self, request):
+        '''
+          Flips everything except a specified blacklist to a particular gateway,
+          or if the cancel flag is set, clears all flips to that gateway.
+
+          @param request
+          @type gateway_srvs.RemoteAllRequest
+          @return service response
+          @rtype gateway_srvs.RemoteAllResponse
+        '''
+        response = gateway_srvs.RemoteAllResponse()
+#        response.result, response.error_message = self._ros_service_flip_checks(request.gateway)
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            if not request.cancel:
+#                if self.flipped_interface.flip_all(request.gateway, request.blacklist):
+#                    rospy.loginfo("Gateway : flipping all to gateway '%s'" % (request.gateway))
+#                else:
+#                    response.result = gateway_msgs.msg.Result.FLIP_RULE_ALREADY_EXISTS
+#                    response.error_message = "already flipping all to gateway '%s' " + request.gateway
+#            else:  # request.cancel
+#                self.flipped_interface.un_flip_all(request.gateway)
+#                rospy.loginfo("Gateway : cancelling a previous flip all request [%s]" % (request.gateway))
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            self._publish_gateway_info()
+#            self.watcher_thread.trigger_update = True
+#        else:
+#            rospy.logerr("Gateway : %s." % response.error_message)
+        return response
+
+    def ros_service_pull(self, request):
+        '''
+          Puts a single rule on a watchlist and pulls it from a particular
+          gateway when it becomes (un)available.
+
+          @param request
+          @type gateway_srvs.RemoteRequest
+          @return service response
+          @rtype gateway_srvs.RemoteResponse
+        '''
+        response = gateway_srvs.RemoteResponse()
+#
+#        for remote in request.remotes:
+#            response.result, response.error_message = self._ros_service_remote_checks(remote.gateway)
+#            if response.result != gateway_msgs.msg.Result.SUCCESS:
+#                rospy.logerr("Gateway : %s." % response.error_message)
+#                return response
+#
+#        # result is currently SUCCESS
+#        added_rules = []
+#        for remote in request.remotes:
+#            if not request.cancel:
+#                pull_rule = self.pulled_interface.add_rule(remote)
+#                if pull_rule:
+#                    added_rules.append(pull_rule)
+#                    rospy.loginfo("Gateway : added pull rule [%s:(%s,%s)]" % (pull_rule.gateway, pull_rule.rule.name, pull_rule.rule.type))
+#                else:
+#                    response.result = gateway_msgs.msg.Result.PULL_RULE_ALREADY_EXISTS
+#                    response.error_message = "pull rule already exists [%s:(%s,%s)]" % (remote.gateway, remote.rule.name, remote.rule.type)
+#                    break
+#            else:  # request.cancel
+#                for remote in request.remotes:
+#                    removed_pull_rules = self.pulled_interface.remove_rule(remote)
+#                    if removed_pull_rules:
+#                        rospy.loginfo("Gateway : removed pull rule [%s:%s]" % (remote.gateway, remote.rule.name))
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            self._publish_gateway_info()
+#            self.watcher_thread.trigger_update = True
+#        else:
+#            if added_rules:  # completely abort any added rules
+#                for added_rule in added_rules:
+#                    self.pulled_interface.remove_rule(added_rule)
+#            rospy.logerr("Gateway : %s." % response.error_message)
+        return response
+
+    def ros_service_pull_all(self, request):
+        '''
+          Pull everything except a specified blacklist from a particular gateway,
+          or if the cancel flag is set, clears all pulls from that gateway.
+
+          @param request
+          @type gateway_srvs.RemoteAllRequest
+          @return service response
+          @rtype gateway_srvs.RemoteAllResponse
+        '''
+        response = gateway_srvs.RemoteAllResponse()
+#        response.result, response.error_message = self._ros_service_remote_checks(request.gateway)
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            if not request.cancel:
+#                if self.pulled_interface.pull_all(request.gateway, request.blacklist):
+#                    rospy.loginfo("Gateway : pulling all from gateway '%s'" % (request.gateway))
+#                else:
+#                    response.result = gateway_msgs.msg.Result.FLIP_RULE_ALREADY_EXISTS
+#                    response.error_message = "already pulling all from gateway '%s' " + request.gateway
+#            else:  # request.cancel
+#                self.pulled_interface.unpull_all(request.gateway)
+#                rospy.loginfo("Gateway : cancelling a previous pull all request [%s]" % (request.gateway))
+#        if response.result == gateway_msgs.msg.Result.SUCCESS:
+#            self._publish_gateway_info()
+#            self.watcher_thread.trigger_update = True
+#        else:
+#            rospy.logerr("Gateway : %s." % response.error_message)
+        return response
+
+    def _ros_service_advertise_checks(self):
+#        if not self.is_connected:
+#            return gateway_msgs.msg.Result.NO_HUB_CONNECTION, "not connected to hub, aborting"
+#        else:
+#            return gateway_msgs.msg.Result.SUCCESS, ""
+        return None
+
+    def _ros_service_flip_checks(self, gateway):
+        '''
+          Some simple checks for ros service flips.
+
+          @param gateway : target gateway string of the flip
+          @type string
+          @return pair of result type and message
+          @rtype gateway_msgs.msg.Result.xxx, string
+        '''
+#        result, error_message = self._ros_service_remote_checks(gateway)
+#        if result == gateway_msgs.msg.Result.SUCCESS:
+#            firewall_flag = False
+#            try:
+#                firewall_flag = self.hub.get_remote_gateway_firewall_flag(gateway)
+#                if firewall_flag:
+#                    return gateway_msgs.msg.Result.FLIP_REMOTE_GATEWAY_FIREWALLING, "remote gateway is firewalling flip requests, aborting [%s]" % gateway
+#            except GatewayUnavailableError:
+#                pass  # handled earlier in rosServiceRemoteChecks
+#        return result, error_message
+        return None
+
+    def _ros_service_remote_checks(self, gateway):
+        '''
+          Some simple checks for ros service pulls
+
+          @param gateway : target gateway string of the pull
+          @type string
+          @return pair of result type and message
+          @rtype gateway_msgs.msg.Result.xxx, string
+        '''
+#        if not self.is_connected:
+#            return gateway_msgs.msg.Result.NO_HUB_CONNECTION, "not connected to hub, aborting"
+#        elif gateway == self.unique_name:
+#            return gateway_msgs.msg.Result.FLIP_NO_TO_SELF, "gateway cannot flip to itself"
+#        elif not self.hub.matches_remote_gateway_name(gateway):
+#            return gateway_msgs.msg.Result.FLIP_REMOTE_GATEWAY_NOT_CONNECTED, "remote gateway is currently not connected [%s]" % gateway
+#        else:
+#            return gateway_msgs.msg.Result.SUCCESS, ""
+        return None
 
 
-#    def spin(self):
-#        previously_found_hubs = []
-#        while not rospy.is_shutdown() and not self.gateway_sync.is_connected:
-#            rospy.sleep(1.0)
-#            if self._zeroconf_services:
-#                self._scan_for_zeroconf_hubs(previously_found_hubs)
-#            else:
-#                # do nothing, just wait for a service call
-#                rospy.logdebug("Gateway : waiting for hub uri input.")
-#        rospy.spin()
-#        self._shutdown()
+###############################################################################
+# Internal M ethods
+###############################################################################

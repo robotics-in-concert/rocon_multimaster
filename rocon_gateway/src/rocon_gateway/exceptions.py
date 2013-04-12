@@ -33,7 +33,12 @@ class HubConnectionLostError(GatewayError):
 
 
 # Raised when the gateway can't connect to the hub's redis server
-class HubUnavailableError(GatewayError):
+class HubNotFoundError(GatewayError):
+    pass
+
+
+# Raised when an operation tries to use an unoconnected hub
+class HubNotConnectedError(GatewayError):
     pass
 
 

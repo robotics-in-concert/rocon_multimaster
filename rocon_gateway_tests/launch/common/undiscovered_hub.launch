@@ -1,0 +1,11 @@
+<!--
+  No zeroconf publishing this hub - it's hidden. 
+  Gateways have to use the exact ip/port to get to it.
+-->
+<launch>
+  <include file="$(find rocon_hub)/launch/hub.launch">
+    <arg name="hub_name" value="Undiscovered Hub" />
+    <arg name="hub_port" value="6382" />
+    <arg name="zeroconf" value="false" />
+  </include>
+</launch>
