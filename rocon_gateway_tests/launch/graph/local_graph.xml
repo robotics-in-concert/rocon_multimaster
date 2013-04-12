@@ -1,5 +1,5 @@
 <launch>
-  <include file="$(find rocon_gateway_tests)/launch/common/local_gateway.launch">
+  <include file="$(find rocon_gateway_tests)/launch/common/local_gateway.xml">
     <arg name="yaml" value="graph/flip_all.yaml" />
   </include>
   <node pkg="roscpp_tutorials" type="talker" name="talker"/>

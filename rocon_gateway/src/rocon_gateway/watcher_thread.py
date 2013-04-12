@@ -28,8 +28,8 @@ class WatcherThread(threading.Thread):
         self._trigger_shutdown = False
         self._gateway = gateway
         self._master = gateway.master
-        self._hub = gateway.hub
-        #self._public_interface = gateway.public_interface
+        self._hub_manager = gateway.hub_manager
+        self._hubs = self._hub_manager.hubs
         self._flipped_interface = gateway.flipped_interface
         self._pulled_interface = gateway.pulled_interface
         self._watch_loop_period = rospy.Duration(watch_loop_period)
@@ -51,21 +51,22 @@ class WatcherThread(threading.Thread):
           and the various rules to make sure rules and existing connections or flips are in sync.
         '''
         while not rospy.is_shutdown() and not self._trigger_shutdown:
-            if self._gateway.is_connected:
+            # don't waste time processing if we're not connnected to at least one hub
+            if self._gateway.is_connected():
                 try:
                     connections = self._master.getConnectionState()
                 except httplib.ResponseNotReady:
                     rospy.logwarn("Gateway : received 'ResponseNotReady' from master api")
                     self._sleep()
                     continue
-                try:
-                    gateways = self._hub.list_remote_gateway_names()
-                except HubConnectionLostError:
-                    rospy.logwarn("Gateway : lost connection to the hub, watcher thread aborting.")
-                    break
-                self._gateway.update_flip_interface(connections, gateways)
+#                try:
+#                    gateways = self._hub.list_remote_gateway_names()
+#                except HubConnectionLostError:
+#                    rospy.logwarn("Gateway : lost connection to the hub, watcher thread aborting.")
+#                    break
+#                self._gateway.update_flip_interface(connections, gateways)
                 self._gateway.update_public_interface(connections)
-                self._gateway.update_pulled_interface(connections, gateways)
+#                self._gateway.update_pulled_interface(connections, gateways)
             self._sleep()
 
     def _sleep(self):

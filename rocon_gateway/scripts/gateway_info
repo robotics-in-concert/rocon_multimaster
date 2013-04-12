@@ -11,6 +11,7 @@
 import sys
 import argparse
 import re
+import itertools
 import rospy
 import rocon_gateway
 import gateway_msgs
@@ -57,16 +58,23 @@ if __name__ == '__main__':
     try:
         gateway_namespace = resolve_local_gateway()
         gateway = resolve_gateway_info(gateway_namespace)
+        print("%s" % gateway)
     except rocon_gateway.GatewayError, e:
         console.error(str(e))
         sys.exit(1)
     console.pretty_print("Gateway\n", console.bold)
-    print("  Namespace   : %s"%gateway_namespace)
-    print("  Name        : %s"%gateway.name)
-    print("  Ip/Hostname : %s"%gateway.ip)
-    print("  Connected   : %s"%gateway.connected)
-    print("  On Hub      : %s"%gateway.hub_name)
-    print("  Firewall    : %s"%gateway.firewall)
+    print("  Namespace   : %s" % gateway_namespace)
+    print("  Name        : %s" % rocon_utilities.gateways.basename(gateway.name))
+    print("  Hash Name   : %s" % gateway.name)
+    print("  Ip/Hostname : %s" % gateway.ip)
+    print("  Connected   : %s" % gateway.connected)
+    if gateway.hub_names:
+        max_len = 0
+        max_width = max([len(hub) for hub in gateway.hub_names])
+        print("  Hubs        : %-*s [%s]" % (max_width, gateway.hub_names[0], gateway.hub_uris[0]))
+        for hub,uri in itertools.izip(gateway.hub_names[1:], gateway.hub_uris[1:]):
+            print("              : %-*s [%s]" % (max_width, hub, uri))
+    print("  Firewall    : %s" % gateway.firewall)
 
     print("  Public Watchlist")
     if len(gateway.public_watchlist) == 0:

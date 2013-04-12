@@ -126,10 +126,10 @@ class HubManager(object):
         self._param = {}
         self._param['hub_whitelist'] = hub_whitelist
         self._param['hub_blacklist'] = hub_blacklist
-        self._hubs = []  # hubs keyed by hub names
+        self.hubs = []  # hubs keyed by hub names
 
     def shutdown(self):
-        for hub in self._hubs:
+        for hub in self.hubs:
             hub.unregister_gateway()
 
     def connect_to_hub(self, ip, port):
@@ -146,7 +146,7 @@ class HubManager(object):
         '''
         try:
             hub = Hub(ip, port)
-        except HubUnavailableError:
+        except HubNotFoundError:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
         except HubNameNotFoundError:
             return None, gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND
@@ -158,7 +158,7 @@ class HubManager(object):
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED
         # Handle whitelist (ip or hub name)
         if (len(self._param['hub_whitelist']) == 0) or (ip in self._param['hub_whitelist']) or (hub.name in self._param['hub_whitelist']):
-            self._hubs.append(hub)
+            self.hubs.append(hub)
             return hub, gateway_msgs.ErrorCodes.SUCCESS
         else:
             rospy.loginfo("Gateway : hub/ip not in non-empty whitelist [%s]", hub.name)
@@ -224,7 +224,7 @@ class Hub(object):
     # Hub Connections
     ##########################################################################
 
-    def register_gateway(self, firewall, unique_gateway_name, remote_gateway_request_callbacks):
+    def register_gateway(self, firewall, unique_gateway_name, remote_gateway_request_callbacks, gateway_ip):
         '''
           Register a gateway with the hub.
 
@@ -243,10 +243,9 @@ class Hub(object):
             pass
         unused_ret = self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
         self._redis_server.set(self._redis_keys['firewall'], self._firewall)
-        # do we need this - it was the local master's ip, i'd rather not expose that?
-        # I think we just used it for debugging
-        #self._redis_keys['ip'] = create_gateway_key(self._unique_gateway_name, 'ip')
-        #self._redis_server.set(self._redis_keys['ip'], ip)
+        # I think we just used this for debugging, but we might want to hide it in future (it's the ros master hostname/ip)
+        self._redis_keys['ip'] = create_gateway_key(unique_gateway_name, 'ip')
+        self._redis_server.set(self._redis_keys['ip'], gateway_ip)
         self._redis_channels['gateway'] = self._redis_keys['gateway']
         self._redis_pubsub_server.subscribe(self._redis_channels['gateway'])
         self.remote_gateway_listener_thread = RedisListenerThread(self._redis_pubsub_server, self._remote_gateway_request_callbacks)
