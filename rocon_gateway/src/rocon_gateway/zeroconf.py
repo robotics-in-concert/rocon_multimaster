@@ -41,7 +41,8 @@ class HubDiscovery(threading.Thread):
           Called from the main program to shutdown this thread.
         '''
         self._trigger_shutdown = True
-        self.join()  # wait for the thread to finish
+        if self.is_alive():  # python complains if you join a non-started thread
+            self.join()  # wait for the thread to finish
 
     def run(self):
         '''
