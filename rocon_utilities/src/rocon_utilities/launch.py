@@ -13,7 +13,6 @@ import argparse
 import subprocess
 import signal
 import sys
-import re
 from time import sleep
 import roslaunch
 
