@@ -32,4 +32,7 @@ default_blacklist:
     - name: .*gateway/.*
       node: None
       type: publisher
+    - name: .*gateway/.*
+      node: None
+      type: subscriber
       
