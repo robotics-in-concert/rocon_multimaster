@@ -192,8 +192,6 @@ class Gateway(object):
 #                return None
         new_conns, lost_conns = self.public_interface.update(connections)
         public_interface = self.public_interface.getInterface()
-        print("Public Interface.......")
-        print("%s" % public_interface)
         for connection_type in utils.connection_types:
             for connection in new_conns[connection_type]:
                 rospy.loginfo("Gateway : adding rule to public interface %s" % utils.formatRule(connection.rule))

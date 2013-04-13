@@ -29,3 +29,7 @@ default_blacklist:
     - name: .*gateway/.*
       node: None
       type: service
+    - name: .*gateway/.*
+      node: None
+      type: publisher
+      
