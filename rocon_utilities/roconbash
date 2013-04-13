@@ -5,9 +5,9 @@ function _roconcomplete_launch {
         COMPREPLY=(${COMPREPLY[@]} $(compgen -W " --konsole --gnome --screen" -- ${arg}))
 
     else
-        _roscomplete_search_dir "( -type f -regex .*\.concert$ -o -type f -regex .*\.test$ )"
+        _roscomplete_search_dir "( -type f -regex .*\.concert$ -o -type f -regex .*\.concert$ )"
         if [[ $COMP_CWORD == 1 ]]; then
-           COMPREPLY=($(compgen -o plusdirs -f -X "!*.concert" -- ${arg}) ${COMPREPLY[@]} $(compgen -o plusdirs -f -X "!*.test" -- ${arg}) ${COMPREPLY[@]})
+           COMPREPLY=($(compgen -o plusdirs -f -X "!*.concert" -- ${arg}) ${COMPREPLY[@]})
         fi
     fi
 }
@@ -17,9 +17,9 @@ function _roconcomplete_test {
     if [[ ${arg} =~ \-\-.* ]]; then
         COMPREPLY=(${COMPREPLY[@]} $(compgen -W "--screen" -- ${arg}))
     else
-        _roscomplete_search_dir "( -type f -regex .*\.concert$ -o -type f -regex .*\.test$ )"
+        _roscomplete_search_dir "( -type f -regex .*\.test$ -o -type f -regex .*\.test$ )"
         if [[ $COMP_CWORD == 1 ]]; then
-           COMPREPLY=($(compgen -o plusdirs -f -X "!*.concert" -- ${arg}) ${COMPREPLY[@]} $(compgen -o plusdirs -f -X "!*.test" -- ${arg}) ${COMPREPLY[@]})
+           COMPREPLY=($(compgen -o plusdirs -f -X "!*.test" -- ${arg}) ${COMPREPLY[@]})
         fi
     fi
 }
