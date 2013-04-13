@@ -49,10 +49,10 @@ class Gateway(object):
         default_rule_blacklist = ros_parameters.generate_rules(self._param["default_blacklist"])
         default_rules, all_targets = ros_parameters.generate_remote_rules(self._param["default_flips"])
         self.flipped_interface = FlippedInterface(
-                                                  firewall=self._param['firewall'],
-                                                  default_rule_blacklist=default_rule_blacklist,
-                                                  default_rules=default_rules,
-                                                  all_targets=all_targets)
+                                                firewall=self._param['firewall'],
+                                                default_rule_blacklist=default_rule_blacklist,
+                                                default_rules=default_rules,
+                                                all_targets=all_targets)
         default_rules, all_targets = ros_parameters.generate_remote_rules(self._param["default_pulls"])
         self.pulled_interface = PulledInterface(default_rule_blacklist=default_rule_blacklist,
                                                 default_rules=default_rules,

@@ -14,7 +14,7 @@
 #__date__ = "2012-08-29"
 
 import zeroconf
-from .exceptions import GatewayError
+from .exceptions import GatewayError, GatewaySampleRuntimeError
 from .utils import connection_types, createEmptyConnectionTypeDictionary, Connection
 from .ros_parameters import setup_ros_parameters
 from .flipped_interface import FlippedInterface
@@ -24,3 +24,4 @@ from .graph import Graph
 import gateway
 from .gateway import Gateway
 import hub_api
+import samples

@@ -63,7 +63,7 @@ if __name__ == '__main__':
         sys.exit(1)
     console.pretty_print("Gateway\n", console.bold)
     print("  Namespace   : %s" % gateway_namespace)
-    print("  Name        : %s" % rocon_utilities.gateways.basename(gateway.name))
+    print("  Name        : %s" % rocon_utilities.gateway_basename(gateway.name))
     print("  Hash Name   : %s" % gateway.name)
     print("  Ip/Hostname : %s" % gateway.ip)
     print("  Connected   : %s" % gateway.connected)

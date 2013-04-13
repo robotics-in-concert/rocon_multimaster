@@ -122,15 +122,58 @@ class RedisListenerThread(threading.Thread):
 
 class HubManager(object):
 
+    ##########################################################################
+    # Init & Shutdown
+    ##########################################################################
+
     def __init__(self, hub_whitelist, hub_blacklist):
         self._param = {}
         self._param['hub_whitelist'] = hub_whitelist
         self._param['hub_blacklist'] = hub_blacklist
-        self.hubs = []  # hubs keyed by hub names
+        self.hubs = []
 
     def shutdown(self):
         for hub in self.hubs:
             hub.unregister_gateway()
+
+    ##########################################################################
+    # Introspection
+    ##########################################################################
+
+    def list_remote_gateway_names(self):
+        '''
+          Parse all the hubs and retrieve the list of remote gateway names.
+
+          Note: not sure where is most convenient, here or in gateway class.
+
+          @return list of remote gateway names (with hashes), e.g. gateway345ae2c...
+          @rtype list of str
+        '''
+        remote_gateway_names = []
+        for hub in self.hubs:
+            remote_gateway_names.extend(hub.list_remote_gateway_names())
+        # return the list without duplicates
+        return list(set(remote_gateway_names))
+
+    def remote_gateway_info(self, remote_gateway_name):
+        '''
+          Return information that a remote gateway has posted on the hub(s).
+
+          @param remote_gateway_name : the hash name for the remote gateway
+          @type str
+
+          @return remote gateway information
+          @rtype gateway_msgs.RemotGateway or None
+        '''
+        for hub in self.hubs:
+            if remote_gateway_name in hub.list_remote_gateway_names():
+                # I don't think we need more than one hub's info....
+                return hub.remote_gateway_info(remote_gateway_name)
+        return None
+
+    ##########################################################################
+    # Hub Connections
+    ##########################################################################
 
     def connect_to_hub(self, ip, port):
         '''
@@ -316,15 +359,15 @@ class Hub(object):
     def list_remote_gateway_names(self):
         '''
           Return a list of the gateways (name list, not redis keys).
-          e.g. ['gateway32','pirate33']
+          e.g. ['gateway32adcda32','pirate21fasdf']
         '''
-        if not self.server:
-            rospy.logerr("Gateway : cannot retrive remote gateway names [not connected to a hub]")
+        if not self._redis_server:
+            rospy.logerr("Gateway : cannot retrieve remote gateway names [%s][%s]." % (self.name, self.uri))
             return []
         try:
             gateway_keys = self._redis_server.smembers(self._redis_keys['gatewaylist'])
         except redis.ConnectionError as unused_e:
-            rospy.logwarn("Concert Client : lost connection to the hub (probably shut down)")
+            rospy.logwarn("Gateway : lost connection to the hub (probably shut down)")
             raise HubConnectionLostError()
         gateways = []
         for gateway in gateway_keys:
@@ -600,7 +643,7 @@ class Hub(object):
 #    def connect(self, ip, portarg):
 #        try:
 #            self.pool = redis.ConnectionPool(host=ip, port=portarg, db=0)
-#            self.server = redis.Redis(connection_pool=self.pool)
+#            self._redis_server = redis.Redis(connection_pool=self.pool)
 #            rospy.logdebug("Gateway : connected to the hub's redis server.")
 #            self._redis_pubsub_server = self._redis_server.pubsub()
 #            self.uri = str(ip) + ":" + str(portarg)
@@ -707,7 +750,7 @@ class Hub(object):
 #          Return a list of the gateways (name list, not redis keys).
 #          e.g. ['gateway32','pirate33']
 #        '''
-#        if not self.server:
+#        if not self._redis_server:
 #            rospy.logerr("Gateway : cannot retrive remote gateway names [not connected to a hub]")
 #            return []
 #        try:

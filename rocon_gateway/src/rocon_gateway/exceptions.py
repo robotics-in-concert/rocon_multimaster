@@ -45,3 +45,8 @@ class HubNotConnectedError(GatewayError):
 # Raised when the hub's redis server has no key setting for the hub name.
 class HubNameNotFoundError(GatewayError):
     pass
+
+
+# Raised whenever any of the samples falls over in runtime
+class GatewaySampleRuntimeError(Exception):
+    pass
