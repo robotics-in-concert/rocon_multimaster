@@ -48,6 +48,7 @@ def _parse_arguments():
     parser = argparse.ArgumentParser(description=help_string(), formatter_class=RawTextHelpFormatter)
     parser.add_argument('package', nargs='?', default=None, help='name of the package in which to find the test configuration')
     parser.add_argument('test', nargs=1, help='name of the test configuration (xml) file')
+    parser.add_argument('--launch', action='store_true', help='launch each component with rocon_launch [false]')
     parser.add_argument('--screen', action='store_true', help='run each roslaunch with the --screen option')
     args = parser.parse_args()
     # Stop it from being a list (happens when nargs is an integer)
@@ -81,12 +82,9 @@ def test_main():
     finally:
         # really make sure that all of our processes have been killed
         test_parents = runner.get_rocon_test_parents()
-        # don't know why this is appearing in the test window instead of getting logged
-        #printlog("Rostest parent tearDown")
         for r in test_parents:
             r.tearDown()
         del test_parents[:]
-        #printlog("calling pmon_shutdown")
         pmon_shutdown()
     subtest_results = runner.get_results()
 

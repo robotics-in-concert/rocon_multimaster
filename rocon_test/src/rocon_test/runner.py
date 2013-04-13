@@ -107,6 +107,7 @@ def setUp(self):
                                                             )
             rocon_launch_configuration.parent._load_config()
             rocon_launch_configuration.parent.start()
+            printlog("Roslaunch Parent ...................%s" % launcher["path"])
         else:
             rocon_launch_configuration.parent = ROSTestLaunchParent(config, [launcher["path"]], port=o.port)
             rocon_launch_configuration.parent.setUp()
