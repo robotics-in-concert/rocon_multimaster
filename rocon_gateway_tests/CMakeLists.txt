@@ -18,4 +18,5 @@ catkin_python_setup()
 # Tests
 ##############################################################################
 
+add_rocon_test(test/multimaster/advertisements.test)
 add_rocon_test(test/multimaster/graph.test)

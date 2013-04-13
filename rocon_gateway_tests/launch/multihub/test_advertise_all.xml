@@ -1,0 +1,9 @@
+<!--
+  Launches a ros system suitable for testing advertisements
+-->
+<launch>
+  <include file="$(find rocon_gateway_tests)/launch/multihub/multihub_gateway.xml"/>
+  <node pkg="roscpp_tutorials" type="talker" name="talker"/>
+  <node pkg="roscpp_tutorials" type="listener" name="listener"/>
+  <test test-name="advertise_all" pkg="rocon_gateway_tests" type="test_advertise_all.py"/>
+</launch>

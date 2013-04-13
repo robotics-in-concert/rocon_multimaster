@@ -10,7 +10,8 @@
 import rospy
 import sys
 import rocon_utilities.console as console
-import rocon_utilities
+from rocon_gateway import samples
+from rocon_gateway import GatewaySampleRuntimeError
 from rocon_gateway import Graph
 from rocon_gateway import GatewayError
 import unittest
@@ -23,32 +24,33 @@ import rosunit
 class TestGraph(unittest.TestCase):
 
     def setUp(self):
-        rospy.init_node('test_graph')
+        rospy.init_node('test_advertise_all')
         self.graph = Graph()
 
-    def test_graph(self):
-        flips = None
-        while not flips:
-            print("Waiting for flips")
+    def test_advertise_all(self):
+        print("********************************************************************")
+        print("* Advertise All")
+        print("********************************************************************")
+        try:
+            samples.advertise_all()
+        except GatewaySampleRuntimeError as e:
+            self.fail("Runtime error caught when advertising all connections.")
+        public_interface = None
+        while not public_interface:
+            rospy.loginfo("Public Interface")
             self.graph.update()
-            flips = self.graph._local_gateway.flip_watchlist
+            public_interface = self.graph._local_gateway.public_interface
             rospy.sleep(0.2)
-        print("********************************************************************")
-        print("* Local Gateway")
-        print("********************************************************************")
         print("%s" % self.graph._local_gateway)
-        self.assertEquals("1", str(len(flips)))
-        # TODO: this is currently returning the base name, is should be returning the hash name
-        self.assertEquals("remote_gateway", flips[0].gateway)
-        self.assertEquals("publisher", flips[0].rule.type)
-        self.assertEquals("/chatter", flips[0].rule.name)
-        
-        print("********************************************************************")
-        print("* Remote Gateway")
-        print("********************************************************************")
-        print("%s" % self.graph._remote_gateways)
-        for remote_gateway in self.graph._remote_gateways:
-            self.assertEquals("remote_gateway", rocon_utilities.gateway_basename(remote_gateway.name))
+        self.assertEquals("2", str(len(public_interface)))
+        for rule in public_interface:
+            self.assertEquals("/chatter", rule.name)
+            # Should probably assert rule.type and rule.node here as well.
+        # Revert state
+        try:
+            samples.advertise_all(cancel=True) 
+        except GatewaySampleRuntimeError as e:
+            self.fail("Runtime error caught when unadvertising all connections.")
 
     def tearDown(self):
         pass
