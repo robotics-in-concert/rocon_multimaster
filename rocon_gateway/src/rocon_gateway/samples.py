@@ -8,16 +8,30 @@
 ##############################################################################
 
 import rospy
+import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
 
 # local imports
 from .exceptions import GatewaySampleRuntimeError
+from utils import connection_types
 
 ##############################################################################
 # Constants
 ##############################################################################
 
-gateway_namespace = '/gateway'
+_gateway_namespace = '/gateway'
+_tutorial_names = {gateway_msgs.ConnectionType.PUBLISHER: '/chatter',
+         gateway_msgs.ConnectionType.SUBSCRIBER: '/chatter',
+         gateway_msgs.ConnectionType.SERVICE: '/add_two_ints',
+         gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/client',
+         gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/server'
+        }
+_tutorial_nodes = {gateway_msgs.ConnectionType.PUBLISHER: '',
+         gateway_msgs.ConnectionType.SUBSCRIBER: '',
+         gateway_msgs.ConnectionType.SERVICE: '',
+         gateway_msgs.ConnectionType.ACTION_CLIENT: '',
+         gateway_msgs.ConnectionType.ACTION_SERVER: ''
+         }
 
 ##############################################################################
 # Methods
@@ -30,19 +44,39 @@ gateway_namespace = '/gateway'
 ##############################################################################
 
 
-def advertise_all(cancel=False, ns=gateway_namespace):
+def _action_text(cancel=False):
+    text = "cancelling" if cancel else "advertising"
+    return text
+
+
+def advertise_all(cancel=False, ns=_gateway_namespace):
     '''
       Sends a rule for advertising everything except the default blacklist.
     '''
-    advertise_all = rospy.ServiceProxy('/gateway/advertise_all', gateway_srvs.AdvertiseAll)
+    advertise_all = rospy.ServiceProxy(ns + '/advertise_all', gateway_srvs.AdvertiseAll)
     req = gateway_srvs.AdvertiseAllRequest()
     req.cancel = cancel
     req.blacklist = []
-    if cancel:
-        action_text = "cancelling"
-    else:
-        action_text = "advertising"
-    rospy.loginfo("Advertise All : %s all." % action_text)
+    rospy.loginfo("Advertise All : %s all." % _action_text(cancel))
     resp = advertise_all(req)
     if resp.result != 0:
         raise GatewaySampleRuntimeError("failed to advertise all (todo: no error message yet)")
+
+
+def advertise_tutorials(cancel=False, ns=_gateway_namespace):
+    advertise = rospy.ServiceProxy(ns + '/advertise', gateway_srvs.Advertise)
+    req = gateway_srvs.AdvertiseRequest()
+    req.cancel = cancel
+    rule = gateway_msgs.Rule()
+    names = _tutorial_names
+    nodes = _tutorial_nodes
+    for connection_type in connection_types:
+        req.rules = []
+        rule.name = names[connection_type]
+        rule.type = connection_type
+        rule.node = nodes[connection_type]
+        rospy.loginfo("Advertise : %s [%s,%s,%s]." % (_action_text(cancel), rule.type, rule.name, rule.node or 'None'))
+        req.rules.append(rule)
+        resp = advertise(req)
+        if resp.result != 0:
+            raise GatewaySampleRuntimeError("failed to advertise %s [%s]" % (rule.name, resp.error_message))
