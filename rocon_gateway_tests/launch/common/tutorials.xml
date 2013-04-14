@@ -1,8 +1,7 @@
 <!--
-  Advertises all.
--->
+  Advertise all the tutorials. 
+ -->
 <launch>
   <node pkg="roscpp_tutorials" type="talker" name="talker"/>
   <node pkg="roscpp_tutorials" type="listener" name="listener"/>
-  <node name="advertise_all" pkg="rocon_gateway_tests" type="advertise_all.py"/>
 </launch>
