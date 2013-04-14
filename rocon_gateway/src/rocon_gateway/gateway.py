@@ -391,9 +391,9 @@ class Gateway(object):
           @rtype gateway_srvs.RemoteResponse
         '''
         response = gateway_srvs.RemoteResponse()
-#
-#        for remote in request.remotes:
-#            response.result, response.error_message = self._ros_service_remote_checks(remote.gateway)
+
+        for remote in request.remotes:
+            response.result, response.error_message = self._ros_service_remote_checks(remote.gateway)
 #            if response.result != gateway_msgs.ErrorCodes.SUCCESS:
 #                rospy.logerr("Gateway : %s." % response.error_message)
 #                return response

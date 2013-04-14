@@ -98,3 +98,44 @@ def advertise_tutorials(cancel=False, regex_patterns=False, ns=_gateway_namespac
         resp = advertise(req)
         if resp.result != 0:
             raise GatewaySampleRuntimeError("failed to advertise %s [%s]" % (rule.name, resp.error_message))
+
+
+def pull_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
+    '''
+      Sends a rule for pulling everything from the specified remote gateway.
+    '''
+    pull_all = rospy.ServiceProxy(ns + '/pull_all', gateway_srvs.RemoteAll)
+    req = gateway_srvs.RemoteAllRequest()
+    if not remote_gateway_name:
+        remote_gateway_name = find_first_remote_gateway()
+    req.gateway = remote_gateway_name
+    req.cancel = cancel
+    req.blacklist = []
+    rospy.loginfo("Pull All : %s all." % _action_text(cancel))
+    resp = advertise_all(req)
+    if resp.result != 0:
+        raise GatewaySampleRuntimeError("failed to pull all from %s (todo: no error message yet)" % remote_gateway_name)
+
+##############################################################################
+# Utility functions
+##############################################################################
+
+
+def find_first_remote_gateway(ns=_gateway_namespace):
+    '''
+      Parses the remote gateway list to find a gateway to use for testing.
+
+      It's a dumb hack to make testing quite convenient.
+
+      @return gateway string name
+      @rtype string
+    '''
+    remote_gateway_info = rospy.ServiceProxy(ns + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
+    req = gateway_srvs.RemoteGatewayInfoRequest()
+    req.gateways = []
+    resp = remote_gateway_info(req)
+    if len(resp.gateways) == 0:
+        raise GatewaySampleRuntimeError("no remote gateways available")
+    else:
+        return resp.gateways[0].name
+
