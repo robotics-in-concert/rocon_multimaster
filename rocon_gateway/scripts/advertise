@@ -21,29 +21,6 @@ import rocon_utilities
 class Flags(object):
     advertise = 'advertise'
     cancel = 'cancel'
-    
-##############################################################################
-# Logging
-##############################################################################
-
-class Logger(object):
-    def __init(self):
-        self.debug_flag = False
-        
-    def debug(self,msg):
-        if self.debug_flag:
-            console.pretty_print("%s\n"%msg, console.green)
-    
-    def green(self,msg):
-        console.pretty_print("%s\n"%msg, console.green)
-    
-    def warning(self,msg):
-        console.pretty_print("%s\n"%msg, console.yellow)
-    
-    def error(self,msg):
-        console.pretty_print("%s\n"%msg, console.red)
-
-logger = Logger()
 
 ##############################################################################
 # Functions
@@ -53,16 +30,16 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Interactive tool for advertising local connections')
     parser.add_argument('-d', '--debug', action='store_true', help='print debugging information')
     args = parser.parse_args()
-    logger.debug_flag = args.debug
+    console.debug_flag = args.debug
     return args
 
 def resolve_local_gateway():
     master = rocon_gateway.LocalMaster()
     gateway_namespace = master.findGatewayNamespace()
     if not gateway_namespace:
-        logger.error("Could not find a local gateway - did you start it?")
+        console.error("Could not find a local gateway - did you start it?")
         raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
-    logger.debug("Found a local gateway at %s"%gateway_namespace)
+    console.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
 
 def resolve_flags():
@@ -88,8 +65,8 @@ def resolve_unadvertise(advertise_watchlist):
     max_index = len(advertise_watchlist) - 1
     unadvertisements = []
     if max_index == 0:
-        logger.debug("Automatically selecting %s (only one visible)"%advertise_watchlist.rule.name)
-        unflips.append(advertise_watchlist.rule)
+        console.debug("Automatically selecting %s (only one visible)" % advertise_watchlist[0].name)
+        unadvertisements.append(advertise_watchlist[0])
     else:
         print("Select an advertisement to cancel (gateway-name-type-node):")
         for watch_rule in advertise_watchlist:
@@ -131,7 +108,7 @@ def resolve_advertisements(gateway_namespace, advertisements):
     max_index = len(connections) - 1
     advertisement_rules = []
     if max_index == 0:
-        logger.warning("Automatically selecting %s (only one visible)"%connections[0].rule.name)
+        console.warning("Automatically selecting %s (only one visible)"%connections[0].rule.name)
         advertisement_rules.append(connections[0].rule)
     elif max_index < 0:
         raise rocon_gateway.GatewayError("No advertisements possible (all are either advertised or blacklisted).")
@@ -187,7 +164,7 @@ if __name__ == '__main__':
         else:
             rules = resolve_advertisements(gateway_namespace, advertisements)
     except rocon_gateway.GatewayError, e:
-        logger.error(str(e))
+        console.error(str(e))
         sys.exit(1)
     console.pretty_print("Information\n",console.bold)
     print("  Local Gateway: %s"%gateway_namespace)
