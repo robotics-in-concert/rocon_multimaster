@@ -32,6 +32,20 @@ _tutorial_nodes = {gateway_msgs.ConnectionType.PUBLISHER: '',
          gateway_msgs.ConnectionType.ACTION_CLIENT: '',
          gateway_msgs.ConnectionType.ACTION_SERVER: ''
          }
+_tutorial_regex_names = {
+         gateway_msgs.ConnectionType.PUBLISHER: '.*ter',
+         gateway_msgs.ConnectionType.SUBSCRIBER: '.*ter',
+         gateway_msgs.ConnectionType.SERVICE: '/add_two_.*',
+         gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/cli.*',
+         gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/ser.*'
+        }
+_tutorial_regex_nodes = {
+         gateway_msgs.ConnectionType.PUBLISHER: '/t.*er',
+         gateway_msgs.ConnectionType.SUBSCRIBER: '',
+         gateway_msgs.ConnectionType.SERVICE: '',
+         gateway_msgs.ConnectionType.ACTION_CLIENT: '',
+         gateway_msgs.ConnectionType.ACTION_SERVER: ''
+         }
 
 ##############################################################################
 # Methods
@@ -63,13 +77,17 @@ def advertise_all(cancel=False, ns=_gateway_namespace):
         raise GatewaySampleRuntimeError("failed to advertise all (todo: no error message yet)")
 
 
-def advertise_tutorials(cancel=False, ns=_gateway_namespace):
+def advertise_tutorials(cancel=False, regex_patterns=False, ns=_gateway_namespace):
     advertise = rospy.ServiceProxy(ns + '/advertise', gateway_srvs.Advertise)
     req = gateway_srvs.AdvertiseRequest()
     req.cancel = cancel
     rule = gateway_msgs.Rule()
-    names = _tutorial_names
-    nodes = _tutorial_nodes
+    if regex_patterns:
+        names = _tutorial_regex_names
+        nodes = _tutorial_regex_nodes
+    else:
+        names = _tutorial_names
+        nodes = _tutorial_nodes
     for connection_type in connection_types:
         req.rules = []
         rule.name = names[connection_type]
