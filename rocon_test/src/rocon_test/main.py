@@ -49,6 +49,7 @@ def _parse_arguments():
     parser.add_argument('package', nargs='?', default=None, help='name of the package in which to find the test configuration')
     parser.add_argument('test', nargs=1, help='name of the test configuration (xml) file')
     parser.add_argument('-l', '--launch', action='store_true', help='launch each component with rocon_launch [false]')
+    parser.add_argument('-p', '--pause', action='store_true', help='pause before tearing down so you can introspect easily [false]')
     parser.add_argument('-s', '--screen', action='store_true', help='run each roslaunch with the --screen option')
     parser.add_argument('-t', '--text-mode', action='store_true', help='log the rostest output to screen rather than log file.')
     args = parser.parse_args()
@@ -63,11 +64,11 @@ def _parse_arguments():
             raise IOError("Test launcher file does not exist [%s]." % args.test)
         else:
             args.package = rospkg.get_package_name(args.test)
-    return (args.package, args.test, args.screen, args.text_mode)
+    return (args.package, args.test, args.screen, args.pause, args.text_mode)
 
 
 def test_main():
-    (package, name, launch_arguments, text_mode) = _parse_arguments()
+    (package, name, launch_arguments, pause, text_mode) = _parse_arguments()
     rocon_launcher = rocon_utilities.find_resource(package, name)  # raises an IO error if there is a problem.
     launchers = rocon_utilities.parse_rocon_launcher(rocon_launcher, launch_arguments)
     results_log_name, results_file = loggers.configure_logging(package, rocon_launcher)
@@ -75,6 +76,8 @@ def test_main():
     try:
         test_case = runner.create_unit_rocon_test(rocon_launcher, launchers)
         suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
+        if pause:
+            runner.set_pause_mode(True)
         if text_mode:
             runner.set_text_mode(True)
             result = unittest.TextTestRunner(verbosity=2).run(suite)
@@ -84,7 +87,7 @@ def test_main():
                                          is_rostest=True)
             result = xml_runner.run(suite)
     finally:
-        # really make sure that all of our processes have been killed
+        # really make sure that all of our processes have been killed (should be automatic though)
         test_parents = runner.get_rocon_test_parents()
         for r in test_parents:
             r.tearDown()

@@ -30,6 +30,7 @@ from loggers import printlog, printlogerr
 _DEFAULT_TEST_PORT = 22422
 _results = rosunit.junitxml.Result('rocon_test', 0, 0, 0)
 _text_mode = False
+_pause_mode = False
 
 
 def get_results():
@@ -43,6 +44,11 @@ def _accumulate_results(results):
 def set_text_mode(val):
     global _text_mode
     _text_mode = val
+
+
+def set_pause_mode(val):
+    global _pause_mode
+    _pause_mode = val
 
 ##############################################################################
 # Parents
@@ -138,12 +144,15 @@ def tearDown(self):
         config = rocon_launch_configuration.configuration
         parent = rocon_launch_configuration.parent
         launcher = rocon_launch_configuration.launcher
+        if _pause_mode:
+            raw_input("Press Enter to continue...")
+            set_pause_mode(False)  # only trigger pause once
+        printlog("Tear Down - launcher..........................%s" % launcher["path"])
         if config.tests:
             printlog("Tear Down - tests..............................%s" % [test.test_name for test in config.tests])
             if parent:
                 parent.tearDown()
                 printlog("Tear Down - run id............................%s" % parent.run_id)
-                printlog("Tear Down - launcher..........................%s" % launcher["path"])
         else:
             parent.shutdown()
 
