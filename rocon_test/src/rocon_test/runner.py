@@ -110,7 +110,7 @@ def setUp(self):
             rocon_launch_configuration.parent = roslaunch.parent.ROSLaunchParent(
                                                             roslaunch.core.generate_run_id(),
                                                             [launcher["path"]],
-                                                            is_core=True,
+                                                            is_core=False,
                                                             port=o.port,
                                                             verbose=False,
                                                             force_screen=False,
