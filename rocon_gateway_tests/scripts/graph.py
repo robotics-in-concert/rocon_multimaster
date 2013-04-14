@@ -17,6 +17,13 @@ import unittest
 import rosunit
 
 ##############################################################################
+# Logging
+##############################################################################
+
+def printtest(msg):
+    print("[TEST] %s" % msg)
+
+##############################################################################
 # Main
 ##############################################################################
 
@@ -29,24 +36,24 @@ class TestGraph(unittest.TestCase):
     def test_graph(self):
         flips = None
         while not flips:
-            print("Waiting for flips")
+            printtest("Waiting for flips")
             self.graph.update()
             flips = self.graph._local_gateway.flip_watchlist
             rospy.sleep(0.2)
-        print("********************************************************************")
-        print("* Local Gateway")
-        print("********************************************************************")
-        print("%s" % self.graph._local_gateway)
+        printtest("********************************************************************")
+        printtest("* Local Gateway")
+        printtest("********************************************************************")
+        printtest("%s" % self.graph._local_gateway)
         self.assertEquals("1", str(len(flips)))
         # TODO: this is currently returning the base name, is should be returning the hash name
         self.assertEquals("remote_gateway", flips[0].gateway)
         self.assertEquals("publisher", flips[0].rule.type)
         self.assertEquals("/chatter", flips[0].rule.name)
         
-        print("********************************************************************")
-        print("* Remote Gateway")
-        print("********************************************************************")
-        print("%s" % self.graph._remote_gateways)
+        printtest("********************************************************************")
+        printtest("* Remote Gateway")
+        printtest("********************************************************************")
+        printtest("%s" % self.graph._remote_gateways)
         for remote_gateway in self.graph._remote_gateways:
             self.assertEquals("remote_gateway", rocon_utilities.gateway_basename(remote_gateway.name))
 

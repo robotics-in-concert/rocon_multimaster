@@ -48,8 +48,9 @@ def _parse_arguments():
     parser = argparse.ArgumentParser(description=help_string(), formatter_class=RawTextHelpFormatter)
     parser.add_argument('package', nargs='?', default=None, help='name of the package in which to find the test configuration')
     parser.add_argument('test', nargs=1, help='name of the test configuration (xml) file')
-    parser.add_argument('--launch', action='store_true', help='launch each component with rocon_launch [false]')
-    parser.add_argument('--screen', action='store_true', help='run each roslaunch with the --screen option')
+    parser.add_argument('-l', '--launch', action='store_true', help='launch each component with rocon_launch [false]')
+    parser.add_argument('-s', '--screen', action='store_true', help='run each roslaunch with the --screen option')
+    parser.add_argument('-t', '--text-mode', action='store_true', help='log the rostest output to screen rather than log file.')
     args = parser.parse_args()
     # Stop it from being a list (happens when nargs is an integer)
     args.test = args.test[0]
@@ -62,23 +63,26 @@ def _parse_arguments():
             raise IOError("Test launcher file does not exist [%s]." % args.test)
         else:
             args.package = rospkg.get_package_name(args.test)
-    return (args.package, args.test, args.screen)
+    return (args.package, args.test, args.screen, args.text_mode)
 
 
 def test_main():
-    (package, name, launch_arguments) = _parse_arguments()
+    (package, name, launch_arguments, text_mode) = _parse_arguments()
     rocon_launcher = rocon_utilities.find_resource(package, name)  # raises an IO error if there is a problem.
-    log_name = loggers.generate_log_name(package, rocon_launcher)
-    results_file = rosunit.xml_results_file(package, log_name, is_rostest=True)
     launchers = rocon_utilities.parse_rocon_launcher(rocon_launcher, launch_arguments)
+    results_log_name, results_file = loggers.configure_logging(package, rocon_launcher)
 
     try:
         test_case = runner.create_unit_rocon_test(rocon_launcher, launchers)
         suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
-        xml_runner = rosunit.create_xml_runner(package, log_name, \
+        if text_mode:
+            runner.set_text_mode(True)
+            result = unittest.TextTestRunner(verbosity=2).run(suite)
+        else:
+            xml_runner = rosunit.create_xml_runner(package, results_log_name, \
                                          results_file=results_file, \
                                          is_rostest=True)
-        result = xml_runner.run(suite)
+            result = xml_runner.run(suite)
     finally:
         # really make sure that all of our processes have been killed
         test_parents = runner.get_rocon_test_parents()
@@ -94,11 +98,18 @@ def test_main():
     config = rostest.runner.getConfig()
     if config:
         if config.config_errors:
-            print("\n[ROSTEST WARNINGS]" + '-' * 62 + '\n', file=sys.stderr)
+            print("\n[ROCON_TEST WARNINGS]" + '-' * 62 + '\n', file=sys.stderr)
         for err in config.config_errors:
             print(" * %s" % err, file=sys.stderr)
         print('')
-    printRostestSummary(result, subtest_results)
+
+    if not text_mode:
+        printRostestSummary(result, subtest_results)
+        loggers.printlog("results log file is in %s" % results_file)
+
+    # This is not really a useful log, so dont worry about showing it.
+    # if log_name:
+    #     loggers.printlog("rocon_test log file is in %s" % log_name)
 
     if not result.wasSuccessful():
         sys.exit(1)
