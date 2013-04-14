@@ -170,7 +170,6 @@ class Gateway(object):
 #        if state_changed:
 #            self._publish_gateway_info()
 
-#    def update_public_interface(self, connections=None):
     def update_public_interface(self, connections):
         '''
           Process the list of local connections and check against
@@ -180,16 +179,6 @@ class Gateway(object):
           @param connections : list of current local connections parsed from the master
           @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
         '''
-        # Don't think we need any of this anymore, we only call from the watcher thread.
-#        if not self.is_connected:
-#            rospy.logerr("Gateway : advertise call failed [no hub rule].")
-#            return None
-#        if not connections:
-#            try:
-#                connections = self.master.getConnectionState()
-#            except httplib.ResponseNotReady as unused_e:
-#                rospy.logwarn("Received ResponseNotReady from master api")
-#                return None
         new_conns, lost_conns = self.public_interface.update(connections)
         public_interface = self.public_interface.getInterface()
         for connection_type in utils.connection_types:

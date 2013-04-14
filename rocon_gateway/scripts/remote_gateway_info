@@ -14,6 +14,7 @@ import re
 import rospy
 import rocon_gateway
 import gateway_msgs
+import rocon_utilities
 import rocon_utilities.console as console
 import rocon_gateway.utils as utils
 
@@ -71,7 +72,8 @@ if __name__ == '__main__':
     # I wanted to put local ip here 
     for gateway in remote_gateways:
         console.pretty_print("Remote Gateway\n",console.bold)
-        print("  Name       : %s"%gateway.name)
+        print("  Name        : %s" % rocon_utilities.gateway_basename(gateway.name))
+        print("  Hash Name   : %s" % gateway.name)
         print("  Ip/Hostname: %s"%gateway.ip)
         print("  Firewall   : %s"%gateway.firewall)
 
