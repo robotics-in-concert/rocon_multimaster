@@ -13,6 +13,9 @@ import rospy
 import re
 import utils
 import gateway_msgs.msg as gateway_msgs
+
+# local imports
+import rocon_utilities
 from .exceptions import GatewayUnavailableError, HubConnectionLostError, \
               HubNameNotFoundError, HubNotFoundError, HubNotConnectedError
 
@@ -154,6 +157,24 @@ class HubManager(object):
             remote_gateway_names.extend(hub.list_remote_gateway_names())
         # return the list without duplicates
         return list(set(remote_gateway_names))
+
+    def create_remote_gateway_hub_index(self):
+        '''
+          Utility function to parse all hubs for the remote gateways and
+          create a dictionary of the type:
+
+            dic['remote_gateway_name'] = ['hub1', 'hub2']
+
+          where the hub list is a list of actual hub object references.
+        '''
+        dic = {}
+        for hub in self.hubs:
+            for remote_gateway in hub.list_remote_gateway_names():
+                if remote_gateway in dic:
+                    dic[remote_gateway].append(hub)
+                else:
+                    dic[remote_gateway] = [hub]
+        return dic
 
     def remote_gateway_info(self, remote_gateway_name):
         '''
@@ -379,22 +400,45 @@ class Hub(object):
         '''
           Use this when gateway can be a regular expression and
           we need to check it off against list_remote_gateway_names()
+
+          @return a list of matches (higher level decides on action for duplicates).
+          @rtype list[str] : list of remote gateway names.
         '''
+        matches = []
         try:
             for remote_gateway in self.list_remote_gateway_names():
                 if re.match(gateway, remote_gateway):
-                    return True
+                    matches.append(remote_gateway)
         except HubConnectionLostError:
             raise
-        return False
+        return matches
 
-    def get_remote_connection_state(self, gateway):
+    def matches_remote_gateway_basename(self, gateway):
+        '''
+          Use this when gateway can be a regular expression and
+          we need to check it off against list_remote_gateway_names()
+        '''
+        weak_matches = []
+        try:
+            for remote_gateway in self.list_remote_gateway_names():
+                if re.match(gateway, rocon_utilities.gateway_basename(remote_gateway)):
+                    weak_matches.append(remote_gateway)
+        except HubConnectionLostError:
+            raise
+        return weak_matches
+
+    def get_remote_connection_state(self, remote_gateway):
         '''
           Equivalent to getConnectionState, but generates it from the public
-          interface of a foreign gateway
+          interface of a remote gateway
+
+          @param remote_gateway : hash name for a remote gateway
+          @type str
+          @return dictionary of remote advertisements
+          @rtype dictionary of connection type keyed connection values
        '''
         connections = utils.createEmptyConnectionTypeDictionary()
-        key = create_gateway_key(gateway, 'advertisements')
+        key = create_gateway_key(remote_gateway, 'advertisements')
         public_interface = self._redis_server.smembers(key)
         for connection_str in public_interface:
             connection = utils.deserialize_connection(connection_str)

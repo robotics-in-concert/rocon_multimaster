@@ -30,12 +30,15 @@ class Gateway(object):
     '''
       Used to synchronise with hubs.
     '''
-    def __init__(self, hub_manager, param, publish_gateway_info_callback):
+    def __init__(self, hub_manager, param, unique_name, publish_gateway_info_callback):
         '''
-        @param param : a dictionary of many parameters set in ros_parameters.py
-
         @param hub_manager : container for all the hubs this gateway connects to
         @type hub_api.HubManmager
+
+        @param param : parameters set by ros_parameters.py
+        @type : dictionary of parameter key-value pairs
+
+        @param unique_name : gateway name (param['name']) with unique uuid hash appended
 
         @param publish_gateway_info_callback : callback for publishing gateway info
         '''
@@ -44,8 +47,8 @@ class Gateway(object):
         self.master = LocalMaster()
         self.ip = self.master.get_ros_ip()
         self._param = param
+        self._unique_name = unique_name
         self._publish_gateway_info = publish_gateway_info_callback
-#        self.is_connected = False
         default_rule_blacklist = ros_parameters.generate_rules(self._param["default_blacklist"])
         default_rules, all_targets = ros_parameters.generate_remote_rules(self._param["default_flips"])
         self.flipped_interface = FlippedInterface(
@@ -61,7 +64,7 @@ class Gateway(object):
                                                 default_rules=ros_parameters.generate_rules(self._param['default_advertisements'])
                                                 )
         if self._param['advertise_all']:
-            self.public_interface.advertiseAll([])  # no extra blacklist beyond the default (keeping it simple in yaml for now)
+            self.public_interface.advertise_all([])  # no extra blacklist beyond the default (keeping it simple in yaml for now)
         self.remote_gateway_request_callbacks = {}
         self.remote_gateway_request_callbacks['flip'] = self.process_remote_gateway_flip_request
         self.remote_gateway_request_callbacks['unflip'] = self.process_remote_gateway_unflip_request
@@ -128,47 +131,55 @@ class Gateway(object):
 #        if state_changed:
 #            self._publish_gateway_info()
 
-    def update_pulled_interface(self, connections, gateways):
+    def update_pulled_interface(self, connections, remote_gateway_hub_index):
         '''
           Process the list of local connections and check against
           the current pull rules and patterns for changes. If a rule
           has become (un)available take appropriate action.
 
+          This is called by the watcher thread. The remote_gateway_hub_index
+          is always a full dictionary of all remote gateway and hub key-value
+          pairs - it is only included as an argument here to save
+          processing doubly in the watcher thread.
+
           @param connections : list of current local connections parsed from the master
           @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
 
-          @param gateways : list of remote gateway string id's
-          @type string
+          @param remote_gateway_hub_index : key-value remote gateway name-hub list pairs
+          @type dictionary of remote_gateway_name-list of hub_api.Hub objects key-value pairs
         '''
         state_changed = False
-#        for gateway in gateways + self.pulled_interface.list_remote_gateway_names():
-#            connections = self.hub.get_remote_connection_state(gateway)
-#            new_pulls, lost_pulls = self.pulled_interface.update(connections, gateway, self.unique_name)
-#            for connection_type in connections:
-#                for pull in new_pulls[connection_type]:
-#                    for connection in connections[pull.rule.type]:
-#                        if connection.rule.name == pull.rule.name and \
-#                           connection.rule.node == pull.rule.node:
-#                            #corresponding_connection = connection
-#                            break
-#                    # Register this pull
-#                    existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
-#                    if not existing_registration:
-#                        registration = utils.Registration(connection, gateway)
-#                        new_registration = self.master.register(registration)
-#                        self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
-#                        self.hub.post_pull_details(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
-#                        state_changed = True
-#                for pull in lost_pulls[connection_type]:
-#                    # Unregister this pull
-#                    existing_registration = self.pulled_interface.findRegistrationMatch(gateway, pull.rule.name, pull.rule.node, pull.rule.type)
-#                    if existing_registration:
-#                        self.master.unregister(existing_registration)
-#                        self.hub.remove_pull_details(gateway, pull.rule.name, pull.rule.type, pull.rule.node)
-#                        self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
-#                        state_changed = True
-#        if state_changed:
-#            self._publish_gateway_info()
+        for remote_gateway in remote_gateway_hub_index.keys() + self.pulled_interface.list_remote_gateway_names():
+            # this should probably be better....we *should* only need one hub's info, but things could
+            # go very wrong here - keep an eye on it.
+            hub = remote_gateway_hub_index[remote_gateway][0]
+            connections = hub.get_remote_connection_state(remote_gateway)
+            new_pulls, lost_pulls = self.pulled_interface.update(connections, remote_gateway, self._unique_name)
+            for connection_type in connections:
+                for pull in new_pulls[connection_type]:
+                    for connection in connections[pull.rule.type]:
+                        if connection.rule.name == pull.rule.name and \
+                           connection.rule.node == pull.rule.node:
+                            #corresponding_connection = connection
+                            break
+                    # Register this pull
+                    existing_registration = self.pulled_interface.find_registration_match(remote_gateway, pull.rule.name, pull.rule.node, pull.rule.type)
+                    if not existing_registration:
+                        registration = utils.Registration(connection, remote_gateway)
+                        new_registration = self.master.register(registration)
+                        self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
+                        hub.post_pull_details(remote_gateway, pull.rule.name, pull.rule.type, pull.rule.node)
+                        state_changed = True
+                for pull in lost_pulls[connection_type]:
+                    # Unregister this pull
+                    existing_registration = self.pulled_interface.find_registration_match(remote_gateway, pull.rule.name, pull.rule.node, pull.rule.type)
+                    if existing_registration:
+                        self.master.unregister(existing_registration)
+                        hub.remove_pull_details(remote_gateway, pull.rule.name, pull.rule.type, pull.rule.node)
+                        self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
+                        state_changed = True
+        if state_changed:
+            self._publish_gateway_info()
 
     def update_public_interface(self, connections):
         '''
@@ -212,7 +223,7 @@ class Gateway(object):
 #        else:
 #            rospy.loginfo("Gateway : received a flip request %s" % registration)
 #            # probably not necessary as the flipping gateway will already check this
-#            existing_registration = self.flipped_interface.findRegistrationMatch(registration.remote_gateway, registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
+#            existing_registration = self.flipped_interface.find_registration_match(registration.remote_gateway, registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
 #            if not existing_registration:
 #                new_registration = self.master.register(registration)
 #                if new_registration:
@@ -221,7 +232,7 @@ class Gateway(object):
 
     def process_remote_gateway_unflip_request(self, rule, remote_gateway):
         rospy.loginfo("Gateway : received an unflip request from gateway %s: %s" % (remote_gateway, utils.formatRule(rule)))
-#        existing_registration = self.flipped_interface.findRegistrationMatch(remote_gateway, rule.name, rule.node, rule.type)
+#        existing_registration = self.flipped_interface.find_registration_match(remote_gateway, rule.name, rule.node, rule.type)
 #        if existing_registration:
 #            self.master.unregister(existing_registration)
 #            self.flipped_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
@@ -245,22 +256,20 @@ class Gateway(object):
           @rtgateway_srvs.srv.AdvertiseReponse
         '''
         response = gateway_srvs.AdvertiseResponse()
-        response.result, response.error_message = self._ros_service_advertise_checks()
-        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-            try:
-                if not request.cancel:
-                    for rule in request.rules:
-                        if not self.public_interface.add_rule(rule):
-                            response.result = gateway_msgs.ErrorCodes.ADVERTISEMENT_EXISTS
-                            response.error_message = "advertisment rule already exists [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
-                else:
-                    for rule in request.rules:
-                        if not self.public_interface.remove_rule(rule):
-                            response.result = gateway_msgs.ErrorCodes.ADVERTISEMENT_NOT_FOUND
-                            response.error_message = "advertisment not found [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
-            except Exception as e:
-                rospy.logerr("Gateway : unknown advertise error [%s]." % str(e))
-                response.result = gateway_msgs.ErrorCodes.UNKNOWN_ADVERTISEMENT_ERROR
+        try:
+            if not request.cancel:
+                for rule in request.rules:
+                    if not self.public_interface.add_rule(rule):
+                        response.result = gateway_msgs.ErrorCodes.ADVERTISEMENT_EXISTS
+                        response.error_message = "advertisment rule already exists [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
+            else:
+                for rule in request.rules:
+                    if not self.public_interface.remove_rule(rule):
+                        response.result = gateway_msgs.ErrorCodes.ADVERTISEMENT_NOT_FOUND
+                        response.error_message = "advertisment not found [%s:(%s,%s)]" % (rule.name, rule.type, rule.node)
+        except Exception as e:
+            rospy.logerr("Gateway : unknown advertise error [%s]." % str(e))
+            response.result = gateway_msgs.ErrorCodes.UNKNOWN_ADVERTISEMENT_ERROR
 
         # Let the watcher get on with the update asap
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
@@ -284,19 +293,16 @@ class Gateway(object):
           @rtype gateway_srvs.AdvertiseAllReponse
         '''
         response = gateway_srvs.AdvertiseAllResponse()
-        # This just checks if the gateway is connected - that shouldn't be necessary - just dump into the watchlist
-        #response.result, response.error_message = self._ros_service_advertise_checks()
-        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-            try:
-                if not request.cancel:
-                    if not self.public_interface.advertise_all(request.blacklist):
-                        response.result = gateway_msgs.ErrorCodes.ADVERTISEMENT_EXISTS
-                        response.error_message = "already advertising all."
-                else:
-                    self.public_interface.unadvertise_all()
-            except Exception as e:
-                response.result = gateway_msgs.ErrorCodes.UNKNOWN_ADVERTISEMENT_ERROR
-                response.error_message = "unknown advertise all error [%s]" % (str(e))
+        try:
+            if not request.cancel:
+                if not self.public_interface.advertise_all(request.blacklist):
+                    response.result = gateway_msgs.ErrorCodes.ADVERTISEMENT_EXISTS
+                    response.error_message = "already advertising all."
+            else:
+                self.public_interface.unadvertise_all()
+        except Exception as e:
+            response.result = gateway_msgs.ErrorCodes.UNKNOWN_ADVERTISEMENT_ERROR
+            response.error_message = "unknown advertise all error [%s]" % (str(e))
 
         # Let the watcher get on with the update asap
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
@@ -436,30 +442,23 @@ class Gateway(object):
           @rtype gateway_srvs.RemoteAllResponse
         '''
         response = gateway_srvs.RemoteAllResponse()
-#        response.result, response.error_message = self._ros_service_remote_checks(request.gateway)
-#        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-#            if not request.cancel:
-#                if self.pulled_interface.pull_all(request.gateway, request.blacklist):
-#                    rospy.loginfo("Gateway : pulling all from gateway '%s'" % (request.gateway))
-#                else:
-#                    response.result = gateway_msgs.ErrorCodes.FLIP_RULE_ALREADY_EXISTS
-#                    response.error_message = "already pulling all from gateway '%s' " + request.gateway
-#            else:  # request.cancel
-#                self.pulled_interface.unpull_all(request.gateway)
-#                rospy.loginfo("Gateway : cancelling a previous pull all request [%s]" % (request.gateway))
-#        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-#            self._publish_gateway_info()
-#            self.watcher_thread.trigger_update = True
-#        else:
-#            rospy.logerr("Gateway : %s." % response.error_message)
-        return response
-
-    def _ros_service_advertise_checks(self):
-        if not self.is_connected:
-            return gateway_msgs.ErrorCodes.NO_HUB_CONNECTION, "not connected to any hub, aborting"
+        remote_gateway_target_hash_name, response.result, response.error_message = self._ros_service_remote_checks(request.gateway)
+        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
+            if not request.cancel:
+                if self.pulled_interface.pull_all(remote_gateway_target_hash_name, request.blacklist):
+                    rospy.loginfo("Gateway : pulling all from gateway '%s'" % (request.gateway))
+                else:
+                    response.result = gateway_msgs.ErrorCodes.FLIP_RULE_ALREADY_EXISTS
+                    response.error_message = "already pulling all from gateway '%s' " + request.gateway
+            else:  # request.cancel
+                self.pulled_interface.unpull_all(remote_gateway_target_hash_name)
+                rospy.loginfo("Gateway : cancelling a previous pull all request [%s]" % (request.gateway))
+        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
+            self._publish_gateway_info()
+            self.watcher_thread.trigger_update = True
         else:
-            return gateway_msgs.ErrorCodes.SUCCESS, ""
-        return None
+            rospy.logerr("Gateway : %s." % response.error_message)
+        return response
 
     def _ros_service_flip_checks(self, gateway):
         '''
@@ -484,19 +483,35 @@ class Gateway(object):
 
     def _ros_service_remote_checks(self, gateway):
         '''
-          Some simple checks for ros service pulls
+          Some simple checks when pulling or flipping to make sure that the remote gateway is visible. It
+          does a strict check on the hash names first, then falls back to looking for weak matches on the
+          human friendly name.
 
-          @param gateway : target gateway string of the pull
+          @param gateway : remote gateway target name (can be hash or friendly name)
           @type string
           @return pair of result type and message
           @rtype gateway_msgs.ErrorCodes.xxx, string
         '''
-#        if not self.is_connected:
-#            return gateway_msgs.ErrorCodes.NO_HUB_CONNECTION, "not connected to hub, aborting"
-#        elif gateway == self.unique_name:
-#            return gateway_msgs.ErrorCodes.FLIP_NO_TO_SELF, "gateway cannot flip to itself"
-#        elif not self.hub.matches_remote_gateway_name(gateway):
-#            return gateway_msgs.ErrorCodes.FLIP_REMOTE_GATEWAY_NOT_CONNECTED, "remote gateway is currently not connected [%s]" % gateway
-#        else:
-#            return gateway_msgs.ErrorCodes.SUCCESS, ""
-        return None
+        if not self.is_connected():
+            return None, gateway_msgs.ErrorCodes.NO_HUB_CONNECTION, "not connected to hub, aborting"
+        if gateway == self._unique_name:
+            return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_SELF_IS_NOT, "gateway cannot flip to itself"
+        matches = []
+        weak_matches = []  # doesn't match any hash names, but matches a base name
+        for hub in self.hubs:
+            matches.extend(hub.matches_remote_gateway_name(gateway))
+            weak_matches.extend(hub.matches_remote_gateway_basename(gateway))
+        # these are hash name lists, make sure they didn't pick up matches for a single hash name from multiple hubs
+        matches = list(set(matches))
+        weak_matches = list(set(weak_matches))
+        if len(matches) > 1:
+            return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_TARGET_HAS_MULTIPLE_MATCHES, "remote gateway target has multiple matches, invalid [%s][%s]" % (gateway, matches)
+        elif len(matches) == 1:
+            return gateway, gateway_msgs.ErrorCodes.SUCCESS, ""
+        # Fallback to checking for weak matches
+        if len(weak_matches) > 1:
+            return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_TARGET_HAS_MULTIPLE_MATCHES, "remote gateway target has multiple matches against hashed names, invalid [%s]" % weak_matches
+        elif len(weak_matches) == 1:
+            return weak_matches[0], gateway_msgs.ErrorCodes.SUCCESS, ""
+        # Not viisible
+        return gateway_msgs.ErrorCodes.REMOTE_GATEWAY_NOT_VISIBLE, "remote gateway is currently not visible on the hubs [%s]" % gateway

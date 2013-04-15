@@ -245,7 +245,7 @@ class InteractiveInterface(object):
     # Utilities
     ##########################################################################
 
-    def findRegistrationMatch(self, remote_gateway, remote_name, remote_node, connection_type):
+    def find_registration_match(self, remote_gateway, remote_name, remote_node, connection_type):
         '''
           Check to see if a registration exists. Note that it doesn't use the
           local node name in the check. We will get things like unflip requests that

@@ -40,7 +40,7 @@ class GatewayNode():
                              hub_whitelist=self._param['hub_whitelist'],
                              hub_blacklist=self._param['hub_blacklist']
                              )
-        self._gateway = gateway.Gateway(self._hub_manager, self._param, self._publish_gateway_info)
+        self._gateway = gateway.Gateway(self._hub_manager, self._param, self._unique_name, self._publish_gateway_info)
         self._gateway_services = self._setup_ros_services()
         self._gateway_publishers = self._setup_ros_publishers()
         self._hub_discovery_thread = zeroconf.HubDiscovery(self.hub_discovery_update)

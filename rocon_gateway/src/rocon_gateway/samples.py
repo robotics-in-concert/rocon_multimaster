@@ -58,8 +58,8 @@ _tutorial_regex_nodes = {
 ##############################################################################
 
 
-def _action_text(cancel=False):
-    text = "cancelling" if cancel else "advertising"
+def _action_text(cancel=False, msg='acting'):
+    text = "cancelling" if cancel else msg
     return text
 
 
@@ -67,17 +67,19 @@ def advertise_all(cancel=False, ns=_gateway_namespace):
     '''
       Sends a rule for advertising everything except the default blacklist.
     '''
+    rospy.wait_for_service(ns + '/advertise_all')
     advertise_all = rospy.ServiceProxy(ns + '/advertise_all', gateway_srvs.AdvertiseAll)
     req = gateway_srvs.AdvertiseAllRequest()
     req.cancel = cancel
     req.blacklist = []
-    rospy.loginfo("Advertise All : %s all." % _action_text(cancel))
+    rospy.loginfo("Advertise All : %s all." % _action_text(cancel, 'advertising'))
     resp = advertise_all(req)
     if resp.result != 0:
         raise GatewaySampleRuntimeError("failed to advertise all (todo: no error message yet)")
 
 
 def advertise_tutorials(cancel=False, regex_patterns=False, ns=_gateway_namespace):
+    rospy.wait_for_service(ns + '/advertise')
     advertise = rospy.ServiceProxy(ns + '/advertise', gateway_srvs.Advertise)
     req = gateway_srvs.AdvertiseRequest()
     req.cancel = cancel
@@ -93,7 +95,7 @@ def advertise_tutorials(cancel=False, regex_patterns=False, ns=_gateway_namespac
         rule.name = names[connection_type]
         rule.type = connection_type
         rule.node = nodes[connection_type]
-        rospy.loginfo("Advertise : %s [%s,%s,%s]." % (_action_text(cancel), rule.type, rule.name, rule.node or 'None'))
+        rospy.loginfo("Advertise : %s [%s,%s,%s]." % (_action_text(cancel, 'advertising'), rule.type, rule.name, rule.node or 'None'))
         req.rules.append(rule)
         resp = advertise(req)
         if resp.result != 0:
@@ -104,6 +106,7 @@ def pull_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
     '''
       Sends a rule for pulling everything from the specified remote gateway.
     '''
+    rospy.wait_for_service(ns + '/pull_all')
     pull_all = rospy.ServiceProxy(ns + '/pull_all', gateway_srvs.RemoteAll)
     req = gateway_srvs.RemoteAllRequest()
     if not remote_gateway_name:
@@ -111,10 +114,10 @@ def pull_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
     req.gateway = remote_gateway_name
     req.cancel = cancel
     req.blacklist = []
-    rospy.loginfo("Pull All : %s all." % _action_text(cancel))
-    resp = advertise_all(req)
+    rospy.loginfo("Pull All : %s all." % _action_text(cancel, 'pulling'))
+    resp = pull_all(req)
     if resp.result != 0:
-        raise GatewaySampleRuntimeError("failed to pull all from %s (todo: no error message yet)" % remote_gateway_name)
+        raise GatewaySampleRuntimeError("failed to pull all from %s [%s]" % (remote_gateway_name, resp.error_message))
 
 ##############################################################################
 # Utility functions
