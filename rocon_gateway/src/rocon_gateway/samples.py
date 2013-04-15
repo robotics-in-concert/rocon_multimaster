@@ -141,8 +141,6 @@ def pull_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
         rule.node = nodes[connection_type]
         rospy.loginfo("Pull : %s [%s,%s,%s][%s]." % (_action_text(cancel, 'sending pull rule to the gateway'), rule.type, rule.name, rule.node or 'None', remote_gateway_name))
         req.remotes.append(gateway_msgs.RemoteRule(remote_gateway_name, rule))
-    for remote in req.remotes:
-        print("Remote %s" % remote)
     resp = pull(req)
     if resp.result != 0:
         raise GatewaySampleRuntimeError("failed to advertise %s [%s]" % (rule.name, resp.error_message))

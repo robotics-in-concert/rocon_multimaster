@@ -407,7 +407,6 @@ class Gateway(object):
         # result is currently SUCCESS
         added_rules = []
         for remote in request.remotes:
-            print("Remote %s" % remote)
             if not request.cancel:
                 pull_rule = self.pulled_interface.add_rule(remote)
                 if pull_rule:

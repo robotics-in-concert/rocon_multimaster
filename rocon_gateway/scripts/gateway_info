@@ -33,7 +33,7 @@ def resolve_local_gateway():
     gateway_namespace = master.findGatewayNamespace()
     if not gateway_namespace:
         raise rocon_gateway.GatewayError("Could not find a local gateway - did you start it?")
-    console.debug("Found a local gateway at %s"%gateway_namespace)
+    #console.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
    
 def resolve_gateway_info(gateway_namespace):
@@ -57,7 +57,6 @@ if __name__ == '__main__':
     try:
         gateway_namespace = resolve_local_gateway()
         gateway = resolve_gateway_info(gateway_namespace)
-        print("%s" % gateway)
     except rocon_gateway.GatewayError, e:
         console.error(str(e))
         sys.exit(1)

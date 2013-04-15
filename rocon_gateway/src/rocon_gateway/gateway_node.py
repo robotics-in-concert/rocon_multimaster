@@ -164,7 +164,7 @@ class GatewayNode():
     def ros_service_remote_gateway_info(self, request):
         response = gateway_srvs.RemoteGatewayInfoResponse()
         requested_gateways = request.gateways if request.gateways else self._hub_manager.list_remote_gateway_names()
-        for gateway in requested_gateways:
+        for gateway in list(set(requested_gateways)):
             remote_gateway_info = self._hub_manager.remote_gateway_info(gateway)
             if remote_gateway_info:
                 response.gateways.append(remote_gateway_info)

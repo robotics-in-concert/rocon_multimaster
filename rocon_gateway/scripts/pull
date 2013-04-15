@@ -48,7 +48,7 @@ logger = Logger()
 ##############################################################################
 # Functions
 ##############################################################################
-    
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Interactive tool for pulling from remote gateway advertisements')
     parser.add_argument('-d', '--debug', action='store_true', help='print debugging information')
@@ -65,7 +65,7 @@ def resolve_local_gateway():
     logger.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
 
-   
+
 def resolve_remote_gateways(gateway_namespace):
     '''
       @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 

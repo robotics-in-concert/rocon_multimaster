@@ -9,5 +9,6 @@
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
     <rosparam param="hub_uri">http://localhost:6382</rosparam>
     <rosparam param="name">Gateway</rosparam>
+    <rosparam param="watch_loop_period">2</rosparam>
   </node>
 </launch>
