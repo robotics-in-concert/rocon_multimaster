@@ -44,7 +44,7 @@ class InteractiveInterface(object):
         self._default_blacklist = default_rule_blacklist  # dictionary of gateway-gateway_msgs.msg.Rule lists, not RemoteRules!
 
         # keys are connection_types, elements are lists of gateway_msgs.msg.RemoteRule objects
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local rules to flip  
+        self.watchlist = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local rules to flip
 
         # keys are connection_types, elements are lists of utils.Registration objects
         self.registrations = utils.createEmptyConnectionTypeDictionary()  # Flips from remote gateways that have been locally registered
@@ -58,7 +58,7 @@ class InteractiveInterface(object):
         for rule in default_rules:
             self.add_rule(rule)
         for gateway in all_targets:
-            self.add_all(gateway,[])  # don't add the complexity of extra blacklists yet, maybe later
+            self.add_all(gateway, [])  # don't add the complexity of extra blacklists yet, maybe later
 
     ##########################################################################
     # Rules
@@ -80,7 +80,7 @@ class InteractiveInterface(object):
         # Could be a bit smarter here - given regex expressions an added
         # rule may be redundant. It doesn't break the eventual behaviour though
         for watched_rule in self.watchlist[remote_rule.rule.type]:
-            if watched_rule.gateway   == remote_rule.gateway and \
+            if watched_rule.gateway == remote_rule.gateway and \
                watched_rule.rule.name == remote_rule.rule.name and \
                watched_rule.rule.node == remote_rule.rule.node:
                 rule_already_exists = True
@@ -101,7 +101,7 @@ class InteractiveInterface(object):
 
           @param remote_rule : the remote rule to remove from the watchlist.
           @type gateway_msgs.msg.RemoteRule
-         
+
           @return Rules remaining in the watchlist
           @rtype RemoteRule[]
         '''
@@ -277,14 +277,14 @@ class InteractiveInterface(object):
         self._lock.release()
         return matched_registration
 
-    def _isInBlacklist(self, gateway, type, name, node):
+    def _isInBlacklist(self, gateway, connection_type, name, node):
         '''
           Check if a particular connection is in the blacklist. Use this to
           filter connections from the flip_all command.
 
           @todo move to utils - should be shared with the public interface.
         '''
-        for blacklist_rule in self._blacklist[gateway][type]:
+        for blacklist_rule in self._blacklist[gateway][connection_type]:
             name_match_result = re.match(blacklist_rule.name, name)
             if name_match_result and name_match_result.group() == name:
                 if blacklist_rule.node:

@@ -8,7 +8,6 @@
 # Imports
 ##############################################################################
 
-from gateway_msgs.msg import Rule, RemoteRule, ConnectionType
 import copy
 import re
 
@@ -54,7 +53,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     # Monitoring
     ##########################################################################
 
-    def update(self, connections, gateways,unique_name):
+    def update(self, connections, gateways, unique_name):
         '''
           Computes a new flipped interface and returns two dictionaries -
           removed and newly added flips so the watcher thread can take
@@ -115,7 +114,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     ##########################################################################
 
         
-    def _generate_flips(self, type, name, node, gateways,unique_name):
+    def _generate_flips(self, connection_type, name, node, gateways,unique_name):
         '''
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can
@@ -125,7 +124,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           Used in the update() call above that is run in the watcher thread.
           Note, don't need to lock here as the update() function takes care of it.
           
-          @param type : rule type
+          @param connection_type : rule type
           @type str : string constant from gateway_msgs.msg.Rule
           
           @param name : fully qualified topic, service or action name
@@ -141,7 +140,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           @return list of RemoteRule objects updated with node names from self.watchlist
         '''
         matched_flip_rules = []
-        for flip_rule in self.watchlist[type]:
+        for flip_rule in self.watchlist[connection_type]:
             # Check if the flip rule corresponds to an existing gateway
             matched_gateways = []
             for gateway in gateways:

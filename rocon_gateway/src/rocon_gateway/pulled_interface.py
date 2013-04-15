@@ -1,14 +1,13 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_gateway/LICENSE
 #
 
 ##############################################################################
 # Imports
 ##############################################################################
 
-from gateway_msgs.msg import RemoteRule
 import copy
 import re
 
@@ -23,9 +22,9 @@ import interactive_interface
 
 class PulledInterface(interactive_interface.InteractiveInterface):
     '''
-      The flipped interface is the set of rules 
+      The flipped interface is the set of rules
       (pubs/subs/services/actions) and rules controlling flips
-      to other gateways. 
+      to other gateways.
     '''
     def __init__(self, default_rule_blacklist, default_rules, all_targets):
         '''
@@ -38,14 +37,14 @@ class PulledInterface(interactive_interface.InteractiveInterface):
           @param all_targets : static pull all targets to pull to on startup
           @type string[]
         '''
-        interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules, all_targets)
+        interactive_interface.InteractiveInterface.__init__(self, default_rule_blacklist, default_rules, all_targets)
 
         # Function aliases
         self.pulled = self.active
         self.pull_all = self.add_all
         self.unpull_all = self.remove_all
 
-    def update(self,connections, gateway,unique_name):
+    def update(self, connections, gateway, unique_name):
         '''
           Computes a new pulled interface from the incoming connections list
            and returns two dictionaries -
