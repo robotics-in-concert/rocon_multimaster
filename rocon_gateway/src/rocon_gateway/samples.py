@@ -108,16 +108,45 @@ def pull_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
     '''
     rospy.wait_for_service(ns + '/pull_all')
     pull_all = rospy.ServiceProxy(ns + '/pull_all', gateway_srvs.RemoteAll)
-    req = gateway_srvs.RemoteAllRequest()
     if not remote_gateway_name:
         remote_gateway_name = find_first_remote_gateway()
+    req = gateway_srvs.RemoteAllRequest()
     req.gateway = remote_gateway_name
     req.cancel = cancel
     req.blacklist = []
-    rospy.loginfo("Pull All : %s all." % _action_text(cancel, 'pulling'))
+    rospy.loginfo("Pull All : %s." % _action_text(cancel, 'sending pull rule for all to the gateway'))
     resp = pull_all(req)
     if resp.result != 0:
         raise GatewaySampleRuntimeError("failed to pull all from %s [%s]" % (remote_gateway_name, resp.error_message))
+
+
+def pull_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False, ns=_gateway_namespace):
+    rospy.wait_for_service(ns + '/pull')
+    pull = rospy.ServiceProxy(ns + '/pull', gateway_srvs.Remote)
+    if not remote_gateway_name:
+        remote_gateway_name = find_first_remote_gateway()
+    req = gateway_srvs.RemoteRequest()
+    req.cancel = cancel
+    if regex_patterns:
+        names = _tutorial_regex_names
+        nodes = _tutorial_regex_nodes
+    else:
+        names = _tutorial_names
+        nodes = _tutorial_nodes
+    req.remotes = []
+    for connection_type in connection_types:
+        rule = gateway_msgs.Rule()
+        rule.name = names[connection_type]
+        rule.type = connection_type
+        rule.node = nodes[connection_type]
+        rospy.loginfo("Pull : %s [%s,%s,%s][%s]." % (_action_text(cancel, 'sending pull rule to the gateway'), rule.type, rule.name, rule.node or 'None', remote_gateway_name))
+        req.remotes.append(gateway_msgs.RemoteRule(remote_gateway_name, rule))
+    for remote in req.remotes:
+        print("Remote %s" % remote)
+    resp = pull(req)
+    if resp.result != 0:
+        raise GatewaySampleRuntimeError("failed to advertise %s [%s]" % (rule.name, resp.error_message))
+
 
 ##############################################################################
 # Utility functions
