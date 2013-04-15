@@ -146,6 +146,25 @@ def pull_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
         raise GatewaySampleRuntimeError("failed to advertise %s [%s]" % (rule.name, resp.error_message))
 
 
+def flip_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
+    '''
+      Sends a rule for flipping everything to the specified remote gateway.
+    '''
+    rospy.wait_for_service(ns + '/flip_all')
+    flip_all = rospy.ServiceProxy(ns + '/flip_all', gateway_srvs.RemoteAll)
+    if not remote_gateway_name:
+        remote_gateway_name = find_first_remote_gateway()
+    req = gateway_srvs.RemoteAllRequest()
+    req.gateway = remote_gateway_name
+    req.cancel = cancel
+    req.blacklist = []
+    rospy.loginfo("Flip All : %s [%s]." % (_action_text(cancel, 'sending flip rule for all to the gateway'), remote_gateway_name))
+    resp = flip_all(req)
+    if resp.result != 0:
+        raise GatewaySampleRuntimeError("failed to flip all to %s [%s]" % (remote_gateway_name, resp.error_message))
+
+
+
 ##############################################################################
 # Utility functions
 ##############################################################################
@@ -168,4 +187,3 @@ def find_first_remote_gateway(ns=_gateway_namespace):
         raise GatewaySampleRuntimeError("no remote gateways available")
     else:
         return resp.gateways[0].name
-

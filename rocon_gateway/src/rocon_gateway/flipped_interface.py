@@ -53,7 +53,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     # Monitoring
     ##########################################################################
 
-    def update(self, connections, gateways, unique_name):
+    def update(self, connections, remote_gateway_hub_index, unique_name):
         '''
           Computes a new flipped interface and returns two dictionaries -
           removed and newly added flips so the watcher thread can take
@@ -65,10 +65,10 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           @param connections : list of all the system state connections from the local master
           @type connection type keyed dictionary of utils.Connection lists.
 
-          @param gateways : gateways that are available (registered on the hub)
-          @type string
+          @param remote_gateway_hub_index : full gateway-hub database index to parse
+          @type gateway hash names keyed into a dic with a list of their hubs
 
-          @return new_flips, old_flips
+          @return new_flips, removed_flips (i.e. those that are no longer on the local master)
           @rtype pair of connection type keyed dictionary of gateway_msgs.msg.Rule lists.
         '''
         # SLOW, EASY METHOD
@@ -76,17 +76,18 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         flipped = utils.createEmptyConnectionTypeDictionary()
         new_flips = utils.createEmptyConnectionTypeDictionary()
         removed_flips = utils.createEmptyConnectionTypeDictionary()
+        remote_gateways = remote_gateway_hub_index.keys()
         diff = lambda l1,l2: [x for x in l1 if x not in l2]  # diff of lists
         self._lock.acquire()
-        # Prune flips that are not in the gateway list anymore, keep the rules though
+        # Prune flips that are not in the gateway-hub index anymore, keep the rules though
         for connection_type in utils.connection_types:
-            self.flipped[connection_type] = [flip for flip in self.flipped[connection_type] if flip.gateway in gateways]
+            self.flipped[connection_type] = [flip for flip in self.flipped[connection_type] if flip.gateway in remote_gateways]
         # Totally regenerate a new flipped interface, compare with old
         for connection_type in connections:
             for connection in connections[connection_type]:
-                flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, gateways,unique_name))
+                flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, remote_gateways, unique_name))
             new_flips[connection_type] = diff(flipped[connection_type],self.flipped[connection_type])
-            removed_flips[connection_type] = diff(self.flipped[connection_type],flipped[connection_type])
+            removed_flips[connection_type] = diff(self.flipped[connection_type], flipped[connection_type])
         self.flipped = copy.deepcopy(flipped)
         self._lock.release()
         return new_flips, removed_flips
@@ -114,7 +115,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     ##########################################################################
 
         
-    def _generate_flips(self, connection_type, name, node, gateways,unique_name):
+    def _generate_flips(self, connection_type, name, node, remote_gateways, unique_name):
         '''
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can
@@ -143,7 +144,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         for flip_rule in self.watchlist[connection_type]:
             # Check if the flip rule corresponds to an existing gateway
             matched_gateways = []
-            for gateway in gateways:
+            for gateway in remote_gateways:
                 gateway_match_result = re.match(flip_rule.gateway, gateway)
                 if gateway_match_result and gateway_match_result.group() == gateway:
                     matched_gateways.append(gateway)
@@ -152,15 +153,16 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
             # Check names
             rule_name = flip_rule.rule.name
-            matched = self.is_matched(flip_rule,rule_name,name,node)
+            matched = self.is_matched(flip_rule, rule_name, name,node)
 
-            if not matched:
-                rule_name = '/' + unique_name + '/' + flip_rule.rule.name
-                matched = self.is_matched(flip_rule,rule_name,name,node)
-
-            if not matched: 
-                rule_name = '/' + flip_rule.rule.name
-                matched = self.is_matched(flip_rule,rule_name,name,node)
+            if not utils.is_all_pattern(flip_rule.rule.name):
+                if not matched:
+                    rule_name = '/' + unique_name + '/' + flip_rule.rule.name
+                    matched = self.is_matched(flip_rule, rule_name, name,node)
+    
+                if not matched: 
+                    rule_name = '/' + flip_rule.rule.name
+                    matched = self.is_matched(flip_rule, rule_name, name, node)
 
             if matched:
                 for gateway in matched_gateways:
@@ -169,6 +171,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                     matched_flip.rule.name = name  # just in case we used a regex
                     matched_flip.rule.node = node  # just in case we used a regex
                     matched_flip_rules.append(matched_flip)
+
         return matched_flip_rules
     
     ##########################################################################

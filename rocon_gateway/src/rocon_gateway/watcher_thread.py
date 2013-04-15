@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_gateway/LICENSE
 #
 ##############################################################################
 # Imports
@@ -64,7 +64,7 @@ class WatcherThread(threading.Thread):
                 except HubConnectionLostError:
                     rospy.logwarn("Gateway : lost connection to the hub, watcher thread aborting.")
                     break
-#                self._gateway.update_flip_interface(connections, remote_gateway_hub_index)
+                self._gateway.update_flipped_interface(connections, remote_gateway_hub_index)
                 self._gateway.update_public_interface(connections)
                 self._gateway.update_pulled_interface(connections, remote_gateway_hub_index)
             self._sleep()

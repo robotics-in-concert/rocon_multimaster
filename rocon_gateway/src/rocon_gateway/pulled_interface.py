@@ -22,13 +22,13 @@ import interactive_interface
 
 class PulledInterface(interactive_interface.InteractiveInterface):
     '''
-      The flipped interface is the set of rules
-      (pubs/subs/services/actions) and rules controlling flips
-      to other gateways.
+      The pulled interface is the set of rules
+      (pubs/subs/services/actions) and rules controlling pulls from
+      other gateways.
     '''
     def __init__(self, default_rule_blacklist, default_rules, all_targets):
         '''
-          Initialises the flipped interface.
+          Initialises the pulled interface.
 
           @param default_rule_blacklist : used when in flip all mode
           @type dictionary of gateway
@@ -44,6 +44,10 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         self.pull_all = self.add_all
         self.unpull_all = self.remove_all
 
+    # WARNING : I think we have a problem here - it is only generating a
+    # pulled interface from one gateway and totally regenerating self.pulled
+    # from just that. Likely broken if two things are pulling at the same time.
+    # Compare with flips, which does things differently.
     def update(self, connections, gateway, unique_name):
         '''
           Computes a new pulled interface from the incoming connections list
@@ -55,20 +59,20 @@ class PulledInterface(interactive_interface.InteractiveInterface):
           additions come from ros service calls in different threads!)
         '''
         # SLOW, EASY METHOD
-        #   Totally regenerate a new flipped interface, compare with old
-        flipped = utils.createEmptyConnectionTypeDictionary()
-        new_flips = utils.createEmptyConnectionTypeDictionary()
-        removed_flips = utils.createEmptyConnectionTypeDictionary()
+        #   Totally regenerate a new pulled interface, compare with old
+        pulled = utils.createEmptyConnectionTypeDictionary()
+        new_pulls = utils.createEmptyConnectionTypeDictionary()
+        removed_pulls = utils.createEmptyConnectionTypeDictionary()
         diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
         self._lock.acquire()
         for connection_type in connections:
             for connection in connections[connection_type]:
-                flipped[connection_type].extend(self._generatePulls(connection.rule.type, connection.rule.name, connection.rule.node, gateway,unique_name))
-            new_flips[connection_type] = diff(flipped[connection_type],self.pulled[connection_type])
-            removed_flips[connection_type] = diff(self.pulled[connection_type],flipped[connection_type])
-        self.pulled = copy.deepcopy(flipped)
+                pulled[connection_type].extend(self._generatePulls(connection.rule.type, connection.rule.name, connection.rule.node, gateway,unique_name))
+            new_pulls[connection_type] = diff(pulled[connection_type], self.pulled[connection_type])
+            removed_pulls[connection_type] = diff(self.pulled[connection_type], pulled[connection_type])
+        self.pulled = copy.deepcopy(pulled)
         self._lock.release()
-        return new_flips, removed_flips
+        return new_pulls, removed_pulls
         
         # OPTIMISED METHOD
         #   Keep old rule state and old flip rules/patterns around
@@ -78,7 +82,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         #         If not all are, remove and unflip them
         #
         #   2 - If rules disappeared [diff(old_conns,new_conns)]
-        #         If matching any in flipped, remove and unflip
+        #         If matching any in pulled, remove and unflip
         #
         #   3 - If flip rules/patterns appeared [diff(new_rules,old_rules)]
         #         parse all conns, if match found, flip
@@ -97,7 +101,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can
           return multiple matches, since the same local rule 
-          properties can be multiply flipped to different remote gateways.
+          properties can be multiply pulled to different remote gateways.
             
           Used in the update() call above that is run in the watcher thread.
           

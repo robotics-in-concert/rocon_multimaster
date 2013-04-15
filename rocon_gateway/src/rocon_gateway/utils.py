@@ -163,11 +163,9 @@ def get_rule_from_list(list):
 ##########################################################################
 
 
-def isAllPattern(pattern):
+def is_all_pattern(pattern):
     '''
-      Convenience function for detecting the flip all pattern.
-
-      @todo move to utils - should be shared with the public interface.
+      Convenience function for detecting the 'all' pattern.
 
       @param pattern : the name rule string for the flip all concept
       @type str

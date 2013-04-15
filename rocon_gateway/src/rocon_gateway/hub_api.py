@@ -192,6 +192,30 @@ class HubManager(object):
                 return hub.remote_gateway_info(remote_gateway_name)
         return None
 
+    def get_remote_gateway_firewall_flag(self, remote_gateway_name):
+        '''
+          Return information that a remote gateway has posted on the hub(s).
+
+          @param remote_gateway_name : the hash name for the remote gateway
+          @type string
+
+          @return True, false if the flag is set or not, None if remote
+                  gateway information cannot found
+          @rtype Bool
+
+          @raise GatewayUnavailableError if it can't find the remote
+                 gateway's information on the hub
+        '''
+        for hub in self.hubs:
+            if remote_gateway_name in hub.list_remote_gateway_names():
+                # I don't think we need more than one hub's info....
+                try:
+                    return hub.get_remote_gateway_firewall_flag(remote_gateway_name)
+                except GatewayUnavailableError:
+                    pass  # cycle through the other hubs looking as well.
+        # ok, no luck
+        raise GatewayUnavailableError
+
     ##########################################################################
     # Hub Connections
     ##########################################################################
@@ -573,7 +597,7 @@ class Hub(object):
     # Gateway-Gateway Communications
     ##########################################################################
 
-    def send_flip_request(self, gateway, connection):
+    def send_flip_request(self, remote_gateway, connection):
         '''
           Sends a message to the remote gateway via redis pubsub channel. This is called from the
           watcher thread, when a flip rule gets activated.
@@ -603,48 +627,48 @@ class Hub(object):
         source = key_base_name(self._redis_keys['gateway'])
         cmd = utils.serialize_connection_request('flip', source, connection)
         try:
-            self._redis_server.publish(create_key(gateway), cmd)
+            self._redis_server.publish(create_key(remote_gateway), cmd)
         except Exception as unused_e:
             return False
         return True
 
-    def send_unflip_request(self, gateway, rule):
+    def send_unflip_request(self, remote_gateway, rule):
         if rule.type == gateway_msgs.ConnectionType.ACTION_CLIENT:
             action_name = rule.name
             rule.type = gateway_msgs.ConnectionType.PUBLISHER
             rule.name = action_name + "/goal"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
             rule.name = action_name + "/cancel"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
             rule.type = gateway_msgs.ConnectionType.SUBSCRIBER
             rule.name = action_name + "/feedback"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
             rule.name = action_name + "/status"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
             rule.name = action_name + "/result"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
         elif rule.type == gateway_msgs.ConnectionType.ACTION_SERVER:
             action_name = rule.name
             rule.type = gateway_msgs.ConnectionType.SUBSCRIBER
             rule.name = action_name + "/goal"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
             rule.name = action_name + "/cancel"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
             rule.type = gateway_msgs.ConnectionType.PUBLISHER
             rule.name = action_name + "/feedback"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
             rule.name = action_name + "/status"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
             rule.name = action_name + "/result"
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
         else:
-            self._send_unflip_request(gateway, rule)
+            self._send_unflip_request(remote_gateway, rule)
 
-    def _send_unflip_request(self, gateway, rule):
+    def _send_unflip_request(self, remote_gateway, rule):
         source = key_base_name(self._redis_keys['gateway'])
         cmd = utils.serialize_rule_request('unflip', source, rule)
         try:
-            self._redis_server.publish(create_key(gateway), cmd)
+            self._redis_server.publish(create_key(remote_gateway), cmd)
         except Exception as unused_e:
             return False
         return True

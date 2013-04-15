@@ -10,5 +10,6 @@
     <rosparam param="hub_uri">http://localhost:6382</rosparam>
     <rosparam param="name">Gateway</rosparam>
     <rosparam param="watch_loop_period">2</rosparam>
+    <rosparam param="firewall">false</rosparam>
   </node>
 </launch>
