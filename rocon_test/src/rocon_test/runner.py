@@ -102,13 +102,16 @@ def setUp(self):
     # new parent for each run. we are a bit inefficient as it would be possible to
     # reuse the roslaunch base infrastructure for each test, but the roslaunch code
     # is not abstracted well enough yet
+    uuids = {}
     for rocon_launch_configuration in self.rocon_launch_configurations:
         config = rocon_launch_configuration.configuration
         launcher = rocon_launch_configuration.launcher
         o = urlparse(config.master.uri)
         if not config.tests:
+            if o.port not in uuids.keys():
+                uuids[o.port] = roslaunch.core.generate_run_id()
             rocon_launch_configuration.parent = roslaunch.parent.ROSLaunchParent(
-                                                            roslaunch.core.generate_run_id(),
+                                                            uuids[o.port],
                                                             [launcher["path"]],
                                                             is_core=False,
                                                             port=o.port,
