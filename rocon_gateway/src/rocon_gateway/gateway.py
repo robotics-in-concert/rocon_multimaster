@@ -20,7 +20,6 @@ from .flipped_interface import FlippedInterface
 from .public_interface import PublicInterface
 from .pulled_interface import PulledInterface
 from .master_api import LocalMaster
-import exceptions
 
 ###############################################################################
 # Thread
@@ -44,7 +43,6 @@ class Gateway(object):
         @param publish_gateway_info_callback : callback for publishing gateway info
         '''
         self.hub_manager = hub_manager
-        self.hubs = hub_manager.hubs
         self.master = LocalMaster()
         self.ip = self.master.get_ros_ip()
         self._param = param
@@ -80,6 +78,8 @@ class Gateway(object):
                 self.hub_manager.send_unflip_request(flip.gateway, flip.rule)
             for registration in self.flipped_interface.registrations[connection_type]:
                 self.master.unregister(registration)
+            for registration in self.pulled_interface.registrations[connection_type]:
+                self.master.unregister(registration)
 
     def is_connected(self):
         '''
@@ -89,7 +89,16 @@ class Gateway(object):
           @return True if at least one hub is connected, False otherwise
           @rtype Bool
         '''
-        return True if self.hubs else False
+        return self.hub_manager.is_connected()
+
+    def disengage_hub(self, hub):
+        '''
+          Disengage from the specified hub. Don't actually need to clean up connections
+          here like we do in shutdown - that can be handled from the watcher thread itself.
+
+          @param hub : the hub that will be deleted.
+        '''
+        self.hub_manager.disengage_hub(hub)
 
     ##########################################################################
     # Update interface states (jobs assigned from watcher thread)
@@ -198,12 +207,10 @@ class Gateway(object):
         for connection_type in utils.connection_types:
             for connection in new_conns[connection_type]:
                 rospy.loginfo("Gateway : adding rule to public interface %s" % utils.formatRule(connection.rule))
-                for hub in self.hubs:
-                    hub.advertise(connection)
+                self.hub_manager.advertise(connection)
             for connection in lost_conns[connection_type]:
                 rospy.loginfo("Gateway : removing rule to public interface %s" % utils.formatRule(connection.rule))
-                for hub in self.hubs:
-                    hub.unadvertise(connection)
+                self.hub_manager.unadvertise(connection)
         if new_conns or lost_conns:
             self._publish_gateway_info()
         return public_interface
@@ -480,15 +487,13 @@ class Gateway(object):
           @return pair of result type and message
           @rtype gateway_msgs.ErrorCodes.xxx, string
         '''
-        firewall_flag = False
-        try:
-            firewall_flag = self.hub_manager.get_remote_gateway_firewall_flag(remote_gateway_hash_name)
-            if firewall_flag == True:
-                return gateway_msgs.ErrorCodes.FLIP_REMOTE_GATEWAY_FIREWALLING, "remote gateway is firewalling flip requests, aborting [%s]" % remote_gateway_hash_name
-        except exceptions.GatewayUnavailableError:
-            # Not visible
+        firewall_flag = self.hub_manager.get_remote_gateway_firewall_flag(remote_gateway_hash_name)
+        if firewall_flag == True:
+            return gateway_msgs.ErrorCodes.FLIP_REMOTE_GATEWAY_FIREWALLING, "remote gateway is firewalling flip requests, aborting [%s]" % remote_gateway_hash_name
+        elif firewall_flag is None:  # Not visible
             return gateway_msgs.ErrorCodes.REMOTE_GATEWAY_NOT_VISIBLE, "remote gateway is currently not visible on the hubs [%s]" % remote_gateway_hash_name
-        return gateway_msgs.ErrorCodes.SUCCESS, ""
+        else:
+            return gateway_msgs.ErrorCodes.SUCCESS, ""
 
     def _ros_service_remote_checks(self, gateway):
         '''
@@ -505,14 +510,7 @@ class Gateway(object):
             return None, gateway_msgs.ErrorCodes.NO_HUB_CONNECTION, "not connected to hub, aborting"
         if gateway == self._unique_name:
             return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_SELF_IS_NOT, "gateway cannot flip to itself"
-        matches = []
-        weak_matches = []  # doesn't match any hash names, but matches a base name
-        for hub in self.hubs:
-            matches.extend(hub.matches_remote_gateway_name(gateway))
-            weak_matches.extend(hub.matches_remote_gateway_basename(gateway))
-        # these are hash name lists, make sure they didn't pick up matches for a single hash name from multiple hubs
-        matches = list(set(matches))
-        weak_matches = list(set(weak_matches))
+        matches, weak_matches = self.hub_manager.match_remote_gateway_name(gateway)
         if len(matches) > 1:
             return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_TARGET_HAS_MULTIPLE_MATCHES, "remote gateway target has multiple matches, invalid [%s][%s]" % (gateway, matches)
         elif len(matches) == 1:

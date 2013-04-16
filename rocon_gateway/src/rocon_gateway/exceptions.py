@@ -30,6 +30,18 @@ class ConnectionTypeError(GatewayError):
 
 class HubConnectionLostError(GatewayError):
     pass
+#    '''
+#      Throw an exception with the hub to be handled.
+#    '''
+#    def __init__(self, hub):
+#        '''
+#          @param message : usual exception message
+#          @param hub : hub that lost connection
+#          @type : hub_api.Hub
+#        '''
+#        # Call the base class constructor with the parameters it needs
+#        GatewayError.__init__(self, '')
+#        self.hub = hub
 
 
 # Raised when the gateway can't connect to the hub's redis server

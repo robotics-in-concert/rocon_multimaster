@@ -18,6 +18,7 @@ from urlparse import urlparse
 import zeroconf
 import gateway
 import hub_api
+import exceptions
 
 ##############################################################################
 # Gateway Configuration and Main Loop Class
@@ -57,7 +58,7 @@ class GatewayNode():
             self._hub_manager.shutdown()
             self._hub_discovery_thread.shutdown()
         except Exception as e:
-            rospy.logerr("Gateway : error on shutdown [%s]" % str(e))
+            rospy.logerr("Gateway : unknown error on shutdown [%s][%s]" % (str(e), type(e)))
 
     ##########################################################################
     # Hub Discovery & Connection
@@ -72,11 +73,23 @@ class GatewayNode():
             hub.register_gateway(self._param['firewall'],
                                  self._unique_name,
                                  self._gateway.remote_gateway_request_callbacks,
+                                 self._gateway.disengage_hub,  # hub connection lost hook
                                  self._gateway.ip
                                  )
             self._publish_gateway_info()
         else:
             rospy.logwarn("Gateway : %s" % error_code_str)
+
+# Don't worry about undiscovery, redis pubsub thread will catch these
+#    def hub_undiscovery_update(self, ip, port):
+#        '''
+#          Hook that is triggered when the zeroconf module undiscovers a hub.
+#        '''
+#        hub = self._hub_manager.find_hub(ip, port)
+#        if hub is None:
+#            rospy.logwarn("Gateway: zeroconf module undiscovered, but no associated hub found.")
+#        else:
+#            self._gateway.disengage_hub(hub)
 
     def _hub_direct_attack(self, uri):
         '''
@@ -90,6 +103,7 @@ class GatewayNode():
             hub.register_gateway(self._param['firewall'],
                                  self._unique_name,
                                  self._gateway.remote_gateway_request_callbacks,
+                                 self._gateway.disengage_hub,  # hub connection lost hook
                                  self._gateway.ip
                                  )
         else:

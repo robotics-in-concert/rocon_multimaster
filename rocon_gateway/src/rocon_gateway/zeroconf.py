@@ -50,11 +50,16 @@ class HubDiscovery(threading.Thread):
         '''
         self._internal_sleep_period = rospy.Duration(0, 200000000)  # 200ms
         while not rospy.is_shutdown() and not self._trigger_shutdown:
-            new_services = self._scan()
+            new_services, unused_lost_services = self._scan()
             for service in new_services:
                 (ip, port) = _resolve_address(service)
-                rospy.loginfo("Gateway : discovered hub via zeroconf at " + str(ip) + ":" + str(port))
+                rospy.loginfo("Gateway : discovered hub via zeroconf at [%s][%s:%s]" % (service.name, str(ip), str(port)))
                 self.discovery_update_hook(ip, port)
+            # Don't worry about lost services - the redis pubsub listener thread will catch disconnections
+#            for service in lost_services:
+#                (ip, port) = _resolve_address(service)
+#                rospy.loginfo("Gateway : undiscovered hub via zeroconf [%s][%s:%s]" % (service.name, str(ip), str(port)))
+#                self.undiscovery_update_hook(ip, port)
             rospy.sleep(self._internal_sleep_period)
 
     #############################
@@ -71,9 +76,10 @@ class HubDiscovery(threading.Thread):
         response = self._list_discovered_services(self._discovery_request)
         difference = lambda l1,l2: [x for x in l1 if x not in l2]
         new_services = difference(response.services, self._discovered_hubs)
-        self._discovered_hubs.extend(new_services)
-        return new_services
-
+        lost_services = difference(self._discovered_hubs, response.services)
+        self._discovered_hubs = response.services
+        #self._discovered_hubs.extend(new_services)
+        return new_services, lost_services
 
 
 ###############################################################################
@@ -92,6 +98,10 @@ def _resolve_address(msg):
     return (ip, msg.port)
 
 def _zeroconf_services_available():
+    '''
+      Check for zeroconf services on startup. If none is found within a suitable
+      timeout, disable this module.
+    '''
     zeroconf_timeout = 5  # Amount of time to wait for the zeroconf services to appear
     rospy.loginfo("Gateway : checking if zeroconf services are available...")
     try:

@@ -82,10 +82,11 @@ class RedisListenerThread(threading.Thread):
       Tunes into the redis channels that have been subscribed to and
       calls the apropriate callbacks.
     '''
-    def __init__(self, redis_pubsub_server, remote_gateway_request_callbacks):
+    def __init__(self, redis_pubsub_server, remote_gateway_request_callbacks, hub_connection_lost_hook):
         threading.Thread.__init__(self)
         self._redis_pubsub_server = redis_pubsub_server
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
+        self._hub_connection_lost_hook = hub_connection_lost_hook
 
     def run(self):
         '''
@@ -104,6 +105,7 @@ class RedisListenerThread(threading.Thread):
           The command 'unflip' is the same, not including args 5 and 6.
         '''
         try:
+            # This is a generator so it will keep spitting out (alt. to having a while loop here)
             for r in self._redis_pubsub_server.listen():
                 if r['type'] != 'unsubscribe' and r['type'] != 'subscribe':
                     command, source, contents = utils.deserialize_request(r['data'])
@@ -116,7 +118,7 @@ class RedisListenerThread(threading.Thread):
                     else:
                         rospy.logerr("Gateway : received an unknown command from the hub.")
         except redis.exceptions.ConnectionError:
-            rospy.logwarn("Gateway : lost connection to the hub (probably shut down)")
+            self._hub_connection_lost_hook()
 
 ##############################################################################
 # Hub Manager - Redis Implementation
@@ -134,10 +136,14 @@ class HubManager(object):
         self._param['hub_whitelist'] = hub_whitelist
         self._param['hub_blacklist'] = hub_blacklist
         self.hubs = []
+        self._hub_lock = threading.Lock()
 
     def shutdown(self):
         for hub in self.hubs:
             hub.unregister_gateway()
+
+    def is_connected(self):
+        return True if self.hubs else False
 
     ##########################################################################
     # Introspection
@@ -153,8 +159,10 @@ class HubManager(object):
           @rtype list of str
         '''
         remote_gateway_names = []
+        self._hub_lock.acquire()
         for hub in self.hubs:
             remote_gateway_names.extend(hub.list_remote_gateway_names())
+        self._hub_lock.release()
         # return the list without duplicates
         return list(set(remote_gateway_names))
 
@@ -168,12 +176,14 @@ class HubManager(object):
           where the hub list is a list of actual hub object references.
         '''
         dic = {}
+        self._hub_lock.acquire()
         for hub in self.hubs:
             for remote_gateway in hub.list_remote_gateway_names():
                 if remote_gateway in dic:
                     dic[remote_gateway].append(hub)
                 else:
                     dic[remote_gateway] = [hub]
+        self._hub_lock.release()
         return dic
 
     def remote_gateway_info(self, remote_gateway_name):
@@ -186,11 +196,15 @@ class HubManager(object):
           @return remote gateway information
           @rtype gateway_msgs.RemotGateway or None
         '''
+        remote_gateway_info = None
+        self._hub_lock.acquire()
         for hub in self.hubs:
             if remote_gateway_name in hub.list_remote_gateway_names():
                 # I don't think we need more than one hub's info....
-                return hub.remote_gateway_info(remote_gateway_name)
-        return None
+                remote_gateway_info = hub.remote_gateway_info(remote_gateway_name)
+                break
+        self._hub_lock.release()
+        return remote_gateway_info
 
     def get_remote_gateway_firewall_flag(self, remote_gateway_name):
         '''
@@ -202,43 +216,45 @@ class HubManager(object):
           @return True, false if the flag is set or not, None if remote
                   gateway information cannot found
           @rtype Bool
-
-          @raise GatewayUnavailableError if it can't find the remote
-                 gateway's information on the hub
         '''
+        firewall_flag = None
+        self._hub_lock.acquire()
         for hub in self.hubs:
             if remote_gateway_name in hub.list_remote_gateway_names():
                 # I don't think we need more than one hub's info....
                 try:
-                    return hub.get_remote_gateway_firewall_flag(remote_gateway_name)
+                    firewall_flag = hub.get_remote_gateway_firewall_flag(remote_gateway_name)
+                    break
                 except GatewayUnavailableError:
                     pass  # cycle through the other hubs looking as well.
-        # ok, no luck
-        raise GatewayUnavailableError
+        self._hub_lock.release()
+        return firewall_flag
 
     def send_unflip_request(self, remote_gateway_name, remote_rule):
         '''
           Send an unflip request to the specified gateway through
           the first common hub that can be found.
 
+          Doesn't raise GatewayUnavailableError if nothing got sent as the higher level
+          doesn't need any logic there yet (only called from gateway.shutdown).
+
           @param remote_gateway_name : the hash name for the remote gateway
           @type string
 
           @param remote_rule : the remote rule to unflip
           @type gateway_msgs.RemoteRule
-
-          @raise GatewayUnavailableError if it can't find the remote
-                 gateway's information on the hub
         '''
+        self._hub_lock.acquire()
         for hub in self.hubs:
             if remote_gateway_name in hub.list_remote_gateway_names():
                 # I don't think we need more than one hub's info....
                 try:
-                    return hub.send_unflip_request(remote_gateway_name, remote_rule)
+                    hub.send_unflip_request(remote_gateway_name, remote_rule)
+                    self._hub_lock.release()
+                    return
                 except GatewayUnavailableError:
                     pass  # cycle through the other hubs looking as well.
-        # ok, no luck
-        raise GatewayUnavailableError
+        self._hub_lock.release()
 
     ##########################################################################
     # Hub Connections
@@ -268,7 +284,9 @@ class HubManager(object):
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % hub.name
         # Handle whitelist (ip or hub name)
         if (len(self._param['hub_whitelist']) == 0) or (ip in self._param['hub_whitelist']) or (hub.name in self._param['hub_whitelist']):
+            self._hub_lock.acquire()
             self.hubs.append(hub)
+            self._hub_lock.release()
             return hub, gateway_msgs.ErrorCodes.SUCCESS, "success"
         else:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST, "hub/ip not in non-empty whitelist [%s]" % hub.name
@@ -295,6 +313,53 @@ class HubManager(object):
             else:
                 rospy.sleep(0.3)
         return hub, error_code, error_code_str
+
+    def disengage_hub(self, hub_to_be_disengaged):
+        '''
+          Disengages a hub. Make sure all necessary connections
+          are cleaned up before calling this (Gateway.disengage_hub).
+
+          @param hub_to_be_disengaged
+        '''
+        #uri = str(ip) + ":" + str(port)
+        # Could dig in and find the name here, but not worth the bother.
+        rospy.loginfo("Gateway : lost connection to the hub [%s][%s]" % (hub_to_be_disengaged.name, hub_to_be_disengaged.uri))
+        self._hub_lock.acquire()
+        self.hubs[:] = [hub for hub in self.hubs if hub != hub_to_be_disengaged]
+        self._hub_lock.release()
+
+    def advertise(self, connection):
+        self._hub_lock.acquire()
+        for hub in self.hubs:
+            hub.advertise(connection)
+        self._hub_lock.release()
+
+    def unadvertise(self, connection):
+        self._hub_lock.acquire()
+        for hub in self.hubs:
+            hub.unadvertise(connection)
+        self._hub_lock.release()
+
+    def match_remote_gateway_name(self, remote_gateway_name):
+        '''
+          Parses the hub lists looking for strong (identical) and
+          weak (matches the name without the uuid hash) matches.
+        '''
+        matches = []
+        weak_matches = []  # doesn't match any hash names, but matches a base name
+        self._hub_lock.acquire()
+        for hub in self.hubs:
+            matches.extend(hub.matches_remote_gateway_name(remote_gateway_name))
+            weak_matches.extend(hub.matches_remote_gateway_basename(remote_gateway_name))
+        self._hub_lock.release()
+        # these are hash name lists, make sure they didn't pick up matches for a single hash name from multiple hubs
+        matches = list(set(matches))
+        weak_matches = list(set(weak_matches))
+        return matches, weak_matches
+
+##############################################################################
+# Hub
+##############################################################################
 
 
 class Hub(object):
@@ -329,14 +394,21 @@ class Hub(object):
         self._redis_keys = {}
         self._redis_channels = {}
         self._firewall = 0
+        self._hub_connection_lost_gateway_hook = None
 
     ##########################################################################
     # Hub Connections
     ##########################################################################
 
-    def register_gateway(self, firewall, unique_gateway_name, remote_gateway_request_callbacks, gateway_ip):
+    def register_gateway(self, firewall, unique_gateway_name, remote_gateway_request_callbacks, hub_connection_lost_gateway_hook, gateway_ip):
         '''
           Register a gateway with the hub.
+
+          @param firewall
+          @param unique_gateway_name
+          @param remote_gateway_request_callbacks
+          @param hub_connection_lost_hook : used to trigger Gateway.disengage_hub(hub) on lost hub connections in redis pubsub listener thread.
+          @gateway_ip
 
           @raise HubNotConnectedError if for some reason, this class is not in
                a valid state (i.e. not connected to the redis server)
@@ -349,6 +421,7 @@ class Hub(object):
         self._firewall = 1 if firewall else 0
         self._redis_keys['gatewaylist'] = create_hub_key('gatewaylist')
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
+        self._hub_connection_lost_gateway_hook = hub_connection_lost_gateway_hook
         if not self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):
             # should never get here - unique should be unique
             pass
@@ -359,8 +432,17 @@ class Hub(object):
         self._redis_server.set(self._redis_keys['ip'], gateway_ip)
         self._redis_channels['gateway'] = self._redis_keys['gateway']
         self._redis_pubsub_server.subscribe(self._redis_channels['gateway'])
-        self.remote_gateway_listener_thread = RedisListenerThread(self._redis_pubsub_server, self._remote_gateway_request_callbacks)
+        self.remote_gateway_listener_thread = RedisListenerThread(self._redis_pubsub_server, self._remote_gateway_request_callbacks, self._hub_connection_lost_hook)
         self.remote_gateway_listener_thread.start()
+
+    def _hub_connection_lost_hook(self):
+        '''
+          This gets triggered by the redis pubsub listener when the hub connection is lost.
+          The trigger is passed to the gateway who needs to remove the hub.
+        '''
+        rospy.loginfo("Gateway : lost connection to the hub [%s][%s]" % (self.name, self.uri))
+        if self._hub_connection_lost_gateway_hook is not None:
+            self._hub_connection_lost_gateway_hook(self)
 
     def unregister_gateway(self):
         '''
@@ -428,20 +510,21 @@ class Hub(object):
     def list_remote_gateway_names(self):
         '''
           Return a list of the gateways (name list, not redis keys).
-          e.g. ['gateway32adcda32','pirate21fasdf']
+          e.g. ['gateway32adcda32','pirate21fasdf']. If not connected, just
+          returns an empty list.
         '''
         if not self._redis_server:
             rospy.logerr("Gateway : cannot retrieve remote gateway names [%s][%s]." % (self.name, self.uri))
             return []
+        gateways = []
         try:
             gateway_keys = self._redis_server.smembers(self._redis_keys['gatewaylist'])
+            for gateway in gateway_keys:
+                if key_base_name(gateway) != self._unique_gateway_name:
+                    gateways.append(key_base_name(gateway))
         except redis.ConnectionError as unused_e:
-            rospy.logwarn("Gateway : lost connection to the hub (probably shut down)")
-            raise HubConnectionLostError()
-        gateways = []
-        for gateway in gateway_keys:
-            if key_base_name(gateway) != self._unique_gateway_name:
-                gateways.append(key_base_name(gateway))
+            #rospy.logwarn("Gateway : lost connection to the hub [list_remote_gateway_names][%s][%s]" % (self.name, self.uri))
+            pass
         return gateways
 
     def matches_remote_gateway_name(self, gateway):
