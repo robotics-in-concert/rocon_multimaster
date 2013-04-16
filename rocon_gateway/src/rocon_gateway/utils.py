@@ -153,7 +153,7 @@ def deserialize_connection(connection_str):
                 deserialized_list[1],
                 deserialized_list[2]
                 )
-    return Connection(rule, list[3], list[4])
+    return Connection(rule, deserialized_list[3], deserialized_list[4])
 
 
 def serialize_connection_request(command, source, connection):
