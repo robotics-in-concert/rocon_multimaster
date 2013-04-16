@@ -33,8 +33,7 @@ class TestGraph(unittest.TestCase):
         print("* Pull All")
         print("********************************************************************")
         rospy.sleep(1.0)
-        self.assertEqual("dude", "dude")
-        try:
+       try:
             samples.pull_all()
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising all connections.")

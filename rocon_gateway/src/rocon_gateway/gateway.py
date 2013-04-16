@@ -382,7 +382,7 @@ class Gateway(object):
                     response.result = gateway_msgs.ErrorCodes.FLIP_RULE_ALREADY_EXISTS
                     response.error_message = "already flipping all to gateway '%s' " + remote_gateway_target_hash_name
             else:  # request.cancel
-                self.flipped_interface.un_flip_all(remote_gateway_target_hash_name)
+                self.flipped_interface.unflip_all(remote_gateway_target_hash_name)
                 rospy.loginfo("Gateway : cancelling a previous flip all request [%s]" % (request.gateway))
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             self._publish_gateway_info()
