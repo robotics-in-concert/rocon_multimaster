@@ -17,11 +17,11 @@ from urlparse import urlparse
 import rospkg
 import roslib
 import roslaunch
-from rostest.rostest_parent import ROSTestLaunchParent
 import rosunit
 
 # Local imports
 from loggers import printlog, printlogerr
+from test_parent import RoconTestLaunchParent
 
 ##############################################################################
 # Globals
@@ -107,9 +107,9 @@ def setUp(self):
         config = rocon_launch_configuration.configuration
         launcher = rocon_launch_configuration.launcher
         o = urlparse(config.master.uri)
+        if o.port not in uuids.keys():
+            uuids[o.port] = roslaunch.core.generate_run_id()
         if not config.tests:
-            if o.port not in uuids.keys():
-                uuids[o.port] = roslaunch.core.generate_run_id()
             rocon_launch_configuration.parent = roslaunch.parent.ROSLaunchParent(
                                                             uuids[o.port],
                                                             [launcher["path"]],
@@ -123,7 +123,7 @@ def setUp(self):
             rocon_launch_configuration.parent.start()
             printlog("Launch Parent - type ...............ROSLaunchParent")
         else:
-            rocon_launch_configuration.parent = ROSTestLaunchParent(config, [launcher["path"]], port=o.port)
+            rocon_launch_configuration.parent = RoconTestLaunchParent(uuids[o.port], config, [launcher["path"]], port=o.port)
             rocon_launch_configuration.parent.setUp()
             # the config attribute makes it easy for tests to access the ROSLaunchConfig instance
             # Should we do this - it doesn't make a whole lot of sense?
