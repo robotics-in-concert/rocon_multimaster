@@ -55,7 +55,7 @@ def generate_rules(param):
       @return all rules as gateway_msgs.msg.Rule objects in our usual keyed dictionary format
       @rtype type keyed dictionary of Rule lists
     '''
-    rules = utils.createEmptyConnectionTypeDictionary()
+    rules = utils.create_empty_connection_type_dictionary()
     for value in param:
         rule = Rule()
         rule.name = value['name']

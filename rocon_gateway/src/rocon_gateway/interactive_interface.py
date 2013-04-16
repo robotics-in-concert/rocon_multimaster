@@ -38,16 +38,16 @@ class InteractiveInterface(object):
         # keys are connection_types, elements are lists of RemoteRule objects
         # This gets aliased to self.flipped or self.pulled as necessary in
         # the subclasses
-        self.active = utils.createEmptyConnectionTypeDictionary()
+        self.active = utils.create_empty_connection_type_dictionary()
 
         # Default rules used in the xxxAll modes
         self._default_blacklist = default_rule_blacklist  # dictionary of gateway-gateway_msgs.msg.Rule lists, not RemoteRules!
 
         # keys are connection_types, elements are lists of gateway_msgs.msg.RemoteRule objects
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()    # Specific rules used to determine what local rules to flip
+        self.watchlist = utils.create_empty_connection_type_dictionary()    # Specific rules used to determine what local rules to flip
 
         # keys are connection_types, elements are lists of utils.Registration objects
-        self.registrations = utils.createEmptyConnectionTypeDictionary()  # Flips from remote gateways that have been locally registered
+        self.registrations = utils.create_empty_connection_type_dictionary()  # Flips from remote gateways that have been locally registered
 
         # Blacklists when doing flip all - different for each gateway, each value is one of our usual rule type dictionaries
         self._blacklist = {}

@@ -60,14 +60,14 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         '''
         # SLOW, EASY METHOD
         #   Totally regenerate a new pulled interface, compare with old
-        pulled = utils.createEmptyConnectionTypeDictionary()
-        new_pulls = utils.createEmptyConnectionTypeDictionary()
-        removed_pulls = utils.createEmptyConnectionTypeDictionary()
+        pulled = utils.create_empty_connection_type_dictionary()
+        new_pulls = utils.create_empty_connection_type_dictionary()
+        removed_pulls = utils.create_empty_connection_type_dictionary()
         diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
         self._lock.acquire()
         for connection_type in connections:
             for connection in connections[connection_type]:
-                pulled[connection_type].extend(self._generatePulls(connection.rule.type, connection.rule.name, connection.rule.node, gateway,unique_name))
+                pulled[connection_type].extend(self._generate_pulls(connection.rule.type, connection.rule.name, connection.rule.node, gateway,unique_name))
             new_pulls[connection_type] = diff(pulled[connection_type], self.pulled[connection_type])
             removed_pulls[connection_type] = diff(self.pulled[connection_type], pulled[connection_type])
         self.pulled = copy.deepcopy(pulled)
@@ -96,7 +96,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
     # Utility Methods
     ##########################################################################
         
-    def _generatePulls(self, type, name, node, gateway, unique_name):
+    def _generate_pulls(self, connection_type, name, node, gateway, unique_name):
         '''
           Checks if a local rule (obtained from master.getSystemState) 
           is a suitable association with any of the rules or patterns. This can
@@ -107,7 +107,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
           
           Note, don't need to lock here as the update() function takes care of it.
           
-          @param type : rule type
+          @param connection_type : rule type
           @type str : string constant from gateway_msgs.msg.Rule
           
           @param name : fully qualified topic, service or action name
@@ -120,7 +120,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
           @return list of RemoteRule objects updated with node names from self.watchlist
         '''
         matched_flip_rules = []
-        for rule in self.watchlist[type]:
+        for rule in self.watchlist[connection_type]:
             # This is a bit different to _generateFlips - does it need to be? DJS
             if not gateway:
                 continue

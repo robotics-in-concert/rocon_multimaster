@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_gateway/LICENSE
 #
 
 ##############################################################################
@@ -19,19 +19,20 @@ from gateway_msgs.msg import Rule, ConnectionType
 # for help in iterating over the set of connection constants
 connection_types = frozenset([ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER, ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER])
 connection_types_list = [ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER, ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER]
-connection_type_strings_list = ["publisher","subscriber","service","action_client","action_server"]
+connection_type_strings_list = ["publisher", "subscriber", "service", "action_client", "action_server"]
 action_types = ['/goal', '/cancel', '/status', '/feedback', '/result']
 
 ##############################################################################
 # Rule
 ##############################################################################
 
+
 class Connection():
     '''
       An object that represents a connection containing all the gory details
-      about a connection, allowing a connection to be passed through to a 
+      about a connection, allowing a connection to be passed through to a
       foreign gateway
-      
+
        - rule (gateway_msgs.msg.Rule) (containing type,name,node)
        - type_info              (msg type for pubsub or service api for services)
        - xmlrpc_uri             (the xmlrpc node uri for the connection)
@@ -39,7 +40,7 @@ class Connection():
     def __init__(self, rule, type_info, xmlrpc_uri):
         '''
           @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
-          @type string  
+          @type string
         '''
         self.rule = rule
         self.type_info = type_info
@@ -55,10 +56,10 @@ class Connection():
         return not self.__eq__(other)
 
     def __str__(self):
-        if self.rule.type == ConnectionType.SERVICE: 
-            return '{%s, name: %s, node: %s, uri: %s, service_api: %s}'%(self.rule.type,self.rule.name,self.rule.node,self.xmlrpc_uri,self.type_info)
+        if self.rule.type == ConnectionType.SERVICE:
+            return '{%s, name: %s, node: %s, uri: %s, service_api: %s}' % (self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
         else:
-            return '{%s, name: %s, node: %s, uri: %s, topic_type: %s}'%(self.rule.type,self.rule.name,self.rule.node,self.xmlrpc_uri,self.type_info)
+            return '{%s, name: %s, node: %s, uri: %s, topic_type: %s}' % (self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
 
     def __repr__(self):
         return self.__str__()
@@ -70,25 +71,25 @@ class Connection():
 
 class Registration():
     '''
-      An object that represents a connection registered with the local 
+      An object that represents a connection registered with the local
       master (or about to be registered). This has all the gory detail
-      for the connection. It includes the gateway name it originated 
+      for the connection. It includes the gateway name it originated
       from as well as master registration information.
-      
+
        - connection             (the remote connection information)
        - remote_gateway         (the remote gateway from where this connection originated)
        - local_node             (the local anonymously generated node name)
     '''
-    def __init__(self, connection, remote_gateway, local_node = None):
+    def __init__(self, connection, remote_gateway, local_node=None):
         '''
           @param connection : string identifier storing the remote connection details (type, name, node)
           @type gateway_msgs.msg.RemoteRule
-          
+
           @param remote_gateway : string identifier for where this registration game from
-          @type string  
-          
+          @type string
+
           @param local_node : the local node that this registration is created under
-          @type string  
+          @type string
         '''
         self.connection = connection
         self.remote_gateway = remote_gateway
@@ -104,7 +105,7 @@ class Registration():
         return not self.__eq__(other)
 
     def __str__(self):
-        return '{gateway %s: %s}'%(self.remote_gateway,formatRule(self.connection.rule))
+        return '{gateway %s: %s}' % (self.remote_gateway, formatRule(self.connection.rule))
 
     def __repr__(self):
         return self.__str__()
@@ -112,6 +113,7 @@ class Registration():
 ##########################################################################
 # serialization/deserialization Functions
 ##########################################################################
+
 
 def convert(data):
     '''
@@ -127,36 +129,59 @@ def convert(data):
     else:
         return data
 
+
 def serialize(data):
     return json.dumps(data)
+
 
 def deserialize(str_msg):
     return convert(json.loads(str_msg))
 
+
 def serialize_connection(connection):
-    return serialize([connection.rule.type,connection.rule.name,connection.rule.node,connection.type_info,connection.xmlrpc_uri])
+    return serialize([connection.rule.type,
+                      connection.rule.name,
+                      connection.rule.node,
+                      connection.type_info,
+                      connection.xmlrpc_uri]
+                     )
+
 
 def deserialize_connection(connection_str):
-    list = deserialize(connection_str)
-    rule = Rule(list[0],list[1],list[2])
+    deserialized_list = deserialize(connection_str)
+    rule = Rule(deserialized_list[0],
+                deserialized_list[1],
+                deserialized_list[2]
+                )
     return Connection(rule, list[3], list[4])
 
-def serialize_connection_request(command, source, connection):
-    return serialize([command,source,connection.rule.type,connection.rule.name,connection.rule.node,connection.type_info,connection.xmlrpc_uri])
 
-def serialize_rule_request(command,source,rule):
-    return serialize([command,source,rule.type,rule.name,rule.node])
+def serialize_connection_request(command, source, connection):
+    return serialize([command, source,
+                      connection.rule.type,
+                      connection.rule.name,
+                      connection.rule.node,
+                      connection.type_info,
+                      connection.xmlrpc_uri]
+                     )
+
+
+def serialize_rule_request(command, source, rule):
+    return serialize([command, source, rule.type, rule.name, rule.node])
+
 
 def deserialize_request(request_str):
-    list = deserialize(request_str)
-    return list[0], list[1], list[2:]
+    deserialized_list = deserialize(request_str)
+    return deserialized_list[0], deserialized_list[1], deserialized_list[2:]
 
-def get_connection_from_list(list):
-    rule = Rule(list[0],list[1],list[2])
-    return Connection(rule,list[3],list[4])
 
-def get_rule_from_list(list):
-    return Rule(list[0],list[1],list[2])
+def get_connection_from_list(connection_argument_list):
+    rule = Rule(connection_argument_list[0], connection_argument_list[1], connection_argument_list[2])
+    return Connection(rule, connection_argument_list[3], connection_argument_list[4])
+
+
+def get_rule_from_list(rule_argument_list):
+    return Rule(rule_argument_list[0], rule_argument_list[1], rule_argument_list[2])
 
 ##########################################################################
 # Regex
@@ -189,12 +214,13 @@ def formatRule(rule):
 # Factories
 ##########################################################################
 
-def createEmptyConnectionTypeDictionary():
+
+def create_empty_connection_type_dictionary():
     '''
       Used to initialise a dictionary with rule type keys
       and empty lists.
     '''
     dic = {}
-    for type in connection_types:
-        dic[type] = []
+    for connection_type in connection_types:
+        dic[connection_type] = []
     return dic

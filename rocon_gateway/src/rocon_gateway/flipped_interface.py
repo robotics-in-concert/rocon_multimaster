@@ -73,9 +73,9 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         '''
         # SLOW, EASY METHOD
 
-        flipped = utils.createEmptyConnectionTypeDictionary()
-        new_flips = utils.createEmptyConnectionTypeDictionary()
-        removed_flips = utils.createEmptyConnectionTypeDictionary()
+        flipped = utils.create_empty_connection_type_dictionary()
+        new_flips = utils.create_empty_connection_type_dictionary()
+        removed_flips = utils.create_empty_connection_type_dictionary()
         remote_gateways = remote_gateway_hub_index.keys()
         diff = lambda l1,l2: [x for x in l1 if x not in l2]  # diff of lists
         self._lock.acquire()

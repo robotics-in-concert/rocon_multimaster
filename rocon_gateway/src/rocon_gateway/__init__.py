@@ -15,7 +15,7 @@
 
 import zeroconf
 from .exceptions import GatewayError, GatewaySampleRuntimeError
-from .utils import connection_types, createEmptyConnectionTypeDictionary, Connection
+from .utils import connection_types, create_empty_connection_type_dictionary, Connection
 from .ros_parameters import setup_ros_parameters
 from .flipped_interface import FlippedInterface
 from .master_api import LocalMaster

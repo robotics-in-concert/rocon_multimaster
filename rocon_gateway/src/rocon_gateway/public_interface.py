@@ -73,7 +73,7 @@ class PublicInterface(object):
         '''
         # List of rules to be monitored and (un)advertised  as they
         # become (un)available
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()
+        self.watchlist = utils.create_empty_connection_type_dictionary()
 
         # Default rules that cannot be advertised - used in AdvertiseAll mode
         self._default_blacklist = default_rule_blacklist
@@ -82,7 +82,7 @@ class PublicInterface(object):
         self.blacklist = self._default_blacklist
 
         # list of fully qualified connections currently being advertised
-        self.public = utils.createEmptyConnectionTypeDictionary()
+        self.public = utils.create_empty_connection_type_dictionary()
 
         self.advertise_all_enabled = False
 
@@ -177,7 +177,7 @@ class PublicInterface(object):
         self.advertise_all_enabled = True
 
         # generate watchlist
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()  # easy hack for getting a clean watchlist
+        self.watchlist = utils.create_empty_connection_type_dictionary()  # easy hack for getting a clean watchlist
         for connection_type in utils.connection_types:
             allow_all_rule = Rule()
             allow_all_rule.name = '.*'
@@ -206,7 +206,7 @@ class PublicInterface(object):
         self.advertise_all_enabled = False
 
         # easy hack for resetting the watchlist and blacklist
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()
+        self.watchlist = utils.create_empty_connection_type_dictionary()
         self.blacklist = self._default_blacklist
 
         self.lock.release()
@@ -315,9 +315,9 @@ class PublicInterface(object):
           @rtype: Connection[], Connection[]
         '''
         # SLOW, EASY METHOD
-        public = utils.createEmptyConnectionTypeDictionary()
-        new_public = utils.createEmptyConnectionTypeDictionary()
-        removed_public = utils.createEmptyConnectionTypeDictionary()
+        public = utils.create_empty_connection_type_dictionary()
+        new_public = utils.create_empty_connection_type_dictionary()
+        removed_public = utils.create_empty_connection_type_dictionary()
         diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
         for connection_type in connections:
             for connection in connections[connection_type]:
