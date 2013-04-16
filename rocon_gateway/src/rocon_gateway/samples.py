@@ -143,7 +143,7 @@ def pull_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
         req.remotes.append(gateway_msgs.RemoteRule(remote_gateway_name, rule))
     resp = pull(req)
     if resp.result != 0:
-        raise GatewaySampleRuntimeError("failed to advertise %s [%s]" % (rule.name, resp.error_message))
+        raise GatewaySampleRuntimeError("failed to pull %s [%s]" % (rule.name, resp.error_message))
 
 
 def flip_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
@@ -164,6 +164,30 @@ def flip_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
         raise GatewaySampleRuntimeError("failed to flip all to %s [%s]" % (remote_gateway_name, resp.error_message))
 
 
+def flip_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False, ns=_gateway_namespace):
+    rospy.wait_for_service(ns + '/flip')
+    flip = rospy.ServiceProxy(ns + '/flip', gateway_srvs.Remote)
+    if not remote_gateway_name:
+        remote_gateway_name = find_first_remote_gateway()
+    req = gateway_srvs.RemoteRequest()
+    req.cancel = cancel
+    if regex_patterns:
+        names = _tutorial_regex_names
+        nodes = _tutorial_regex_nodes
+    else:
+        names = _tutorial_names
+        nodes = _tutorial_nodes
+    req.remotes = []
+    for connection_type in connection_types:
+        rule = gateway_msgs.Rule()
+        rule.name = names[connection_type]
+        rule.type = connection_type
+        rule.node = nodes[connection_type]
+        rospy.loginfo("Flip : %s [%s,%s,%s][%s]." % (_action_text(cancel, 'requesting flip to gateway'), rule.type, rule.name, rule.node or 'None', remote_gateway_name))
+        req.remotes.append(gateway_msgs.RemoteRule(remote_gateway_name, rule))
+    resp = flip(req)
+    if resp.result != 0:
+        raise GatewaySampleRuntimeError("failed to flip %s [%s]" % (rule.name, resp.error_message))
 
 ##############################################################################
 # Utility functions
