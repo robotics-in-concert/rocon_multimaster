@@ -22,7 +22,7 @@ import rosunit
 # Main
 ##############################################################################
 
-class TestGraph(unittest.TestCase):
+class TestPulls(unittest.TestCase):
 
     def setUp(self):
         rospy.init_node('test_pullments')
@@ -32,8 +32,7 @@ class TestGraph(unittest.TestCase):
         print("\n********************************************************************")
         print("* Pull All")
         print("********************************************************************")
-        rospy.sleep(1.0)
-       try:
+        try:
             samples.pull_all()
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising all connections.")
@@ -54,7 +53,6 @@ class TestGraph(unittest.TestCase):
         print("\n********************************************************************")
         print("* Pull Tutorials")
         print("********************************************************************")
-        rospy.sleep(1.0)
         try:
             samples.pull_tutorials() 
         except GatewaySampleRuntimeError as e:
@@ -115,7 +113,7 @@ class TestGraph(unittest.TestCase):
                 break
         self.assertEqual("cleared", result)
 
-NAME = 'test_graph'
+NAME = 'test_pulls'
 if __name__ == '__main__':
-    rosunit.unitrun('test_graph', NAME, TestGraph, sys.argv, coverage_packages=['rocon_gateway'])
+    rosunit.unitrun('test_pulls', NAME, TestPulls, sys.argv, coverage_packages=['rocon_gateway'])
         

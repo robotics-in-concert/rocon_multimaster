@@ -216,6 +216,30 @@ class HubManager(object):
         # ok, no luck
         raise GatewayUnavailableError
 
+    def send_unflip_request(self, remote_gateway_name, remote_rule):
+        '''
+          Send an unflip request to the specified gateway through
+          the first common hub that can be found.
+
+          @param remote_gateway_name : the hash name for the remote gateway
+          @type string
+
+          @param remote_rule : the remote rule to unflip
+          @type gateway_msgs.RemoteRule
+
+          @raise GatewayUnavailableError if it can't find the remote
+                 gateway's information on the hub
+        '''
+        for hub in self.hubs:
+            if remote_gateway_name in hub.list_remote_gateway_names():
+                # I don't think we need more than one hub's info....
+                try:
+                    return hub.send_unflip_request(remote_gateway_name, remote_rule)
+                except GatewayUnavailableError:
+                    pass  # cycle through the other hubs looking as well.
+        # ok, no luck
+        raise GatewayUnavailableError
+
     ##########################################################################
     # Hub Connections
     ##########################################################################

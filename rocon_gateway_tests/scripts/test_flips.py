@@ -32,8 +32,6 @@ class TestFlips(unittest.TestCase):
         print("\n********************************************************************")
         print("* Flip All")
         print("********************************************************************")
-        rospy.sleep(1.0)
-        self.assertEqual("dude", "dude")
         try:
             samples.flip_all()
         except GatewaySampleRuntimeError as e:
@@ -55,7 +53,6 @@ class TestFlips(unittest.TestCase):
         print("\n********************************************************************")
         print("* Flip Tutorials")
         print("********************************************************************")
-        rospy.sleep(1.0)
         try:
             samples.flip_tutorials() 
         except GatewaySampleRuntimeError as e:
@@ -69,22 +66,22 @@ class TestFlips(unittest.TestCase):
             self.fail("Runtime error caught when unflipping tutorial connections.")
         self._assert_cleared_flipped_interface()
 
-#    def test_flip_regex_tutorials(self):
-#        print("\n********************************************************************")
-#        print("* Flip Regex Tutorials")
-#        print("********************************************************************")
-#        try:
-#            samples.flip_tutorials(regex_patterns=True) 
-#        except GatewaySampleRuntimeError as e:
-#            self.fail("Runtime error caught when flipping tutorial connections.")
-#        flipped_interface = self._wait_for_flipped_interface()
-#        print("%s" % self.graph._local_gateway)
-#        self.assertIn("/chatter", [remote_rule.rule.name for remote_rule in flipped_interface])
-#        try:
-#            samples.flip_tutorials(cancel=True, regex_patterns=True) 
-#        except GatewaySampleRuntimeError as e:
-#            self.fail("Runtime error caught when unflipping tutorial connections.")
-#        self._assert_cleared_flipped_interface()
+    def test_flip_regex_tutorials(self):
+        print("\n********************************************************************")
+        print("* Flip Regex Tutorials")
+        print("********************************************************************")
+        try:
+            samples.flip_tutorials(regex_patterns=True) 
+        except GatewaySampleRuntimeError as e:
+            self.fail("Runtime error caught when flipping tutorial connections.")
+        flipped_interface = self._wait_for_flipped_interface()
+        print("%s" % self.graph._local_gateway)
+        self.assertIn("/chatter", [remote_rule.rule.name for remote_rule in flipped_interface])
+        try:
+            samples.flip_tutorials(cancel=True, regex_patterns=True) 
+        except GatewaySampleRuntimeError as e:
+            self.fail("Runtime error caught when unflipping tutorial connections.")
+        self._assert_cleared_flipped_interface()
         
     def tearDown(self):
         pass

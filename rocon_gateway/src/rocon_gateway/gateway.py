@@ -75,11 +75,11 @@ class Gateway(object):
 
     def shutdown(self):
         self.watcher_thread.shutdown()
-#        for connection_type in utils.connection_types:
-#            for flip in self.flipped_interface.flipped[connection_type]:
-#                self.hub.send_unflip_request(flip.gateway, flip.rule)
-#            for registration in self.flipped_interface.registrations[connection_type]:
-#                self.master.unregister(registration)
+        for connection_type in utils.connection_types:
+            for flip in self.flipped_interface.flipped[connection_type]:
+                self.hub_manager.send_unflip_request(flip.gateway, flip.rule)
+            for registration in self.flipped_interface.registrations[connection_type]:
+                self.master.unregister(registration)
 
     def is_connected(self):
         '''
