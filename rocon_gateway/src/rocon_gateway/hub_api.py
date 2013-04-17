@@ -497,13 +497,13 @@ class Hub(object):
             encoded_flips = self._redis_server.smembers(create_gateway_key(gateway, 'flips'))
             for encoded_flip in encoded_flips:
                 [target_gateway, name, connection_type, node] = utils.deserialize(encoded_flip)
-                remote_rule = gateway_msgs.RemoteRule(target_gateway, gateway_msgs.Rule(name, connection_type, node))
+                remote_rule = gateway_msgs.RemoteRule(target_gateway, gateway_msgs.Rule(connection_type, name, node))
                 remote_gateway.flipped_interface.append(remote_rule)
             remote_gateway.pulled_interface = []
             encoded_pulls = self._redis_server.smembers(create_gateway_key(gateway, 'pulls'))
             for encoded_pull in encoded_pulls:
                 [target_gateway, name, connection_type, node] = utils.deserialize(encoded_pull)
-                remote_rule = gateway_msgs.RemoteRule(target_gateway, gateway_msgs.Rule(name, connection_type, node))
+                remote_rule = gateway_msgs.RemoteRule(target_gateway, gateway_msgs.Rule(connection_type, name, node))
                 remote_gateway.pulled_interface.append(remote_rule)
             return remote_gateway
 
