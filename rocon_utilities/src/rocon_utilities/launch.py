@@ -156,10 +156,12 @@ def choose_terminal(gnome_flag, konsole_flag):
             if line.startswith("Value:"):
                 terminal = os.path.basename(line.split()[1])
                 break
-        if terminal not in ["gnome", "konsole"]:
+        print terminal
+        if terminal not in ["gnome-terminal.wrapper", "konsole"]:
             console.error("Unsupported terminal set for 'x-terminal-emulator' [%s][hint: try --gnome or --konsole instead]" % terminal)
             sys.exit(1)
         else:
+            #terminal = "gnome-terminal" if terminal == "gnome-terminal.wrapper" else terminal
             return terminal
 
 
@@ -188,8 +190,9 @@ def main():
         if terminal == 'konsole':
             p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s %s" %
                               (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
-        elif terminal == 'gnome-terminal':
-            p = subprocess.Popen([terminal, '-e', "/bin/bash", "-e", "roslaunch %s --port %s %s %s" %
+        elif terminal == 'gnome-terminal.wrapper' or terminal == 'gnome-terminal':
+            # --disable-factory inherits the current environment, bit wierd.
+            p = subprocess.Popen(['gnome-terminal', '--disable-factory', '-e', "/bin/bash", "-e", "roslaunch %s --port %s %s %s" %
                               (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
         processes.append(p)
     signal.pause()
