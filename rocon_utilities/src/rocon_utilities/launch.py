@@ -156,13 +156,18 @@ def choose_terminal(gnome_flag, konsole_flag):
             if line.startswith("Value:"):
                 terminal = os.path.basename(line.split()[1])
                 break
-        print terminal
-        if terminal not in ["gnome-terminal.wrapper", "konsole"]:
-            console.error("Unsupported terminal set for 'x-terminal-emulator' [%s][hint: try --gnome or --konsole instead]" % terminal)
-            sys.exit(1)
-        else:
-            #terminal = "gnome-terminal" if terminal == "gnome-terminal.wrapper" else terminal
-            return terminal
+        if terminal not in ["gnome-terminal", "gnome-terminal.wrapper", "konsole"]:
+            console.warning("You are using an esoteric unsupported terminal [%s]" % terminal)
+            if which('konsole'):
+                terminal = 'konsole'
+                console.warning(" --> falling back to 'konsole'")
+            elif which('gnome-terminal'):
+                console.warning(" --> falling back to 'gnome-terminal'")
+                terminal = 'gnome-terminal'
+            else:
+                console.error("Unsupported terminal set for 'x-terminal-emulator' [%s][hint: try --gnome or --konsole instead]" % terminal)
+                sys.exit(1)
+        return terminal
 
 
 def main():
@@ -186,7 +191,6 @@ def main():
     launchers = parse_rocon_launcher(rocon_launcher, roslaunch_options)
     for launcher in launchers:
         console.pretty_println("Launching [%s, %s] on port %s" % (launcher['package'], launcher['name'], launcher['port']), console.bold)
-
         if terminal == 'konsole':
             p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s %s" %
                               (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
