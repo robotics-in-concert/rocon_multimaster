@@ -142,10 +142,10 @@ def choose_terminal(gnome_flag, konsole_flag):
             sys.exit(1)
         return 'konsole'
     elif gnome_flag:
-        if not which('gnome'):
+        if not which('gnome-terminal'):
             console.error("Cannot find 'gnome' [hint: try --konsole for konsole instead]")
             sys.exit(1)
-        return 'gnome'
+        return 'gnome-terminal'
     else:
         if not which('x-terminal-emulator'):
             console.error("Cannot find 'x-terminal-emulator' [hint: try --gnome or --konsole instead]")
