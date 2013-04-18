@@ -15,10 +15,9 @@ import gateway_msgs.srv as gateway_srvs
 from urlparse import urlparse
 
 # Local imports
-import zeroconf
+import hub_discovery
 import gateway
 import hub_api
-import exceptions
 
 ##############################################################################
 # Gateway Configuration and Main Loop Class
@@ -44,9 +43,8 @@ class GatewayNode():
         self._gateway = gateway.Gateway(self._hub_manager, self._param, self._unique_name, self._publish_gateway_info)
         self._gateway_services = self._setup_ros_services()
         self._gateway_publishers = self._setup_ros_publishers()
-        self._hub_discovery_thread = zeroconf.HubDiscovery(self.hub_discovery_update)
-        if self._param['hub_uri'] != '':
-            self._hub_direct_attack(self._param['hub_uri'])
+        direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
+        self._hub_discovery_thread = hub_discovery.HubDiscovery(self.hub_discovery_update, direct_hub_uri_list)
 
     def shutdown(self):
         '''
@@ -79,36 +77,6 @@ class GatewayNode():
             self._publish_gateway_info()
         else:
             rospy.logwarn("Gateway : %s" % error_code_str)
-
-# Don't worry about undiscovery, redis pubsub thread will catch these
-#    def hub_undiscovery_update(self, ip, port):
-#        '''
-#          Hook that is triggered when the zeroconf module undiscovers a hub.
-#        '''
-#        hub = self._hub_manager.find_hub(ip, port)
-#        if hub is None:
-#            rospy.logwarn("Gateway: zeroconf module undiscovered, but no associated hub found.")
-#        else:
-#            self._gateway.disengage_hub(hub)
-
-    def _hub_direct_attack(self, uri):
-        '''
-          Attempts to connect directly to a hub with the specified uri.
-
-          @param uri urlparse'able object with hostname/ip and port.
-        '''
-        o = urlparse(uri)
-        hub, unused_error_code, error_code_str = self._hub_manager.connect_to_hub_with_timeout(o.hostname, o.port)
-        if hub:
-            hub.register_gateway(self._param['firewall'],
-                                 self._unique_name,
-                                 self._gateway.remote_gateway_request_callbacks,
-                                 self._gateway.disengage_hub,  # hub connection lost hook
-                                 self._gateway.ip
-                                 )
-        else:
-            rospy.logwarn("Gateway : %s" % error_code_str)
-        self._publish_gateway_info()
 
     ##########################################################################
     # Ros Pubs, Subs and Services

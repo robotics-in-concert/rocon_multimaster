@@ -14,6 +14,7 @@ import re
 import utils
 import gateway_msgs.msg as gateway_msgs
 
+
 # local imports
 import rocon_utilities
 from .exceptions import GatewayUnavailableError, HubConnectionLostError, \
@@ -779,3 +780,24 @@ class Hub(object):
         except Exception as unused_e:
             return False
         return True
+
+##############################################################################
+# Utility Functions
+##############################################################################
+
+
+def ping_hub(ip, port):
+    '''
+      Pings the hub for identification. This is currently used
+      by the hub discovery module.
+
+      @return Bool
+    '''
+    try:
+        r = redis.Redis(host=ip, port=port)
+        name = r.get("rocon:hub:name")
+    except redis.exceptions.ConnectionError:
+        return False
+    if name is None:  # returns None if the server was there, but the key was not found.
+        return False
+    return True

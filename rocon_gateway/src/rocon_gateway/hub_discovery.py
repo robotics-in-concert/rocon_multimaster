@@ -9,8 +9,12 @@
 ###############################################################################
 
 import threading
+from urlparse import urlparse
 import rospy
 import zeroconf_msgs.srv as zeroconf_srvs
+
+# local imports
+import hub_api
 
 ###############################################################################
 # Thread
@@ -24,16 +28,27 @@ class HubDiscovery(threading.Thread):
     '''
       Used to discover hubs via zeroconf.
     '''
-    def __init__(self, external_discovery_update_hook):
+    def __init__(self, external_discovery_update_hook, direct_hub_uri_list=[]):
+        '''
+          @param external_discovery_update is a callback function that takes action on a discovery
+          @type gateway_node.update_discovery_hook(ip, port)
+
+          @param direct_hub_uri_list : list of uri's to hubs (e.g. http://localhost:6380
+          @type list of uri
+        '''
         threading.Thread.__init__(self)
         self.discovery_update_hook = external_discovery_update_hook
         self._trigger_shutdown = False
-        if _zeroconf_services_available():
+        self._direct_hub_uri_list = direct_hub_uri_list
+        self._zeroconf_services_available = _zeroconf_services_available()
+        if self._zeroconf_services_available:
             self._discovery_request = zeroconf_srvs.ListDiscoveredServicesRequest()
             self._discovery_request.service_type = HubDiscovery.gateway_hub_service
             _add_listener()
             self._list_discovered_services = rospy.ServiceProxy("zeroconf/list_discovered_services", zeroconf_srvs.ListDiscoveredServices)
-            self._discovered_hubs = []
+            self._zeroconf_discovered_hubs = []
+        # Only run the thread if we need to.
+        if self._zeroconf_services_available or self._direct_hub_uri_list:
             self.start()
 
     def shutdown(self):
@@ -50,23 +65,40 @@ class HubDiscovery(threading.Thread):
         '''
         self._internal_sleep_period = rospy.Duration(0, 200000000)  # 200ms
         while not rospy.is_shutdown() and not self._trigger_shutdown:
-            new_services, unused_lost_services = self._scan()
-            for service in new_services:
-                (ip, port) = _resolve_address(service)
-                rospy.loginfo("Gateway : discovered hub via zeroconf at [%s][%s:%s]" % (service.name, str(ip), str(port)))
-                self.discovery_update_hook(ip, port)
-            # Don't worry about lost services - the redis pubsub listener thread will catch disconnections
-#            for service in lost_services:
-#                (ip, port) = _resolve_address(service)
-#                rospy.loginfo("Gateway : undiscovered hub via zeroconf [%s][%s:%s]" % (service.name, str(ip), str(port)))
-#                self.undiscovery_update_hook(ip, port)
+            # Zeroconf scanning
+            if self._zeroconf_services_available:
+                new_services, unused_lost_services = self._zeroconf_scan()
+                for service in new_services:
+                    (ip, port) = _resolve_address(service)
+                    rospy.loginfo("Gateway : discovered hub via zeroconf at [%s][%s:%s]" % (service.name, str(ip), str(port)))
+                    self.discovery_update_hook(ip, port)
+            # Direct scanning
+            discovered_hub_uris = self._direct_scan()
+            for hub_uri in discovered_hub_uris:
+                self._direct_hub_uri_list[:] = [uri for uri in self._direct_hub_uri_list if hub_uri != uri]
+                o = urlparse(hub_uri)
+                rospy.loginfo("Gateway : discovered hub directly at [%s]" % hub_uri)
+                self.discovery_update_hook(o.hostname, o.port)
+            if not self._zeroconf_services_available and not self._direct_hub_uri_list:
+                break  # nothing left to do
             rospy.sleep(self._internal_sleep_period)
 
     #############################
     # Private methods
     #############################
 
-    def _scan(self):
+    def _direct_scan(self):
+        '''
+          Ping the list of hubs we are directly looking for to see if they are alive.
+        '''
+        discovered_hubs = []
+        for uri in self._direct_hub_uri_list:
+            o = urlparse(uri)
+            if hub_api.ping_hub(o.hostname, o.port):
+                discovered_hubs.append(uri)
+        return discovered_hubs
+
+    def _zeroconf_scan(self):
         '''
           This checks for new services and adds them. I'm not taking any
           action when a discovered service disappears yet though. Probably
@@ -75,10 +107,10 @@ class HubDiscovery(threading.Thread):
         #rospy.loginfo("Gateway : checking for autodiscovered gateway hubs")
         response = self._list_discovered_services(self._discovery_request)
         difference = lambda l1,l2: [x for x in l1 if x not in l2]
-        new_services = difference(response.services, self._discovered_hubs)
-        lost_services = difference(self._discovered_hubs, response.services)
-        self._discovered_hubs = response.services
-        #self._discovered_hubs.extend(new_services)
+        new_services = difference(response.services, self._zeroconf_discovered_hubs)
+        lost_services = difference(self._zeroconf_discovered_hubs, response.services)
+        self._zeroconf_discovered_hubs = response.services
+        #self._zeroconf_discovered_hubs.extend(new_services)
         return new_services, lost_services
 
 

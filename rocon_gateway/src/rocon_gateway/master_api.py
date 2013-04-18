@@ -240,10 +240,10 @@ class LocalMaster(rosgraph.Master):
         else:
             return o.hostname
 
-    def _isTopicNodeInList(self, topic, node, list):
+    def _isTopicNodeInList(self, topic, node, topic_node_list):
         # check if cancel available
         available = False
-        for candidate in list:
+        for candidate in topic_node_list:
             if candidate[0] == topic and node in candidate[1]:
                 available = True
                 break

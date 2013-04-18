@@ -13,7 +13,7 @@
 #__email__ = "d.stonier@gmail.com"
 #__date__ = "2012-08-29"
 
-import zeroconf
+import hub_discovery
 from .exceptions import GatewayError, GatewaySampleRuntimeError
 from .utils import connection_types, create_empty_connection_type_dictionary, Connection
 from .ros_parameters import setup_ros_parameters
