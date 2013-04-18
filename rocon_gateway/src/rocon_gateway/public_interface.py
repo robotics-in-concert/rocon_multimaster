@@ -91,7 +91,6 @@ class PublicInterface(object):
         # Load up static rules.
         for connection_type in utils.connection_types:
             for rule in default_rules[connection_type]:
-                print rule
                 self.add_rule(rule)
 
     ##########################################################################
