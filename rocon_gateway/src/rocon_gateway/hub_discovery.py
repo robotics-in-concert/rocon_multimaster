@@ -105,7 +105,11 @@ class HubDiscovery(threading.Thread):
           should take of that at some time.
         '''
         #rospy.loginfo("Gateway : checking for autodiscovered gateway hubs")
-        response = self._list_discovered_services(self._discovery_request)
+        try:
+            response = self._list_discovered_services(self._discovery_request)
+        except rospy.service.ServiceException:
+            # means we've shut down, just return so it can cleanly shutdown back in run()
+            return
         difference = lambda l1,l2: [x for x in l1 if x not in l2]
         new_services = difference(response.services, self._zeroconf_discovered_hubs)
         lost_services = difference(self._zeroconf_discovered_hubs, response.services)
