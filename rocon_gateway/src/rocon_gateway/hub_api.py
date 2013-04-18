@@ -221,7 +221,6 @@ class Hub(object):
           This gets triggered by the redis pubsub listener when the hub connection is lost.
           The trigger is passed to the gateway who needs to remove the hub.
         '''
-        rospy.loginfo("Gateway : lost connection to the hub [%s][%s]" % (self.name, self.uri))
         if self._hub_connection_lost_gateway_hook is not None:
             self._hub_connection_lost_gateway_hook(self)
 
