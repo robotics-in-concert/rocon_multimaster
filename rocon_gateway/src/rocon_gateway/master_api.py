@@ -56,7 +56,7 @@ class LocalMaster(rosgraph.Master):
           @rtype utils.Registration
         '''
         registration.local_node = self._get_anonymous_node_name(registration.connection.rule.node)
-        rospy.loginfo("Gateway : registering a new node [%s] for [%s]" % (registration.local_node, registration))
+        rospy.logdebug("Gateway : registering a new node [%s] for [%s]" % (registration.local_node, registration))
 
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
         # already have handle that.

@@ -177,6 +177,7 @@ class Gateway(object):
                     # Register this pull
                     existing_registration = self.pulled_interface.find_registration_match(remote_gateway, pull.rule.name, pull.rule.node, pull.rule.type)
                     if not existing_registration:
+                        rospy.loginfo("Gateway : pulling in connection %s[%s]" % (utils.format_rule(pull.rule), remote_gateway))
                         registration = utils.Registration(connection, remote_gateway)
                         new_registration = self.master.register(registration)
                         self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
@@ -186,6 +187,7 @@ class Gateway(object):
                     # Unregister this pull
                     existing_registration = self.pulled_interface.find_registration_match(remote_gateway, pull.rule.name, pull.rule.node, pull.rule.type)
                     if existing_registration:
+                        rospy.loginfo("Gateway : abandoning pulled connection %s[%s]" % (utils.format_rule(pull.rule), remote_gateway))
                         self.master.unregister(existing_registration)
                         hub.remove_pull_details(remote_gateway, pull.rule.name, pull.rule.type, pull.rule.node)
                         self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
