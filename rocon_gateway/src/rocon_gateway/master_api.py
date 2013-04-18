@@ -100,7 +100,7 @@ class LocalMaster(rosgraph.Master):
           @type utils.Registration
         '''
         node_master = rosgraph.Master(registration.local_node)
-        rospy.loginfo("Gateway : unregistering local node [%s] for [%s]" % (registration.local_node, registration))
+        rospy.logdebug("Gateway : unregistering local node [%s] for [%s]" % (registration.local_node, registration))
         if registration.connection.rule.type == ConnectionType.PUBLISHER:
             node_master.unregisterPublisher(registration.connection.rule.name, registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:

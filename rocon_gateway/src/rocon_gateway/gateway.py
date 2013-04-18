@@ -164,8 +164,13 @@ class Gateway(object):
         for remote_gateway in remote_gateway_hub_index.keys() + self.pulled_interface.list_remote_gateway_names():
             # this should probably be better....we *should* only need one hub's info, but things could
             # go very wrong here - keep an eye on it.
-            hub = remote_gateway_hub_index[remote_gateway][0]
-            connections = hub.get_remote_connection_state(remote_gateway)
+            try:
+                hub = remote_gateway_hub_index[remote_gateway][0]
+                connections = hub.get_remote_connection_state(remote_gateway)
+            except KeyError:
+                # remote gateway no longer exists on the hub network, just set empty dictionary
+                hub = None
+                connections = utils.create_empty_connection_type_dictionary()
             new_pulls, lost_pulls = self.pulled_interface.update(connections, remote_gateway, self._unique_name)
             for connection_type in connections:
                 for pull in new_pulls[connection_type]:
@@ -189,7 +194,8 @@ class Gateway(object):
                     if existing_registration:
                         rospy.loginfo("Gateway : abandoning pulled connection %s[%s]" % (utils.format_rule(pull.rule), remote_gateway))
                         self.master.unregister(existing_registration)
-                        hub.remove_pull_details(remote_gateway, pull.rule.name, pull.rule.type, pull.rule.node)
+                        if hub:
+                            hub.remove_pull_details(remote_gateway, pull.rule.name, pull.rule.type, pull.rule.node)
                         self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
                         state_changed = True
         if state_changed:
