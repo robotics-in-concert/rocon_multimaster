@@ -124,19 +124,19 @@ class Gateway(object):
                 # for actions, need to post flip details here
                 connections = self.master.generate_connection_details(flip.rule.type, flip.rule.name, flip.rule.node)
                 if connection_type == utils.ConnectionType.ACTION_CLIENT or connection_type == utils.ConnectionType.ACTION_SERVER:
-                    rospy.loginfo("Flipping to %s : %s" % (flip.gateway, utils.formatRule(flip.rule)))
+                    rospy.loginfo("Flipping to %s : %s" % (flip.gateway, utils.format_rule(flip.rule)))
                     self.hub.post_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
                     for connection in connections:
                         self.hub.send_flip_request(flip.gateway, connection)  # flip the individual pubs/subs
                 else:
                     for connection in connections:
-                        rospy.loginfo("Flipping to %s : %s" % (flip.gateway, utils.formatRule(connection.rule)))
+                        rospy.loginfo("Flipping to %s : %s" % (flip.gateway, utils.format_rule(connection.rule)))
                         hub = remote_gateway_hub_index[flip.gateway][0]
                         hub.send_flip_request(flip.gateway, connection)
                         hub.post_flip_details(flip.gateway, connection.rule.name, connection.rule.type, connection.rule.node)
             for flip in lost_flips[connection_type]:
                 state_changed = True
-                rospy.loginfo("Unflipping to %s : %s" % (flip.gateway, utils.formatRule(flip.rule)))
+                rospy.loginfo("Unflipping to %s : %s" % (flip.gateway, utils.format_rule(flip.rule)))
                 hub = remote_gateway_hub_index[flip.gateway][0]  # first one should be enough
                 hub.send_unflip_request(flip.gateway, flip.rule)
                 hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
@@ -206,10 +206,10 @@ class Gateway(object):
         public_interface = self.public_interface.getInterface()
         for connection_type in utils.connection_types:
             for connection in new_conns[connection_type]:
-                rospy.loginfo("Gateway : adding rule to public interface %s" % utils.formatRule(connection.rule))
+                rospy.loginfo("Gateway : adding connection to public interface %s" % utils.format_rule(connection.rule))
                 self.hub_manager.advertise(connection)
             for connection in lost_conns[connection_type]:
-                rospy.loginfo("Gateway : removing rule to public interface %s" % utils.formatRule(connection.rule))
+                rospy.loginfo("Gateway : removing connection from public interface %s" % utils.format_rule(connection.rule))
                 self.hub_manager.unadvertise(connection)
         if new_conns or lost_conns:
             self._publish_gateway_info()
@@ -241,7 +241,7 @@ class Gateway(object):
                     self._publish_gateway_info()
 
     def process_remote_gateway_unflip_request(self, rule, remote_gateway):
-        rospy.loginfo("Gateway : received an unflip request from gateway %s: %s" % (remote_gateway, utils.formatRule(rule)))
+        rospy.loginfo("Gateway : received an unflip request from gateway %s: %s" % (remote_gateway, utils.format_rule(rule)))
         existing_registration = self.flipped_interface.find_registration_match(remote_gateway, rule.name, rule.node, rule.type)
         if existing_registration:
             self.master.unregister(existing_registration)

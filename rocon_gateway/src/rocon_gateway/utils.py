@@ -105,7 +105,7 @@ class Registration():
         return not self.__eq__(other)
 
     def __str__(self):
-        return '{gateway %s: %s}' % (self.remote_gateway, formatRule(self.connection.rule))
+        return '{gateway %s: %s}' % (self.remote_gateway, format_rule(self.connection.rule))
 
     def __repr__(self):
         return self.__str__()
@@ -207,8 +207,8 @@ def is_all_pattern(pattern):
 # Formatters
 ##########################################################################
 
-def formatRule(rule):
-    return '{type: %s, name/regex: %s, node-name/regex: %s}' % (rule.type, rule.name, rule.node)
+def format_rule(rule):
+    return '[%s][%s][%s]' % (rule.type, rule.name, rule.node)
 
 ##########################################################################
 # Factories

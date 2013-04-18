@@ -114,7 +114,7 @@ class PublicInterface(object):
             self.watchlist[rule.type].append(rule)
             result = rule
         self.lock.release()
-        rospy.loginfo("Gateway : (req) advertise %s" % utils.formatRule(rule))
+        rospy.loginfo("Gateway : adding rule to public watchlist %s" % utils.format_rule(rule))
         return result
 
     def remove_rule(self, rule):
@@ -131,7 +131,7 @@ class PublicInterface(object):
         @rtype Rule[]
         '''
 
-        rospy.loginfo("Gateway : (req) unadvertise %s" % utils.formatRule(rule))
+        rospy.loginfo("Gateway : (req) unadvertise %s" % utils.format_rule(rule))
 
         if rule.node:
             # This looks for *exact* matches.
