@@ -240,8 +240,9 @@ class Hub(object):
             pipe.srem(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
             pipe.execute()
             self._redis_channels = {}
-        except redis.exceptions.ConnectionError:
-            # usually just means the hub has gone down just before us, let it go quietly
+        except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
+            # usually just means the hub has gone down just before us or is in the
+            # middel of doing so let it die nice and peacefully
             # rospy.logwarn("Gateway : problem unregistering from the hub (likely that hub shutdown before the gateway).")
             pass
         # should we not also shut down self.remote_gatew
@@ -304,7 +305,6 @@ class Hub(object):
                 if key_base_name(gateway) != self._unique_gateway_name:
                     gateways.append(key_base_name(gateway))
         except redis.ConnectionError as unused_e:
-            #rospy.logwarn("Gateway : lost connection to the hub [list_remote_gateway_names][%s][%s]" % (self.name, self.uri))
             pass
         return gateways
 
