@@ -187,29 +187,6 @@ class HubManager(object):
         else:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST, "hub/ip not in non-empty whitelist [%s]" % hub.name
 
-    def connect_to_hub_with_timeout(self, ip, port, timeout=rospy.Duration(5.0)):
-        '''
-          Connect to the hub with a timeout. This is used for direct connections
-          where the parameter may be configured by the redis server has fully
-          launched and initialised.
-
-          @return hub and error code pair (hub, ErrorCodes.SUCCESS) or (hub, ErrorCodes.xxx)
-          @rtype (Hub, gateway_msgs.ErrorCodes.xxx)
-        '''
-        start_time = rospy.Time.now()
-        hub = gateway_msgs.ErrorCodes.HUB_UNKNOWN_ERROR
-        error_code = None
-        error_code_str = ""
-        while not rospy.is_shutdown() and not (rospy.Time.now() - start_time > timeout):
-            rospy.loginfo("Gateway : attempting direct connection to hub [%s:%s]" % (ip, port))
-            hub, error_code, error_code_str = self.connect_to_hub(ip, port)
-            if hub or error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED or \
-                      error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST:
-                break
-            else:
-                rospy.sleep(0.3)
-        return hub, error_code, error_code_str
-
     def disengage_hub(self, hub_to_be_disengaged):
         '''
           Disengages a hub. Make sure all necessary connections
