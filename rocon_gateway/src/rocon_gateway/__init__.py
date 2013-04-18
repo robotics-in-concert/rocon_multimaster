@@ -13,7 +13,6 @@
 #__email__ = "d.stonier@gmail.com"
 #__date__ = "2012-08-29"
 
-import hub_discovery
 from .exceptions import GatewayError, GatewaySampleRuntimeError
 from .utils import connection_types, create_empty_connection_type_dictionary, Connection
 from .ros_parameters import setup_ros_parameters
@@ -24,4 +23,6 @@ from .graph import Graph
 import gateway
 from .gateway import Gateway
 import hub_api
+import hub_discovery
+import hub_manager
 import samples
