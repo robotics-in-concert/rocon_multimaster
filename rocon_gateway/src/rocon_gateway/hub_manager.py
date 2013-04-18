@@ -169,21 +169,31 @@ class HubManager(object):
           @raise
         '''
         try:
-            hub = hub_api.Hub(ip, port)
+            new_hub = hub_api.Hub(ip, port)
         except HubNotFoundError:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE, "couldn't connect to the redis server."
         except HubNameNotFoundError:
             return None, gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND, "couldn't resolve hub name on the redis server [%s:%s]" % (ip, port)
         if ip in self._param['hub_blacklist']:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % ip
-        elif hub.name in self._param['hub_blacklist']:
-            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % hub.name
+        elif new_hub.name in self._param['hub_blacklist']:
+            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % new_hub.name
         # Handle whitelist (ip or hub name)
-        if (len(self._param['hub_whitelist']) == 0) or (ip in self._param['hub_whitelist']) or (hub.name in self._param['hub_whitelist']):
+        if (len(self._param['hub_whitelist']) == 0) or (ip in self._param['hub_whitelist']) or (new_hub.name in self._param['hub_whitelist']):
+            already_exists_error = False
             self._hub_lock.acquire()
-            self.hubs.append(hub)
+            for hub in self.hubs:
+                if hub.uri == new_hub.uri:
+                    already_exists_error = True
+                    break
             self._hub_lock.release()
-            return hub, gateway_msgs.ErrorCodes.SUCCESS, "success"
+            if not already_exists_error:
+                self._hub_lock.acquire()
+                self.hubs.append(new_hub)
+                self._hub_lock.release()
+                return new_hub, gateway_msgs.ErrorCodes.SUCCESS, "success"
+            else:
+                return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS, "already connected to this hub"
         else:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST, "hub/ip not in non-empty whitelist [%s]" % hub.name
 

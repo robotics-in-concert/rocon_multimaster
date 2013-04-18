@@ -70,14 +70,14 @@ class HubDiscovery(threading.Thread):
                 new_services, unused_lost_services = self._zeroconf_scan()
                 for service in new_services:
                     (ip, port) = _resolve_address(service)
-                    rospy.loginfo("Gateway : discovered hub via zeroconf at [%s][%s:%s]" % (service.name, str(ip), str(port)))
+                    rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
                     self.discovery_update_hook(ip, port)
             # Direct scanning
             discovered_hub_uris = self._direct_scan()
             for hub_uri in discovered_hub_uris:
                 self._direct_hub_uri_list[:] = [uri for uri in self._direct_hub_uri_list if hub_uri != uri]
                 o = urlparse(hub_uri)
-                rospy.loginfo("Gateway : discovered hub directly at [%s]" % hub_uri)
+                rospy.loginfo("Gateway : discovered hub directly [%s]" % hub_uri)
                 self.discovery_update_hook(o.hostname, o.port)
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
                 break  # nothing left to do

@@ -168,7 +168,7 @@ class Hub(object):
                 raise HubNameNotFoundError()
             else:
                 self.name = key_base_name(hub_key_name)  # perhaps should store all key names somewhere central
-                rospy.loginfo("Gateway : resolved hub name [%s].", self.name)
+                rospy.logdebug("Gateway : resolved hub name [%s].", self.name)
         except redis.exceptions.ConnectionError:
             self._redis_server = None
             raise HubNotFoundError()

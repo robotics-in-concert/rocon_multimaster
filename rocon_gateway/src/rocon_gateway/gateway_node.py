@@ -57,6 +57,7 @@ class GatewayNode():
             self._hub_discovery_thread.shutdown()
         except Exception as e:
             rospy.logerr("Gateway : unknown error on shutdown [%s][%s]" % (str(e), type(e)))
+            raise
 
     ##########################################################################
     # Hub Discovery & Connection
@@ -65,6 +66,11 @@ class GatewayNode():
     def hub_discovery_update(self, ip, port):
         '''
           Hook that is triggered when the zeroconf module discovers a hub.
+
+          @param detection_mode_msg is a string that indicates it was detected via zeroconf or other
+          @type str : either 'via zeroconf' or 'directly'
+
+          @sa hub_discovery.HubDiscovery
         '''
         hub, unused_error_code, error_code_str = self._hub_manager.connect_to_hub(ip, port)
         if hub:
@@ -74,9 +80,10 @@ class GatewayNode():
                                  self._gateway.disengage_hub,  # hub connection lost hook
                                  self._gateway.ip
                                  )
+            rospy.loginfo("Gateway : registering on the hub [%s]" % hub.name)
             self._publish_gateway_info()
         else:
-            rospy.logwarn("Gateway : %s" % error_code_str)
+            rospy.logwarn("Gateway : not registering on the hub [%s]" % error_code_str)
 
     ##########################################################################
     # Ros Pubs, Subs and Services
