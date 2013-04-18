@@ -46,7 +46,7 @@ def resolve_remote_gateways(gateway_namespace):
     req = gateway_msgs.srv.RemoteGatewayInfoRequest()
     req.gateways = []
     resp = remote_gateway_info(req)
-    print("Remote gateway info: %s" % resp)
+    #print("Remote gateway info: %s" % resp)
     return resp.gateways
 
 ##############################################################################
