@@ -105,7 +105,7 @@ class Registration():
         return not self.__eq__(other)
 
     def __str__(self):
-        return '{gateway %s: %s}' % (self.remote_gateway, format_rule(self.connection.rule))
+        return '[%s]%s' % (self.remote_gateway, format_rule(self.connection.rule))
 
     def __repr__(self):
         return self.__str__()

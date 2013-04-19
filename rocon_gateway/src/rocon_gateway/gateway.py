@@ -124,19 +124,19 @@ class Gateway(object):
                 # for actions, need to post flip details here
                 connections = self.master.generate_connection_details(flip.rule.type, flip.rule.name, flip.rule.node)
                 if connection_type == utils.ConnectionType.ACTION_CLIENT or connection_type == utils.ConnectionType.ACTION_SERVER:
-                    rospy.loginfo("Gateway : flipping to %s : %s" % (flip.gateway, utils.format_rule(flip.rule)))
+                    rospy.loginfo("Gateway : sending flip request [%s]%s" % (flip.gateway, utils.format_rule(flip.rule)))
                     self.hub.post_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
                     for connection in connections:
                         self.hub.send_flip_request(flip.gateway, connection)  # flip the individual pubs/subs
                 else:
                     for connection in connections:
-                        rospy.loginfo("Gateway : flipping to %s : %s" % (flip.gateway, utils.format_rule(connection.rule)))
+                        rospy.loginfo("Gateway : sending flip request [%s]%s" % (flip.gateway, utils.format_rule(connection.rule)))
                         hub = remote_gateway_hub_index[flip.gateway][0]
                         hub.send_flip_request(flip.gateway, connection)
                         hub.post_flip_details(flip.gateway, connection.rule.name, connection.rule.type, connection.rule.node)
             for flip in lost_flips[connection_type]:
                 state_changed = True
-                rospy.loginfo("Unflipping to %s : %s" % (flip.gateway, utils.format_rule(flip.rule)))
+                rospy.loginfo("Gateway : sending unflip request [%s]%s" % (flip.gateway, utils.format_rule(flip.rule)))
                 hub = remote_gateway_hub_index[flip.gateway][0]  # first one should be enough
                 hub.send_unflip_request(flip.gateway, flip.rule)
                 hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
