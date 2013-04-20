@@ -68,9 +68,6 @@ class GatewayNode():
         '''
           Hook that is triggered when the zeroconf module discovers a hub.
 
-          @param detection_mode_msg is a string that indicates it was detected via zeroconf or other
-          @type str : either 'via zeroconf' or 'directly'
-
           @sa hub_discovery.HubDiscovery
         '''
         hub, unused_error_code, error_code_str = self._hub_manager.connect_to_hub(ip, port)
