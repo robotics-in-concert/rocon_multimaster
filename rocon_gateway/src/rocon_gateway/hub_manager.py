@@ -174,12 +174,12 @@ class HubManager(object):
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE, "couldn't connect to the redis server."
         except HubNameNotFoundError:
             return None, gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND, "couldn't resolve hub name on the redis server [%s:%s]" % (ip, port)
-        if ip in self._param['hub_blacklist']:
-            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % ip
+        uri = 'http://' + str(ip) + ':' + str(port)
+        if uri in self._param['hub_blacklist']:
+            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % uri
         elif new_hub.name in self._param['hub_blacklist']:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % new_hub.name
         # Handle whitelist (uri or hub name)
-        uri = 'http://' + str(ip) + ':' + str(port)
         if (len(self._param['hub_whitelist']) == 0) or (uri in self._param['hub_whitelist']) or (new_hub.name in self._param['hub_whitelist']):
             already_exists_error = False
             self._hub_lock.acquire()
