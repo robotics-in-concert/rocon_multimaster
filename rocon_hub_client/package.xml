@@ -17,7 +17,7 @@
 
   <run_depend>redis</run_depend>
   <run_depend>rospy</run_depend>
-  <run_depend>rocon_gateway</run_depend>
+  <run_depend>rocon_utilities</run_depend>
 
   <export>
     <rosdoc config="rosdoc.yaml"/>

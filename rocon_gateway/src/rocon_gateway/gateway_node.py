@@ -13,9 +13,9 @@ import uuid
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
 from urlparse import urlparse
+import rocon_hub_client
 
 # Local imports
-import hub_discovery
 import gateway
 import hub_manager
 
@@ -45,7 +45,7 @@ class GatewayNode():
         self._gateway_services = self._setup_ros_services()
         self._gateway_publishers = self._setup_ros_publishers()
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
-        self._hub_discovery_thread = hub_discovery.HubDiscovery(self.hub_discovery_update, direct_hub_uri_list, self._param['disable_zeroconf'])
+        self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self.hub_discovery_update, direct_hub_uri_list, self._param['disable_zeroconf'])
 
     def shutdown(self):
         '''

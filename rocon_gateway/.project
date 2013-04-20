@@ -4,6 +4,7 @@
 	<comment></comment>
 	<projects>
 		<project>redis</project>
+		<project>rocon_hub_client</project>
 		<project>rocon_utilities</project>
 	</projects>
 	<buildSpec>

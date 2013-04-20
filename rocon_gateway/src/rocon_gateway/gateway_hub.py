@@ -1,4 +1,4 @@
-#!/usr/bin/env pythonupdate
+#!/usr/bin/env python
 #
 # License: BSD
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
@@ -13,87 +13,20 @@ import rospy
 import re
 import utils
 import gateway_msgs.msg as gateway_msgs
+import rocon_utilities
+import rocon_hub_client
+from rocon_hub_client import hub_api
+from rocon_hub_client.exceptions import HubConnectionLostError, \
+              HubNameNotFoundError, HubNotFoundError
 
 
 # local imports
-import rocon_utilities
-from .exceptions import GatewayUnavailableError, HubConnectionLostError, \
-              HubNameNotFoundError, HubNotFoundError, HubNotConnectedError
+from .exceptions import GatewayUnavailableError
 
-###############################################################################
-# Utility Functions
-###############################################################################
-
-
-def create_key(key):
-    '''
-      Root the specified redis key name in our pseudo redis database.
-    '''
-    if re.match('rocon:', key):  # checks if leading rocon: is foundupdate
-        return key
-    else:
-        return 'rocon:' + key
-
-
-def create_hub_key(key):
-    '''
-      Root the specified redis key name in our pseudo redis database under
-      the hub namespace
-    '''
-    if re.match('rocon:hub:', key):  # checks if leading rocon: is foundupdate
-        return key
-    else:
-        return 'rocon:hub:' + key
-
-
-def create_gateway_key(unique_gateway_name, key):
-    '''
-      Root the specified redis key name in our pseudo redis database under
-      the gateway namespace.
-
-      @note : currently does no checking of the incoming keys
-    '''
-    return 'rocon:' + unique_gateway_name + ":" + key
-
-
-def extract_key(key):
-    '''
-      Extract the specified redis key name from our pseudo redis database.
-    '''
-    if re.match('rocon:', key):  # checks if leading rocon: is found
-        return re.sub(r'rocon:', '', key)
-    else:
-        return key
-
-
-def key_base_name(key):
-    '''
-      Extract the base name (i.e. last value) from the key.
-      e.g. rocon:key:pirate24 -> pirate24
-    '''
-    return key.split(':')[-1]
-
-
-def ping_hub(ip, port):
-    '''
-      Pings the hub for identification. This is currently used
-      by the hub discovery module.
-
-      @return Bool
-    '''
-    try:
-        r = redis.Redis(host=ip, port=port)
-        name = r.get("rocon:hub:name")
-    except redis.exceptions.ConnectionError:
-        return False
-    if name is None:  # returns None if the server was there, but the key was not found.
-        return False
-    return True
 
 ###############################################################################
 # Redis Callback Handler
 ##############################################################################
-
 
 class RedisListenerThread(threading.Thread):
     '''
@@ -143,9 +76,9 @@ class RedisListenerThread(threading.Thread):
 ##############################################################################
 
 
-class Hub(object):
+class GatewayHub(rocon_hub_client.Hub):
 
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, whitelist, blacklist):
         '''
           @param remote_gateway_request_callbacks : to handle redis responses
           @type list of function pointers (back to GatewaySync class
@@ -155,27 +88,14 @@ class Hub(object):
 
           @raise HubNameNotFoundError, HubNotFoundError
         '''
-        self.uri = str(ip) + ":" + str(port)
         try:
-            self.pool = redis.ConnectionPool(host=ip, port=port, db=0)
-            self._redis_server = redis.Redis(connection_pool=self.pool)
-            self._redis_pubsub_server = self._redis_server.pubsub()
-            hub_key_name = self._redis_server.get("rocon:hub:name")
-            # Be careful, hub_name is None, it means the redis server is
-            # found but hub_name not yet set or not set at all.
-            if not hub_key_name:
-                self._redis_server = None
-                raise HubNameNotFoundError()
-            else:
-                self.name = key_base_name(hub_key_name)  # perhaps should store all key names somewhere central
-                rospy.logdebug("Gateway : resolved hub name [%s].", self.name)
-        except redis.exceptions.ConnectionError:
-            self._redis_server = None
-            raise HubNotFoundError()
-        self._redis_keys = {}
-        self._redis_channels = {}
-        self._firewall = 0
+            super(GatewayHub, self).__init__(ip, port, whitelist, blacklist)  # can just do super() in python3
+        except HubNotFoundError:
+            raise
+        except HubNameNotFoundError:
+            raise
         self._hub_connection_lost_gateway_hook = None
+        self._firewall = 0
 
     ##########################################################################
     # Hub Connections
@@ -191,16 +111,15 @@ class Hub(object):
           @param hub_connection_lost_hook : used to trigger Gateway.disengage_hub(hub) on lost hub connections in redis pubsub listener thread.
           @gateway_ip
 
-          @raise HubNotConnectedError if for some reason, this class is not in
-               a valid state (i.e. not connected to the redis server)
+          @raise HubConnectionLostError if for some reason, the redis server has become unavailable.
         '''
         if not self._redis_server:
-            raise HubNotConnectedError()
+            raise HubConnectionLostError()
         self._unique_gateway_name = unique_gateway_name
-        self._redis_keys['gateway'] = create_key(unique_gateway_name)
-        self._redis_keys['firewall'] = create_gateway_key(unique_gateway_name, 'firewall')
+        self._redis_keys['gateway'] = hub_api.create_rocon_key(unique_gateway_name)
+        self._redis_keys['firewall'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'firewall')
         self._firewall = 1 if firewall else 0
-        self._redis_keys['gatewaylist'] = create_hub_key('gatewaylist')
+        self._redis_keys['gatewaylist'] = hub_api.create_rocon_hub_key('gatewaylist')
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
         self._hub_connection_lost_gateway_hook = hub_connection_lost_gateway_hook
         if not self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):
@@ -209,7 +128,7 @@ class Hub(object):
         unused_ret = self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
         self._redis_server.set(self._redis_keys['firewall'], self._firewall)
         # I think we just used this for debugging, but we might want to hide it in future (it's the ros master hostname/ip)
-        self._redis_keys['ip'] = create_gateway_key(unique_gateway_name, 'ip')
+        self._redis_keys['ip'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'ip')
         self._redis_server.set(self._redis_keys['ip'], gateway_ip)
         self._redis_channels['gateway'] = self._redis_keys['gateway']
         self._redis_pubsub_server.subscribe(self._redis_channels['gateway'])
@@ -260,8 +179,8 @@ class Hub(object):
           @return remote gateway information
           @rtype gateway_msgs.RemotGateway or None
         '''
-        firewall = self._redis_server.get(create_gateway_key(gateway, 'firewall'))
-        ip = self._redis_server.get(create_gateway_key(gateway, 'ip'))
+        firewall = self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'firewall'))
+        ip = self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'ip'))
         if firewall is None:
             return None  # equivalent to saying no gateway of this id found
         else:
@@ -270,18 +189,18 @@ class Hub(object):
             remote_gateway.ip = ip
             remote_gateway.firewall = True if int(firewall) else False
             remote_gateway.public_interface = []
-            encoded_advertisements = self._redis_server.smembers(create_gateway_key(gateway, 'advertisements'))
+            encoded_advertisements = self._redis_server.smembers(hub_api.create_rocon_gateway_key(gateway, 'advertisements'))
             for encoded_advertisement in encoded_advertisements:
                 advertisement = utils.deserialize_connection(encoded_advertisement)
                 remote_gateway.public_interface.append(advertisement.rule)
             remote_gateway.flipped_interface = []
-            encoded_flips = self._redis_server.smembers(create_gateway_key(gateway, 'flips'))
+            encoded_flips = self._redis_server.smembers(hub_api.create_rocon_gateway_key(gateway, 'flips'))
             for encoded_flip in encoded_flips:
                 [target_gateway, name, connection_type, node] = utils.deserialize(encoded_flip)
                 remote_rule = gateway_msgs.RemoteRule(target_gateway, gateway_msgs.Rule(connection_type, name, node))
                 remote_gateway.flipped_interface.append(remote_rule)
             remote_gateway.pulled_interface = []
-            encoded_pulls = self._redis_server.smembers(create_gateway_key(gateway, 'pulls'))
+            encoded_pulls = self._redis_server.smembers(hub_api.create_rocon_gateway_key(gateway, 'pulls'))
             for encoded_pull in encoded_pulls:
                 [target_gateway, name, connection_type, node] = utils.deserialize(encoded_pull)
                 remote_rule = gateway_msgs.RemoteRule(target_gateway, gateway_msgs.Rule(connection_type, name, node))
@@ -301,8 +220,8 @@ class Hub(object):
         try:
             gateway_keys = self._redis_server.smembers(self._redis_keys['gatewaylist'])
             for gateway in gateway_keys:
-                if key_base_name(gateway) != self._unique_gateway_name:
-                    gateways.append(key_base_name(gateway))
+                if hub_api.key_base_name(gateway) != self._unique_gateway_name:
+                    gateways.append(hub_api.key_base_name(gateway))
         except redis.ConnectionError as unused_e:
             pass
         return gateways
@@ -349,7 +268,7 @@ class Hub(object):
           @rtype dictionary of connection type keyed connection values
        '''
         connections = utils.create_empty_connection_type_dictionary()
-        key = create_gateway_key(remote_gateway, 'advertisements')
+        key = hub_api.create_rocon_gateway_key(remote_gateway, 'advertisements')
         public_interface = self._redis_server.smembers(key)
         for connection_str in public_interface:
             connection = utils.deserialize_connection(connection_str)
@@ -369,7 +288,7 @@ class Hub(object):
 
           @raise GatewayUnavailableError when specified gateway is not on the hub
         '''
-        firewall = self._redis_server.get(create_gateway_key(gateway, 'firewall'))
+        firewall = self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'firewall'))
         if firewall is not None:
             return True if int(firewall) else False
         else:
@@ -392,7 +311,7 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connection arg is invalid.
         '''
-        key = create_gateway_key(self._unique_gateway_name, 'advertisements')
+        key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'advertisements')
         msg_str = utils.serialize_connection(connection)
         self._redis_server.sadd(key, msg_str)
 
@@ -404,7 +323,7 @@ class Hub(object):
           @type  connection: str
           @raise .exceptions.ConnectionTypeError: if connectionarg is invalid.
         '''
-        key = create_gateway_key(self._unique_gateway_name, 'advertisements')
+        key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'advertisements')
         msg_str = utils.serialize_connection(connection)
         self._redis_server.srem(key, msg_str)
 
@@ -422,7 +341,7 @@ class Hub(object):
           @param node : the node name it was pulled from
           @type string
         '''
-        key = create_gateway_key(self._unique_gateway_name, 'flips')
+        key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'flips')
         serialized_data = utils.serialize([gateway, name, connection_type, node])
         self._redis_server.sadd(key, serialized_data)
 
@@ -440,7 +359,7 @@ class Hub(object):
           @param node : the node name it was pulled from
           @type string
         '''
-        key = create_gateway_key(self._unique_gateway_name, 'flips')
+        key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'flips')
         serialized_data = utils.serialize([gateway, name, connection_type, node])
         self._redis_server.srem(key, serialized_data)
 
@@ -458,7 +377,7 @@ class Hub(object):
           @param node : the node name it was pulled from
           @type string
         '''
-        key = create_gateway_key(self._unique_gateway_name, 'pulls')
+        key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'pulls')
         serialized_data = utils.serialize([gateway, name, connection_type, node])
         self._redis_server.sadd(key, serialized_data)
 
@@ -476,7 +395,7 @@ class Hub(object):
           @param node : the node name it was pulled from
           @type string
         '''
-        key = create_gateway_key(self._unique_gateway_name, 'pulls')
+        key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'pulls')
         serialized_data = utils.serialize([gateway, name, connection_type, node])
         self._redis_server.srem(key, serialized_data)
 
@@ -511,10 +430,10 @@ class Hub(object):
           @param xmlrpc_uri : the node uri
           @param str
         '''
-        source = key_base_name(self._redis_keys['gateway'])
+        source = hub_api.key_base_name(self._redis_keys['gateway'])
         cmd = utils.serialize_connection_request('flip', source, connection)
         try:
-            self._redis_server.publish(create_key(remote_gateway), cmd)
+            self._redis_server.publish(hub_api.create_rocon_key(remote_gateway), cmd)
         except Exception as unused_e:
             return False
         return True
@@ -552,10 +471,10 @@ class Hub(object):
             self._send_unflip_request(remote_gateway, rule)
 
     def _send_unflip_request(self, remote_gateway, rule):
-        source = key_base_name(self._redis_keys['gateway'])
+        source = hub_api.key_base_name(self._redis_keys['gateway'])
         cmd = utils.serialize_rule_request('unflip', source, rule)
         try:
-            self._redis_server.publish(create_key(remote_gateway), cmd)
+            self._redis_server.publish(hub_api.create_rocon_key(remote_gateway), cmd)
         except Exception as unused_e:
             return False
         return True

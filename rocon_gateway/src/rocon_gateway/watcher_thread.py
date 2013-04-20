@@ -11,8 +11,6 @@ import rospy
 import threading
 import httplib
 
-from .exceptions import HubConnectionLostError
-
 ##############################################################################
 # Watcher
 ##############################################################################

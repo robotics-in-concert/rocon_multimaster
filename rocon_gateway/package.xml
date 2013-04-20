@@ -20,6 +20,7 @@
 
   <run_depend>redis</run_depend>
   <run_depend>rospy</run_depend>
+  <run_depend>rocon_hub_client</run_depend>
   <run_depend>rocon_utilities</run_depend>
   <run_depend>roslib</run_depend>
   <run_depend>zeroconf_msgs</run_depend>

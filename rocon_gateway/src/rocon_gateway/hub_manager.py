@@ -1,7 +1,7 @@
 #!/usr/bin/env pythonupdate
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro_devel/hub_manager/LICENSE
 #
 ###############################################################################
 # Imports
@@ -10,11 +10,11 @@
 import threading
 import rospy
 import gateway_msgs.msg as gateway_msgs
+import rocon_hub_client
 
 # local imports
-import hub_api
-from .exceptions import GatewayUnavailableError, \
-              HubNameNotFoundError, HubNotFoundError
+from .exceptions import GatewayUnavailableError
+import gateway_hub
 
 ##############################################################################
 # Hub Manager
@@ -169,34 +169,23 @@ class HubManager(object):
           @raise
         '''
         try:
-            new_hub = hub_api.Hub(ip, port)
-        except HubNotFoundError:
-            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE, "couldn't connect to the redis server."
-        except HubNameNotFoundError:
-            return None, gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND, "couldn't resolve hub name on the redis server [%s:%s]" % (ip, port)
-        uri = 'http://' + str(ip) + ':' + str(port)
-        if uri in self._param['hub_blacklist']:
-            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % uri
-        elif new_hub.name in self._param['hub_blacklist']:
-            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % new_hub.name
-        # Handle whitelist (uri or hub name)
-        if (len(self._param['hub_whitelist']) == 0) or (uri in self._param['hub_whitelist']) or (new_hub.name in self._param['hub_whitelist']):
-            already_exists_error = False
+            new_hub = gateway_hub.GatewayHub(ip, port, self._param['hub_whitelist'], self._param['hub_blacklist'])
+        except rocon_hub_client.HubError as e:
+            return None, e.id, str(e)
+        already_exists_error = False
+        self._hub_lock.acquire()
+        for hub in self.hubs:
+            if hub.uri == new_hub.uri:
+                already_exists_error = True
+                break
+        self._hub_lock.release()
+        if not already_exists_error:
             self._hub_lock.acquire()
-            for hub in self.hubs:
-                if hub.uri == new_hub.uri:
-                    already_exists_error = True
-                    break
+            self.hubs.append(new_hub)
             self._hub_lock.release()
-            if not already_exists_error:
-                self._hub_lock.acquire()
-                self.hubs.append(new_hub)
-                self._hub_lock.release()
-                return new_hub, gateway_msgs.ErrorCodes.SUCCESS, "success"
-            else:
-                return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS, "already connected to this hub"
+            return new_hub, gateway_msgs.ErrorCodes.SUCCESS, "success"
         else:
-            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST, "hub/ip not in non-empty whitelist [%s]%s" % (new_hub.name, self._param['hub_whitelist'])
+            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS, "already connected to this hub"
 
     def disengage_hub(self, hub_to_be_disengaged):
         '''
