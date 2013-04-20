@@ -9,6 +9,7 @@
 
 import redis
 import rospy
+from urlparse import urlparse
 
 # local imports
 import hub_api
@@ -56,7 +57,9 @@ class Hub(object):
             raise HubNotFoundError("couldn't connect to the redis server")
 
         # whitelists, blacklists
-        if self.uri in blacklist or self.name in blacklist:
+        uri_blacklist = [urlparse(x).hostname + ':' + str(urlparse(x).port) for x in blacklist if urlparse(x).hostname is not None]
+        uri_whitelist = [urlparse(x).hostname + ':' + str(urlparse(x).port) for x in whitelist if urlparse(x).hostname is not None]
+        if self.uri in uri_blacklist or self.name in blacklist:
             raise HubConnectionBlacklistedError("ignoring blacklisted hub [%s]" % self.uri)
-        if not ((len(whitelist) == 0) or (self.uri in whitelist) or (self.name in whitelist)):
-            raise HubConnectionNotWhitelistedError("hub/ip not in non-empty whitelist [%s]%s" % (self.name, whitelist))
+        if not ((len(whitelist) == 0) or (self.uri in uri_whitelist) or (self.name in whitelist)):
+            raise HubConnectionNotWhitelistedError("hub/ip not in non-empty whitelist [%s][%s]%s" % (self.name, self.uri, whitelist))
