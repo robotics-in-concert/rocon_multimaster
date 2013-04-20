@@ -36,6 +36,9 @@ def setup_ros_parameters():
     # Used to block/permit remote gateway's from flipping to this gateway.
     param['firewall'] = rospy.get_param('~firewall', True)
 
+    # The gateway can automagically detect zeroconf, but sometimes you want to force it off
+    param['disable_zeroconf'] = rospy.get_param('~disable_zeroconf', False)
+
     # Make everything publicly available (excepting the default blacklist)
     param['advertise_all'] = rospy.get_param('~advertise_all', [])  # boolean
 

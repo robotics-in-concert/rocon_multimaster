@@ -45,7 +45,7 @@ class GatewayNode():
         self._gateway_services = self._setup_ros_services()
         self._gateway_publishers = self._setup_ros_publishers()
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
-        self._hub_discovery_thread = hub_discovery.HubDiscovery(self.hub_discovery_update, direct_hub_uri_list)
+        self._hub_discovery_thread = hub_discovery.HubDiscovery(self.hub_discovery_update, direct_hub_uri_list, self._param['disable_zeroconf'])
 
     def shutdown(self):
         '''

@@ -28,7 +28,7 @@ class HubDiscovery(threading.Thread):
     '''
       Used to discover hubs via zeroconf.
     '''
-    def __init__(self, external_discovery_update_hook, direct_hub_uri_list=[]):
+    def __init__(self, external_discovery_update_hook, direct_hub_uri_list=[], disable_zeroconf=False):
         '''
           @param external_discovery_update is a callback function that takes action on a discovery
           @type gateway_node.update_discovery_hook(ip, port)
@@ -40,7 +40,7 @@ class HubDiscovery(threading.Thread):
         self.discovery_update_hook = external_discovery_update_hook
         self._trigger_shutdown = False
         self._direct_hub_uri_list = direct_hub_uri_list
-        self._zeroconf_services_available = _zeroconf_services_available()
+        self._zeroconf_services_available = False if disable_zeroconf else _zeroconf_services_available()
         if self._zeroconf_services_available:
             self._discovery_request = zeroconf_srvs.ListDiscoveredServicesRequest()
             self._discovery_request.service_type = HubDiscovery.gateway_hub_service
