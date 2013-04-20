@@ -195,7 +195,7 @@ class HubManager(object):
             else:
                 return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS, "already connected to this hub"
         else:
-            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST, "hub/ip not in non-empty whitelist [%s]" % hub.name
+            return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST, "hub/ip not in non-empty whitelist [%s]%s" % (new_hub.name, self._param['hub_whitelist'])
 
     def disengage_hub(self, hub_to_be_disengaged):
         '''
