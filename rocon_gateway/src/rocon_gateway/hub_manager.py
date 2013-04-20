@@ -178,8 +178,9 @@ class HubManager(object):
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % ip
         elif new_hub.name in self._param['hub_blacklist']:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED, "ignoring blacklisted hub [%s]" % new_hub.name
-        # Handle whitelist (ip or hub name)
-        if (len(self._param['hub_whitelist']) == 0) or (ip in self._param['hub_whitelist']) or (new_hub.name in self._param['hub_whitelist']):
+        # Handle whitelist (uri or hub name)
+        uri = 'http://' + str(ip) + ':' + str(port)
+        if (len(self._param['hub_whitelist']) == 0) or (uri in self._param['hub_whitelist']) or (new_hub.name in self._param['hub_whitelist']):
             already_exists_error = False
             self._hub_lock.acquire()
             for hub in self.hubs:
