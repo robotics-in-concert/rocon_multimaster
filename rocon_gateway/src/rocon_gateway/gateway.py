@@ -125,9 +125,10 @@ class Gateway(object):
                 connections = self.master.generate_connection_details(flip.rule.type, flip.rule.name, flip.rule.node)
                 if connection_type == utils.ConnectionType.ACTION_CLIENT or connection_type == utils.ConnectionType.ACTION_SERVER:
                     rospy.loginfo("Gateway : sending flip request [%s]%s" % (flip.gateway, utils.format_rule(flip.rule)))
-                    self.hub.post_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                    hub = remote_gateway_hub_index[flip.gateway][0]
+                    hub.post_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
                     for connection in connections:
-                        self.hub.send_flip_request(flip.gateway, connection)  # flip the individual pubs/subs
+                        hub.send_flip_request(flip.gateway, connection)  # flip the individual pubs/subs
                 else:
                     for connection in connections:
                         rospy.loginfo("Gateway : sending flip request [%s]%s" % (flip.gateway, utils.format_rule(connection.rule)))
