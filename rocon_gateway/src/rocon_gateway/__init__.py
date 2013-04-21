@@ -23,3 +23,4 @@ from .graph import Graph
 import gateway
 from .gateway import Gateway
 import samples
+import hub_manager

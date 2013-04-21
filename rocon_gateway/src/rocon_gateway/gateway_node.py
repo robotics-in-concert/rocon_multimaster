@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_gateway/LICENSE
 #
 ##############################################################################
 # Imports
@@ -36,7 +36,7 @@ class GatewayNode():
         self._param = rocon_gateway.setup_ros_parameters()
         key = uuid.uuid4()  # random 16 byte string, alternatively uuid.getnode() returns a hash based on the mac address, uuid.uid1() based on localhost and time
         self._unique_name = self._param['name'] + key.hex  # append a unique hex string
-        rospy.loginfo("Gateway : generated my unique name [%s]" % self._unique_name)
+        rospy.loginfo("Gateway : generated unique hash name [%s]" % self._unique_name)
         self._hub_manager = hub_manager.HubManager(
                              hub_whitelist=self._param['hub_whitelist'],
                              hub_blacklist=self._param['hub_blacklist']
@@ -45,7 +45,7 @@ class GatewayNode():
         self._gateway_services = self._setup_ros_services()
         self._gateway_publishers = self._setup_ros_publishers()
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
-        self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self.hub_discovery_update, direct_hub_uri_list, self._param['disable_zeroconf'])
+        self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'])
 
     def shutdown(self):
         '''
@@ -64,13 +64,24 @@ class GatewayNode():
     # Hub Discovery & Connection
     ##########################################################################
 
-    def hub_discovery_update(self, ip, port):
+    def _register_gateway(self, ip, port):
         '''
-          Hook that is triggered when the zeroconf module discovers a hub.
+          Called when either the hub discovery module finds a hub
+          or a request to connect via ros service is made.
+
+          It starts the actual redis connection with the hub and also
+          registers the appropriate information about the gateway on
+          the hub.
+
+          Note, the return type is only really used by the service callback
+          (ros_service_connect_hub).
+
+          @return error code and message
+          @rtype gateway_msgs.ErrorCodes, string
 
           @sa hub_discovery.HubDiscovery
         '''
-        hub, unused_error_code, error_code_str = self._hub_manager.connect_to_hub(ip, port)
+        hub, error_code, error_code_str = self._hub_manager.connect_to_hub(ip, port)
         if hub:
             hub.register_gateway(self._param['firewall'],
                                  self._unique_name,
@@ -82,6 +93,7 @@ class GatewayNode():
             self._publish_gateway_info()
         else:
             rospy.logwarn("Gateway : not registering on the hub [%s]" % error_code_str)
+        return error_code, error_code_str
 
     ##########################################################################
     # Ros Pubs, Subs and Services
@@ -117,15 +129,10 @@ class GatewayNode():
         '''
         response = gateway_srvs.ConnectHubResponse()
         o = urlparse(request.uri)
-        response.result = self._connect(o.hostname, o.port)
+        response.result, response.error_message = self._register_gateway(o.hostname, o.port)
+        # Some ros logging
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             rospy.loginfo("Gateway : made direct connection to hub [%s]" % request.uri)
-        elif response.result == gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED:
-            response.error_message = "cowardly refusing your request since that hub is blacklisted [%s]." % request.uri
-        elif response.result == gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS:
-            response.error_message = "(currently) can only connect to one hub at a time [%s]." % self._gateway.hub.name
-        else:
-            response.error_message = "direct connection failed, probably not available [%s]." % request.uri
         return response
 
     def _publish_gateway_info(self):
