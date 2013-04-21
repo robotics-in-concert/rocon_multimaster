@@ -522,7 +522,7 @@ class Gateway(object):
         if len(matches) > 1:
             return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_TARGET_HAS_MULTIPLE_MATCHES, "remote gateway target has multiple matches, invalid [%s][%s]" % (gateway, matches)
         elif len(matches) == 1:
-            return gateway, gateway_msgs.ErrorCodes.SUCCESS, ""
+            return matches[0], gateway_msgs.ErrorCodes.SUCCESS, ""
         # Fallback to checking for weak matches
         if len(weak_matches) > 1:
             return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_TARGET_HAS_MULTIPLE_MATCHES, "remote gateway target has multiple matches against hashed names, invalid [%s]" % weak_matches
