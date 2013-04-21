@@ -20,32 +20,65 @@ from utils import connection_types
 ##############################################################################
 
 _gateway_namespace = '/gateway'
-_tutorial_names = {gateway_msgs.ConnectionType.PUBLISHER: '/chatter',
-         gateway_msgs.ConnectionType.SUBSCRIBER: '/chatter',
-         gateway_msgs.ConnectionType.SERVICE: '/add_two_ints',
-         gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/client',
-         gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/server'
-        }
-_tutorial_nodes = {gateway_msgs.ConnectionType.PUBLISHER: '',
-         gateway_msgs.ConnectionType.SUBSCRIBER: '',
-         gateway_msgs.ConnectionType.SERVICE: '',
-         gateway_msgs.ConnectionType.ACTION_CLIENT: '',
-         gateway_msgs.ConnectionType.ACTION_SERVER: ''
-         }
-_tutorial_regex_names = {
+
+##############################################################################
+# Utility functions
+##############################################################################
+
+
+def find_first_remote_gateway(ns=_gateway_namespace):
+    '''
+      Parses the remote gateway list to find a gateway to use for testing.
+
+      It's a dumb hack to make testing quite convenient.
+
+      @return gateway string name
+      @rtype string
+    '''
+    remote_gateway_info = rospy.ServiceProxy(ns + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
+    req = gateway_srvs.RemoteGatewayInfoRequest()
+    req.gateways = []
+    resp = remote_gateway_info(req)
+    if len(resp.gateways) == 0:
+        raise GatewaySampleRuntimeError("no remote gateways available")
+    else:
+        return resp.gateways[0].name
+
+
+def create_tutorial_dictionaries(use_regex_patterns=False):
+    names = {}
+    nodes = {}
+    if use_regex_patterns:
+        names = {
          gateway_msgs.ConnectionType.PUBLISHER: '.*ter',
          gateway_msgs.ConnectionType.SUBSCRIBER: '.*ter',
          gateway_msgs.ConnectionType.SERVICE: '/add_two_.*',
          gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/cli.*',
          gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/ser.*'
         }
-_tutorial_regex_nodes = {
+        nodes = {
          gateway_msgs.ConnectionType.PUBLISHER: '/t.*er',
          gateway_msgs.ConnectionType.SUBSCRIBER: '',
          gateway_msgs.ConnectionType.SERVICE: '',
          gateway_msgs.ConnectionType.ACTION_CLIENT: '',
          gateway_msgs.ConnectionType.ACTION_SERVER: ''
          }
+    else:
+        names = {
+         gateway_msgs.ConnectionType.PUBLISHER: '/chatter',
+         gateway_msgs.ConnectionType.SUBSCRIBER: '/chatter',
+         gateway_msgs.ConnectionType.SERVICE: '/add_two_ints',
+         gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/client',
+         gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/server'
+        }
+        nodes = {
+         gateway_msgs.ConnectionType.PUBLISHER: '',
+         gateway_msgs.ConnectionType.SUBSCRIBER: '',
+         gateway_msgs.ConnectionType.SERVICE: '',
+         gateway_msgs.ConnectionType.ACTION_CLIENT: '',
+         gateway_msgs.ConnectionType.ACTION_SERVER: ''
+        }
+    return names, nodes
 
 ##############################################################################
 # Methods
@@ -85,11 +118,9 @@ def advertise_tutorials(cancel=False, regex_patterns=False, ns=_gateway_namespac
     req.cancel = cancel
     rule = gateway_msgs.Rule()
     if regex_patterns:
-        names = _tutorial_regex_names
-        nodes = _tutorial_regex_nodes
+        names, nodes = create_tutorial_dictionaries(use_regex_patterns=True)
     else:
-        names = _tutorial_names
-        nodes = _tutorial_nodes
+        names, nodes = create_tutorial_dictionaries(use_regex_patterns=False)
     for connection_type in connection_types:
         req.rules = []
         rule.name = names[connection_type]
@@ -128,11 +159,9 @@ def pull_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
     req = gateway_srvs.RemoteRequest()
     req.cancel = cancel
     if regex_patterns:
-        names = _tutorial_regex_names
-        nodes = _tutorial_regex_nodes
+        names, nodes = create_tutorial_dictionaries(use_regex_patterns=True)
     else:
-        names = _tutorial_names
-        nodes = _tutorial_nodes
+        names, nodes = create_tutorial_dictionaries(use_regex_patterns=False)
     req.remotes = []
     for connection_type in connection_types:
         rule = gateway_msgs.Rule()
@@ -172,11 +201,9 @@ def flip_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
     req = gateway_srvs.RemoteRequest()
     req.cancel = cancel
     if regex_patterns:
-        names = _tutorial_regex_names
-        nodes = _tutorial_regex_nodes
+        names, nodes = create_tutorial_dictionaries(use_regex_patterns=True)
     else:
-        names = _tutorial_names
-        nodes = _tutorial_nodes
+        names, nodes = create_tutorial_dictionaries(use_regex_patterns=False)
     req.remotes = []
     for connection_type in connection_types:
         rule = gateway_msgs.Rule()
@@ -206,25 +233,3 @@ def connect_hub_by_service(ns=_gateway_namespace, raise_exception=True):
             raise GatewaySampleRuntimeError("failed to connect to hub [%s][%s]" % (req.uri, resp.error_message))
     return resp.result, resp.error_message
 
-##############################################################################
-# Utility functions
-##############################################################################
-
-
-def find_first_remote_gateway(ns=_gateway_namespace):
-    '''
-      Parses the remote gateway list to find a gateway to use for testing.
-
-      It's a dumb hack to make testing quite convenient.
-
-      @return gateway string name
-      @rtype string
-    '''
-    remote_gateway_info = rospy.ServiceProxy(ns + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
-    req = gateway_srvs.RemoteGatewayInfoRequest()
-    req.gateways = []
-    resp = remote_gateway_info(req)
-    if len(resp.gateways) == 0:
-        raise GatewaySampleRuntimeError("no remote gateways available")
-    else:
-        return resp.gateways[0].name
