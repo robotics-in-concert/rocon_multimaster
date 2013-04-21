@@ -196,14 +196,11 @@ def connect_hub_by_service(ns=_gateway_namespace, raise_exception=True):
     req = gateway_srvs.ConnectHubRequest()
     req.uri = "http://localhost:6380"
     rospy.loginfo("")
-    rospy.loginfo("== Request ==")
-    rospy.loginfo("")
-    rospy.loginfo("\n\n%s\n" % req)
+    rospy.loginfo("Request:\n\n%s\n" % req)
     rospy.loginfo("")
     resp = connect(req)
-    rospy.loginfo("== Response ==")
     rospy.loginfo("")
-    rospy.loginfo("\n\n%s\n" % resp)
+    rospy.loginfo("Response:\n\n%s\n" % resp)
     if raise_exception:
         if resp.result != gateway_msgs.ErrorCodes.SUCCESS:
             raise GatewaySampleRuntimeError("failed to connect to hub [%s][%s]" % (req.uri, resp.error_message))
