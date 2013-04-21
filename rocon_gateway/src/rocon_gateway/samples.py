@@ -189,6 +189,26 @@ def flip_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
     if resp.result != 0:
         raise GatewaySampleRuntimeError("failed to flip %s [%s]" % (rule.name, resp.error_message))
 
+
+def connect_hub_by_service(ns=_gateway_namespace, raise_exception=True):
+    connect = rospy.ServiceProxy(ns + '/connect_hub', gateway_srvs.ConnectHub)
+    # Form a request message
+    req = gateway_srvs.ConnectHubRequest()
+    req.uri = "http://localhost:6380"
+    rospy.loginfo("")
+    rospy.loginfo("== Request ==")
+    rospy.loginfo("")
+    rospy.loginfo("\n\n%s\n" % req)
+    rospy.loginfo("")
+    resp = connect(req)
+    rospy.loginfo("== Response ==")
+    rospy.loginfo("")
+    rospy.loginfo("\n\n%s\n" % resp)
+    if raise_exception:
+        if resp.result != gateway_msgs.ErrorCodes.SUCCESS:
+            raise GatewaySampleRuntimeError("failed to connect to hub [%s][%s]" % (req.uri, resp.error_message))
+    return resp.result, resp.error_message
+
 ##############################################################################
 # Utility functions
 ##############################################################################
