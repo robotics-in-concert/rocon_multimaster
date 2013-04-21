@@ -18,6 +18,7 @@ catkin_python_setup()
 # Tests
 ##############################################################################
 
+add_rocon_test(test/multimaster/connect_hub_by_service.test)
 add_rocon_test(test/multimaster/flips.test)
 add_rocon_test(test/multimaster/pulls.test)
 add_rocon_test(test/multimaster/advertisements.test)
