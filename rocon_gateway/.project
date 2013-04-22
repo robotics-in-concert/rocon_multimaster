@@ -3,7 +3,6 @@
 	<name>rocon_gateway</name>
 	<comment></comment>
 	<projects>
-		<project>gateway_msgs</project>
 		<project>redis</project>
 		<project>rocon_hub_client</project>
 		<project>rocon_utilities</project>

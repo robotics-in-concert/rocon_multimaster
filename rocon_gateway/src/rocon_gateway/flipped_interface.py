@@ -10,6 +10,7 @@
 
 import copy
 import re
+import rocon_utilities
 
 # Local imports
 import utils
@@ -68,6 +69,9 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           @param remote_gateway_hub_index : full gateway-hub database index to parse
           @type gateway hash names keyed into a dic with a list of their hubs
 
+          @param unique_name : this gateway's unique hash name
+          @type string
+
           @return new_flips, removed_flips (i.e. those that are no longer on the local master)
           @rtype pair of connection type keyed dictionary of gateway_msgs.msg.Rule lists.
         '''
@@ -79,8 +83,9 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         remote_gateways = remote_gateway_hub_index.keys()
         diff = lambda l1,l2: [x for x in l1 if x not in l2]  # diff of lists
         self._lock.acquire()
-        # Prune flips that are not in the gateway-hub index anymore, keep the rules though
+        # Prune locally cached flip list for flips that have lost their remotes, keep the rules though
         for connection_type in utils.connection_types:
+            # flip.gateway is a hash name, so is the remote_gateways list
             self.flipped[connection_type] = [flip for flip in self.flipped[connection_type] if flip.gateway in remote_gateways]
         # Totally regenerate a new flipped interface, compare with old
         for connection_type in connections:
@@ -145,8 +150,11 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
             # Check if the flip rule corresponds to an existing gateway
             matched_gateways = []
             for gateway in remote_gateways:
+                # check for regular expression or perfect match
                 gateway_match_result = re.match(flip_rule.gateway, gateway)
                 if gateway_match_result and gateway_match_result.group() == gateway:
+                    matched_gateways.append(gateway)
+                elif flip_rule.gateway == rocon_utilities.gateway_basename(gateway):
                     matched_gateways.append(gateway)
             if not matched_gateways:
                 continue
@@ -167,7 +175,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
             if matched:
                 for gateway in matched_gateways:
                     matched_flip = copy.deepcopy(flip_rule)
-                    matched_flip.gateway = gateway # just in case we used a regex
+                    matched_flip.gateway = gateway # just in case we used a regex or matched basename
                     matched_flip.rule.name = name  # just in case we used a regex
                     matched_flip.rule.node = node  # just in case we used a regex
                     matched_flip_rules.append(matched_flip)

@@ -120,6 +120,9 @@ class Gateway(object):
         new_flips, lost_flips = self.flipped_interface.update(connections, remote_gateway_hub_index, self._unique_name)
         for connection_type in connections:
             for flip in new_flips[connection_type]:
+                firewall_flag = self.hub_manager.get_remote_gateway_firewall_flag(flip.gateway)
+                if firewall_flag == True:
+                    continue
                 state_changed = True
                 # for actions, need to post flip details here
                 connections = self.master.generate_connection_details(flip.rule.type, flip.rule.name, flip.rule.node)
@@ -349,10 +352,6 @@ class Gateway(object):
             if response.result != gateway_msgs.ErrorCodes.SUCCESS:
                 rospy.logerr("Gateway : %s." % response.error_message)
                 return response
-            response.result, response.error_message = self._ros_service_flip_checks(remote.gateway)
-            if response.result != gateway_msgs.ErrorCodes.SUCCESS:
-                rospy.logerr("Gateway : %s." % response.error_message)
-                return response
         # result is currently SUCCESS
         added_rules = []
         for remote in request.remotes:
@@ -392,8 +391,6 @@ class Gateway(object):
         '''
         response = gateway_srvs.RemoteAllResponse()
         remote_gateway_target_hash_name, response.result, response.error_message = self._ros_service_remote_checks(request.gateway)
-        if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-            response.result, response.error_message = self._ros_service_flip_checks(remote_gateway_target_hash_name)
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             if not request.cancel:
                 if self.flipped_interface.flip_all(remote_gateway_target_hash_name, request.blacklist):
@@ -485,32 +482,13 @@ class Gateway(object):
             rospy.logerr("Gateway : %s." % response.error_message)
         return response
 
-    def _ros_service_flip_checks(self, remote_gateway_hash_name):
-        '''
-          Some simple checks for ros service flips.
-
-          Typically use immediately after calling _ros_service_remote_checks.
-
-          @param remote_gateway_hash_name : remote gateway hash name
-          @type string
-          @return pair of result type and message
-          @rtype gateway_msgs.ErrorCodes.xxx, string
-        '''
-        firewall_flag = self.hub_manager.get_remote_gateway_firewall_flag(remote_gateway_hash_name)
-        if firewall_flag == True:
-            return gateway_msgs.ErrorCodes.FLIP_REMOTE_GATEWAY_FIREWALLING, "remote gateway is firewalling flip requests, aborting [%s]" % remote_gateway_hash_name
-        elif firewall_flag is None:  # Not visible
-            return gateway_msgs.ErrorCodes.REMOTE_GATEWAY_NOT_VISIBLE, "remote gateway is currently not visible on the hubs [%s]" % remote_gateway_hash_name
-        else:
-            return gateway_msgs.ErrorCodes.SUCCESS, ""
-
     def _ros_service_remote_checks(self, gateway):
         '''
           Some simple checks when pulling or flipping to make sure that the remote gateway is visible. It
           does a strict check on the hash names first, then falls back to looking for weak matches on the
           human friendly name.
 
-          @param gateway : remote gateway target name (can be hash or friendly name)
+          @param gateway : remote gateway target name (can be hash name, basename or regex pattern)
           @type string
           @return pair of result type and message
           @rtype gateway_msgs.ErrorCodes.xxx, string
@@ -518,16 +496,17 @@ class Gateway(object):
         if not self.is_connected():
             return None, gateway_msgs.ErrorCodes.NO_HUB_CONNECTION, "not connected to hub, aborting"
         if gateway == self._unique_name:
-            return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_SELF_IS_NOT, "gateway cannot flip to itself"
-        matches, weak_matches = self.hub_manager.match_remote_gateway_name(gateway)
-        if len(matches) > 1:
-            return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_TARGET_HAS_MULTIPLE_MATCHES, "remote gateway target has multiple matches, invalid [%s][%s]" % (gateway, matches)
-        elif len(matches) == 1:
-            return matches[0], gateway_msgs.ErrorCodes.SUCCESS, ""
-        # Fallback to checking for weak matches
-        if len(weak_matches) > 1:
-            return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_TARGET_HAS_MULTIPLE_MATCHES, "remote gateway target has multiple matches against hashed names, invalid [%s]" % weak_matches
-        elif len(weak_matches) == 1:
-            return weak_matches[0], gateway_msgs.ErrorCodes.SUCCESS, ""
-        # Not visible
-        return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_NOT_VISIBLE, "remote gateway is currently not visible on the hubs [%s]" % gateway
+            return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_SELF_IS_NOT, "gateway cannot flip/pull to itself"
+        return gateway, gateway_msgs.ErrorCodes.SUCCESS, ""
+#        matches, weak_matches = self.hub_manager.match_remote_gateway_name(gateway)
+#        if len(matches) > 1:
+#            return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_TARGET_HAS_MULTIPLE_MATCHES, "remote gateway target has multiple matches, invalid [%s][%s]" % (gateway, matches)
+#        elif len(matches) == 1:
+#            return matches[0], gateway_msgs.ErrorCodes.SUCCESS, ""
+#        # Fallback to checking for weak matches
+#        if len(weak_matches) > 1:
+#            return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_TARGET_HAS_MULTIPLE_MATCHES, "remote gateway target has multiple matches against hashed names, invalid [%s]" % weak_matches
+#        elif len(weak_matches) == 1:
+#            return weak_matches[0], gateway_msgs.ErrorCodes.SUCCESS, ""
+#        # Not visible
+#        return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_NOT_VISIBLE, "remote gateway is currently not visible on the hubs [%s]" % gateway
