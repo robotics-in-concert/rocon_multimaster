@@ -10,6 +10,7 @@
 import rospy
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
+import rocon_utilities
 
 # local imports
 from .exceptions import GatewaySampleRuntimeError
@@ -26,7 +27,50 @@ _gateway_namespace = '/gateway'
 ##############################################################################
 
 
-def find_first_remote_gateway(ns=_gateway_namespace):
+def wait_for_gateway(ns=_gateway_namespace, timeout=rospy.Duration(5.0)):
+    '''
+      Slowly loop (and block) until the gateway is connected to a hub.
+    '''
+    gateway_info_service = rocon_utilities.SubscriberProxy(ns + '/gateway_info', gateway_msgs.GatewayInfo)
+    start_time = rospy.Time.now()
+    while not rospy.is_shutdown():
+        gateway_info = gateway_info_service()
+        if gateway_info.connected:
+            break
+        if rospy.Time.now() - start_time > timeout:
+            raise GatewaySampleRuntimeError("timed out waiting for the gateway to connect to a hub")
+        rospy.sleep(0.5)
+
+
+def wait_for_remote_gateway(remote_gateway_name, ns=_gateway_namespace, timeout=rospy.Duration(5.0)):
+    '''
+      Slowly loop (and block) until remote the gateway is visible on our hub.
+    '''
+    rospy.wait_for_service(ns + '/remote_gateway_info')
+    remote_gateway_info_service = rospy.ServiceProxy(ns + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
+    req = gateway_srvs.RemoteGatewayInfoRequest()
+    start_time = rospy.Time.now()
+    while not rospy.is_shutdown():
+        req = gateway_srvs.RemoteGatewayInfoRequest()
+        req.gateways = []
+        resp = remote_gateway_info_service(req)
+        matched = False
+        if rospy.Time.now() - start_time > timeout:
+            raise GatewaySampleRuntimeError("timed out waiting for a remote gateway to appear")
+        for gateway in resp.gateways:
+            if remote_gateway_name == gateway.name:
+                matched = True
+                break
+            remote_gateway_basename = rocon_utilities.gateway_basename(gateway.name)
+            print("Samples: gateway comparison [%s][%s]" % (remote_gateway_basename, remote_gateway_name))
+            if remote_gateway_name == remote_gateway_basename:
+                matched = True
+                break
+        if matched:
+            break
+
+
+def find_first_remote_gateway(ns=_gateway_namespace, timeout=rospy.Duration(5.0)):
     '''
       Parses the remote gateway list to find a gateway to use for testing.
 
@@ -35,14 +79,18 @@ def find_first_remote_gateway(ns=_gateway_namespace):
       @return gateway string name
       @rtype string
     '''
+    rospy.wait_for_service(ns + '/remote_gateway_info')
     remote_gateway_info = rospy.ServiceProxy(ns + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
-    req = gateway_srvs.RemoteGatewayInfoRequest()
-    req.gateways = []
-    resp = remote_gateway_info(req)
-    if len(resp.gateways) == 0:
-        raise GatewaySampleRuntimeError("no remote gateways available")
-    else:
-        return resp.gateways[0].name
+    start_time = rospy.Time.now()
+    while not rospy.is_shutdown():
+        req = gateway_srvs.RemoteGatewayInfoRequest()
+        req.gateways = []
+        resp = remote_gateway_info(req)
+        if rospy.Time.now() - start_time > timeout:
+            raise GatewaySampleRuntimeError("timed out waiting for a remote gateway to appear")
+        if len(resp.gateways) > 0:
+            break
+    return resp.gateways[0].name
 
 
 def create_tutorial_dictionaries(use_regex_patterns=False):
@@ -232,4 +280,3 @@ def connect_hub_by_service(ns=_gateway_namespace, raise_exception=True):
         if resp.result != gateway_msgs.ErrorCodes.SUCCESS:
             raise GatewaySampleRuntimeError("failed to connect to hub [%s][%s]" % (req.uri, resp.error_message))
     return resp.result, resp.error_message
-
