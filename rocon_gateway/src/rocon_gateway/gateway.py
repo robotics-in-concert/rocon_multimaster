@@ -530,4 +530,4 @@ class Gateway(object):
         elif len(weak_matches) == 1:
             return weak_matches[0], gateway_msgs.ErrorCodes.SUCCESS, ""
         # Not visible
-        return gateway_msgs.ErrorCodes.REMOTE_GATEWAY_NOT_VISIBLE, "remote gateway is currently not visible on the hubs [%s]" % gateway
+        return None, gateway_msgs.ErrorCodes.REMOTE_GATEWAY_NOT_VISIBLE, "remote gateway is currently not visible on the hubs [%s]" % gateway
