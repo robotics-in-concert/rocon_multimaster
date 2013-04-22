@@ -147,7 +147,7 @@ class Gateway(object):
         if state_changed:
             self._publish_gateway_info()
 
-    def update_pulled_interface(self, connections, remote_gateway_hub_index):
+    def update_pulled_interface(self, unused_connections, remote_gateway_hub_index):
         '''
           Process the list of local connections and check against
           the current pull rules and patterns for changes. If a rule
@@ -165,43 +165,48 @@ class Gateway(object):
           @type dictionary of remote_gateway_name-list of hub_api.Hub objects key-value pairs
         '''
         state_changed = False
+        remote_connections = {}
         for remote_gateway in remote_gateway_hub_index.keys() + self.pulled_interface.list_remote_gateway_names():
             # this should probably be better....we *should* only need one hub's info, but things could
             # go very wrong here - keep an eye on it.
             try:
                 hub = remote_gateway_hub_index[remote_gateway][0]
-                connections = hub.get_remote_connection_state(remote_gateway)
+                remote_connections[remote_gateway] = hub.get_remote_connection_state(remote_gateway)
             except KeyError:
-                # remote gateway no longer exists on the hub network, just set empty dictionary
-                hub = None
-                connections = utils.create_empty_connection_type_dictionary()
-            new_pulls, lost_pulls = self.pulled_interface.update(connections, remote_gateway, self._unique_name)
-            for connection_type in connections:
-                for pull in new_pulls[connection_type]:
-                    for connection in connections[pull.rule.type]:
-                        if connection.rule.name == pull.rule.name and \
-                           connection.rule.node == pull.rule.node:
-                            #corresponding_connection = connection
+                pass  # remote gateway no longer exists on the hub network
+        new_pulls, lost_pulls = self.pulled_interface.update(remote_connections, self._unique_name)
+        for connection_type in utils.connection_types:
+            for pull in new_pulls[connection_type]:
+                # dig out the corresponding connection (bit inefficient plouging back into this again
+                connection = None
+                for remote_gateway in remote_connections.keys():
+                    for c in remote_connections[remote_gateway][pull.rule.type]:
+                        if c.rule.name == pull.rule.name and \
+                           c.rule.node == pull.rule.node:
+                            connection = c
                             break
-                    # Register this pull
-                    existing_registration = self.pulled_interface.find_registration_match(remote_gateway, pull.rule.name, pull.rule.node, pull.rule.type)
-                    if not existing_registration:
-                        rospy.loginfo("Gateway : pulling in connection %s[%s]" % (utils.format_rule(pull.rule), remote_gateway))
-                        registration = utils.Registration(connection, remote_gateway)
-                        new_registration = self.master.register(registration)
-                        self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
-                        hub.post_pull_details(remote_gateway, pull.rule.name, pull.rule.type, pull.rule.node)
-                        state_changed = True
-                for pull in lost_pulls[connection_type]:
-                    # Unregister this pull
-                    existing_registration = self.pulled_interface.find_registration_match(remote_gateway, pull.rule.name, pull.rule.node, pull.rule.type)
-                    if existing_registration:
-                        rospy.loginfo("Gateway : abandoning pulled connection %s[%s]" % (utils.format_rule(pull.rule), remote_gateway))
-                        self.master.unregister(existing_registration)
-                        if hub:
-                            hub.remove_pull_details(remote_gateway, pull.rule.name, pull.rule.type, pull.rule.node)
-                        self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
-                        state_changed = True
+                    if connection:
+                        break
+                # Register this pull
+                existing_registration = self.pulled_interface.find_registration_match(pull.gateway, pull.rule.name, pull.rule.node, pull.rule.type)
+                if not existing_registration:
+                    rospy.loginfo("Gateway : pulling in connection %s[%s]" % (utils.format_rule(pull.rule), remote_gateway))
+                    registration = utils.Registration(connection, pull.gateway)
+                    new_registration = self.master.register(registration)
+                    self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
+                    hub = remote_gateway_hub_index[pull.gateway][0]
+                    hub.post_pull_details(pull.gateway, pull.rule.name, pull.rule.type, pull.rule.node)
+                    state_changed = True
+            for pull in lost_pulls[connection_type]:
+                # Unregister this pull
+                existing_registration = self.pulled_interface.find_registration_match(pull.gateway, pull.rule.name, pull.rule.node, pull.rule.type)
+                if existing_registration:
+                    rospy.loginfo("Gateway : abandoning pulled connection %s[%s]" % (utils.format_rule(pull.rule), pull.gateway))
+                    self.master.unregister(existing_registration)
+                    if hub:
+                        hub.remove_pull_details(pull.gateway, pull.rule.name, pull.rule.type, pull.rule.node)
+                    self.pulled_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
+                    state_changed = True
         if state_changed:
             self._publish_gateway_info()
 

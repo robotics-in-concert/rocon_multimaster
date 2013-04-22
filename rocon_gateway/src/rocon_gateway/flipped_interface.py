@@ -91,7 +91,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         for connection_type in connections:
             for connection in connections[connection_type]:
                 flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, remote_gateways, unique_name))
-            new_flips[connection_type] = diff(flipped[connection_type],self.flipped[connection_type])
+            new_flips[connection_type] = diff(flipped[connection_type], self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type], flipped[connection_type])
         self.flipped = copy.deepcopy(flipped)
         self._lock.release()
