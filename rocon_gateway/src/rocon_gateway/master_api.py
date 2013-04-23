@@ -263,7 +263,7 @@ class LocalMaster(rosgraph.Master):
 
         actions = []
         for goal_candidate in pubs:
-            if re.search('goal$', goal_candidate[0]):
+            if re.search('\/goal$', goal_candidate[0]):
                 # goal found, extract base topic
                 base_topic = re.sub('\/goal$', '', goal_candidate[0])
                 nodes = goal_candidate[1]
@@ -272,6 +272,7 @@ class LocalMaster(rosgraph.Master):
                 # there may be multiple nodes -- for each node search for the other topics
                 for node in nodes:
                     is_action = True
+                    is_action &= self._isTopicNodeInList(base_topic + '/goal', node, pubs)
                     is_action &= self._isTopicNodeInList(base_topic + '/cancel', node, pubs)
                     is_action &= self._isTopicNodeInList(base_topic + '/status', node, subs)
                     is_action &= self._isTopicNodeInList(base_topic + '/feedback', node, subs)
@@ -286,16 +287,18 @@ class LocalMaster(rosgraph.Master):
                     # remove action entries from publishers/subscribers
                     for connection in pubs:
                         if connection[0] in [base_topic + '/goal', base_topic + '/cancel']:
-                            try:
-                                connection[1].remove(node)
-                            except ValueError:
-                                rospy.logerr("Gateway : couldn't remove an action publisher from the master connections list [%s][%s]" % (connection[0], node))
+                            for node in action_nodes:
+                                try:
+                                    connection[1].remove(node)
+                                except ValueError:
+                                    rospy.logerr("Gateway : couldn't remove an action publisher from the master connections list [%s][%s]" % (connection[0], node))
                     for connection in subs:
                         if connection[0] in [base_topic + '/status', base_topic + '/feedback', base_topic + '/result']:
-                            try:
-                                connection[1].remove(node)
-                            except ValueError:
-                                rospy.logerr("Gateway : couldn't remove an action subscriber from the master connections list [%s][%s]" % (connection[0], node))
+                            for node in action_nodes:
+                                try:
+                                    connection[1].remove(node)
+                                except ValueError:
+                                    rospy.logerr("Gateway : couldn't remove an action subscriber from the master connections list [%s][%s]" % (connection[0], node))
         pubs[:] = [connection for connection in pubs if len(connection[1]) != 0]
         subs[:] = [connection for connection in subs if len(connection[1]) != 0]
         return actions, pubs, subs
