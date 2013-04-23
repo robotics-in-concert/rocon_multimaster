@@ -249,7 +249,7 @@ class LocalMaster(rosgraph.Master):
                 break
         return available
 
-    def _getActions(self, pubs, subs):
+    def _get_actions(self, pubs, subs):
         '''
           Return actions and pruned publisher, subscriber lists.
 
@@ -305,7 +305,7 @@ class LocalMaster(rosgraph.Master):
           @return list of actions, pruned_publishers, pruned_subscribers
           @rtype [base_topic, [nodes]], as param type, as param type
         '''
-        actions, subs, pubs = self._getActions(subscribers, publishers)
+        actions, subs, pubs = self._get_actions(subscribers, publishers)
         return actions, pubs, subs
 
     def getActionClients(self, publishers, subscribers):
@@ -319,7 +319,7 @@ class LocalMaster(rosgraph.Master):
           @return list of actions, pruned_publishers, pruned_subscribers
           @rtype [base_topic, [nodes]], as param type, as param type
         '''
-        actions, pubs, subs = self._getActions(publishers, subscribers)
+        actions, pubs, subs = self._get_actions(publishers, subscribers)
         return actions, pubs, subs
 
     def getConnectionsFromPubSubList(self, list, type):
@@ -394,7 +394,7 @@ class LocalMaster(rosgraph.Master):
     # Master utility methods for scripts
     ##########################################################################
 
-    def findGatewayNamespace(self):
+    def find_gateway_namespace(self):
         '''
           Assists a script to find the (hopefully) unique gateway namespace.
           Note that unique is a necessary condition, there should only be one

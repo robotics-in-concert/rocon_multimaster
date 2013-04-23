@@ -118,7 +118,7 @@ class Graph(object):
         if self._gateway_namespace:
             return
         master = LocalMaster()
-        self.gateway_namespace = master.findGatewayNamespace()
+        self.gateway_namespace = master.find_gateway_namespace()
         if not self.gateway_namespace:
             rospy.logerr("Gateway Graph: could not find a local gateway - did you start it?")
         return self.gateway_namespace
