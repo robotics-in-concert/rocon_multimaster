@@ -8,6 +8,7 @@
 # Imports
 ##############################################################################
 
+import rospy
 import sys
 import rocon_gateway
 
@@ -29,5 +30,7 @@ if __name__ == '__main__':
     rospy.init_node('master_connections')
     master = rocon_gateway.LocalMaster()
     publishers, subscribers, services = master.getSystemState()
-    print("Publishers; \n%s" % publishers)
-    print("Publishers; \n%s" % subscribers)
+    
+    for p in publishers:
+      print(str(p))
+
