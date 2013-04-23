@@ -91,12 +91,11 @@ class Graph(object):
             self.pulled_edges.add(Edge(self._local_gateway.name, connection_id))
             self.pulled_edges.add(Edge(connection_id, remote_rule.gateway))
         for rule in self._local_gateway.public_interface:
-            print "pulled edge: %s->%s" % (self._local_gateway.name, connection_id)
             connection_id = rosgraph.impl.graph.topic_node(rule.name + '-' + rule.type)
+            #print "pulled edge: %s->%s" % (self._local_gateway.name, connection_id)
             self.pulled_nodes.append(connection_id)
             self.pulled_edges.add(Edge(self._local_gateway.name, connection_id))
         # Check remote gateways
-        # TODO add flipped and pulled here.
         for remote_gateway in self._remote_gateways:
             for remote_rule in remote_gateway.flipped_interface:
                 connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)

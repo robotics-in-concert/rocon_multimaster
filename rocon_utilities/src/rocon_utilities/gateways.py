@@ -38,7 +38,7 @@ def create_gateway_rule(name, connection_type, node_name=''):
     return r
 
 
-def basename(gateway_name):
+def gateway_basename(gateway_name):
     '''
       Strips the 16 byte hash (in hex format) from a gateway name, leaving the base name.
       Note, 16 hex values represents 32 characters

@@ -1,0 +1,81 @@
+#!/usr/bin/env pythonupdate
+#
+# License: BSD
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_hub_client/LICENSE
+#
+###############################################################################
+# Imports
+###############################################################################
+
+import redis
+import re
+
+###############################################################################
+# Utility Functions
+###############################################################################
+
+
+def create_rocon_key(key):
+    '''
+      Root the specified redis key name in our pseudo redis database.
+    '''
+    if re.match('rocon:', key):  # checks if leading rocon: is foundupdate
+        return key
+    else:
+        return 'rocon:' + key
+
+
+def create_rocon_hub_key(key):
+    '''
+      Root the specified redis key name in our pseudo redis database under
+      the hub namespace
+    '''
+    if re.match('rocon:hub:', key):  # checks if leading rocon: is foundupdate
+        return key
+    else:
+        return 'rocon:hub:' + key
+
+
+def create_rocon_gateway_key(unique_gateway_name, key):
+    '''
+      Root the specified redis key name in our pseudo redis database under
+      the gateway namespace.
+
+      @note : currently does no checking of the incoming keys
+    '''
+    return 'rocon:' + unique_gateway_name + ":" + key
+
+
+def extract_rocon_key(key):
+    '''
+      Extract the specified redis key name from our pseudo redis database.
+    '''
+    if re.match('rocon:', key):  # checks if leading rocon: is found
+        return re.sub(r'rocon:', '', key)
+    else:
+        return key
+
+
+def key_base_name(key):
+    '''
+      Extract the base name (i.e. last value) from the key.
+      e.g. rocon:key:pirate24 -> pirate24
+    '''
+    return key.split(':')[-1]
+
+
+def ping_hub(ip, port):
+    '''
+      Pings the hub for identification. This is currently used
+      by the hub discovery module.
+
+      @return Bool
+    '''
+    try:
+        r = redis.Redis(host=ip, port=port)
+        name = r.get("rocon:hub:name")
+    except redis.exceptions.ConnectionError:
+        return False
+    if name is None:  # returns None if the server was there, but the key was not found.
+        return False
+    return True

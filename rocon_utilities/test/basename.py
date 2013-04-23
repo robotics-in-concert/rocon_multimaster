@@ -11,7 +11,7 @@ class TestBaseName(unittest.TestCase):
         pass
 
     def test_basename(self):
-        self.assertEquals("dude", rocon_utilities.basename('dude1285014a28c74162bf19952d1481197e'))
+        self.assertEquals("dude", rocon_utilities.gateway_basename('dude1285014a28c74162bf19952d1481197e'))
 
     def tearDown(self):
         pass

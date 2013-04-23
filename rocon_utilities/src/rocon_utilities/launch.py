@@ -132,30 +132,53 @@ def parse_arguments():
     return args
 
 
+def choose_terminal(gnome_flag, konsole_flag):
+    '''
+      Use ubuntu's x-terminal-emulator to choose the shell, or over-ride if it there is a flag.
+    '''
+    if konsole_flag:
+        if not which('konsole'):
+            console.error("Cannot find 'konsole' [hint: try --gnome for gnome-terminal instead]")
+            sys.exit(1)
+        return 'konsole'
+    elif gnome_flag:
+        if not which('gnome-terminal'):
+            console.error("Cannot find 'gnome' [hint: try --konsole for konsole instead]")
+            sys.exit(1)
+        return 'gnome-terminal'
+    else:
+        if not which('x-terminal-emulator'):
+            console.error("Cannot find 'x-terminal-emulator' [hint: try --gnome or --konsole instead]")
+            sys.exit(1)
+        p = subprocess.Popen([which('update-alternatives'), '--query', 'x-terminal-emulator'], stdout=subprocess.PIPE)
+        terminal = None
+        for line in p.stdout:
+            if line.startswith("Value:"):
+                terminal = os.path.basename(line.split()[1])
+                break
+        if terminal not in ["gnome-terminal", "gnome-terminal.wrapper", "konsole"]:
+            console.warning("You are using an esoteric unsupported terminal [%s]" % terminal)
+            if which('konsole'):
+                terminal = 'konsole'
+                console.warning(" --> falling back to 'konsole'")
+            elif which('gnome-terminal'):
+                console.warning(" --> falling back to 'gnome-terminal'")
+                terminal = 'gnome-terminal'
+            else:
+                console.error("Unsupported terminal set for 'x-terminal-emulator' [%s][hint: try --gnome or --konsole instead]" % terminal)
+                sys.exit(1)
+        return terminal
+
+
 def main():
     global processes
     global roslaunch_pids
     signal.signal(signal.SIGINT, signal_handler)
     args = parse_arguments()
-    if not which('konsole') and not which('gnome-terminal'):
-        console.error("Cannot find a suitable terminal [konsole, gnome-termional]")
+    if not which('konsole') and not which('gnome-terminal')and not which('x-terminal-emulator'):
+        console.error("Cannot find a suitable terminal [x-terminal-emulator, konsole, gnome-termional]")
         sys.exit(1)
-    terminal = None
-    if args.konsole:
-        if not which('konsole'):
-            console.error("Cannot find 'konsole' [hint: try --gnome for gnome-terminal instead]")
-            sys.exit(1)
-        terminal = 'konsole'
-    elif args.gnome:
-        if not which('gnome-terminal'):
-            console.error("Cannot find 'gnome-terminal' [hint: try --konsole instead]")
-            sys.exit(1)
-        terminal = 'gnome-terminal'
-    else:  # Use konsole for default
-        if not which('konsole'):
-            console.error("Cannot find 'konsole' [hint: try --gnome for gnome-terminal instead]")
-            sys.exit(1)
-        terminal = 'konsole'
+    terminal = choose_terminal(args.gnome, args.konsole)
 
     if args.package == '':
         rocon_launcher = roslaunch.rlutil.resolve_launch_arguments(args.launcher)[0]
@@ -168,12 +191,12 @@ def main():
     launchers = parse_rocon_launcher(rocon_launcher, roslaunch_options)
     for launcher in launchers:
         console.pretty_println("Launching [%s, %s] on port %s" % (launcher['package'], launcher['name'], launcher['port']), console.bold)
-
         if terminal == 'konsole':
             p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s %s" %
                               (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
-        elif terminal == 'gnome-terminal':
-            p = subprocess.Popen([terminal, '-e', "/bin/bash", "-e", "roslaunch %s --port %s %s %s" %
+        elif terminal == 'gnome-terminal.wrapper' or terminal == 'gnome-terminal':
+            # --disable-factory inherits the current environment, bit wierd.
+            p = subprocess.Popen(['gnome-terminal', '--disable-factory', '-e', "/bin/bash", "-e", "roslaunch %s --port %s %s %s" %
                               (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
         processes.append(p)
     signal.pause()

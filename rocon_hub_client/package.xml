@@ -2,7 +2,8 @@
   <name>rocon_hub_client</name>
   <version>0.4.0</version>
   <description>
-    Client api for easily accessing the rocon hub. 
+    Client api for discovery and connection to rocon hubs. It also has
+    a few convenience api for manipulating data on the hub. 
   </description>
   <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
   <maintainer email="jihoonlee.in@gmail.com">Jihoon Lee</maintainer>
@@ -17,7 +18,7 @@
 
   <run_depend>redis</run_depend>
   <run_depend>rospy</run_depend>
-  <run_depend>rocon_gateway</run_depend>
+  <run_depend>rocon_utilities</run_depend>
 
   <export>
     <rosdoc config="rosdoc.yaml"/>

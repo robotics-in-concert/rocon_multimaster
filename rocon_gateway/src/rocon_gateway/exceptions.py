@@ -18,7 +18,7 @@ class GatewayError(Exception):
 
 # Raised when information for a specific gateway id is requested, but that
 # gateway is not connected to the hub
-class UnavailableGatewayError(Exception):
+class GatewayUnavailableError(Exception):
     pass
 
 
@@ -28,5 +28,6 @@ class ConnectionTypeError(GatewayError):
     pass
 
 
-class HubConnectionLostError(GatewayError):
+# Raised whenever any of the samples falls over in runtime
+class GatewaySampleRuntimeError(Exception):
     pass

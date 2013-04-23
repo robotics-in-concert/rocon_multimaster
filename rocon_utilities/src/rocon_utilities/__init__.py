@@ -15,6 +15,7 @@
 
 import console
 from launch import main as launch, parse_rocon_launcher
-from gateways import create_gateway_rule, create_gateway_remote_rule, basename
+from gateways import create_gateway_remote_rule, create_gateway_rule, gateway_basename
+import ros_utilities as ros
 from ros_utilities import SubscriberProxy, find_resource
 from exceptions import TimeoutExpiredError

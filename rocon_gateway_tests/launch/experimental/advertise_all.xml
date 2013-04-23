@@ -1,0 +1,8 @@
+<!--
+  Utility launcher for experimentation with multihub.concert 
+ -->
+<launch>
+  <node pkg="rocon_gateway_tests" type="advertise_all.py" name="advertise_all">
+    <rosparam param="cancel">false</rosparam>
+  </node>
+</launch>

@@ -17,11 +17,11 @@ from urlparse import urlparse
 import rospkg
 import roslib
 import roslaunch
-from rostest.rostest_parent import ROSTestLaunchParent
 import rosunit
 
 # Local imports
 from loggers import printlog, printlogerr
+from test_parent import RoconTestLaunchParent
 
 ##############################################################################
 # Globals
@@ -29,6 +29,8 @@ from loggers import printlog, printlogerr
 
 _DEFAULT_TEST_PORT = 22422
 _results = rosunit.junitxml.Result('rocon_test', 0, 0, 0)
+_text_mode = False
+_pause_mode = False
 
 
 def get_results():
@@ -38,6 +40,15 @@ def get_results():
 def _accumulate_results(results):
     _results.accumulate(results)
 
+
+def set_text_mode(val):
+    global _text_mode
+    _text_mode = val
+
+
+def set_pause_mode(val):
+    global _pause_mode
+    _pause_mode = val
 
 ##############################################################################
 # Parents
@@ -91,15 +102,18 @@ def setUp(self):
     # new parent for each run. we are a bit inefficient as it would be possible to
     # reuse the roslaunch base infrastructure for each test, but the roslaunch code
     # is not abstracted well enough yet
+    uuids = {}
     for rocon_launch_configuration in self.rocon_launch_configurations:
         config = rocon_launch_configuration.configuration
         launcher = rocon_launch_configuration.launcher
         o = urlparse(config.master.uri)
+        if o.port not in uuids.keys():
+            uuids[o.port] = roslaunch.core.generate_run_id()
         if not config.tests:
             rocon_launch_configuration.parent = roslaunch.parent.ROSLaunchParent(
-                                                            roslaunch.core.generate_run_id(),
+                                                            uuids[o.port],
                                                             [launcher["path"]],
-                                                            is_core=True,
+                                                            is_core=False,
                                                             port=o.port,
                                                             verbose=False,
                                                             force_screen=False,
@@ -107,37 +121,41 @@ def setUp(self):
                                                             )
             rocon_launch_configuration.parent._load_config()
             rocon_launch_configuration.parent.start()
+            printlog("Launch Parent - type ...............ROSLaunchParent")
         else:
-            rocon_launch_configuration.parent = ROSTestLaunchParent(config, [launcher["path"]], port=o.port)
+            rocon_launch_configuration.parent = RoconTestLaunchParent(uuids[o.port], config, [launcher["path"]], port=o.port)
             rocon_launch_configuration.parent.setUp()
             # the config attribute makes it easy for tests to access the ROSLaunchConfig instance
             # Should we do this - it doesn't make a whole lot of sense?
             #rocon_launch_configuration.configuration = rocon_launch_configuration.parent.config
             _add_rocon_test_parent(rocon_launch_configuration.parent)
-        printlog("Setup Test Parent ..................%s" % self.test_file)
-        printlog("  Run Id............................%s" % rocon_launch_configuration.parent.run_id)
-        printlog("  File..............................%s" % rocon_launch_configuration.launcher["path"])
-        printlog("  Port..............................%s" % o.port)
+            printlog("Launch Parent - type ...............ROSTestLaunchParent")
+        printlog("Launch Parent - run id..............%s" % rocon_launch_configuration.parent.run_id)
+        printlog("Launch Parent - launcher............%s" % rocon_launch_configuration.launcher["path"])
+        printlog("Launch Parent - port................%s" % o.port)
         if not config.tests:
-            printlog("  Tests.............................no")
+            printlog("Launch Parent - tests...............no")
         else:
-            printlog("  Tests.............................yes")
+            printlog("Launch Parent - tests...............yes")
 
 
 def tearDown(self):
     '''
       Function that becomes TestCase.tearDown()
     '''
-    printlog("Tear Down...........................%s" % self.test_file)
     for rocon_launch_configuration in self.rocon_launch_configurations:
         config = rocon_launch_configuration.configuration
         parent = rocon_launch_configuration.parent
         launcher = rocon_launch_configuration.launcher
+        if _pause_mode:
+            raw_input("Press Enter to continue...")
+            set_pause_mode(False)  # only trigger pause once
+        printlog("Tear Down - launcher..........................%s" % launcher["path"])
         if config.tests:
+            printlog("Tear Down - tests..............................%s" % [test.test_name for test in config.tests])
             if parent:
                 parent.tearDown()
-                printlog("  Run Id............................%s" % parent.run_id)
-                printlog("  Launcher..........................%s" % launcher["path"])
+                printlog("Tear Down - run id............................%s" % parent.run_id)
         else:
             parent.shutdown()
 
@@ -178,7 +196,7 @@ def rocon_test_runner(test, test_launch_configuration, test_pkg):
             parent = test_launch_configuration.parent
             self.assert_(parent is not None, "ROSTestParent initialization failed")
             test_name = test.test_name
-            printlog("  Name..............................%s" % test_name)
+            printlog("  name..............................%s" % test_name)
 
             #launch the other nodes
             #for parent in self.parents:
@@ -189,9 +207,10 @@ def rocon_test_runner(test, test_launch_configuration, test_pkg):
             #setup the test
             # - we pass in the output test_file name so we can scrape it
             test_file = rosunit.xml_results_file(test_pkg, test_name, False)
+            printlog("  test results file.................%s", test_file)
             if os.path.exists(test_file):
-                printlog("removing previous test results file [%s]", test_file)
                 os.remove(test_file)
+                printlog("  clear old test results file.......done")
 
             # TODO: have to redeclare this due to a bug -- this file
             # needs to be renamed as it aliases the module where the
@@ -199,6 +218,9 @@ def rocon_test_runner(test, test_launch_configuration, test_pkg):
             # rostest.py
             XML_OUTPUT_FLAG = '--gtest_output=xml:'  # use gtest-compatible flag
             test.args = "%s %s%s" % (test.args, XML_OUTPUT_FLAG, test_file)
+            if _text_mode:
+                test.output = 'screen'
+                test.args = test.args + " --text"
 
             # run the test, blocks until completion
             printlog("Running test %s" % test_name)
@@ -212,30 +234,35 @@ def rocon_test_runner(test, test_launch_configuration, test_pkg):
                     raise
 
             if not timeout_failure:
-                printlog("test [%s] finished" % test_name)
+                printlog("test finished [%s]" % test_name)
             else:
-                printlogerr("test [%s] timed out" % test_name)
+                printlogerr("test timed out [%s]" % test_name)
 
-            if not timeout_failure:
-                self.assert_(os.path.isfile(test_file), "test [%s] did not generate test results" % test_name)
-                printlog("test [%s] results are in [%s]", test_name, test_file)
-                results = rosunit.junitxml.read(test_file, test_name)
-                test_fail = results.num_errors or results.num_failures
+            if not _text_mode or timeout_failure:
+                if not timeout_failure:
+                    self.assert_(os.path.isfile(test_file), "test [%s] did not generate test results" % test_name)
+                    printlog("test [%s] results are in [%s]", test_name, test_file)
+                    results = rosunit.junitxml.read(test_file, test_name)
+                    test_fail = results.num_errors or results.num_failures
+                else:
+                    test_fail = True
+                if test.retry > 0 and test_fail:
+                    test.retry -= 1
+                    printlog("test [%s] failed, retrying. Retries left: %s" % (test_name, test.retry))
+                    self.tearDown()
+                    self.setUp()
+                else:
+                    done = True
+                    _accumulate_results(results)
+                    printlog("test [%s] results summary: %s errors, %s failures, %s tests",
+                             test_name, results.num_errors, results.num_failures, results.num_tests)
+                    #self.assertEquals(0, results.num_errors, "unit test reported errors")
+                    #self.assertEquals(0, results.num_failures, "unit test reported failures")
             else:
-                test_fail = True
-            if test.retry > 0 and test_fail:
-                test.retry -= 1
-                printlog("test [%s] failed, retrying. Retries left: %s" % (test_name, test.retry))
-                self.tearDown()
-                self.setUp()
-            else:
+                if test.retry:
+                    printlogerr("retry is disabled in --text mode")
                 done = True
-                _accumulate_results(results)
-                printlog("test [%s] results summary: %s errors, %s failures, %s tests",
-                         test_name, results.num_errors, results.num_failures, results.num_tests)
-                #self.assertEquals(0, results.num_errors, "unit test reported errors")
-                #self.assertEquals(0, results.num_failures, "unit test reported failures")
-        printlog("[ROCON_TEST] test [%s] done", test_name)
+        printlog("test done [%s]", test_name)
     return fn
 
 

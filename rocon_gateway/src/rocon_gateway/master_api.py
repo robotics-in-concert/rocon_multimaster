@@ -56,7 +56,7 @@ class LocalMaster(rosgraph.Master):
           @rtype utils.Registration
         '''
         registration.local_node = self._get_anonymous_node_name(registration.connection.rule.node)
-        rospy.loginfo("Gateway : registering a new node [%s] for [%s]" % (registration.local_node, registration))
+        rospy.logdebug("Gateway : registering a new node [%s] for [%s]" % (registration.local_node, registration))
 
         # Then do we need checkIfIsLocal? Needs lots of parsing time, and the outer class should
         # already have handle that.
@@ -100,7 +100,7 @@ class LocalMaster(rosgraph.Master):
           @type utils.Registration
         '''
         node_master = rosgraph.Master(registration.local_node)
-        rospy.loginfo("Gateway : unregistering local node [%s] for [%s]" % (registration.local_node, registration))
+        rospy.logdebug("Gateway : unregistering local node [%s] for [%s]" % (registration.local_node, registration))
         if registration.connection.rule.type == ConnectionType.PUBLISHER:
             node_master.unregisterPublisher(registration.connection.rule.name, registration.connection.xmlrpc_uri)
         elif registration.connection.rule.type == ConnectionType.SUBSCRIBER:
@@ -240,10 +240,10 @@ class LocalMaster(rosgraph.Master):
         else:
             return o.hostname
 
-    def _isTopicNodeInList(self, topic, node, list):
+    def _isTopicNodeInList(self, topic, node, topic_node_list):
         # check if cancel available
         available = False
-        for candidate in list:
+        for candidate in topic_node_list:
             if candidate[0] == topic and node in candidate[1]:
                 available = True
                 break

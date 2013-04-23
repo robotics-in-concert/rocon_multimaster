@@ -1,0 +1,9 @@
+<concert>
+  <launch package="rocon_gateway_tests" name="multihub_gateway.xml" port="11311"/>
+  <launch package="rocon_gateway_tests" name="tutorials.xml" port="11311"/>
+  <launch package="rocon_gateway_tests" name="test_send_flips.xml" port="11311"/>
+  <launch package="rocon_gateway_tests" name="primary_hub.xml" port="11312"/>
+  <launch package="rocon_gateway_tests" name="secondary_hub.xml" port="11313"/>
+  <launch package="rocon_gateway_tests" name="undiscovered_hub.xml" port="11314"/>
+  <launch package="rocon_gateway_tests" name="multihub_gateway.xml" port="11315"/>
+</concert>

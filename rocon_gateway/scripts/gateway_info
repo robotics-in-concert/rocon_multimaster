@@ -11,6 +11,7 @@
 import sys
 import argparse
 import re
+import itertools
 import rospy
 import rocon_gateway
 import gateway_msgs
@@ -31,9 +32,8 @@ def resolve_local_gateway():
     master = rocon_gateway.LocalMaster()
     gateway_namespace = master.findGatewayNamespace()
     if not gateway_namespace:
-        console.error("Could not find a local gateway - did you start it?")
-        raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
-    console.debug("Found a local gateway at %s"%gateway_namespace)
+        raise rocon_gateway.GatewayError("Could not find a local gateway - did you start it?")
+    #console.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
    
 def resolve_gateway_info(gateway_namespace):
@@ -61,12 +61,18 @@ if __name__ == '__main__':
         console.error(str(e))
         sys.exit(1)
     console.pretty_print("Gateway\n", console.bold)
-    print("  Namespace   : %s"%gateway_namespace)
-    print("  Name        : %s"%gateway.name)
-    print("  Ip/Hostname : %s"%gateway.ip)
-    print("  Connected   : %s"%gateway.connected)
-    print("  On Hub      : %s"%gateway.hub_name)
-    print("  Firewall    : %s"%gateway.firewall)
+    print("  Name        : %s" % rocon_utilities.gateway_basename(gateway.name))
+    print("  Hash Name   : %s" % gateway.name)
+    print("  Namespace   : %s" % gateway_namespace)
+    print("  Ip/Hostname : %s" % gateway.ip)
+    print("  Connected   : %s" % gateway.connected)
+    if gateway.hub_names:
+        max_len = 0
+        max_width = max([len(hub) for hub in gateway.hub_names])
+        print("  Hubs        : %-*s [%s]" % (max_width, gateway.hub_names[0], gateway.hub_uris[0]))
+        for hub,uri in itertools.izip(gateway.hub_names[1:], gateway.hub_uris[1:]):
+            print("              : %-*s [%s]" % (max_width, hub, uri))
+    print("  Firewall    : %s" % gateway.firewall)
 
     print("  Public Watchlist")
     if len(gateway.public_watchlist) == 0:

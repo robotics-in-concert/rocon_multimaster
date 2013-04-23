@@ -41,6 +41,14 @@ def find_resource(package, resource):
         raise IOError("[%s] is not a package or launch file name" % package)
     return None
 
+
+def is_absolute_name(name):
+    '''
+      Checks if the name begins with a leading slash which validates it
+      either as an absolute or relative name in the ros world.
+    '''
+    return name[:1] == '/'
+
 ##############################################################################
 # Subscriber Proxy
 ##############################################################################

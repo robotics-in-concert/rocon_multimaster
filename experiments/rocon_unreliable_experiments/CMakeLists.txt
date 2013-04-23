@@ -17,19 +17,23 @@ catkin_package(CATKIN_DEPENDS roscpp std_msgs)
 # Project
 ##############################################################################
 
-add_executable(talker src/talker.cpp)
-add_executable(listener src/listener.cpp)
-add_executable(listener_unreliable src/listener_unreliable.cpp)
+add_executable(multimaster_experimental_talker src/talker.cpp)
+add_executable(multimaster_experimental_listener src/listener.cpp)
+add_executable(multimaster_experimental_listener_unreliable src/listener_unreliable.cpp)
 
-target_link_libraries(talker ${catkin_LIBRARIES})
-target_link_libraries(listener ${catkin_LIBRARIES})
-target_link_libraries(listener_unreliable ${catkin_LIBRARIES})
+target_link_libraries(multimaster_experimental_talker ${catkin_LIBRARIES})
+target_link_libraries(multimaster_experimental_listener ${catkin_LIBRARIES})
+target_link_libraries(multimaster_experimental_listener_unreliable ${catkin_LIBRARIES})
+
+set_target_properties(multimaster_experimental_talker PROPERTIES OUTPUT_NAME talker)
+set_target_properties(multimaster_experimental_listener PROPERTIES OUTPUT_NAME listener)
+set_target_properties(multimaster_experimental_listener_unreliable PROPERTIES OUTPUT_NAME listener_unreliable)
 
 ##############################################################################
 # Installs
 ##############################################################################
 
-install(TARGETS talker RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-install(TARGETS listener RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-install(TARGETS listener_unreliable RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS multimaster_experimental_talker RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS multimaster_experimental_listener RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS multimaster_experimental_listener_unreliable RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 

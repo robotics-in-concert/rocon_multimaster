@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_gateway/LICENSE
 #
 
 ##############################################################################
@@ -22,19 +22,20 @@ from gateway_msgs.msg import Rule
 # Functions
 ##############################################################################
 
+
 def publicRuleExists(public_rule, public_rules):
     '''
       Checks that the public rule doesn't already exist in the list of public
       rules (which can represent the public interface or the rules themselves).
-      We only need to compare the name/node as they uniquely identify the 
+      We only need to compare the name/node as they uniquely identify the
       name/regex
-      
+
       @param public_rule : the rule to search for
       @type Rule
-      
+
       @param public_rules : list of Rule (public, watchlist or blacklist)
       @type list : list of Rule objects
-      
+
       @return True if the public rule exists, False otherwise
       @rtype bool
     '''
@@ -48,31 +49,31 @@ def publicRuleExists(public_rule, public_rules):
 # Public Interface
 ##############################################################################
 
+
 class PublicInterface(object):
     '''
-      The public interface is the set of rules 
-      (pubs/subs/services/actions) that are exposed and made available for 
+      The public interface is the set of rules
+      (pubs/subs/services/actions) that are exposed and made available for
       freely sharing with a multimaster system.
-      
-      It consists of: 
-       * list of currently available rules to be shared 
-       * list of rules and filters that will be watched 
-         and shared if they become available 
-      
+
+      It consists of:
+       * list of currently available rules to be shared
+       * list of rules and filters that will be watched
+         and shared if they become available
     '''
     def __init__(self, default_rule_blacklist, default_rules):
         '''
           Initialises the public interface
 
           @param default_rule_blacklist : connection type keyed dictionary of rules
-          @type str keyed dictionary of gateway_msgs.msg.Rule[] 
-          
+          @type str keyed dictionary of gateway_msgs.msg.Rule[]
+
           @param default_rules : connection type keyed dictionary of rules
-          @type str keyed dictionary of gateway_msgs.msg.Rule[] 
+          @type str keyed dictionary of gateway_msgs.msg.Rule[]
         '''
-        # List of rules to be monitored and (un)advertised  as they 
+        # List of rules to be monitored and (un)advertised  as they
         # become (un)available
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()
+        self.watchlist = utils.create_empty_connection_type_dictionary()
 
         # Default rules that cannot be advertised - used in AdvertiseAll mode
         self._default_blacklist = default_rule_blacklist
@@ -81,16 +82,15 @@ class PublicInterface(object):
         self.blacklist = self._default_blacklist
 
         # list of fully qualified connections currently being advertised
-        self.public = utils.createEmptyConnectionTypeDictionary()
+        self.public = utils.create_empty_connection_type_dictionary()
 
         self.advertise_all_enabled = False
 
         self.lock = threading.Lock()
-        
+
         # Load up static rules.
         for connection_type in utils.connection_types:
             for rule in default_rules[connection_type]:
-                print rule
                 self.add_rule(rule)
 
     ##########################################################################
@@ -100,7 +100,7 @@ class PublicInterface(object):
     def add_rule(self, rule):
         '''
         Watch for a new public rule, as described for by the incoming message.
-        
+
         @param rule : a rule msg from the advertise call
         @type Rule
 
@@ -109,20 +109,20 @@ class PublicInterface(object):
         '''
         result = None
         self.lock.acquire()
-        if not publicRuleExists(rule,self.watchlist[rule.type]):
+        if not publicRuleExists(rule, self.watchlist[rule.type]):
             self.watchlist[rule.type].append(rule)
             result = rule
         self.lock.release()
-        rospy.loginfo("Gateway : (req) advertise %s"%utils.formatRule(rule))
+        rospy.loginfo("Gateway : adding rule to public watchlist %s" % utils.format_rule(rule))
         return result
 
-    def remove_rule(self, rule): 
-        ''' 
+    def remove_rule(self, rule):
+        '''
         Attempt to remove a watchlist rule from the public interface. Be a
         bit careful looking for a rule to remove, depending on the node name,
         which can be set (exact rule/node name match) or None in which case all
         nodes of that kind of advertisement will match.
-        
+
         @param rule : a rule to unadvertise
         @type Rule
 
@@ -130,7 +130,7 @@ class PublicInterface(object):
         @rtype Rule[]
         '''
 
-        rospy.loginfo("Gateway : (req) unadvertise %s"%utils.formatRule(rule))
+        rospy.loginfo("Gateway : (req) unadvertise %s" % utils.format_rule(rule))
 
         if rule.node:
             # This looks for *exact* matches.
@@ -151,13 +151,13 @@ class PublicInterface(object):
                 if (existing_rule.name == rule.name):
                     existing_rules.append(existing_rule)
             for rule in existing_rules:
-                self.watchlist[rule.type].remove(existing_rule) # not terribly optimal
+                self.watchlist[rule.type].remove(existing_rule)  # not terribly optimal
             self.lock.release()
             return existing_rules
 
-    def advertiseAll(self, blacklist):
+    def advertise_all(self, blacklist):
         '''
-          Allow all rules apart from the ones in the provided blacklist + 
+          Allow all rules apart from the ones in the provided blacklist +
           default blacklist
 
           @param blacklist : list of Rule objects
@@ -166,21 +166,22 @@ class PublicInterface(object):
           @return failure if already advertising all, success otherwise
           @rtype bool
         '''
-        rospy.loginfo("Gateway : (req) advertise everything!")
+        rospy.loginfo("Gateway : received a request advertise everything!")
         self.lock.acquire()
 
-        # Check if advertise all already enabled 
+        # Check if advertise all already enabled
         if self.advertise_all_enabled:
             self.lock.release()
             return False
         self.advertise_all_enabled = True
 
         # generate watchlist
-        self.watchlist = utils.createEmptyConnectionTypeDictionary() #easy hack for getting a clean watchlist
+        self.watchlist = utils.create_empty_connection_type_dictionary()  # easy hack for getting a clean watchlist
         for connection_type in utils.connection_types:
             allow_all_rule = Rule()
             allow_all_rule.name = '.*'
             allow_all_rule.type = connection_type
+            allow_all_rule.node = '.*'
             self.watchlist[connection_type].append(allow_all_rule)
 
         # generate blacklist (while making sure only unique rules get added)
@@ -192,19 +193,19 @@ class PublicInterface(object):
         self.lock.release()
         return True
 
-    def unadvertiseAll(self):
+    def unadvertise_all(self):
         '''
           Disallow the allow all mode, if enabled. If allow all mode is not
           enabled, remove everything from the public interface
         '''
-        rospy.loginfo("Gateway : (req) remove all advertisements!")
+        rospy.loginfo("Gateway : received a request to remove all advertisements!")
         self.lock.acquire()
 
         # stop advertising all
         self.advertise_all_enabled = False
 
         # easy hack for resetting the watchlist and blacklist
-        self.watchlist = utils.createEmptyConnectionTypeDictionary()
+        self.watchlist = utils.create_empty_connection_type_dictionary()
         self.blacklist = self._default_blacklist
 
         self.lock.release()
@@ -214,34 +215,34 @@ class PublicInterface(object):
     ##########################################################################
 
     def getInterface(self):
-        list = []
+        l = []
         self.lock.acquire()
         for connection_type in utils.connection_types:
-            list.extend([connection.rule for connection in self.public[connection_type]])
+            l.extend([connection.rule for connection in self.public[connection_type]])
         self.lock.release()
-        return list
+        return l
 
     def getWatchlist(self):
-        list = []
+        l = []
         self.lock.acquire()
         for connection_type in utils.connection_types:
-            list.extend(self.watchlist[connection_type])
+            l.extend(self.watchlist[connection_type])
         self.lock.release()
-        return list
+        return l
 
     def getBlacklist(self):
-        list = []
+        l = []
         self.lock.acquire()
         for connection_type in utils.connection_types:
-            list.extend(self.blacklist[connection_type])
+            l.extend(self.blacklist[connection_type])
         self.lock.release()
-        return list
+        return l
 
     ##########################################################################
     # Filter
     ##########################################################################
 
-    def _matchAgainstRuleList(self,rules,rule):
+    def _matchAgainstRuleList(self, rules, rule):
         '''
           Match a given rule/rule against a given rule list
 
@@ -266,7 +267,7 @@ class PublicInterface(object):
                 break
         return matched
 
-    def _allowRule(self,rule):
+    def _allowRule(self, rule):
         '''
           Determines whether a given rule should be allowed given the
           status of the current watchlist and blacklist
@@ -277,8 +278,8 @@ class PublicInterface(object):
           @rtype bool
         '''
         self.lock.acquire()
-        matched_rules = self._matchAgainstRuleList(self.watchlist,rule)
-        matched_blacklisted_rules = self._matchAgainstRuleList(self.blacklist,rule)
+        matched_rules = self._matchAgainstRuleList(self.watchlist, rule)
+        matched_blacklisted_rules = self._matchAgainstRuleList(self.blacklist, rule)
         self.lock.release()
         success = False
         if matched_rules and not matched_blacklisted_rules:
@@ -287,7 +288,7 @@ class PublicInterface(object):
 
     def _generatePublic(self, rule):
         '''
-          Given a rule, determines if the rule is allowed. If it is 
+          Given a rule, determines if the rule is allowed. If it is
           allowed, then returns the corresponding Rule object
 
           @param rules : the given rules to match
@@ -299,9 +300,9 @@ class PublicInterface(object):
             return Rule(rule)
         return None
 
-    def update(self,connections):
+    def update(self, connections):
         '''
-          Checks a list of rules and determines which ones should be 
+          Checks a list of rules and determines which ones should be
           added/removed to the public interface. Modifies the public interface
           accordingly, and returns the list of rules to the gateway for
           hub operations
@@ -313,9 +314,9 @@ class PublicInterface(object):
           @rtype: Connection[], Connection[]
         '''
         # SLOW, EASY METHOD
-        public = utils.createEmptyConnectionTypeDictionary()
-        new_public = utils.createEmptyConnectionTypeDictionary()
-        removed_public = utils.createEmptyConnectionTypeDictionary()
+        public = utils.create_empty_connection_type_dictionary()
+        new_public = utils.create_empty_connection_type_dictionary()
+        removed_public = utils.create_empty_connection_type_dictionary()
         diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
         for connection_type in connections:
             for connection in connections[connection_type]:
