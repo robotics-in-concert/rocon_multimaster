@@ -2,8 +2,7 @@
 
 ## Overview
 
-A multimaster version of rostest - syntax, calling and execution are almost identical with the main
-difference being that you use a multimaster launcher (see notes for **rocon_launch**) instead of a
+A multimaster unit testing framework. Think of of rostest applied at a higher level again. Syntax, calling and execution are almost identical with the main difference being that you use a multimaster launcher (see notes for **rocon_launch**) instead of a
 regular ros launcher.
 
 * **rocon_test**: a command line executor for multimaster tests.
