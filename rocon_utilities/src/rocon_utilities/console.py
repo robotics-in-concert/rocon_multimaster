@@ -29,12 +29,18 @@ def console_has_colours(stream):
         return False
 
 has_colours = console_has_colours(sys.stdout)
-#reset = "\x1b[0;0m"
-reset = "\x1b[0m"
+if has_colours:
+    #reset = "\x1b[0;0m"
+    reset = "\x1b[0m"
+    bold = "\x1b[%sm" % '1'
+    black, red, green, yellow, blue, magenta, cyan, white = ["\x1b[%sm" % str(i) for i in range(30, 38)]
+    bold_black, bold_red, bold_green, bold_yellow, bold_blue, bold_magenta, bold_cyan, bold_white = ["\x1b[%sm" % ('1;' + str(i)) for i in range(30, 38)]
+else:
+    reset = ""
+    bold = ""
+    black, red, green, yellow, blue, magenta, cyan, white = ["" for i in range(30, 38)]
+    bold_black, bold_red, bold_green, bold_yellow, bold_blue, bold_magenta, bold_cyan, bold_white = ["" for i in range(30, 38)]
 
-bold = '1'
-black, red, green, yellow, blue, magenta, cyan, white = [str(i) for i in range(30, 38)]
-bold_black, bold_red, bold_green, bold_yellow, bold_blue, bold_magenta, bold_cyan, bold_white = ['1;' + str(i) for i in range(30, 38)]
 colours = [
            bold,
            black, red, green, yellow, blue, magenta, cyan, white,
@@ -44,7 +50,7 @@ colours = [
 
 def pretty_print(msg, colour=white):
     if has_colours:
-        seq = "\x1b[%sm" % (colour) + msg + reset
+        seq = colour + msg + reset
         sys.stdout.write(seq)
     else:
         sys.stdout.write(msg)
@@ -52,7 +58,7 @@ def pretty_print(msg, colour=white):
 
 def pretty_println(msg, colour=white):
     if has_colours:
-        seq = "\x1b[%sm" % (colour) + msg + reset
+        seq = colour + msg + reset
         sys.stdout.write(seq)
         sys.stdout.write("\n")
     else:
