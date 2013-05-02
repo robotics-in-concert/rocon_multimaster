@@ -39,13 +39,14 @@ class HubDiscovery(threading.Thread):
         threading.Thread.__init__(self)
         self.discovery_update_hook = external_discovery_update_hook
         self._trigger_shutdown = False
+        self.trigger_update = False
         self._direct_hub_uri_list = direct_hub_uri_list
         self._zeroconf_services_available = False if disable_zeroconf else _zeroconf_services_available()
         if self._zeroconf_services_available:
             self._discovery_request = zeroconf_srvs.ListDiscoveredServicesRequest()
             self._discovery_request.service_type = HubDiscovery.gateway_hub_service
             _add_listener()
-            self._list_discovered_services = rospy.ServiceProxy("zeroconf/list_discovered_services", zeroconf_srvs.ListDiscoveredServices)
+            self._list_discovered_services = rospy.ServiceProxy("zeroconf/list_discovered_services", zeroconf_srvs.ListDiscoveredServices, persistent=True)
             self._zeroconf_discovered_hubs = []
         # Only run the thread if we need to.
         if self._zeroconf_services_available or self._direct_hub_uri_list:
@@ -56,14 +57,25 @@ class HubDiscovery(threading.Thread):
           Called from the main program to shutdown this thread.
         '''
         self._trigger_shutdown = True
+        self._trigger_update = True  # causes it to interrupt a sleep and drop back to check shutdown condition
         if self.is_alive():  # python complains if you join a non-started thread
             self.join()  # wait for the thread to finish
 
     def run(self):
         '''
           The hub discovery thread worker function. Monitors zeroconf for the presence of new hubs.
+
+          We spin fast initially for convenience, and then wind down once we've detected
+          a hub.
+
+          Note that the zeroconf service is persistent. Alternatively we could use the zeroconf
+          subscriber to be a wee bit more efficient.
         '''
-        self._internal_sleep_period = rospy.Duration(0, 200000000)  # 200ms
+        half_sec = rospy.Duration(0, 500000000)
+        ten_secs = rospy.Duration(10, 000000000)
+        self._loop_period = half_sec
+        self._internal_sleep_period = half_sec
+        self._last_loop_timestamp = rospy.Time.now()
         while not rospy.is_shutdown() and not self._trigger_shutdown:
             # Zeroconf scanning
             if self._zeroconf_services_available:
@@ -72,16 +84,29 @@ class HubDiscovery(threading.Thread):
                     (ip, port) = _resolve_address(service)
                     rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
                     self.discovery_update_hook(ip, port)
-            # Direct scanning
+                    self._loop_period = ten_secs
+                # Direct scanning
             discovered_hub_uris = self._direct_scan()
             for hub_uri in discovered_hub_uris:
                 self._direct_hub_uri_list[:] = [uri for uri in self._direct_hub_uri_list if hub_uri != uri]
                 o = urlparse(hub_uri)
                 rospy.loginfo("Gateway : discovered hub directly [%s]" % hub_uri)
                 self.discovery_update_hook(o.hostname, o.port)
+                self._loop_period = ten_secs
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
                 break  # nothing left to do
+            self._sleep()
+        self._list_discovered_services.close()
+
+    def _sleep(self):
+        '''
+          Internal interruptible sleep loop to check for shutdown and update triggers.
+          This lets us set a really long watch_loop update if we wish.
+        '''
+        while not rospy.is_shutdown() and not self.trigger_update and (rospy.Time.now() - self._last_loop_timestamp < self._loop_period):
             rospy.sleep(self._internal_sleep_period)
+        self.trigger_update = False
+        self._last_loop_timestamp = rospy.Time.now()
 
     #############################
     # Private methods
@@ -110,7 +135,7 @@ class HubDiscovery(threading.Thread):
         except rospy.service.ServiceException:
             # means we've shut down, just return so it can cleanly shutdown back in run()
             return [], []
-        difference = lambda l1,l2: [x for x in l1 if x not in l2]
+        difference = lambda l1, l2: [x for x in l1 if x not in l2]
         new_services = difference(response.services, self._zeroconf_discovered_hubs)
         lost_services = difference(self._zeroconf_discovered_hubs, response.services)
         self._zeroconf_discovered_hubs = response.services
@@ -133,6 +158,7 @@ def _resolve_address(msg):
         ip = msg.ipv4_addresses[0]
     return (ip, msg.port)
 
+
 def _zeroconf_services_available():
     '''
       Check for zeroconf services on startup. If none is found within a suitable
@@ -146,6 +172,7 @@ def _zeroconf_services_available():
         rospy.logwarn("Gateway : timed out waiting for zeroconf services to become available.")
         return False
     return True
+
 
 def _add_listener():
     '''
