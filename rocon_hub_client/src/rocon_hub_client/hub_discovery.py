@@ -96,7 +96,8 @@ class HubDiscovery(threading.Thread):
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
                 break  # nothing left to do
             self._sleep()
-        self._list_discovered_services.close()
+        if self._zeroconf_services_available:
+            self._list_discovered_services.close()
 
     def _sleep(self):
         '''
