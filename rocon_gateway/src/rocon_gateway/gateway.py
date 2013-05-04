@@ -68,11 +68,12 @@ class Gateway(object):
         self.remote_gateway_request_callbacks['flip'] = self.process_remote_gateway_flip_request
         self.remote_gateway_request_callbacks['unflip'] = self.process_remote_gateway_unflip_request
 
-        # create a thread to watch local rule states
         self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
 
+    def spin(self):
+        self.watcher_thread.start()
+
     def shutdown(self):
-        self.watcher_thread.shutdown()
         for connection_type in utils.connection_types:
             for flip in self.flipped_interface.flipped[connection_type]:
                 self.hub_manager.send_unflip_request(flip.gateway, flip.rule)
@@ -118,7 +119,7 @@ class Gateway(object):
         '''
         state_changed = False
         new_flips, lost_flips = self.flipped_interface.update(connections, remote_gateway_hub_index, self._unique_name)
-        for connection_type in connections:
+        for connection_type in utils.connection_types:
             for flip in new_flips[connection_type]:
                 firewall_flag = self.hub_manager.get_remote_gateway_firewall_flag(flip.gateway)
                 if firewall_flag == True:
