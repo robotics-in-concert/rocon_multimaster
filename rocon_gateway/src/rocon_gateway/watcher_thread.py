@@ -52,7 +52,7 @@ class WatcherThread(threading.Thread):
             # don't waste time processing if we're not connnected to at least one hub
             if self._gateway.is_connected():
                 try:
-                    connections = self._master.getConnectionState()
+                    connections = self._master.get_connection_state()
                 except httplib.ResponseNotReady:
                     rospy.logwarn("Gateway : received 'ResponseNotReady' from master api")
                     self._sleep()

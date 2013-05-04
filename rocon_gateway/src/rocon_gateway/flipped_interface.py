@@ -122,7 +122,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         
     def _generate_flips(self, connection_type, name, node, remote_gateways, unique_name):
         '''
-          Checks if a local rule (obtained from master.getSystemState) 
+          Checks if a local rule (obtained from master.get_system_state) 
           is a suitable association with any of the rules or patterns. This can
           return multiple matches, since the same local rule 
           properties can be multiply flipped to different remote gateways.
@@ -136,7 +136,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           @param name : fully qualified topic, service or action name
           @type str
           
-          @param node : ros node name (coming from master.getSystemState)
+          @param node : ros node name (coming from master.get_system_state)
           @type str
 
           @param gateways : gateways that are available (registered on the hub)

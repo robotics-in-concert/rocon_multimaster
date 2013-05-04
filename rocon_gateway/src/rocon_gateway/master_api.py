@@ -40,6 +40,8 @@ class LocalMaster(rosgraph.Master):
 
     def __init__(self):
         rosgraph.Master.__init__(self, rospy.get_name())
+        # alias
+        self.get_system_state = self.getSystemState
 
     ##########################################################################
     # Registration
@@ -175,12 +177,12 @@ class LocalMaster(rosgraph.Master):
     # Master utility methods
     ##########################################################################
 
-    def generate_connection_details(self, type, name, node):
+    def generate_connection_details(self, connection_type, name, node):
         '''
         Creates all the extra details to create a connection object from a
         rule.
 
-        @param type : the connection type (one of gateway_msgs.msg.ConnectionType)
+        @param connection_type : the connection type (one of gateway_msgs.msg.ConnectionType)
         @type string
         @param name : the name of the connection
         @type string
@@ -192,13 +194,13 @@ class LocalMaster(rosgraph.Master):
         '''
         xmlrpc_uri = self.lookupNode(node)
         connections = []
-        if type == ConnectionType.PUBLISHER or type == ConnectionType.SUBSCRIBER:
+        if connection_type == ConnectionType.PUBLISHER or connection_type == ConnectionType.SUBSCRIBER:
             type_info = rostopic.get_topic_type(name)[0]  # message type
-            connections.append(Connection(Rule(type, name, node), type_info, xmlrpc_uri))
-        elif type == ConnectionType.SERVICE:
+            connections.append(Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri))
+        elif connection_type == ConnectionType.SERVICE:
             type_info = rosservice.get_service_uri(name)
-            connections.append(Connection(Rule(type, name, node), type_info, xmlrpc_uri))
-        elif type == ConnectionType.ACTION_SERVER:
+            connections.append(Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri))
+        elif connection_type == ConnectionType.ACTION_SERVER:
             type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
             connections.append(Connection(Rule(ConnectionType.SUBSCRIBER, name + '/goal', node), type_info, xmlrpc_uri))
             type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
@@ -209,7 +211,7 @@ class LocalMaster(rosgraph.Master):
             connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/feedback', node), type_info, xmlrpc_uri))
             type_info = rostopic.get_topic_type(name + '/result')[0]  # message type
             connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/result', node), type_info, xmlrpc_uri))
-        elif type == ConnectionType.ACTION_CLIENT:
+        elif connection_type == ConnectionType.ACTION_CLIENT:
             type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
             connections.append(Connection(Rule(ConnectionType.PUBLISHER, name + '/goal', node), type_info, xmlrpc_uri))
             type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
@@ -254,9 +256,9 @@ class LocalMaster(rosgraph.Master):
           Return actions and pruned publisher, subscriber lists.
 
           @param publishers
-          @type list of publishers in the form returned by rosgraph.Master.getSystemState
+          @type list of publishers in the form returned by rosgraph.Master.get_system_state
           @param subscribers
-          @type list of subscribers in the form returned by rosgraph.Master.getSystemState
+          @type list of subscribers in the form returned by rosgraph.Master.get_system_state
           @return list of actions, pruned_publishers, pruned_subscribers
           @rtype [base_topic, [nodes]], as param type, as param type
         '''
@@ -303,37 +305,37 @@ class LocalMaster(rosgraph.Master):
         subs[:] = [connection for connection in subs if len(connection[1]) != 0]
         return actions, pubs, subs
 
-    def getActionServers(self, publishers, subscribers):
+    def get_action_servers(self, publishers, subscribers):
         '''
           Return action servers and pruned publisher, subscriber lists.
 
           @param publishers
-          @type list of publishers in the form returned by rosgraph.Master.getSystemState
+          @type list of publishers in the form returned by rosgraph.Master.get_system_state
           @param subscribers
-          @type list of subscribers in the form returned by rosgraph.Master.getSystemState
+          @type list of subscribers in the form returned by rosgraph.Master.get_system_state
           @return list of actions, pruned_publishers, pruned_subscribers
           @rtype [base_topic, [nodes]], as param type, as param type
         '''
         actions, subs, pubs = self._get_actions(subscribers, publishers)
         return actions, pubs, subs
 
-    def getActionClients(self, publishers, subscribers):
+    def get_action_clients(self, publishers, subscribers):
         '''
           Return action clients and pruned publisher, subscriber lists.
 
           @param publishers
-          @type list of publishers in the form returned by rosgraph.Master.getSystemState
+          @type list of publishers in the form returned by rosgraph.Master.get_system_state
           @param subscribers
-          @type list of subscribers in the form returned by rosgraph.Master.getSystemState
+          @type list of subscribers in the form returned by rosgraph.Master.get_system_state
           @return list of actions, pruned_publishers, pruned_subscribers
           @rtype [base_topic, [nodes]], as param type, as param type
         '''
         actions, pubs, subs = self._get_actions(publishers, subscribers)
         return actions, pubs, subs
 
-    def getConnectionsFromPubSubList(self, list, type):
+    def get_connections_from_pub_sub_list(self, connection_list, connection_type):
         connections = []
-        for topic in list:
+        for topic in connection_list:
             topic_name = topic[0]
             topic_type = rostopic.get_topic_type(topic_name)
             topic_type = topic_type[0]
@@ -343,32 +345,32 @@ class LocalMaster(rosgraph.Master):
                     node_uri = self.lookupNode(node)
                 except:
                     continue
-                rule = Rule(type, topic_name, node)
+                rule = Rule(connection_type, topic_name, node)
                 connection = Connection(rule, topic_type, node_uri)
                 connections.append(connection)
         return connections
 
-    def getConnectionsFromActionList(self, list, type):
+    def get_connections_from_action_list(self, connection_list, connection_type):
         connections = []
-        for action in list:
+        for action in connection_list:
             action_name = action[0]
             goal_topic = action_name + '/goal'
             goal_topic_type = rostopic.get_topic_type(goal_topic)
-            topic_type = re.sub('ActionGoal$', '', goal_topic_type[0])  #Base type for action
+            topic_type = re.sub('ActionGoal$', '', goal_topic_type[0])  # Base type for action
             nodes = action[1]
             for node in nodes:
                 try:
                     node_uri = self.lookupNode(node)
                 except:
                     continue
-                rule = Rule(type, action_name, node)
+                rule = Rule(connection_type, action_name, node)
                 connection = Connection(rule, topic_type, node_uri)
                 connections.append(connection)
         return connections
 
-    def getConnectionsFromServiceList(self, list, type):
+    def get_connections_from_service_list(self, connection_list, connection_type):
         connections = []
-        for service in list:
+        for service in connection_list:
             service_name = service[0]
             service_uri = rosservice.get_service_uri(service_name)
             nodes = service[1]
@@ -377,21 +379,21 @@ class LocalMaster(rosgraph.Master):
                     node_uri = self.lookupNode(node)
                 except:
                     continue
-                rule = Rule(type,service_name,node)
+                rule = Rule(connection_type, service_name, node)
                 connection = Connection(rule, service_uri, node_uri)
                 connections.append(connection)
         return connections
 
-    def getConnectionState(self):
+    def get_connection_state(self):
         connections = {}
-        publishers, subscribers, services = self.getSystemState()
-        action_servers, publishers, subscribers = self.getActionServers(publishers, subscribers)
-        action_clients, publishers, subscribers = self.getActionClients(publishers, subscribers)
-        connections[ConnectionType.PUBLISHER] = self.getConnectionsFromPubSubList(publishers, ConnectionType.PUBLISHER)
-        connections[ConnectionType.SUBSCRIBER] = self.getConnectionsFromPubSubList(subscribers, ConnectionType.SUBSCRIBER)
-        connections[ConnectionType.SERVICE] = self.getConnectionsFromServiceList(services, ConnectionType.SERVICE)
-        connections[ConnectionType.ACTION_SERVER] = self.getConnectionsFromActionList(action_servers, ConnectionType.ACTION_SERVER)
-        connections[ConnectionType.ACTION_CLIENT] = self.getConnectionsFromActionList(action_clients, ConnectionType.ACTION_CLIENT)
+        publishers, subscribers, services = self.get_system_state()
+        action_servers, publishers, subscribers = self.get_action_servers(publishers, subscribers)
+        action_clients, publishers, subscribers = self.get_action_clients(publishers, subscribers)
+        connections[ConnectionType.PUBLISHER] = self.get_connections_from_pub_sub_list(publishers, ConnectionType.PUBLISHER)
+        connections[ConnectionType.SUBSCRIBER] = self.get_connections_from_pub_sub_list(subscribers, ConnectionType.SUBSCRIBER)
+        connections[ConnectionType.SERVICE] = self.get_connections_from_service_list(services, ConnectionType.SERVICE)
+        connections[ConnectionType.ACTION_SERVER] = self.get_connections_from_action_list(action_servers, ConnectionType.ACTION_SERVER)
+        connections[ConnectionType.ACTION_CLIENT] = self.get_connections_from_action_list(action_clients, ConnectionType.ACTION_CLIENT)
         return connections
 
     def _get_anonymous_node_name(self, topic):
@@ -412,7 +414,7 @@ class LocalMaster(rosgraph.Master):
           @return Namespace of the gateway node.
           @rtype string
         '''
-        unused_publishers, unused_subscribers, services = self.getSystemState()
+        unused_publishers, unused_subscribers, services = self.get_system_state()
         for service in services:
             service_name = service[0]  # second part is the node name
             if re.search(r'remote_gateway_info', service_name):

@@ -259,7 +259,7 @@ class GatewayHub(rocon_hub_client.Hub):
 
     def get_remote_connection_state(self, remote_gateway):
         '''
-          Equivalent to getConnectionState, but generates it from the public
+          Equivalent to get_connection_state, but generates it from the public
           interface of a remote gateway
 
           @param remote_gateway : hash name for a remote gateway
