@@ -72,7 +72,6 @@ class HubDiscovery(threading.Thread):
           subscriber to be a wee bit more efficient.
         '''
         half_sec = rospy.Duration(0, 500000000)
-        ten_secs = rospy.Duration(10, 000000000)
         self._loop_period = half_sec
         self._internal_sleep_period = half_sec
         self._last_loop_timestamp = rospy.Time.now()
@@ -84,7 +83,6 @@ class HubDiscovery(threading.Thread):
                     (ip, port) = _resolve_address(service)
                     rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
                     self.discovery_update_hook(ip, port)
-                    self._loop_period = ten_secs
                 # Direct scanning
             discovered_hub_uris = self._direct_scan()
             for hub_uri in discovered_hub_uris:
@@ -92,7 +90,6 @@ class HubDiscovery(threading.Thread):
                 o = urlparse(hub_uri)
                 rospy.loginfo("Gateway : discovered hub directly [%s]" % hub_uri)
                 self.discovery_update_hook(o.hostname, o.port)
-                self._loop_period = ten_secs
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
                 break  # nothing left to do
             self._sleep()
