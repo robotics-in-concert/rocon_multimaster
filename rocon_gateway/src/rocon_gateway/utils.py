@@ -57,9 +57,9 @@ class Connection():
 
     def __str__(self):
         if self.rule.type == ConnectionType.SERVICE:
-            return '{%s, name: %s, node: %s, uri: %s, service_api: %s}' % (self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
+            return '{type: %s, name: %s, node: %s, uri: %s, service_api: %s}' % (self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
         else:
-            return '{%s, name: %s, node: %s, uri: %s, topic_type: %s}' % (self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
+            return '{type: %s, name: %s, node: %s, uri: %s, topic_type: %s}' % (self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
 
     def __repr__(self):
         return self.__str__()

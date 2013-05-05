@@ -15,7 +15,7 @@ import httplib
 ##############################################################################
 
 
-class WatcherThread():
+class WatcherThread(object):
     '''
       This used to be on a thread of its own, but now moved into
       the gateway's main thread for running.
