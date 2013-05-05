@@ -70,7 +70,7 @@ def wait_for_remote_gateway(remote_gateway_name, ns=_gateway_namespace, timeout=
             break
 
 
-def find_first_remote_gateway(ns=_gateway_namespace, timeout=rospy.Duration(5.0)):
+def find_first_remote_gateway(ns=_gateway_namespace, timeout=rospy.Duration(15.0)):
     '''
       Parses the remote gateway list to find a gateway to use for testing.
 
@@ -90,6 +90,7 @@ def find_first_remote_gateway(ns=_gateway_namespace, timeout=rospy.Duration(5.0)
             raise GatewaySampleRuntimeError("timed out waiting for a remote gateway to appear")
         if len(resp.gateways) > 0:
             break
+        rospy.sleep(0.5)
     return resp.gateways[0].name
 
 
