@@ -8,7 +8,6 @@
 ##############################################################################
 
 import rospy
-import threading
 import httplib
 
 ##############################################################################
@@ -16,12 +15,13 @@ import httplib
 ##############################################################################
 
 
-class WatcherThread(threading.Thread):
+class WatcherThread(object):
     '''
+      This used to be on a thread of its own, but now moved into
+      the gateway's main thread for running.
     '''
 
     def __init__(self, gateway, watch_loop_period):
-        threading.Thread.__init__(self)
         self.trigger_update = False
         self._trigger_shutdown = False
         self._gateway = gateway
@@ -33,26 +33,17 @@ class WatcherThread(threading.Thread):
         self._watch_loop_period = rospy.Duration(watch_loop_period)
         self._last_loop_timestamp = rospy.Time.now()
         self._internal_sleep_period = rospy.Duration(0, 200000000)  # 200ms
-        self.start()
 
-    def shutdown(self):
-        '''
-          Called from the main program to shutdown this thread.
-        '''
-        self._trigger_shutdown = True
-        self._trigger_update = True  # causes it to interrupt a sleep and drop back to check shutdown condition
-        self.join()  # wait for the thread to finish
-
-    def run(self):
+    def start(self):
         '''
           The watcher thread - monitors both the local master's system state (list of connections)
           and the various rules to make sure rules and existing connections or flips are in sync.
         '''
-        while not rospy.is_shutdown() and not self._trigger_shutdown:
+        while not rospy.is_shutdown():
             # don't waste time processing if we're not connnected to at least one hub
             if self._gateway.is_connected():
                 try:
-                    connections = self._master.getConnectionState()
+                    connections = self._master.get_connection_state()
                 except httplib.ResponseNotReady:
                     rospy.logwarn("Gateway : received 'ResponseNotReady' from master api")
                     self._sleep()

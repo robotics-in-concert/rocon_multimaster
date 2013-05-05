@@ -29,7 +29,7 @@ if __name__ == '__main__':
     
     rospy.init_node('master_connections')
     master = rocon_gateway.LocalMaster()
-    publishers, subscribers, services = master.getSystemState()
+    publishers, subscribers, services = master.get_system_state()
     
     for p in publishers:
       print(str(p))

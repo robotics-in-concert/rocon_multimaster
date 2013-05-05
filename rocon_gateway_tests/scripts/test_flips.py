@@ -35,7 +35,7 @@ class TestFlips(unittest.TestCase):
         try:
             samples.flip_all()
         except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when flipping all connections.")
+            self.fail("Runtime error caught when flipping all connections [%s]" % str(e))
         flipped_interface = self._wait_for_flipped_interface()
         #print("%s" % self.graph._local_gateway)
         self.assertEquals("2", str(len(flipped_interface)))
@@ -46,7 +46,7 @@ class TestFlips(unittest.TestCase):
         try:
             samples.flip_all(cancel=True)
         except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when unflipping all connections.")
+            self.fail("Runtime error caught when unflipping all connections [%s]" % str(e))
         self._assert_cleared_flipped_interface()
 
     def test_flip_tutorials(self):

@@ -68,11 +68,12 @@ class Gateway(object):
         self.remote_gateway_request_callbacks['flip'] = self.process_remote_gateway_flip_request
         self.remote_gateway_request_callbacks['unflip'] = self.process_remote_gateway_unflip_request
 
-        # create a thread to watch local rule states
         self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
 
+    def spin(self):
+        self.watcher_thread.start()
+
     def shutdown(self):
-        self.watcher_thread.shutdown()
         for connection_type in utils.connection_types:
             for flip in self.flipped_interface.flipped[connection_type]:
                 self.hub_manager.send_unflip_request(flip.gateway, flip.rule)
@@ -104,21 +105,21 @@ class Gateway(object):
     # Update interface states (jobs assigned from watcher thread)
     ##########################################################################
 
-    def update_flipped_interface(self, connections, remote_gateway_hub_index):
+    def update_flipped_interface(self, local_connection_index, remote_gateway_hub_index):
         '''
           Process the list of local connections and check against
           the current flip rules and patterns for changes. If a rule
           has become (un)available take appropriate action.
 
-          @param connections : list of current local connections parsed from the master
+          @param local_connection_index : list of current local connections parsed from the master
           @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
 
           @param gateways : list of remote gateway string id's
           @type string
         '''
         state_changed = False
-        new_flips, lost_flips = self.flipped_interface.update(connections, remote_gateway_hub_index, self._unique_name)
-        for connection_type in connections:
+        new_flips, lost_flips = self.flipped_interface.update(local_connection_index, remote_gateway_hub_index, self._unique_name)
+        for connection_type in utils.connection_types:
             for flip in new_flips[connection_type]:
                 firewall_flag = self.hub_manager.get_remote_gateway_firewall_flag(flip.gateway)
                 if firewall_flag == True:
@@ -210,24 +211,25 @@ class Gateway(object):
         if state_changed:
             self._publish_gateway_info()
 
-    def update_public_interface(self, connections):
+    def update_public_interface(self, local_connection_index):
         '''
           Process the list of local connections and check against
           the current rules and patterns for changes. If a rule
           has become (un)available take appropriate action.
 
-          @param connections : list of current local connections parsed from the master
+          @param local_connection_index : list of current local connections parsed from the master
           @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
         '''
-        new_conns, lost_conns = self.public_interface.update(connections)
+        new_conns, lost_conns = self.public_interface.update(local_connection_index)
         public_interface = self.public_interface.getInterface()
         for connection_type in utils.connection_types:
-            for connection in new_conns[connection_type]:
+            for new_connection in new_conns[connection_type]:
+                connection = self.master.generate_advertisement_connection_details(new_connection.rule.type, new_connection.rule.name, new_connection.rule.node)
                 rospy.loginfo("Gateway : adding connection to public interface %s" % utils.format_rule(connection.rule))
                 self.hub_manager.advertise(connection)
-            for connection in lost_conns[connection_type]:
-                rospy.loginfo("Gateway : removing connection from public interface %s" % utils.format_rule(connection.rule))
-                self.hub_manager.unadvertise(connection)
+            for lost_connection in lost_conns[connection_type]:
+                rospy.loginfo("Gateway : removing connection from public interface %s" % utils.format_rule(lost_connection.rule))
+                self.hub_manager.unadvertise(lost_connection)
         if new_conns or lost_conns:
             self._publish_gateway_info()
         return public_interface

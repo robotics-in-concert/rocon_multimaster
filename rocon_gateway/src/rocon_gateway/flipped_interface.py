@@ -81,7 +81,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         new_flips = utils.create_empty_connection_type_dictionary()
         removed_flips = utils.create_empty_connection_type_dictionary()
         remote_gateways = remote_gateway_hub_index.keys()
-        diff = lambda l1,l2: [x for x in l1 if x not in l2]  # diff of lists
+        diff = lambda l1, l2: [x for x in l1 if x not in l2]  # diff of lists
         self._lock.acquire()
         # Prune locally cached flip list for flips that have lost their remotes, keep the rules though
         for connection_type in utils.connection_types:
@@ -96,7 +96,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         self.flipped = copy.deepcopy(flipped)
         self._lock.release()
         return new_flips, removed_flips
-        
+
         # OPTIMISED METHOD
         #   Keep old rule state and old flip rules/patterns around
         #
@@ -119,29 +119,28 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     # Utility Methods
     ##########################################################################
 
-        
     def _generate_flips(self, connection_type, name, node, remote_gateways, unique_name):
         '''
-          Checks if a local rule (obtained from master.getSystemState) 
+          Checks if a local rule (obtained from master.get_system_state)
           is a suitable association with any of the rules or patterns. This can
-          return multiple matches, since the same local rule 
+          return multiple matches, since the same local rule
           properties can be multiply flipped to different remote gateways.
-            
+
           Used in the update() call above that is run in the watcher thread.
           Note, don't need to lock here as the update() function takes care of it.
-          
+
           @param connection_type : rule type
           @type str : string constant from gateway_msgs.msg.Rule
-          
+
           @param name : fully qualified topic, service or action name
           @type str
-          
-          @param node : ros node name (coming from master.getSystemState)
+
+          @param node : ros node name (coming from master.get_system_state)
           @type str
 
           @param gateways : gateways that are available (registered on the hub)
           @type string
-          
+
           @return all the flip rules that match this local rule
           @return list of RemoteRule objects updated with node names from self.watchlist
         '''
@@ -161,27 +160,27 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
             # Check names
             rule_name = flip_rule.rule.name
-            matched = self.is_matched(flip_rule, rule_name, name,node)
+            matched = self.is_matched(flip_rule, rule_name, name, node)
 
             if not utils.is_all_pattern(flip_rule.rule.name):
                 if not matched:
                     rule_name = '/' + unique_name + '/' + flip_rule.rule.name
-                    matched = self.is_matched(flip_rule, rule_name, name,node)
-    
-                if not matched: 
+                    matched = self.is_matched(flip_rule, rule_name, name, node)
+
+                if not matched:
                     rule_name = '/' + flip_rule.rule.name
                     matched = self.is_matched(flip_rule, rule_name, name, node)
 
             if matched:
                 for gateway in matched_gateways:
                     matched_flip = copy.deepcopy(flip_rule)
-                    matched_flip.gateway = gateway # just in case we used a regex or matched basename
+                    matched_flip.gateway = gateway  # just in case we used a regex or matched basename
                     matched_flip.rule.name = name  # just in case we used a regex
                     matched_flip.rule.node = node  # just in case we used a regex
                     matched_flip_rules.append(matched_flip)
 
         return matched_flip_rules
-    
+
     ##########################################################################
     # Accessors for Gateway Info
     ##########################################################################
@@ -189,7 +188,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
     def get_flipped_connections(self):
         '''
           Gets the flipped connections list for GatewayInfo consumption.
-          
+
           @return the list of flip rules that are activated and have been flipped.
           @rtype RemoteRule[]
         '''
@@ -197,11 +196,11 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         for connection_type in utils.connection_types:
             flipped_connections.extend(copy.deepcopy(self.flipped[connection_type]))
         return flipped_connections
-    
-    
+
+
 if __name__ == "__main__":
-    
-    gateways = ['dude','dudette']
+
+    gateways = ['dude', 'dudette']
     dudes = ['fred', 'dude']
     dudes[:] = [x for x in dudes if x in gateways]
     print dudes

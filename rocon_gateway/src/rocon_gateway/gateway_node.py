@@ -47,6 +47,9 @@ class GatewayNode():
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
         self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'])
 
+        # aliases
+        self.spin = self._gateway.spin
+
     def shutdown(self):
         '''
           Clears this gateway's information from the redis server.

@@ -101,7 +101,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         
     def _generate_pulls(self, connection_type, name, node, gateway, unique_name):
         '''
-          Checks if a local rule (obtained from master.getSystemState) 
+          Checks if a local rule (obtained from master.get_system_state) 
           is a suitable association with any of the rules or patterns. This can
           return multiple matches, since the same local rule 
           properties can be multiply pulled to different remote gateways.
@@ -116,7 +116,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
           @param name : fully qualified topic, service or action name
           @type str
           
-          @param node : ros node name (coming from master.getSystemState)
+          @param node : ros node name (coming from master.get_system_state)
           @type str
           
           @param gateway : remote gateway hash name.
