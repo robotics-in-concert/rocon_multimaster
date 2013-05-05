@@ -481,6 +481,39 @@ class LocalMaster(rosgraph.Master):
             connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/result', node), type_info, xmlrpc_uri))
         return connections
 
+    def generate_advertisement_connection_details(self, connection_type, name, node):
+        '''
+        Creates all the extra details to create a connection object from an
+        advertisement rule. This is a bit different to the previous one - we just need
+        the type and single node uri that everything originates from (don't need to generate all
+        the pub/sub connections themselves.
+
+        Probably flips could be merged into this sometime, but it'd be a bit gnarly.
+
+        @param connection_type : the connection type (one of gateway_msgs.msg.ConnectionType)
+        @type string
+        @param name : the name of the connection
+        @type string
+        @param node : the master node name it comes from
+        @param string
+
+        @return the utils.Connection object complete with type_info and xmlrpc_uri
+        @type utils.Connection
+        '''
+        xmlrpc_uri = self.lookupNode(node)
+        if connection_type == PUBLISHER or connection_type == SUBSCRIBER:
+            type_info = rostopic.get_topic_type(name)[0]  # message type
+            connection = utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri)
+        elif connection_type == SERVICE:
+            type_info = rosservice.get_service_uri(name)
+            connection = utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri)
+        elif connection_type == ACTION_SERVER or connection_type == ACTION_CLIENT:
+            goal_topic = name + '/goal'
+            goal_topic_type = rostopic.get_topic_type(goal_topic)
+            type_info = re.sub('ActionGoal$', '', goal_topic_type[0])  # Base type for action
+            connection = utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri)
+        return connection
+
     def get_ros_ip(self):
         o = urlparse.urlparse(rosgraph.get_master_uri())
         if o.hostname == 'localhost':

@@ -55,6 +55,6 @@ class TestConnectionCache(unittest.TestCase):
     def tearDown(self):
         pass
 
-NAME = 'test_connection_cache'
-if __name__ == '__main__':
-    rosunit.unitrun('test_connection_cache', NAME, TestConnectionCache, sys.argv, coverage_packages=['rocon_gateway'])
+#NAME = 'test_connection_cache'
+#if __name__ == '__main__':
+#    rosunit.unitrun('test_connection_cache', NAME, TestConnectionCache, sys.argv, coverage_packages=['rocon_gateway'])

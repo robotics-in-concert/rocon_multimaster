@@ -211,24 +211,25 @@ class Gateway(object):
         if state_changed:
             self._publish_gateway_info()
 
-    def update_public_interface(self, connections):
+    def update_public_interface(self, local_connection_index):
         '''
           Process the list of local connections and check against
           the current rules and patterns for changes. If a rule
           has become (un)available take appropriate action.
 
-          @param connections : list of current local connections parsed from the master
+          @param local_connection_index : list of current local connections parsed from the master
           @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
         '''
-        new_conns, lost_conns = self.public_interface.update(connections)
+        new_conns, lost_conns = self.public_interface.update(local_connection_index)
         public_interface = self.public_interface.getInterface()
         for connection_type in utils.connection_types:
-            for connection in new_conns[connection_type]:
+            for new_connection in new_conns[connection_type]:
+                connection = self.master.generate_advertisement_connection_details(new_connection.rule.type, new_connection.rule.name, new_connection.rule.node)
                 rospy.loginfo("Gateway : adding connection to public interface %s" % utils.format_rule(connection.rule))
                 self.hub_manager.advertise(connection)
-            for connection in lost_conns[connection_type]:
-                rospy.loginfo("Gateway : removing connection from public interface %s" % utils.format_rule(connection.rule))
-                self.hub_manager.unadvertise(connection)
+            for lost_connection in lost_conns[connection_type]:
+                rospy.loginfo("Gateway : removing connection from public interface %s" % utils.format_rule(lost_connection.rule))
+                self.hub_manager.unadvertise(lost_connection)
         if new_conns or lost_conns:
             self._publish_gateway_info()
         return public_interface
