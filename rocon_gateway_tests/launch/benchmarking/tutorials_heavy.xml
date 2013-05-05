@@ -1,53 +1,10 @@
 <!-- Used for benchmarking various algorithms in the gateway -->
 <launch>
-  <group ns="dudea">
-    <node pkg="roscpp_tutorials" type="talker" name="talker"/>
-    <node pkg="roscpp_tutorials" type="listener" name="listener"/>
-    <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
-    <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
-    <node name="fibonacci_server" pkg="actionlib_tutorials" type="fibonacci_server"/>
-  </group>
-  <group ns="dudeb">
-    <node pkg="roscpp_tutorials" type="talker" name="talker"/>
-    <node pkg="roscpp_tutorials" type="listener" name="listener"/>
-    <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
-    <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
-    <node name="fibonacci_server" pkg="actionlib_tutorials" type="fibonacci_server"/>
-  </group>
-  <group ns="dudec">
-    <node pkg="roscpp_tutorials" type="talker" name="talker"/>
-    <node pkg="roscpp_tutorials" type="listener" name="listener"/>
-    <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
-    <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
-    <node name="fibonacci_server" pkg="actionlib_tutorials" type="fibonacci_server"/>
-  </group>
-  <group ns="duded">
-    <node pkg="roscpp_tutorials" type="talker" name="talker"/>
-    <node pkg="roscpp_tutorials" type="listener" name="listener"/>
-    <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
-    <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
-    <node name="fibonacci_server" pkg="actionlib_tutorials" type="fibonacci_server"/>
-  </group>
-  <group ns="dudee">
-    <node pkg="roscpp_tutorials" type="talker" name="talker"/>
-    <node pkg="roscpp_tutorials" type="listener" name="listener"/>
-    <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
-    <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
-    <node name="fibonacci_server" pkg="actionlib_tutorials" type="fibonacci_server"/>
-  </group>
-  <group ns="dudef">
-    <node pkg="roscpp_tutorials" type="talker" name="talker"/>
-    <node pkg="roscpp_tutorials" type="listener" name="listener"/>
-    <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
-    <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
-    <node name="fibonacci_server" pkg="actionlib_tutorials" type="fibonacci_server"/>
-  </group>
-  <group ns="dudeg">
-    <node pkg="roscpp_tutorials" type="talker" name="talker"/>
-    <node pkg="roscpp_tutorials" type="listener" name="listener"/>
-    <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
-    <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
-    <node name="fibonacci_server" pkg="actionlib_tutorials" type="fibonacci_server"/>
-  </group>
+  <include ns="a" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="b" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="c" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="d" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="e" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="f" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="g" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
 </launch>
-  
