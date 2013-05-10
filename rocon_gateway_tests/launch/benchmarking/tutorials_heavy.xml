@@ -7,4 +7,10 @@
   <include ns="e" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
   <include ns="f" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
   <include ns="g" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="h" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="i" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="j" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="k" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="l" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
+  <include ns="m" file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_light.xml"/>
 </launch>
