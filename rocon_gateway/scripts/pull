@@ -16,6 +16,7 @@ import rocon_gateway
 import gateway_msgs
 import rocon_utilities.console as console
 import rocon_gateway.utils as utils
+import rocon_utilities
 
 class Flags(object):
     pull = 'pull'
@@ -47,7 +48,7 @@ logger = Logger()
 ##############################################################################
 # Functions
 ##############################################################################
-    
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Interactive tool for pulling from remote gateway advertisements')
     parser.add_argument('-d', '--debug', action='store_true', help='print debugging information')
@@ -57,14 +58,14 @@ def parse_arguments():
 
 def resolve_local_gateway():
     master = rocon_gateway.LocalMaster()
-    gateway_namespace = master.findGatewayNamespace()
+    gateway_namespace = master.find_gateway_namespace()
     if not gateway_namespace:
         logger.error("Could not find a local gateway - did you start it?")
         raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
     logger.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
 
-   
+
 def resolve_remote_gateways(gateway_namespace):
     '''
       @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 
@@ -100,10 +101,8 @@ def resolve_flags():
         return Flags.cancel 
 
 def resolve_pulled_interface(gateway_namespace):
-    gateway_info = rospy.ServiceProxy(gateway_namespace+'/gateway_info', gateway_msgs.srv.GatewayInfo)
-    req = gateway_msgs.srv.GatewayInfoRequest()
-    resp = gateway_info(req)
-    return resp.pulled_connections, resp.pull_watchlist
+    gateway_info = rocon_utilities.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)()
+    return gateway_info.pulled_connections, gateway_info.pull_watchlist
 
 def resolve_unpulls(pull_watchlist):
     if len(pull_watchlist) == 0:

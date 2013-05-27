@@ -1,9 +1,8 @@
 <package>
   <name>rocon_gateway_tests</name>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <description>
-    Start of some testing programs for gateways - needs alot of work though
-    and currently broken.
+    Testing programs for gateways.
   </description>
   <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
   <maintainer email="jihoonlee.in@gmail.com">Jihoon Lee</maintainer>
@@ -17,10 +16,12 @@
   <author email="piyushk@gmail.com">Piyush Khandelwal</author>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rocon_test</build_depend>
 
   <run_depend>rospy</run_depend>
   <run_depend>rocon_gateway</run_depend>
-  <run_depend>rostest</run_depend>
+  <run_depend>rocon_hub</run_depend>
+  <run_depend>rocon_test</run_depend>
   <run_depend>roscpp_tutorials</run_depend>
   <run_depend>rospy_tutorials</run_depend>
   <!-- Not yet catkinized, just avoid it for now. -->

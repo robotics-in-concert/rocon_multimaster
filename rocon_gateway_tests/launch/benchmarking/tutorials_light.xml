@@ -1,0 +1,7 @@
+<launch>
+    <node pkg="roscpp_tutorials" type="talker" name="talker"/>
+    <node pkg="roscpp_tutorials" type="listener" name="listener"/>
+    <node name="add_two_ints_server" pkg="roscpp_tutorials" type="add_two_ints_server"/>
+    <node name="fibonacci_client" pkg="actionlib_tutorials" type="fibonacci_client"/>
+    <node name="fibonacci_server" pkg="actionlib_tutorials" type="fibonacci_server"/>
+</launch>

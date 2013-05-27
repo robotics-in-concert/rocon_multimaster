@@ -1,17 +1,16 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_gateway/LICENSE
 #
 
 ##############################################################################
 # Imports
 ##############################################################################
 
-from gateway_msgs.msg import RemoteRule
 import copy
 import re
-
+import rocon_utilities
 # Local imports
 import utils
 import interactive_interface
@@ -23,13 +22,13 @@ import interactive_interface
 
 class PulledInterface(interactive_interface.InteractiveInterface):
     '''
-      The flipped interface is the set of rules 
-      (pubs/subs/services/actions) and rules controlling flips
-      to other gateways. 
+      The pulled interface is the set of rules
+      (pubs/subs/services/actions) and rules controlling pulls from
+      other gateways.
     '''
     def __init__(self, default_rule_blacklist, default_rules, all_targets):
         '''
-          Initialises the flipped interface.
+          Initialises the pulled interface.
 
           @param default_rule_blacklist : used when in flip all mode
           @type dictionary of gateway
@@ -38,14 +37,14 @@ class PulledInterface(interactive_interface.InteractiveInterface):
           @param all_targets : static pull all targets to pull to on startup
           @type string[]
         '''
-        interactive_interface.InteractiveInterface.__init__(self,default_rule_blacklist, default_rules, all_targets)
+        interactive_interface.InteractiveInterface.__init__(self, default_rule_blacklist, default_rules, all_targets)
 
         # Function aliases
         self.pulled = self.active
         self.pull_all = self.add_all
         self.unpull_all = self.remove_all
 
-    def update(self,connections, gateway,unique_name):
+    def update(self, remote_connections, unique_name):
         '''
           Computes a new pulled interface from the incoming connections list
            and returns two dictionaries -
@@ -54,22 +53,29 @@ class PulledInterface(interactive_interface.InteractiveInterface):
 
           This is run in the watcher thread (warning: take care - other
           additions come from ros service calls in different threads!)
+
+          @param remote_gateway_hub_index : full gateway-hub database index to parse
+          @type gateway hash names keyed into a dic with a list of their hubs
         '''
         # SLOW, EASY METHOD
-        #   Totally regenerate a new flipped interface, compare with old
-        flipped = utils.createEmptyConnectionTypeDictionary()
-        new_flips = utils.createEmptyConnectionTypeDictionary()
-        removed_flips = utils.createEmptyConnectionTypeDictionary()
+        #   Totally regenerate a new pulled interface, compare with old
+        pulled = utils.create_empty_connection_type_dictionary()
+        new_pulls = utils.create_empty_connection_type_dictionary()
+        removed_pulls = utils.create_empty_connection_type_dictionary()
         diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
         self._lock.acquire()
-        for connection_type in connections:
-            for connection in connections[connection_type]:
-                flipped[connection_type].extend(self._generatePulls(connection.rule.type, connection.rule.name, connection.rule.node, gateway,unique_name))
-            new_flips[connection_type] = diff(flipped[connection_type],self.pulled[connection_type])
-            removed_flips[connection_type] = diff(self.pulled[connection_type],flipped[connection_type])
-        self.pulled = copy.deepcopy(flipped)
+        # Totally regenerate a new pulled interface, compare with old
+        for remote_gateway in remote_connections.keys():
+            connections = remote_connections[remote_gateway]
+            for connection_type in connections:
+                for connection in connections[connection_type]:
+                    pulled[connection_type].extend(self._generate_pulls(connection.rule.type, connection.rule.name, connection.rule.node, remote_gateway, unique_name))
+        for connection_type in utils.connection_types:
+            new_pulls[connection_type] = diff(pulled[connection_type], self.pulled[connection_type])
+            removed_pulls[connection_type] = diff(self.pulled[connection_type], pulled[connection_type])
+        self.pulled = copy.deepcopy(pulled)
         self._lock.release()
-        return new_flips, removed_flips
+        return new_pulls, removed_pulls
         
         # OPTIMISED METHOD
         #   Keep old rule state and old flip rules/patterns around
@@ -79,7 +85,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         #         If not all are, remove and unflip them
         #
         #   2 - If rules disappeared [diff(old_conns,new_conns)]
-        #         If matching any in flipped, remove and unflip
+        #         If matching any in pulled, remove and unflip
         #
         #   3 - If flip rules/patterns appeared [diff(new_rules,old_rules)]
         #         parse all conns, if match found, flip
@@ -93,37 +99,44 @@ class PulledInterface(interactive_interface.InteractiveInterface):
     # Utility Methods
     ##########################################################################
         
-    def _generatePulls(self, type, name, node, gateway, unique_name):
+    def _generate_pulls(self, connection_type, name, node, gateway, unique_name):
         '''
-          Checks if a local rule (obtained from master.getSystemState) 
+          Checks if a local rule (obtained from master.get_system_state) 
           is a suitable association with any of the rules or patterns. This can
           return multiple matches, since the same local rule 
-          properties can be multiply flipped to different remote gateways.
+          properties can be multiply pulled to different remote gateways.
             
           Used in the update() call above that is run in the watcher thread.
           
           Note, don't need to lock here as the update() function takes care of it.
           
-          @param type : rule type
-          @type str : string constant from gateway_msgs.msg.Rule
+          @param connection_type : rule type
+          @type str : string constant from gateway_msgs.Rule
           
           @param name : fully qualified topic, service or action name
           @type str
           
-          @param node : ros node name (coming from master.getSystemState)
+          @param node : ros node name (coming from master.get_system_state)
+          @type str
+          
+          @param gateway : remote gateway hash name.
           @type str
           
           @return all the pull rules that match this local rule
           @return list of RemoteRule objects updated with node names from self.watchlist
         '''
-        matched_flip_rules = []
-        for rule in self.watchlist[type]:
-            # This is a bit different to _generateFlips - does it need to be? DJS
-            if not gateway:
+        matched_pull_rules = []
+        for rule in self.watchlist[connection_type]:
+            # check for regular expression or perfect match
+            gateway_match_result = re.match(rule.gateway, gateway)
+            matched = False
+            if gateway_match_result and gateway_match_result.group() == gateway:
+                matched = True
+            elif rule.gateway == rocon_utilities.gateway_basename(gateway):
+                matched = True
+            if not matched:
                 continue
-            gateway_match_result = re.match(rule.gateway,gateway)
-            if not (gateway_match_result and gateway_match_result.group() == gateway):
-                continue
+
             # Check names
             rule_name = rule.rule.name
             matched = self.is_matched(rule, rule_name, name, node)
@@ -136,12 +149,12 @@ class PulledInterface(interactive_interface.InteractiveInterface):
                 matched = self.is_matched(rule, rule_name, name, node)
 
             if matched:
-                matched_flip = copy.deepcopy(rule)
-                matched_flip.gateway = gateway  # just in case we used a regex
-                matched_flip.rule.name = name   # just in case we used a regex
-                matched_flip.rule.node = node   # just in case we used a regex
-                matched_flip_rules.append(matched_flip)
-        return matched_flip_rules
+                matched_pull = copy.deepcopy(rule)
+                matched_pull.gateway = gateway  # just in case we used a regex or matched basename
+                matched_pull.rule.name = name   # just in case we used a regex
+                matched_pull.rule.node = node   # just in case we used a regex
+                matched_pull_rules.append(matched_pull)
+        return matched_pull_rules
     
     ##########################################################################
     # Pulled Interface Specific Methods

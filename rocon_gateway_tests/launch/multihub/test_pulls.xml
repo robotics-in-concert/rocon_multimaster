@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find rocon_gateway_tests)/launch/multihub/multihub_gateway.xml"/>
+  <test test-name="test_pulls" pkg="rocon_gateway_tests" type="test_pulls.py"/>
+</launch>

@@ -1,0 +1,7 @@
+<!--
+  Benchmark functions in the gateway master_api module.
+ -->
+<launch>
+  <include file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_heavy.xml"/>
+  <node pkg="rocon_gateway_tests" type="bench_master_api.py" name="bench_master_api" output="screen"/>
+</launch>

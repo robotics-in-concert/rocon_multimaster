@@ -1,6 +1,6 @@
 <package>
   <name>rocon_gateway</name>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <description>
     A hub acts as a shared key-value store for multiple ros 
     systems (primarily used by gateways).
@@ -12,7 +12,7 @@
   <url type="website">http://ros.org/wiki/rocon_gateway</url>
   <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
   <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
-  <author email="d.stonier@gmail.com">Daniel Stonier</author> -->
+  <author email="d.stonier@gmail.com">Daniel Stonier</author>
   <author email="jihoonlee.in@gmail.com">Jihoon Lee</author>
   <author email="piyushk@gmail.com">Piyush Khandelwal</author>
 
@@ -20,6 +20,7 @@
 
   <run_depend>redis</run_depend>
   <run_depend>rospy</run_depend>
+  <run_depend>rocon_hub_client</run_depend>
   <run_depend>rocon_utilities</run_depend>
   <run_depend>roslib</run_depend>
   <run_depend>zeroconf_msgs</run_depend>

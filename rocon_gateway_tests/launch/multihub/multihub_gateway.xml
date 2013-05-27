@@ -1,0 +1,15 @@
+<!--
+  The parameter is designed to work with the undiscoverd_hub that has a redis server on 6382.
+  It will also pick up other hubs from zeroconf. 
+ -->
+<launch>
+  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen"/>
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
+    <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <rosparam param="hub_uri">http://localhost:6382</rosparam>
+    <rosparam param="name">Gateway</rosparam>
+    <rosparam param="watch_loop_period">2</rosparam>
+    <rosparam param="firewall">false</rosparam>
+  </node>
+</launch>

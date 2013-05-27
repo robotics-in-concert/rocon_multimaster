@@ -1,0 +1,12 @@
+<!--
+  Designed to work with the underiscoverd_hub that has a redis server on 6382. 
+ -->
+<launch>
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
+    <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <rosparam param="hub_uri">http://localhost:6382</rosparam>
+    <rosparam param="name">remote_gateway</rosparam>
+    <rosparam param="firewall">false</rosparam>
+  </node>
+</launch>

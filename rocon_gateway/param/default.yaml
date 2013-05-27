@@ -32,6 +32,9 @@ firewall: true
 # External parameters
 ##############################################################################
 
+# Disable hub discovery via zeroconf
+# disable_zeroconf: false
+
 # The default blacklist to use for flip_all/pull_all rules
 #   we include default_blacklist.yaml separately for an example 
 

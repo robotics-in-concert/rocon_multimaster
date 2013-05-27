@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
+    <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <rosparam param="name">Gateway</rosparam>
+    <rosparam param="disable_zeroconf">true</rosparam>
+  </node>
+  <test test-name="test_connect_hub_by_service" pkg="rocon_gateway_tests" type="test_connect_hub_by_service.py"/>
+</launch>

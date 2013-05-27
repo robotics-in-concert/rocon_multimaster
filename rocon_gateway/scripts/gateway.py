@@ -9,7 +9,7 @@
 ##############################################################################
 
 import rospy
-from rocon_gateway import Gateway
+from rocon_gateway import GatewayNode
 
 ##############################################################################
 # Launch point
@@ -18,6 +18,6 @@ from rocon_gateway import Gateway
 if __name__ == '__main__':
     
     rospy.init_node('gateway')
-    gateway = Gateway()
+    gateway = GatewayNode()
     gateway.spin()
-    rospy.loginfo("Gateway : shutting down.")
+    gateway.shutdown()

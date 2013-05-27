@@ -1,0 +1,6 @@
+<concert>
+  <launch package="rocon_gateway_tests" name="undiscovered_hub.xml" port="11311"/>
+  <launch package="rocon_gateway_tests" name="local_graph.xml" port="11312"/>
+  <launch package="rocon_gateway_tests" name="remote_graph.xml" port="11313"/>
+</concert>
+

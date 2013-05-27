@@ -23,8 +23,12 @@ def setup_ros_parameters():
 
     # Hub
     param['hub_uri'] = rospy.get_param('~hub_uri', '')
-    param['hub_whitelist'] = rospy.get_param('~hub_whitelist', [])
-    param['hub_blacklist'] = rospy.get_param('~hub_blacklist', [])
+    # Convert these back to accepting lists once https://github.com/ros/ros_comm/pull/218
+    # goes through, for now we use semi-colon separated lists.
+    param['hub_whitelist'] = rospy.get_param('~hub_whitelist', "")
+    param['hub_blacklist'] = rospy.get_param('~hub_blacklist', "")
+    param['hub_whitelist'] = filter(bool, param['hub_whitelist'].split(';'))  # avoid '' hub name strings
+    param['hub_blacklist'] = filter(bool, param['hub_blacklist'].split(';'))
 
     # Gateway
     param['name'] = rospy.get_param('~name', 'gateway')
@@ -35,6 +39,9 @@ def setup_ros_parameters():
 
     # Used to block/permit remote gateway's from flipping to this gateway.
     param['firewall'] = rospy.get_param('~firewall', True)
+
+    # The gateway can automagically detect zeroconf, but sometimes you want to force it off
+    param['disable_zeroconf'] = rospy.get_param('~disable_zeroconf', False)
 
     # Make everything publicly available (excepting the default blacklist)
     param['advertise_all'] = rospy.get_param('~advertise_all', [])  # boolean
@@ -55,7 +62,7 @@ def generate_rules(param):
       @return all rules as gateway_msgs.msg.Rule objects in our usual keyed dictionary format
       @rtype type keyed dictionary of Rule lists
     '''
-    rules = utils.createEmptyConnectionTypeDictionary()
+    rules = utils.create_empty_connection_type_dictionary()
     for value in param:
         rule = Rule()
         rule.name = value['name']

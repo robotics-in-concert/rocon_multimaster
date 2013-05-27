@@ -14,6 +14,7 @@ import re
 import rospy
 import rocon_gateway
 import gateway_msgs
+import rocon_utilities
 import rocon_utilities.console as console
 import rocon_gateway.utils as utils
 
@@ -57,7 +58,7 @@ def parse_arguments():
 
 def resolve_local_gateway():
     master = rocon_gateway.LocalMaster()
-    gateway_namespace = master.findGatewayNamespace()
+    gateway_namespace = master.find_gateway_namespace()
     if not gateway_namespace:
         logger.error("Could not find a local gateway - did you start it?")
         raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
@@ -110,10 +111,8 @@ def resolve_flags():
         return Flags.cancel 
 
 def resolve_flipped_interface(gateway_namespace):
-    gateway_info = rospy.ServiceProxy(gateway_namespace+'/gateway_info', gateway_msgs.srv.GatewayInfo)
-    req = gateway_msgs.srv.GatewayInfoRequest()
-    resp = gateway_info(req)
-    return resp.flipped_connections, resp.flip_watchlist
+    gateway_info = rocon_utilities.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)()
+    return gateway_info.flipped_connections, gateway_info.flip_watchlist
 
 def resolve_unflips(flip_watchlist):
     if len(flip_watchlist) == 0:
@@ -157,7 +156,7 @@ def is_in_flipped_connection_list(remote_gateways, connection, flipped_connectio
 
 def resolve_connections(gateway_namespace, remote_gateways, flipped_connections):
     master = rocon_gateway.LocalMaster()
-    connection_dictionary = master.getConnectionState()
+    connection_dictionary = master.get_connection_state()
     connections = []
     for connection_type in connection_dictionary:
         connections.extend(connection_dictionary[connection_type])

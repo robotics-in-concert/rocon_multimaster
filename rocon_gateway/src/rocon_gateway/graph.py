@@ -12,10 +12,12 @@
 ##############################################################################
 
 import rospy
-import gateway_msgs.srv
+import gateway_msgs.srv as gateway_srvs
+import gateway_msgs.msg as gateway_msgs
 from master_api import LocalMaster
 import rosgraph
 from rosgraph.impl.graph import Edge, EdgeList
+import rocon_utilities
 
 ##############################################################################
 # Graph
@@ -50,8 +52,8 @@ class Graph(object):
             self.configure()
 
     def configure(self):
-        self._gateway_info = rospy.ServiceProxy(self.gateway_namespace + '/gateway_info', gateway_msgs.srv.GatewayInfo)
-        self._remote_gateway_info = rospy.ServiceProxy(self.gateway_namespace + '/remote_gateway_info', gateway_msgs.srv.RemoteGatewayInfo)
+        self._gateway_info = rocon_utilities.SubscriberProxy(self.gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)
+        self._remote_gateway_info = rospy.ServiceProxy(self.gateway_namespace + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
 
     def local_gateway_name(self):
         if self._local_gateway:
@@ -62,9 +64,8 @@ class Graph(object):
     def update(self):
         if not self._resolve_gateway_namespace():
             return
-        req = gateway_msgs.srv.GatewayInfoRequest()
-        self._local_gateway = self._gateway_info(req)
-        req = gateway_msgs.srv.RemoteGatewayInfoRequest()
+        self._local_gateway = self._gateway_info()
+        req = gateway_srvs.RemoteGatewayInfoRequest()
         req.gateways = []
         self._remote_gateways = self._remote_gateway_info(req).gateways
         self._last_update = rospy.get_rostime()
@@ -90,12 +91,11 @@ class Graph(object):
             self.pulled_edges.add(Edge(self._local_gateway.name, connection_id))
             self.pulled_edges.add(Edge(connection_id, remote_rule.gateway))
         for rule in self._local_gateway.public_interface:
-            print "pulled edge: %s->%s" % (self._local_gateway.name, connection_id)
             connection_id = rosgraph.impl.graph.topic_node(rule.name + '-' + rule.type)
+            #print "pulled edge: %s->%s" % (self._local_gateway.name, connection_id)
             self.pulled_nodes.append(connection_id)
             self.pulled_edges.add(Edge(self._local_gateway.name, connection_id))
         # Check remote gateways
-        # TODO add flipped and pulled here.
         for remote_gateway in self._remote_gateways:
             for remote_rule in remote_gateway.flipped_interface:
                 connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
@@ -109,10 +109,6 @@ class Graph(object):
                 self.pulled_edges.add(Edge(remote_rule.gateway, connection_id))
                 self.pulled_edges.add(Edge(connection_id, remote_gateway.name))
                 self.gateway_edges.add(Edge(remote_gateway.name, remote_rule.gateway))
-        print "****************** Flipped Nodes ******************"
-        print self.flipped_nodes
-        print "****************** Gateway Edges ******************"
-        print self.gateway_edges
 
     def _resolve_gateway_namespace(self):
         '''
@@ -122,7 +118,7 @@ class Graph(object):
         if self._gateway_namespace:
             return
         master = LocalMaster()
-        self.gateway_namespace = master.findGatewayNamespace()
+        self.gateway_namespace = master.find_gateway_namespace()
         if not self.gateway_namespace:
             rospy.logerr("Gateway Graph: could not find a local gateway - did you start it?")
         return self.gateway_namespace

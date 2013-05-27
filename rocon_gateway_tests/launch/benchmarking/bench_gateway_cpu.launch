@@ -1,0 +1,8 @@
+<!--
+  Benchmark functions in the gateway master_api module.
+ -->
+<launch>
+  <include file="$(find rocon_gateway_tests)/launch/benchmarking/tutorials_heavy.xml"/>
+  <include file="$(find rocon_gateway_tests)/launch/common/primary_hub.xml"/>
+  <include file="$(find rocon_gateway_tests)/launch/benchmarking/bench_gateway.xml"/>
+</launch>

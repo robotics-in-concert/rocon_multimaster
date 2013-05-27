@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+#
+# License: BSD
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_test/LICENSE
+#
+##############################################################################
+# Imports
+##############################################################################
+
+from rocon_test import main
+import sys
+from rocon_test import test_main
+import rocon_utilities.console as console
+
+##############################################################################
+# Main
+##############################################################################
+
+if __name__ == '__main__':
+    try:
+        sys.exit(test_main())
+    except Exception as e:
+        console.logerror(str(e))
+        sys.exit(1)

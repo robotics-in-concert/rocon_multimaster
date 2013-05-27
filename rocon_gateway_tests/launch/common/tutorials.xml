@@ -1,0 +1,7 @@
+<!--
+  Advertise all the tutorials. 
+ -->
+<launch>
+  <node pkg="roscpp_tutorials" type="talker" name="talker"/>
+  <node pkg="roscpp_tutorials" type="listener" name="listener"/>
+</launch>

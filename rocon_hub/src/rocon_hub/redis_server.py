@@ -93,7 +93,6 @@ class RedisServer:
                 pipe = self._server.pipeline()
                 if len(keys_to_delete) != 0:
                     pipe.delete(*keys_to_delete)  # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
-                pipe.set("rocon:hub:index", 0)
                 pipe.set("rocon:hub:name", self._parameters['name'])
                 pipe.execute()
                 rospy.loginfo("Hub : reset hub variables on the redis server.")

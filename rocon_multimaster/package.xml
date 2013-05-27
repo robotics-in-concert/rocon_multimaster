@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>rocon_multimaster</name>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <description>
     This doesn't do everything you need for multimaster, however it does
     provide the building blocks common to most or all multimaster systems.
@@ -19,6 +19,7 @@
   <author email="jihoonlee.in@gmail.com">Jihoon Lee</author>
   <author email="piyushk@gmail.com">Piyush Khandelwal</author>
 
+  <buildtool_depend>catkin</buildtool_depend>
   <run_depend>redis</run_depend>
   <run_depend>rocon_hub</run_depend>
   <run_depend>rocon_utilities</run_depend>

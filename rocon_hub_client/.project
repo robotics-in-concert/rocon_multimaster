@@ -3,6 +3,8 @@
 	<name>rocon_hub_client</name>
 	<comment></comment>
 	<projects>
+		<project>redis</project>
+		<project>rocon_utilities</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
