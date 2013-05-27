@@ -1,6 +1,6 @@
 <package>
   <name>rocon_gateway_tests</name>
-  <version>0.5.0</version>
+  <version>0.5.1</version>
   <description>
     Testing programs for gateways.
   </description>
