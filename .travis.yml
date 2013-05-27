@@ -22,7 +22,7 @@ install:
 script:
   - source /opt/ros/groovy/setup.bash
   - catkin_make
-  - catkin_make --install
+  - catkin_make install
   - sudo apt-get install ros-groovy-rostest
   - source devel/setup.bash
   - export ROS_MASTER_URI=http://localhost:11311
