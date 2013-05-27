@@ -1,6 +1,6 @@
 <package>
   <name>rocon_test</name>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
   <description>
     Rocon test framework (i.e. multi-launch rostest framework).
   </description>
