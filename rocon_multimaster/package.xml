@@ -25,7 +25,9 @@
   <run_depend>rocon_utilities</run_depend>
   <run_depend>rocon_hub_client</run_depend>
   <run_depend>rocon_gateway</run_depend>
+  <run_depend>rocon_gateway_tests</run_depend>
   <run_depend>rocon_unreliable_experiments</run_depend>
+  <run_depend>rocon_test</run_depend>
   
   <export>
     <metapackage/>
