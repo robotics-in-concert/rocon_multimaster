@@ -1,6 +1,6 @@
 <package>
   <name>rocon_utilities</name>
-  <version>0.5.1</version>
+  <version>0.5.2</version>
   <description>
     Utility python code for rocon packages.
   </description>
