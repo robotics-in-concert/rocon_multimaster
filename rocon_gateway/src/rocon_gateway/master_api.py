@@ -16,6 +16,7 @@ import rosgraph
 import rostopic
 import rosservice
 import roslib.names
+import xmlrpclib
 from rosmaster.util import xmlrpcapi
 try:
     import urllib.parse as urlparse  # Python 3.x
@@ -428,6 +429,12 @@ class LocalMaster(rosgraph.Master):
                 raise  # better handling here would be ideal
             else:
                 pass  # subscriber stopped on the other side, don't worry about it
+        except xmlrpclib.Fault:
+            # This occurs when the subscriber has gone down and unflipped.
+            # For us this is not an error since we were only informing
+            # the subscriber of an updated publisher state...which 
+            # it no longer needs!
+            pass
         node_master.unregisterSubscriber(name, xmlrpc_uri)
 
     ##########################################################################
