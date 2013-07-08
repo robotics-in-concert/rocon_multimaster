@@ -30,9 +30,29 @@ class WatcherThread(object):
         self._hubs = self._hub_manager.hubs
         self._flipped_interface = gateway.flipped_interface
         self._pulled_interface = gateway.pulled_interface
+        self._default_watch_loop_period = rospy.Duration(watch_loop_period)
         self._watch_loop_period = rospy.Duration(watch_loop_period)
         self._last_loop_timestamp = rospy.Time.now()
         self._internal_sleep_period = rospy.Duration(0, 200000000)  # 200ms
+
+    def set_watch_loop_period(self, period):
+        '''
+          This is used via the gateway node service to configure the rate of the
+          watcher thread. If not positive, it will reset to the default.
+
+          @param period : new setting in seconds
+          @type float
+        '''
+        self._watch_loop_period = self._default_watch_loop_period if period <= 0.0 else rospy.Duration(period)
+
+    def get_watch_loop_period(self):
+        '''
+          Use Duration's to_sec() method to convert this to float.
+
+          @return the watcher loop period.
+          @rtype rospy.Duration
+        '''
+        return self._watch_loop_period
 
     def start(self):
         '''
@@ -40,7 +60,7 @@ class WatcherThread(object):
           and the various rules to make sure rules and existing connections or flips are in sync.
         '''
         while not rospy.is_shutdown():
-            # don't waste time processing if we're not connnected to at least one hub
+            # don't waste time processing if we're not connected to at least one hub
             if self._gateway.is_connected():
                 try:
                     connections = self._master.get_connection_state()

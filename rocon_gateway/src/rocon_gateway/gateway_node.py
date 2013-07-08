@@ -12,6 +12,7 @@ import rocon_gateway
 import uuid
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
+import std_msgs.msg as std_msgs
 from urlparse import urlparse
 import rocon_hub_client
 
@@ -44,6 +45,7 @@ class GatewayNode():
         self._gateway = gateway.Gateway(self._hub_manager, self._param, self._unique_name, self._publish_gateway_info)
         self._gateway_services = self._setup_ros_services()
         self._gateway_publishers = self._setup_ros_publishers()
+        self._gateway_subscribers = self._setup_ros_subscribers()
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
         self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'])
 
@@ -104,20 +106,26 @@ class GatewayNode():
 
     def _setup_ros_services(self):
         gateway_services = {}
-        gateway_services['connect_hub']   = rospy.Service('~connect_hub',                   gateway_srvs.ConnectHub,       self.ros_service_connect_hub) #@IgnorePep8
-        gateway_services['remote_gateway_info']  = rospy.Service('~remote_gateway_info',    gateway_srvs.RemoteGatewayInfo,self.ros_service_remote_gateway_info) #@IgnorePep8
-        gateway_services['advertise']     = rospy.Service('~advertise',                     gateway_srvs.Advertise,        self._gateway.ros_service_advertise) #@IgnorePep8
-        gateway_services['advertise_all'] = rospy.Service('~advertise_all',                 gateway_srvs.AdvertiseAll,     self._gateway.ros_service_advertise_all) #@IgnorePep8
-        gateway_services['flip']          = rospy.Service('~flip',                          gateway_srvs.Remote,    self._gateway.ros_service_flip) #@IgnorePep8
-        gateway_services['flip_all']      = rospy.Service('~flip_all',                      gateway_srvs.RemoteAll, self._gateway.ros_service_flip_all) #@IgnorePep8
-        gateway_services['pull']          = rospy.Service('~pull',                          gateway_srvs.Remote,    self._gateway.ros_service_pull) #@IgnorePep8
-        gateway_services['pull_all']      = rospy.Service('~pull_all',                      gateway_srvs.RemoteAll, self._gateway.ros_service_pull_all) #@IgnorePep8
+        gateway_services['connect_hub']         = rospy.Service('~connect_hub',         gateway_srvs.ConnectHub,       self.ros_service_connect_hub) #@IgnorePep8
+        gateway_services['remote_gateway_info'] = rospy.Service('~remote_gateway_info', gateway_srvs.RemoteGatewayInfo,self.ros_service_remote_gateway_info) #@IgnorePep8
+        gateway_services['advertise']           = rospy.Service('~advertise',           gateway_srvs.Advertise,        self._gateway.ros_service_advertise) #@IgnorePep8
+        gateway_services['advertise_all']       = rospy.Service('~advertise_all',       gateway_srvs.AdvertiseAll,     self._gateway.ros_service_advertise_all) #@IgnorePep8
+        gateway_services['flip']                = rospy.Service('~flip',                gateway_srvs.Remote,           self._gateway.ros_service_flip) #@IgnorePep8
+        gateway_services['flip_all']            = rospy.Service('~flip_all',            gateway_srvs.RemoteAll,        self._gateway.ros_service_flip_all) #@IgnorePep8
+        gateway_services['pull']                = rospy.Service('~pull',                gateway_srvs.Remote,           self._gateway.ros_service_pull) #@IgnorePep8
+        gateway_services['pull_all']            = rospy.Service('~pull_all',            gateway_srvs.RemoteAll,        self._gateway.ros_service_pull_all) #@IgnorePep8
+        gateway_services['set_watcher_period']  = rospy.Service('~set_watcher_period',  gateway_srvs.SetWatcherPeriod, self._gateway.ros_service_set_watcher_period) #@IgnorePep8
         return gateway_services
 
     def _setup_ros_publishers(self):
         gateway_publishers = {}
         gateway_publishers['gateway_info'] = rospy.Publisher('~gateway_info', gateway_msgs.GatewayInfo, latch=True)
         return gateway_publishers
+
+    def _setup_ros_subscribers(self):
+        gateway_subscribers = {}
+        gateway_subscribers['force_update'] = rospy.Subscriber('~force_update', std_msgs.Empty, self._gateway.ros_subscriber_force_update)
+        return gateway_subscribers
 
     ##########################################################################
     # Ros Service Callbacks
