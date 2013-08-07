@@ -1,6 +1,6 @@
 <package>
   <name>redis</name>
-  <version>0.5.4</version>
+  <version>0.5.5</version>
   <description>
     The python redis client has a minor issue - it hangs on ctrl-c.
      This is a locally patched version that we can use directly until it
