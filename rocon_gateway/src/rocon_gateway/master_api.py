@@ -334,11 +334,11 @@ class LocalMaster(rosgraph.Master):
                 return None
             else:
                 if registration.connection.rule.name is None:
-                    rospy.logerr("Gateway : tried to register a service with name set to None")
+                    rospy.logerr("Gateway : tried to register a service with name set to None [%s, %s, %s]" % (registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri))
                 if registration.connection.type_info is None:
-                    rospy.logerr("Gateway : tried to register a service with type_info set to None")
+                    rospy.logerr("Gateway : tried to register a service with type_info set to None [%s, %s, %s]" % (registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri))
                 if registration.connection.xmlrpc_uri is None:
-                    rospy.logerr("Gateway : tried to register a service with xmlrpc_uri set to None")
+                    rospy.logerr("Gateway : tried to register a service with xmlrpc_uri set to None [%s, %s, %s]" % (registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri))
                 node_master.registerService(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
                 return registration
         elif registration.connection.rule.type == ACTION_SERVER:
