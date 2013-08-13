@@ -15,6 +15,7 @@ import signal
 import sys
 from time import sleep
 import roslaunch
+import tempfile
 
 # Local imports
 from .system import which, wait_pid
@@ -192,20 +193,44 @@ def main():
     else:
         roslaunch_options = ""
     launchers = parse_rocon_launcher(rocon_launcher, roslaunch_options)
+    temporary_launchers = []
     for launcher in launchers:
         console.pretty_println("Launching [%s, %s] on port %s" % (launcher['package'], launcher['name'], launcher['port']), console.bold)
+        ##########################
+        # Customise the launcher
+        ##########################
+        temp = tempfile.NamedTemporaryFile(mode='w+t', delete=False)
+        print("Launching %s" % temp.name)
+        launcher_filename = ros_utilities.find_resource(launcher['package'], launcher['name'])
+        launch_text = '<launch>\n  <include file="%s"/>\n' % launcher_filename
+        if args.screen:
+            launch_text += '  <param name="rocon/screen" value="true"/>\n'
+        else:
+            launch_text += '  <param name="rocon/screen" value="false"/>\n'
+        launch_text += '</launch>\n'
+        temp.write(launch_text)
+        temp.close()  # unlink it later
+        temporary_launchers.append(temp)
+        ##########################
+        # Start the terminal
+        ##########################
         if terminal == 'konsole':
-            p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s %s" %
-                              (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
+            p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s" %
+                              (launcher['options'], launcher['port'], temp.name)], preexec_fn=preexec)
         elif terminal == 'gnome-terminal.wrapper' or terminal == 'gnome-terminal':
             # --disable-factory inherits the current environment, bit wierd.
-            p = subprocess.Popen(['gnome-terminal', '--disable-factory', '-e', "/bin/bash", "-e", "roslaunch %s --port %s %s %s" %
-                              (launcher['options'], launcher['port'], launcher['package'], launcher['name'])], preexec_fn=preexec)
+            p = subprocess.Popen(['gnome-terminal', '--disable-factory', '-e', "/bin/bash", "-e", "roslaunch %s --port %s %s" %
+                              (launcher['options'], launcher['port'], temp.name)], preexec_fn=preexec)
         else:
             cmd = ["roslaunch"]
             if launcher['options']:
                 cmd.append(launcher['options'])
-            cmd.extend(["--port", launcher['port'], launcher['package'], launcher['name']])
+            cmd.extend(["--port", launcher['port'], temp.name])
             p = subprocess.Popen(cmd, preexec_fn=preexec)
         processes.append(p)
     signal.pause()
+    # Have to unlink them here rather than in the for loop above, because the whole gnome-terminal
+    # subprocess takes a while to kick in (in the background) and the unlinking may occur before
+    # it actually runs the roslaunch that needs the file.
+    for temporary_launcher in temporary_launchers:
+        os.unlink(temporary_launcher.name)
