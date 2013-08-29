@@ -35,9 +35,13 @@ class GatewayNode():
 
     def __init__(self):
         self._param = rocon_gateway.setup_ros_parameters()
-        key = uuid.uuid4()  # random 16 byte string, alternatively uuid.getnode() returns a hash based on the mac address, uuid.uid1() based on localhost and time
-        self._unique_name = self._param['name'] + key.hex  # append a unique hex string
-        rospy.loginfo("Gateway : generated unique hash name [%s]" % self._unique_name)
+        if self._param['disable_uuids']:
+            self._unique_name = self._param['name']
+            rospy.logwarn("Gateway : uuid's disabled, using possibly non-unique name [%s]" % self._unique_name)
+        else:  # append a unique hex string
+            key = uuid.uuid4()  # random 16 byte string, alternatively uuid.getnode() returns a hash based on the mac address, uuid.uid1() based on localhost and time
+            self._unique_name = self._param['name'] + key.hex
+            rospy.loginfo("Gateway : generated unique hash name [%s]" % self._unique_name)
         self._hub_manager = hub_manager.HubManager(
                              hub_whitelist=self._param['hub_whitelist'],
                              hub_blacklist=self._param['hub_blacklist']

@@ -43,6 +43,9 @@ def setup_ros_parameters():
     # The gateway can automagically detect zeroconf, but sometimes you want to force it off
     param['disable_zeroconf'] = rospy.get_param('~disable_zeroconf', False)
 
+    # The gateway uses uui'd to guarantee uniqueness, but this can be disabled if you want clean names without uuid's (but you have to manually guarantee uniqueness)
+    param['disable_uuids'] = rospy.get_param('~disable_uuids', False)
+
     # Make everything publicly available (excepting the default blacklist)
     param['advertise_all'] = rospy.get_param('~advertise_all', [])  # boolean
 
