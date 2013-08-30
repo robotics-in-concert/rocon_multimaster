@@ -87,10 +87,11 @@ class HubDiscovery(threading.Thread):
                 # Direct scanning
             new_hubs, unused_lost_hubs = self._direct_scan()
             for hub_uri in new_hubs:
-                o = urlparse(hub_uri)
+                hostname, port = _resolve_url(hub_uri)
                 rospy.loginfo("Gateway : discovered hub directly [%s]" % hub_uri)
-                self.discovery_update_hook(o.hostname, o.port)
+                self.discovery_update_hook(hostname, port)
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
+                rospy.logfatal("Gateway : zeroconf unavailable and no valid direct hub uris. Stopping hub discovery.")
                 break  # nothing left to do
             self._sleep()
         if self._zeroconf_services_available:
@@ -115,10 +116,17 @@ class HubDiscovery(threading.Thread):
           Ping the list of hubs we are directly looking for to see if they are alive.
         '''
         discovered_hubs = []
+        remove_uris = []
         for uri in self._direct_hub_uri_list:
-            o = urlparse(uri)
-            if hub_api.ping_hub(o.hostname, o.port):
+            (hostname, port) = _resolve_url(uri)
+            if not hostname:
+                rospy.logerr("Gateway : Unable to parse direct hub uri [%s]" % uri)
+                remove_uris.append(uri)
+                continue
+            if hub_api.ping_hub(hostname, port):
                 discovered_hubs.append(uri)
+        self._direct_hub_uri_list[:] = [x for x in self._direct_hub_uri_list
+                                        if x not in remove_uris]
         difference = lambda l1, l2: [x for x in l1 if x not in l2]
         new_hubs = difference(discovered_hubs, self._direct_discovered_hubs)
         lost_hubs = difference(self._direct_discovered_hubs, discovered_hubs)
@@ -148,6 +156,27 @@ class HubDiscovery(threading.Thread):
 ###############################################################################
 # Functions
 ###############################################################################
+
+def _resolve_url(url):
+    '''
+      Resolved a url into ip/port portions using urlparse
+      @var url : The url to parse (may or may not have a scheme)
+      @return (string,int) : ip, port pair
+    '''
+    o = urlparse(url)
+    ip = None
+    port = None
+    try:
+        if o.hostname is not None and o.port is not None:
+            ip, port = str(o.hostname), int(o.port)
+        else:
+            # Explicit attempt to parse hostname:port
+            values = url.split(':')
+            if len(values) == 2:
+                ip, port = str(values[0]), int(values[1])
+    except ValueError:
+        ip, port = None, None
+    return ip, port
 
 def _resolve_address(msg):
     '''
