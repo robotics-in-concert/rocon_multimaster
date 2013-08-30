@@ -41,6 +41,7 @@ class HubDiscovery(threading.Thread):
         self._trigger_shutdown = False
         self.trigger_update = False
         self._direct_hub_uri_list = direct_hub_uri_list
+        self._direct_discovered_hubs = []
         self._zeroconf_services_available = False if disable_zeroconf else _zeroconf_services_available()
         if self._zeroconf_services_available:
             self._discovery_request = zeroconf_srvs.ListDiscoveredServicesRequest()
@@ -84,9 +85,8 @@ class HubDiscovery(threading.Thread):
                     rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
                     self.discovery_update_hook(ip, port)
                 # Direct scanning
-            discovered_hub_uris = self._direct_scan()
-            for hub_uri in discovered_hub_uris:
-                self._direct_hub_uri_list[:] = [uri for uri in self._direct_hub_uri_list if hub_uri != uri]
+            new_hubs, unused_lost_hubs = self._direct_scan()
+            for hub_uri in new_hubs:
                 o = urlparse(hub_uri)
                 rospy.loginfo("Gateway : discovered hub directly [%s]" % hub_uri)
                 self.discovery_update_hook(o.hostname, o.port)
@@ -119,7 +119,11 @@ class HubDiscovery(threading.Thread):
             o = urlparse(uri)
             if hub_api.ping_hub(o.hostname, o.port):
                 discovered_hubs.append(uri)
-        return discovered_hubs
+        difference = lambda l1, l2: [x for x in l1 if x not in l2]
+        new_hubs = difference(discovered_hubs, self._direct_discovered_hubs)
+        lost_hubs = difference(self._direct_discovered_hubs, discovered_hubs)
+        self._direct_discovered_hubs = discovered_hubs
+        return new_hubs, lost_hubs
 
     def _zeroconf_scan(self):
         '''
