@@ -80,7 +80,6 @@ class HubDiscovery(threading.Thread):
         self._last_loop_timestamp = rospy.Time.now()
         while not rospy.is_shutdown() and not self._trigger_shutdown:
             self._discovered_hubs_modification_mutex.acquire()
-            print self._direct_discovered_hubs
             # Zeroconf scanning
             if self._zeroconf_services_available:
                 new_services, unused_lost_services = self._zeroconf_scan()
