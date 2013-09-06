@@ -12,6 +12,7 @@ import threading
 from urlparse import urlparse
 import rospy
 import zeroconf_msgs.srv as zeroconf_srvs
+from gateway_msgs.msg import ErrorCodes
 
 # local imports
 import hub_api
@@ -49,6 +50,7 @@ class HubDiscovery(threading.Thread):
             _add_listener()
             self._list_discovered_services = rospy.ServiceProxy("zeroconf/list_discovered_services", zeroconf_srvs.ListDiscoveredServices, persistent=True)
             self._zeroconf_discovered_hubs = []
+        self._discovered_hubs_modification_mutex = threading.Lock()
         # Only run the thread if we need to.
         if self._zeroconf_services_available or self._direct_hub_uri_list:
             self.start()
@@ -77,25 +79,52 @@ class HubDiscovery(threading.Thread):
         self._internal_sleep_period = half_sec
         self._last_loop_timestamp = rospy.Time.now()
         while not rospy.is_shutdown() and not self._trigger_shutdown:
+            self._discovered_hubs_modification_mutex.acquire()
+            print self._direct_discovered_hubs
             # Zeroconf scanning
             if self._zeroconf_services_available:
                 new_services, unused_lost_services = self._zeroconf_scan()
                 for service in new_services:
                     (ip, port) = _resolve_address(service)
                     rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
-                    self.discovery_update_hook(ip, port)
+                    result, _ = self.discovery_update_hook(ip, port)
+                    if result == ErrorCodes.SUCCESS:
+                        self._zeroconf_discovered_hubs.append(service)
                 # Direct scanning
             new_hubs, unused_lost_hubs = self._direct_scan()
             for hub_uri in new_hubs:
                 hostname, port = _resolve_url(hub_uri)
                 rospy.loginfo("Gateway : discovered hub directly [%s]" % hub_uri)
-                self.discovery_update_hook(hostname, port)
+                result, _ = self.discovery_update_hook(hostname, port)
+                if result == ErrorCodes.SUCCESS:
+                    self._direct_discovered_hubs.append(hub_uri)
+
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
                 rospy.logfatal("Gateway : zeroconf unavailable and no valid direct hub uris. Stopping hub discovery.")
                 break  # nothing left to do
+            self._discovered_hubs_modification_mutex.release()
             self._sleep()
         if self._zeroconf_services_available:
             self._list_discovered_services.close()
+
+    def disengage_hub(self, hub):
+        '''
+          Called when a discovered hub is lost in the upstream application.
+
+          This method should remove the hub from the list of discoverd hubs. 
+          When the hub comes back up again, the hub discovery thread will
+          call the discovery_update_hook again
+
+          @param hub: hub to be disengage
+          @type Hub
+        '''
+        self._discovered_hubs_modification_mutex.acquire()
+        self._direct_discovered_hubs[:] = [x for x in self._direct_discovered_hubs
+                                           if not _match_url_to_hub_url(x, hub.uri)]
+        if self._zeroconf_services_available:
+            self._zeroconf_discovered_hubs[:] = [x for x in self._zeroconf_discovered_hubs
+                                                 if not _match_zeroconf_address_to_hub_url(x, hub.uri)]
+        self._discovered_hubs_modification_mutex.release()
 
     def _sleep(self):
         '''
@@ -125,12 +154,13 @@ class HubDiscovery(threading.Thread):
                 continue
             if hub_api.ping_hub(hostname, port):
                 discovered_hubs.append(uri)
-        self._direct_hub_uri_list[:] = [x for x in self._direct_hub_uri_list
-                                        if x not in remove_uris]
         difference = lambda l1, l2: [x for x in l1 if x not in l2]
+        self._direct_hub_uri_list[:] = difference(self._direct_hub_uri_list,
+                                        remove_uris)
         new_hubs = difference(discovered_hubs, self._direct_discovered_hubs)
         lost_hubs = difference(self._direct_discovered_hubs, discovered_hubs)
-        self._direct_discovered_hubs = discovered_hubs
+        #self._direct_discovered_hubs = discovered_hubs
+        #self._direct_discovered_hubs.extend(discovered_hubs)
         return new_hubs, lost_hubs
 
     def _zeroconf_scan(self):
@@ -148,10 +178,9 @@ class HubDiscovery(threading.Thread):
         difference = lambda l1, l2: [x for x in l1 if x not in l2]
         new_services = difference(response.services, self._zeroconf_discovered_hubs)
         lost_services = difference(self._zeroconf_discovered_hubs, response.services)
-        self._zeroconf_discovered_hubs = response.services
+        #self._zeroconf_discovered_hubs = response.services
         #self._zeroconf_discovered_hubs.extend(new_services)
         return new_services, lost_services
-
 
 ###############################################################################
 # Functions
@@ -178,6 +207,17 @@ def _resolve_url(url):
         ip, port = None, None
     return ip, port
 
+def _match_url_to_hub_url(url, hub_uri):
+    '''
+      @param url: The original url used to specify the hub
+      @type string
+
+      @param hub_uri: The uri constructed by the hub, devoid of any URL scheme
+      @type string: of the form ip:port
+    '''
+    (ip, port) = _resolve_url(url)
+    return (hub_uri == str(ip) + ":" + str(port))
+
 def _resolve_address(msg):
     '''
       Resolves a zeroconf address into ip/port portions.
@@ -189,6 +229,16 @@ def _resolve_address(msg):
         ip = msg.ipv4_addresses[0]
     return (ip, msg.port)
 
+def _match_zeroconf_address_to_hub_url(msg, hub_uri):
+    '''
+      @param msg: The original zeroconf address used to specify the hub
+      @type zeroconf_msgs.DiscoveredService
+
+      @param hub_uri: The uri constructed by the hub, devoid of any URL scheme
+      @type string: of the form ip:port
+    '''
+    (ip, port) = _resolve_address(msg)
+    return (hub_uri == str(ip) + ":" + str(port))
 
 def _zeroconf_services_available():
     '''
