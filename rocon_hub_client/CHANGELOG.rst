@@ -2,6 +2,11 @@
 Changelog for package rocon_hub_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.1 (2013-09-11)
+------------------
+* allow hostname:port without scheme for direct hub identification. Better handling of poorly formatted direct hub uris.
+* rediscover direct hubs if lost. 
+
 0.6.0 (2013-08-30)
 ------------------
 

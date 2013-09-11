@@ -2,6 +2,9 @@
 Changelog for package rocon_gateway
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.1 (2013-09-11)
+------------------
+
 0.6.0 (2013-08-30)
 ------------------
 * disable uuids, tested with turtlebot, but not with turtle or chatter concerts.

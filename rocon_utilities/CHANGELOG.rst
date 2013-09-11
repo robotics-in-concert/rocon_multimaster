@@ -2,6 +2,10 @@
 Changelog for package rocon_utilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.1 (2013-09-11)
+------------------
+* unreliable fix for determining gateway basenames.
+
 0.6.0 (2013-08-30)
 ------------------
 * set a /rocon/screen parameter if rocon_launch is launching with --screen (app manager passes this down to its apps)
