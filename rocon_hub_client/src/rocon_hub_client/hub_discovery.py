@@ -217,4 +217,7 @@ def _add_listener():
     except rospy.ROSException:
         rospy.logwarn("Gateway : timed out waiting for zeroconf services to become available.")
         return False
+    except rospy.ServiceException:
+        rospy.logwarn("Gateway : unable to connect to zeroconf/add_listener service [timeout||crashed]].")
+        return False
     return True
