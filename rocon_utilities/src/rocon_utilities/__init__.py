@@ -19,3 +19,4 @@ from gateways import create_gateway_remote_rule, create_gateway_rule, gateway_ba
 import ros_utilities as ros
 from ros_utilities import SubscriberProxy, find_resource
 from exceptions import TimeoutExpiredError
+from icons import icon_to_msg, icon_resource_to_msg
