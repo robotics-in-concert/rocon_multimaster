@@ -111,3 +111,4 @@ if __name__ == '__main__':
     logfatal("fatal message")
     pretty_print("red\n", red)
     print("some normal text")
+    print(cyan + "    Name" + reset + ": " + yellow + "Dude" + reset)
