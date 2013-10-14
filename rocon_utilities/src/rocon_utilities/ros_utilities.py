@@ -11,32 +11,50 @@
 import rospy
 import rospkg
 import roslib
+import roslib.names
 
 ##############################################################################
 # Resources
 ##############################################################################
 
 
-def find_resource(package, resource):
+def find_resource_from_string(resource):
+    '''
+      Convenience wrapper around roslib to find a resource (file) inside
+      a package. This function passes off the work to find_resource
+      once the input string is split.
+
+      @param package : ros package
+      @param resource : string resource identifier of the form package/filename
+
+      @raise IOError : raised if the resource string couldn't be validated into package/remainder.
+    '''
+    package, filename = roslib.names.package_resource_name(resource)
+    if not package:
+        raise IOError("resource could not be split with a valid leading package name [%s]" % (resource))
+    return find_resource(package, filename)
+
+
+def find_resource(package, filename):
     '''
       Convenience wrapper around roslib to find a resource (file) inside
       a package. It checks the output, and provides the appropriate
       error if there is one.
 
       @param package : ros package
-      @param resource : some file inside the specified package
+      @param filename : some file inside the specified package
       @return str : absolute path to the file
 
       @raise IOError : raised if there is nothing found or multiple objects found.
     '''
     try:
-        resolved = roslib.packages.find_resource(package, resource)
+        resolved = roslib.packages.find_resource(package, filename)
         if not resolved:
-            raise IOError("cannot locate [%s] in package [%s]" % (resource, package))
+            raise IOError("cannot locate [%s] in package [%s]" % (filename, package))
         elif len(resolved) == 1:
             return resolved[0]
         elif len(resolved) > 1:
-            raise IOError("multiple resources named [%s] in package [%s]:%s\nPlease specify full path instead" % (resource, package, ''.join(['\n- %s' % r for r in resolved])))
+            raise IOError("multiple resources named [%s] in package [%s]:%s\nPlease specify full path instead" % (filename, package, ''.join(['\n- %s' % r for r in resolved])))
     except rospkg.ResourceNotFound:
         raise IOError("[%s] is not a package or launch file name" % package)
     return None
