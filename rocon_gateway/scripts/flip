@@ -254,4 +254,4 @@ if __name__ == '__main__':
     proceed = raw_input("Proceed? (y/n): ")
     if proceed == 'y':
         flip_rules(gateway_namespace, remote_rules, flag)
-    rospy.sleep(1)
+    rospy.rostime.wallsleep(1)

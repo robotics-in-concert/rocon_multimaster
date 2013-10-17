@@ -39,7 +39,7 @@ class TestGraph(unittest.TestCase):
             printtest("Waiting for flips")
             self.graph.update()
             flips = self.graph._local_gateway.flip_watchlist
-            rospy.sleep(0.2)
+            rospy.rostime.wallsleep(0.2)
         printtest("********************************************************************")
         printtest("* Local Gateway")
         printtest("********************************************************************")

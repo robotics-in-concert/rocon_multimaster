@@ -7,8 +7,9 @@
 # Imports
 ##############################################################################
 
-import rospy
 import httplib
+import rospy
+import time
 
 ##############################################################################
 # Watcher
@@ -30,10 +31,10 @@ class WatcherThread(object):
         self._hubs = self._hub_manager.hubs
         self._flipped_interface = gateway.flipped_interface
         self._pulled_interface = gateway.pulled_interface
-        self._default_watch_loop_period = rospy.Duration(watch_loop_period)
-        self._watch_loop_period = rospy.Duration(watch_loop_period)
-        self._last_loop_timestamp = rospy.Time.now()
-        self._internal_sleep_period = rospy.Duration(0, 200000000)  # 200ms
+        self._default_watch_loop_period = watch_loop_period
+        self._watch_loop_period = watch_loop_period
+        self._last_loop_timestamp = time.time()
+        self._internal_sleep_period = 0.2 # 200ms
 
     def set_watch_loop_period(self, period):
         '''
@@ -76,10 +77,10 @@ class WatcherThread(object):
 
     def _sleep(self):
         '''
-          Internal interruptible sleep loop to check for shutdown and update triggers.
+          Internal non-interruptible sleep loop to check for shutdown and update triggers.
           This lets us set a really long watch_loop update if we wish.
         '''
-        while not rospy.is_shutdown() and not self.trigger_update and (rospy.Time.now() - self._last_loop_timestamp < self._watch_loop_period):
-            rospy.sleep(self._internal_sleep_period)
+        while not rospy.is_shutdown() and not self.trigger_update and (time.time() - self._last_loop_timestamp < self._watch_loop_period):
+            rospy.rostime.wallsleep(self._internal_sleep_period)
         self.trigger_update = False
-        self._last_loop_timestamp = rospy.Time.now()
+        self._last_loop_timestamp = time.time()

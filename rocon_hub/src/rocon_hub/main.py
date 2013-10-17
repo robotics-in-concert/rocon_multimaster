@@ -24,7 +24,7 @@ def main():
     # Ros
     while not utils.check_master():
         rospy.logerr("Unable to communicate with master!")
-        rospy.sleep(1.0)
+        rospy.rostime.wallsleep(1.0)
         if rospy.is_shutdown():
             sys.exit(utils.red_string("Unable to communicate with master!"))
     rospy.init_node('hub')

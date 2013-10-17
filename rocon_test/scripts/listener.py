@@ -23,7 +23,7 @@ class TestListener(unittest.TestCase):
         timed_out = False
         while not rospy.is_shutdown() and not self.received_data and not (rospy.Time.now() - start_time > timeout):
             rospy.loginfo("Listener: waiting for data")
-            rospy.sleep(0.2)
+            rospy.rostime.wallsleep(0.2)
         self.assertEquals("dude", self.received_data)
 
     def tearDown(self):

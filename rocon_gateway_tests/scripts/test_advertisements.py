@@ -96,7 +96,7 @@ class TestGraph(unittest.TestCase):
         while not public_interface:
             self.graph.update()
             public_interface = self.graph._local_gateway.public_interface
-            rospy.sleep(0.2)
+            rospy.rostime.wallsleep(0.2)
         return public_interface
 
     def _assert_cleared_public_interface(self):
@@ -108,7 +108,7 @@ class TestGraph(unittest.TestCase):
                 result = "cleared"
                 break
             else:
-                rospy.sleep(0.2)
+                rospy.rostime.wallsleep(0.2)
             if rospy.Time.now() - start_time > rospy.Duration(1.0):
                 result = "timed out waiting for public interface to clear"
                 break
