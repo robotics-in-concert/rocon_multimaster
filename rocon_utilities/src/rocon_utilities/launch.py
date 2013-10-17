@@ -86,6 +86,33 @@ def signal_handler(sig, frame):
         p.terminate()
 
 
+def _process_arg_tag(tag, args_dict=None):
+    '''
+      Process the arg tag. Kind of hate replicating what roslaunch does with
+      arg tags, but there's no easy way to pull roslaunch code.
+
+      @param args_dict : dictionary of args previously discovered
+    '''
+    name = tag.get('name')  # returns None if not found.
+    if name is None:
+        console.error("<arg> tag must have a name attribute.")
+        sys.exit(1)
+    value = tag.get('value')
+    default = tag.get('default')
+    #print("Arg tag processing: (%s, %s, %s)" % (name, value, default))
+    if value is not None and default is not None:
+        console.error("<arg> tag must have one and only one of value/default attributes specified.")
+        sys.exit(1)
+    if value is None and default is None:
+        console.error("<arg> tag must have one of value/default attributes specified.")
+        sys.exit(1)
+    if value is None:
+        value = default
+    if value and '$' in value:
+        value = roslaunch.substitution_args.resolve_args(value, args_dict)
+    return (name, value)
+
+
 def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
     '''
       Parses an rocon multi-launcher (xml file).
@@ -102,8 +129,17 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
     launchers = []
     ports = []
     default_port = 11311
+    # These are intended for re-use in launcher args via $(arg ...) like regular roslaunch
+    vars_dict = {}
+    # We do this the roslaunch way since we use their resolvers, even if we only do it for args.
+    vars_dict['arg'] = {}
+    args_dict = vars_dict['arg']
+    for tag in root.findall('arg'):
+        name, value = _process_arg_tag(tag, args_dict)
+        args_dict[name] = value
     for launch in root.findall('launch'):
         parameters = {}
+        parameters['args'] = []
         parameters['options'] = default_roslaunch_options
         parameters['package'] = launch.get('package')
         parameters['name'] = launch.get('name')
@@ -116,6 +152,9 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
         else:
             ports.append(parameters['port'])
         launchers.append(parameters)
+        for tag in launch.findall('arg'):
+            name, value = _process_arg_tag(tag, vars_dict)
+            parameters['args'].append((name, value))
     return launchers
 
 
@@ -202,12 +241,17 @@ def main():
         temp = tempfile.NamedTemporaryFile(mode='w+t', delete=False)
         print("Launching %s" % temp.name)
         launcher_filename = ros_utilities.find_resource(launcher['package'], launcher['name'])
-        launch_text = '<launch>\n  <include file="%s"/>\n' % launcher_filename
+        launch_text = '<launch>\n'
         if args.screen:
             launch_text += '  <param name="rocon/screen" value="true"/>\n'
         else:
             launch_text += '  <param name="rocon/screen" value="false"/>\n'
+        launch_text += '  <include file="%s">\n' % launcher_filename
+        for (arg_name, arg_value) in launcher['args']:
+            launch_text += '    <arg name="%s" value="%s"/>\n' % (arg_name, arg_value)
+        launch_text += '  </include>\n'
         launch_text += '</launch>\n'
+        #print launch_text
         temp.write(launch_text)
         temp.close()  # unlink it later
         temporary_launchers.append(temp)

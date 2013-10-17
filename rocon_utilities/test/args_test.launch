@@ -1,0 +1,6 @@
+<launch>
+  <arg name="dude" default="bruce"/>
+  <node pkg="rocon_utilities" type="args_test.py" name="args_test"  output="screen">
+    <param name="dude" value="$(arg dude)"/>\n
+  </node>
+</launch>

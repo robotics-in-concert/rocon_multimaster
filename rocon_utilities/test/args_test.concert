@@ -1,0 +1,8 @@
+<concert>
+  <arg name="robot_name" value="$(optenv ROBOT_NAME cybernetic_pirate)" />
+  <arg name="robot_type" default="pirate" />
+  <!-- no environment variable functionality yet -->
+  <launch package="rocon_utilities" name="args_test.launch" port="11311">
+    <arg name="dude" value="$(arg robot_name)"/>
+  </launch>
+</concert>
