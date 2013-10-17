@@ -97,8 +97,12 @@ def _process_arg_tag(tag):
         sys.exit(1)
     value = tag.get('value')
     default = tag.get('default')
+    #print("Arg tag processing: (%s, %s, %s)" % (name, value, default))
     if value is not None and default is not None:
-        console.error("<arg> tag must have one and only one of value/default.")
+        console.error("<arg> tag must have one and only one of value/default attributes specified.")
+        sys.exit(1)
+    if value is None and default is None:
+        console.error("<arg> tag must have one of value/default attributes specified.")
         sys.exit(1)
     if value is None:
         value = default
@@ -139,6 +143,9 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
         else:
             ports.append(parameters['port'])
         launchers.append(parameters)
+        for tag in launch.findall('arg'):
+            name, value = _process_arg_tag(tag)
+            parameters['args'].append((name, value))
     return launchers
 
 
@@ -225,12 +232,17 @@ def main():
         temp = tempfile.NamedTemporaryFile(mode='w+t', delete=False)
         print("Launching %s" % temp.name)
         launcher_filename = ros_utilities.find_resource(launcher['package'], launcher['name'])
-        launch_text = '<launch>\n  <include file="%s"/>\n' % launcher_filename
+        launch_text = '<launch>\n'
         if args.screen:
             launch_text += '  <param name="rocon/screen" value="true"/>\n'
         else:
             launch_text += '  <param name="rocon/screen" value="false"/>\n'
+        launch_text += '  <include file="%s">\n' % launcher_filename
+        for (arg_name, arg_value) in launcher['args']:
+            launch_text += '    <arg name="%s" value="%s"/>\n' % (arg_name, arg_value)
+        launch_text += '  </include>\n'
         launch_text += '</launch>\n'
+        #print launch_text
         temp.write(launch_text)
         temp.close()  # unlink it later
         temporary_launchers.append(temp)
