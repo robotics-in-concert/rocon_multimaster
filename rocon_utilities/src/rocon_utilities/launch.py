@@ -86,10 +86,12 @@ def signal_handler(sig, frame):
         p.terminate()
 
 
-def _process_arg_tag(tag):
+def _process_arg_tag(tag, args_dict=None):
     '''
       Process the arg tag. Kind of hate replicating what roslaunch does with
       arg tags, but there's no easy way to pull roslaunch code.
+
+      @param args_dict : dictionary of args previously discovered
     '''
     name = tag.get('name')  # returns None if not found.
     if name is None:
@@ -106,6 +108,8 @@ def _process_arg_tag(tag):
         sys.exit(1)
     if value is None:
         value = default
+    if value and '$' in value:
+        value = roslaunch.substitution_args.resolve_args(value, args_dict)
     return (name, value)
 
 
@@ -126,8 +130,13 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
     ports = []
     default_port = 11311
     # These are intended for re-use in launcher args via $(arg ...) like regular roslaunch
+    vars_dict = {}
+    # We do this the roslaunch way since we use their resolvers, even if we only do it for args.
+    vars_dict['arg'] = {}
+    args_dict = vars_dict['arg']
     for tag in root.findall('arg'):
-        unused_name, unused_value = _process_arg_tag(tag)
+        name, value = _process_arg_tag(tag, args_dict)
+        args_dict[name] = value
     for launch in root.findall('launch'):
         parameters = {}
         parameters['args'] = []
@@ -144,7 +153,7 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
             ports.append(parameters['port'])
         launchers.append(parameters)
         for tag in launch.findall('arg'):
-            name, value = _process_arg_tag(tag)
+            name, value = _process_arg_tag(tag, vars_dict)
             parameters['args'].append((name, value))
     return launchers
 
