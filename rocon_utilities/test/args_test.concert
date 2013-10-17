@@ -1,0 +1,5 @@
+<concert>
+  <arg name="robot_name" value="cybernetic_pirate" />
+  <!-- no environment variable functionality yet -->
+  <arg name="robot_type" default="pirate" />
+</concert>

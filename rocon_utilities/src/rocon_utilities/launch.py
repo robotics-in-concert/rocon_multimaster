@@ -86,6 +86,25 @@ def signal_handler(sig, frame):
         p.terminate()
 
 
+def _process_arg_tag(tag):
+    '''
+      Process the arg tag. Kind of hate replicating what roslaunch does with
+      arg tags, but there's no easy way to pull roslaunch code.
+    '''
+    name = tag.get('name')  # returns None if not found.
+    if name is None:
+        console.error("<arg> tag must have a name attribute.")
+        sys.exit(1)
+    value = tag.get('value')
+    default = tag.get('default')
+    if value is not None and default is not None:
+        console.error("<arg> tag must have one and only one of value/default.")
+        sys.exit(1)
+    if value is None:
+        value = default
+    return (name, value)
+
+
 def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
     '''
       Parses an rocon multi-launcher (xml file).
@@ -102,8 +121,12 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
     launchers = []
     ports = []
     default_port = 11311
+    # These are intended for re-use in launcher args via $(arg ...) like regular roslaunch
+    for tag in root.findall('arg'):
+        unused_name, unused_value = _process_arg_tag(tag)
     for launch in root.findall('launch'):
         parameters = {}
+        parameters['args'] = []
         parameters['options'] = default_roslaunch_options
         parameters['package'] = launch.get('package')
         parameters['name'] = launch.get('name')
