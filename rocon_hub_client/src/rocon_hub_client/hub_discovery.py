@@ -11,6 +11,7 @@
 import threading
 from urlparse import urlparse
 import rospy
+import time
 import zeroconf_msgs.srv as zeroconf_srvs
 
 # local imports
@@ -72,10 +73,10 @@ class HubDiscovery(threading.Thread):
           Note that the zeroconf service is persistent. Alternatively we could use the zeroconf
           subscriber to be a wee bit more efficient.
         '''
-        half_sec = rospy.Duration(0, 500000000)
+        half_sec = 0.5 # rospy.Duration(0, 500000000)
         self._loop_period = half_sec
         self._internal_sleep_period = half_sec
-        self._last_loop_timestamp = rospy.Time.now()
+        self._last_loop_timestamp = time.time() # rospy.Time.now()
         while not rospy.is_shutdown() and not self._trigger_shutdown:
             # Zeroconf scanning
             if self._zeroconf_services_available:
@@ -99,13 +100,13 @@ class HubDiscovery(threading.Thread):
 
     def _sleep(self):
         '''
-          Internal interruptible sleep loop to check for shutdown and update triggers.
+          Internal non-interruptible sleep loop to check for shutdown and update triggers.
           This lets us set a really long watch_loop update if we wish.
         '''
-        while not rospy.is_shutdown() and not self.trigger_update and (rospy.Time.now() - self._last_loop_timestamp < self._loop_period):
-            rospy.sleep(self._internal_sleep_period)
+        while not rospy.is_shutdown() and not self.trigger_update and (time.time() - self._last_loop_timestamp < self._loop_period):
+            rospy.rostime.wallsleep(self._internal_sleep_period)
         self.trigger_update = False
-        self._last_loop_timestamp = rospy.Time.now()
+        self._last_loop_timestamp = time.time()
 
     #############################
     # Private methods

@@ -103,7 +103,7 @@ class RedisServer:
                     self.shutdown()
                     sys.exit(utils.logfatal("Hub : could not connect to the redis server - is it running?"))
                 else:
-                    rospy.sleep(0.1)
+                    rospy.rostime.wallsleep(0.1)
 
     def shutdown(self):
         '''
