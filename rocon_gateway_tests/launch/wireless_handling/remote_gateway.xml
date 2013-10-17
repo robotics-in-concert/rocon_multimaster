@@ -6,6 +6,7 @@
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <rosparam param="hub_uri">http://scruffy.csres.utexas.edu:6380</rosparam>
     <rosparam param="name">remote_gateway</rosparam>
     <rosparam param="firewall">false</rosparam>
   </node>
