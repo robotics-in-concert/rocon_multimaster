@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="roscpp_tutorials" type="listener" name="listener">
+    <remap from="chatter" to="babbler"</remap>
+  </node>
+</launch>

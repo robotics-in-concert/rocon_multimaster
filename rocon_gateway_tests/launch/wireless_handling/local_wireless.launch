@@ -1,0 +1,8 @@
+<!--
+  Fires up the hub, gateway and a talker. We need to flip the talker.
+ -->
+<launch>
+  <include file="$(find rocon_gateway_tests)/launch/common/primary_hub.xml"/>
+  <include file="$(find rocon_gateway_tests)/launch/wireless_handling/local_gateway.xml"/>
+  <include file="$(find rocon_gateway_tests)/launch/common/talker.xml"/>
+</launch>

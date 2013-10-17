@@ -1,0 +1,12 @@
+<!--
+  Designed to zeroconf the primary hub running on the local station. 
+ -->
+<launch>
+  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"/>
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
+    <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
+    <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <rosparam param="name">remote_gateway</rosparam>
+    <rosparam param="firewall">false</rosparam>
+  </node>
+</launch>
