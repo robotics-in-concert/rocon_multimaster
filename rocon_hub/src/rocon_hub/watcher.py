@@ -59,7 +59,7 @@ class WatcherThread(threading.Thread):
     def __init__(self, ip, port):
         threading.Thread.__init__(self)
         self.daemon = True
-        self.gateway_timeout = rospy.get_param('~gateway_timeout', 5.0)
+        self.gateway_timeout = rospy.get_param('~gateway_timeout', 30.0)
         self.gateway_ping_frequency = rospy.get_param('~gateway_ping_frequency', 0.2)
         self.watcher_thread_rate = rospy.get_param('~watcher_thread_rate', 0.2)
         try:
@@ -77,7 +77,7 @@ class WatcherThread(threading.Thread):
                             if x not in self.pingers]  
             for gateway in new_gateways:
                 gateway_info = self.hub.remote_gateway_info(gateway)
-                self.pingers[gateway] = Pinger(gateway_info.ip, self.gateway_timeout)
+                self.pingers[gateway] = Pinger(gateway_info.ip, self.gateway_ping_frequency, self.gateway_timeout)
                 self.pingers[gateway].start()
             remove_pingers = [x for x in self.pingers 
                               if x not in remote_gateway_names]  
