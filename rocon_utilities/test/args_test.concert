@@ -5,4 +5,8 @@
   <launch package="rocon_utilities" name="args_test.launch" port="11311">
     <arg name="dude" value="$(arg robot_name)"/>
   </launch>
+  <launch package="rocon_gateway_tests" name="listener.xml" port="11311"/>
+  <launch package="rocon_utilities" name="args_test.launch" port="11312">
+    <arg name="dude" value="bob"/>
+  </launch>
 </concert>
