@@ -34,9 +34,9 @@ def resolve_local_gateway():
         console.error("Could not find a local gateway - did you start it?")
         raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
     #console.debug("Found a local gateway at %s"%gateway_namespace)
-    ip = master.get_ros_ip()
-    return gateway_namespace, ip
-   
+    gateway_info = rocon_utilities.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)()
+    return gateway_namespace, gateway_info.ip
+
 def resolve_remote_gateways(gateway_namespace):
     '''
       @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 
