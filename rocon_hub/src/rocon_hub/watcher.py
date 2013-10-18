@@ -25,7 +25,7 @@ import time
 
 class Pinger(threading.Thread):
 
-    def __init__(self, ip, ping_frequency = 5.0, timeout = 30.0):
+    def __init__(self, ip, ping_frequency = 0.2, timeout = 30.0):
 
         threading.Thread.__init__(self)
         self.daemon = True
