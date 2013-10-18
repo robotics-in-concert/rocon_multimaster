@@ -155,11 +155,7 @@ class GatewayHub(rocon_hub_client.Hub):
         '''
         try:
             self._redis_pubsub_server.unsubscribe()
-            gateway_keys = self._redis_server.keys(self._redis_keys['gateway'] + ":*")
-            pipe = self._redis_server.pipeline()
-            pipe.delete(*gateway_keys)
-            pipe.srem(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
-            pipe.execute()
+            self._unregister_named_gateway(self._redis_keys['gateway'])
             self._redis_channels = {}
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
             # usually just means the hub has gone down just before us or is in the
@@ -168,6 +164,19 @@ class GatewayHub(rocon_hub_client.Hub):
             pass
         # should we not also shut down self.remote_gatew
         rospy.loginfo("Gateway : unregistered from the hub [%s]" % self.name)
+
+    def _unregister_named_gateway(self, gateway_key):
+        '''
+          Remove all gateway info for given gateway key from the hub.
+        '''
+        try:
+            gateway_keys = self._redis_server.keys(gateway_key + ":*")
+            pipe = self._redis_server.pipeline()
+            pipe.delete(*gateway_keys)
+            pipe.srem(self._redis_keys['gatewaylist'], gateway_key)
+            pipe.execute()
+        except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
+            pass
 
     ##########################################################################
     # Hub Data Retrieval
