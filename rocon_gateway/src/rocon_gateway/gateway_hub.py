@@ -97,6 +97,10 @@ class GatewayHub(rocon_hub_client.Hub):
         self._hub_connection_lost_gateway_hook = None
         self._firewall = 0
 
+        # Setting up some basic parameters in-case we use this API without registering a gateway
+        self._redis_keys['gatewaylist'] = hub_api.create_rocon_hub_key('gatewaylist')
+        self._unique_gateway_name = ''
+
     ##########################################################################
     # Hub Connections
     ##########################################################################
@@ -119,7 +123,6 @@ class GatewayHub(rocon_hub_client.Hub):
         self._redis_keys['gateway'] = hub_api.create_rocon_key(unique_gateway_name)
         self._redis_keys['firewall'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'firewall')
         self._firewall = 1 if firewall else 0
-        self._redis_keys['gatewaylist'] = hub_api.create_rocon_hub_key('gatewaylist')
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
         self._hub_connection_lost_gateway_hook = hub_connection_lost_gateway_hook
         if not self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):

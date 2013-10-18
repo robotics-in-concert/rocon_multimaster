@@ -18,10 +18,11 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <run_depend>redis</run_depend>
-  <run_depend>redis-server</run_depend>
   <run_depend>avahi-daemon</run_depend>
   <run_depend>avahi-utils</run_depend>
+  <run_depend>redis</run_depend>
+  <run_depend>redis-server</run_depend>
+  <run_depend>rocon_gateway</run_depend>
 
   <export>
     <rosdoc config="rosdoc.yaml"/>

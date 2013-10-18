@@ -35,6 +35,8 @@ class Hub(object):
           @raise HubNameNotFoundError, HubNotFoundError
         '''
         # variables
+        self.ip = ip
+        self.port = port
         self.uri = str(ip) + ":" + str(port)
         self._redis_keys = {}
         self._redis_channels = {}
