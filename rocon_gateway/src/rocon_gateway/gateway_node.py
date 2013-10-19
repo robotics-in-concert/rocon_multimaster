@@ -46,10 +46,10 @@ class GatewayNode():
                              hub_whitelist=self._param['hub_whitelist'],
                              hub_blacklist=self._param['hub_blacklist']
                              )
-        self._gateway = gateway.Gateway(self._hub_manager, self._param, self._unique_name, self._publish_gateway_info)
         self._gateway_services = self._setup_ros_services()
         self._gateway_publishers = self._setup_ros_publishers()
         self._gateway_subscribers = self._setup_ros_subscribers()
+        self._gateway = gateway.Gateway(self._hub_manager, self._param, self._unique_name, self._publish_gateway_info)
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
         self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'])
 
