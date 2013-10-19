@@ -33,12 +33,8 @@ import runner
 
 
 def help_string():
-    overview = 'Launches a rocon multi-launch test.\n\n'
-    instructions = " \
- - 'rocon-test xxx' : create an empty workspace in ./ecl.\n \
- With some extra info (todo).\n\n \
- "
-    return overview + instructions
+    overview = 'Launches a rocon multi-master test.\n\n'
+    return overview
 
 
 def _parse_arguments():
