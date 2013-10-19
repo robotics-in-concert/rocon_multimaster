@@ -215,6 +215,12 @@ class PublicInterface(object):
     ##########################################################################
 
     def getInterface(self):
+        '''
+          List of all connections currently being advertised on the hubs.
+
+          @return list of all connections posted on hubs
+          @rtype list of gateway_msgs.msg.Rule
+        '''
         l = []
         self.lock.acquire()
         for connection_type in utils.connection_types:
