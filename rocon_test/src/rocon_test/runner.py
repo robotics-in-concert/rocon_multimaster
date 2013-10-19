@@ -96,7 +96,7 @@ def setUp(self):
       launcher, this makes sure there is an entity that is to be the 'parent'
       who will later be responsible for shutting everything down.
 
-      This could be prone to problems if someone puts multiple launchers in
+      This could be prone to problems if someone puts multiple test launchers in
       rocon launcher with the same master port (untested).
     '''
     # new parent for each run. we are a bit inefficient as it would be possible to

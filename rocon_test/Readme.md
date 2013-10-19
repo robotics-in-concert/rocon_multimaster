@@ -34,11 +34,21 @@ for the above, we have tests in the listener:
 ### Executing
 
 ```
-rocon_test rocon_test chatter.test
+> rocon_test rocon_test chatter.test --screen --text_mode
 ```
+
+Text mode gives the full rocon_test output (setup, teardown notifications etc). 
 
 If your build directory is `/opt/rocon/build`, then you can find the results of the test in 
 `/opt/rocon/build/test_results/rocon_test/rostest-test_chatter.xml` and the output from the test
 itself in `/opt/rocon/build/test_results/rocon_test/rosunit-listener.xml`.
+
+Alternatively you can use catkin_make or yujin_make to run the tests, but
+with one catch - they won't run in parallel yet without getting roscore
+conflicts, so make sure you call:
+
+```
+> yujin_make --run_tests -j1
+```
 
 Other examples can be found in rocon_gateway_tests.

@@ -16,7 +16,10 @@
   <author email="piyushk@gmail.com">Piyush Khandelwal</author>
 
   <buildtool_depend>catkin</buildtool_depend>
+
   <build_depend>rocon_test</build_depend>
+
+  <test_depend>unittest</test_depend> <!-- for nosetests -->
 
   <run_depend>rospy</run_depend>
   <run_depend>rocon_gateway</run_depend>
