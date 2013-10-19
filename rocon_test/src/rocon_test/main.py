@@ -65,7 +65,13 @@ def _parse_arguments():
 
 def test_main():
     (package, name, launch_arguments, pause, text_mode) = _parse_arguments()
-    rocon_launcher = rocon_utilities.find_resource(package, name)  # raises an IO error if there is a problem.
+    if os.path.isabs(name):
+        if os.path.exists(name):
+            rocon_launcher = name
+        else:
+            raise IOError("cannot locate [%s]" % name)
+    else:
+        rocon_launcher = rocon_utilities.find_resource(package, name)  # raises an IO error if there is a problem.
     launchers = rocon_utilities.parse_rocon_launcher(rocon_launcher, launch_arguments)
     results_log_name, results_file = loggers.configure_logging(package, rocon_launcher)
 
