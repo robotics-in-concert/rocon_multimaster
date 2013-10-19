@@ -168,8 +168,6 @@ class Gateway(object):
         state_changed = False
         remote_connections = {}
         for remote_gateway in remote_gateway_hub_index.keys() + self.pulled_interface.list_remote_gateway_names():
-            # this should probably be better....we *should* only need one hub's info, but things could
-            # go very wrong here - keep an eye on it.
             remote_connections[remote_gateway] = {}
             try:
                 for hub in remote_gateway_hub_index[remote_gateway]:
