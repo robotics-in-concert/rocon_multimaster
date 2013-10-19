@@ -175,7 +175,7 @@ class HubManager(object):
         already_exists_error = False
         self._hub_lock.acquire()
         for hub in self.hubs:
-            if hub.uri == new_hub.uri:
+            if hub == new_hub:
                 already_exists_error = True
                 break
         self._hub_lock.release()
@@ -196,9 +196,11 @@ class HubManager(object):
         '''
         #uri = str(ip) + ":" + str(port)
         # Could dig in and find the name here, but not worth the bother.
-        rospy.loginfo("Gateway : lost connection to the hub [%s][%s]" % (hub_to_be_disengaged.name, hub_to_be_disengaged.uri))
+        hub_to_be_disengaged.disconnect() # necessary to kill failing socket receives
         self._hub_lock.acquire()
-        self.hubs[:] = [hub for hub in self.hubs if hub != hub_to_be_disengaged]
+        if hub_to_be_disengaged in self.hubs:
+            rospy.loginfo("Gateway : lost connection to the hub [%s][%s]" % (hub_to_be_disengaged.name, hub_to_be_disengaged.uri))
+            self.hubs[:] = [hub for hub in self.hubs if hub != hub_to_be_disengaged]
         self._hub_lock.release()
 
     def advertise(self, connection):

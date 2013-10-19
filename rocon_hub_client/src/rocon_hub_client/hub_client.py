@@ -70,3 +70,17 @@ class Hub(object):
             raise HubConnectionBlacklistedError("ignoring blacklisted hub [%s]" % self.uri)
         if not ((len(whitelist) == 0) or (self.uri in uri_whitelist) or (self.name in whitelist)):
             raise HubConnectionNotWhitelistedError("hub/ip not in non-empty whitelist [%s][%s]%s" % (self.name, self.uri, whitelist))
+
+    def disconnect(self):
+        '''
+          Kills any open socket connections to the redis server. This is
+          necessary if the server is out of range, as the py-redis client
+          will hang all open connections indefinitely
+        '''
+        self._redis_server.connection_pool.disconnect()
+    
+    def __eq__(self, other):
+        return self.uri == other.uri
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
