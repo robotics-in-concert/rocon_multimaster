@@ -13,6 +13,7 @@ import rospy
 from . import utils
 from . import redis_server
 from . import ros_parameters
+from . import watcher
 from . import zeroconf
 
 ##############################################################################
@@ -40,6 +41,9 @@ def main():
 
     if param['zeroconf']:
         zeroconf.advertise_port_to_avahi(param['port'], param['name'])  # sys exits if running avahi-daemon not found
+
+    watcher_thread = watcher.WatcherThread('localhost', param['port'])
+    watcher_thread.start()
 
     rospy.spin()
     redi.shutdown()

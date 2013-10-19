@@ -20,3 +20,4 @@ import ros_utilities as ros
 from ros_utilities import SubscriberProxy, find_resource
 from exceptions import TimeoutExpiredError
 from icons import icon_to_msg, icon_resource_to_msg
+from wall_rate import WallRate
