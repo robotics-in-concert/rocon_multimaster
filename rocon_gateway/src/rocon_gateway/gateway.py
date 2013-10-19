@@ -170,9 +170,10 @@ class Gateway(object):
         for remote_gateway in remote_gateway_hub_index.keys() + self.pulled_interface.list_remote_gateway_names():
             # this should probably be better....we *should* only need one hub's info, but things could
             # go very wrong here - keep an eye on it.
+            remote_connections[remote_gateway] = {}
             try:
-                hub = remote_gateway_hub_index[remote_gateway][0]
-                remote_connections[remote_gateway] = hub.get_remote_connection_state(remote_gateway)
+                for hub in remote_gateway_hub_index[remote_gateway]:
+                    remote_connections[remote_gateway].update(hub.get_remote_connection_state(remote_gateway))
             except KeyError:
                 pass  # remote gateway no longer exists on the hub network
         new_pulls, lost_pulls = self.pulled_interface.update(remote_connections, self._unique_name)
