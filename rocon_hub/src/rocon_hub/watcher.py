@@ -73,12 +73,19 @@ class WatcherThread(threading.Thread):
         rate = WallRate(self.watcher_thread_rate) 
         while True:
             remote_gateway_names = self.hub.list_remote_gateway_names()
+
+            # Add new pingers
             new_gateways = [x for x in remote_gateway_names 
                             if x not in self.pingers]  
             for gateway in new_gateways:
                 gateway_info = self.hub.remote_gateway_info(gateway)
-                self.pingers[gateway] = Pinger(gateway_info.ip, self.gateway_ping_frequency, self.gateway_timeout)
-                self.pingers[gateway].start()
+                if gateway_info is not None:
+                    self.pingers[gateway] = Pinger(gateway_info.ip, 
+                                                   self.gateway_ping_frequency, 
+                                                   self.gateway_timeout)
+                    self.pingers[gateway].start()
+
+            # Remove unneeded pingers
             remove_pingers = [x for x in self.pingers 
                               if x not in remote_gateway_names]  
             for pinger in remove_pingers:
