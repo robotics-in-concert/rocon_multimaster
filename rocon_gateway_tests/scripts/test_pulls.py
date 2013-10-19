@@ -25,7 +25,10 @@ import rosunit
 class TestPulls(unittest.TestCase):
 
     def setUp(self):
-        rospy.init_node('test_pullments')
+        print("\n********************************************************************")
+        print("* Pull Tests Setup")
+        print("********************************************************************")
+        rospy.init_node('test_pulls')
         self.graph = Graph()
 
     def test_pull_all(self):
@@ -95,7 +98,7 @@ class TestPulls(unittest.TestCase):
         while not pulled_interface:
             self.graph.update()
             pulled_interface = self.graph._local_gateway.pulled_connections
-            rospy.sleep(0.2)
+            rospy.sleep(1.0)
         return pulled_interface
 
     def _assert_cleared_pulled_interface(self):
