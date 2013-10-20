@@ -159,7 +159,7 @@ class GatewayHub(rocon_hub_client.Hub):
             self._redis_channels = {}
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
             # usually just means the hub has gone down just before us or is in the
-            # middel of doing so let it die nice and peacefully
+            # middle of doing so let it die nice and peacefully
             # rospy.logwarn("Gateway : problem unregistering from the hub (likely that hub shutdown before the gateway).")
             pass
         # should we not also shut down self.remote_gatew
@@ -305,6 +305,22 @@ class GatewayHub(rocon_hub_client.Hub):
             return True if int(firewall) else False
         else:
             raise GatewayUnavailableError
+
+    def get_local_advertisements(self):
+        '''
+          Retrieves the local list of advertisements from the hub. This
+          gets used to sync across multiple hubs.
+
+          @return dictionary of remote advertisements
+          @rtype dictionary of connection type keyed connection values
+       '''
+        connections = utils.create_empty_connection_type_dictionary()
+        key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'advertisements')
+        public_interface = self._redis_server.smembers(key)
+        for connection_str in public_interface:
+            connection = utils.deserialize_connection(connection_str)
+            connections[connection.rule.type].append(connection)
+        return connections
 
     ##########################################################################
     # Posting Information to the Hub

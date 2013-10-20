@@ -91,6 +91,8 @@ class GatewayNode():
 
           @sa hub_discovery.HubDiscovery
         '''
+        # Connect to hub, register gateway and synchronise could feasibly be
+        # collapsed into one call - we don't use them anywhere else.
         hub, error_code, error_code_str = self._hub_manager.connect_to_hub(ip, port)
         if hub:
             hub.register_gateway(self._param['firewall'],
@@ -99,6 +101,7 @@ class GatewayNode():
                                  self._gateway.disengage_hub,  # hub connection lost hook
                                  self._gateway.ip
                                  )
+            self._hub_manager.synchronise_advertisements(hub)
             rospy.loginfo("Gateway : registering on the hub [%s]" % hub.name)
             self._publish_gateway_info()
         else:

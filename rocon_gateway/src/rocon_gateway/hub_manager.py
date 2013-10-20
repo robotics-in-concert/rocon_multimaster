@@ -15,6 +15,7 @@ import rocon_hub_client
 # local imports
 from .exceptions import GatewayUnavailableError
 import gateway_hub
+import utils
 
 ##############################################################################
 # Hub Manager
@@ -186,6 +187,29 @@ class HubManager(object):
             return new_hub, gateway_msgs.ErrorCodes.SUCCESS, "success"
         else:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS, "already connected to this hub"
+
+    def synchronise_advertisements(self, new_hub):
+        '''
+          Takes all existing local advertisements and synchronises them
+          on the new hub. This *could* be a bit dangerous - it might
+          be safer long run doing a mass synchronisation across all hubs.
+
+          This would typically get called after hub.register_gateway
+        '''
+        self._hub_lock.acquire()
+        connections = utils.create_empty_connection_type_dictionary()
+        for hub in self.hubs:
+            new_connections = hub.get_local_advertisements()
+            for connection_type in connections.keys():
+                # There are probably faster ways to do this merge
+                # Can't use sets because connections are not hashable
+                resulting_list = list(connections[connection_type])
+                resulting_list.extend(x for x in new_connections[connection_type] if x not in connections[connection_type])
+                connections[connection_type] = resulting_list
+        for connection_type in connections.keys():
+            for connection in connections[connection_type]:
+                new_hub.advertise(connection)
+        self._hub_lock.release()
 
     def disengage_hub(self, hub_to_be_disengaged):
         '''
