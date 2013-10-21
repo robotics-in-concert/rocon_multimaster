@@ -16,6 +16,7 @@ import rospy
 
 # local imports
 import utils
+import exceptions
 from gateway_msgs.msg import Rule
 
 ##############################################################################
@@ -81,7 +82,8 @@ class PublicInterface(object):
         # Default + custom blacklist - used in AdvertiseAll mode
         self.blacklist = self._default_blacklist
 
-        # list of fully qualified connections currently being advertised
+        # list Rules currently being advertised (gateway_msgs.Rule)
+        # should we store utils.Connections instead?
         self.public = utils.create_empty_connection_type_dictionary()
 
         self.advertise_all_enabled = False
@@ -214,9 +216,17 @@ class PublicInterface(object):
     # List Accessors
     ##########################################################################
 
+    def getConnections(self):
+        '''
+          List of all rules with connection information that is being published.
+
+          @return dictionary of utils.Connections keyed by type.
+        '''
+        return self.public
+
     def getInterface(self):
         '''
-          List of all connections currently being advertised on the hubs.
+          List of all rules currently being advertised.
 
           @return list of all connections posted on hubs
           @rtype list of gateway_msgs.msg.Rule
@@ -306,7 +316,7 @@ class PublicInterface(object):
             return Rule(rule)
         return None
 
-    def update(self, connections):
+    def update(self, connections, generate_advertisement_connection_details):
         '''
           Checks a list of rules and determines which ones should be
           added/removed to the public interface. Modifies the public interface
@@ -316,23 +326,29 @@ class PublicInterface(object):
           @param rules: the list of rules available locally
           @type dict of lists of Rule objects
 
+          @param generate_advertisement_connection_details : function from LocalMaster
+          that generates Connection.type_info and Connection.xmlrpc_uri
+          @type method (see LocalMaster.generate_advertisement_connection_details)
+
           @return: new public connections, as well as connections to be removed
-          @rtype: Connection[], Connection[]
+          @rtype: utils.Connection[], utils.Connection[]
         '''
         # SLOW, EASY METHOD
-        public = utils.create_empty_connection_type_dictionary()
+        permitted_connections = utils.create_empty_connection_type_dictionary()
         new_public = utils.create_empty_connection_type_dictionary()
         removed_public = utils.create_empty_connection_type_dictionary()
-        diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
-        for connection_type in connections:
+        for connection_type in utils.connection_types:
             for connection in connections[connection_type]:
                 if self._allowRule(connection.rule):
-                    public[connection_type].append(connection)
-            new_public[connection_type] = diff(public[connection_type],self.public[connection_type])
-            removed_public[connection_type] = diff(self.public[connection_type],public[connection_type])
-
-        self.lock.acquire()
-        self.public = public
+                    permitted_connections[connection_type].append(connection)
+        self.lock.acquire()  # protect self.public
+        for connection_type in utils.connection_types:
+            for connection in permitted_connections[connection_type]:
+                    if not connection.inConnectionList(self.public[connection_type]):
+                        new_connection = generate_advertisement_connection_details(connection.rule.type, connection.rule.name, connection.rule.node)
+                        new_public[connection_type].append(new_connection)
+                        self.public[connection_type].append(new_connection)
+            removed_public[connection_type][:] = [x for x in self.public[connection_type] if not x.inConnectionList(permitted_connections[connection_type])]
+            self.public[connection_type][:] = [x for x in self.public[connection_type] if not x.inConnectionList(removed_public[connection_type])]
         self.lock.release()
-
         return new_public, removed_public

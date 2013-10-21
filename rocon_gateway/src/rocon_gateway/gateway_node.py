@@ -101,6 +101,9 @@ class GatewayNode():
                                  self._gateway.disengage_hub,  # hub connection lost hook
                                  self._gateway.ip
                                  )
+            advertisements = self._gateway.public_interface.getConnections()
+            #for connection_type in advertisements:
+            #    print("%s" % advertisements[connection_type])
             self._hub_manager.synchronise_advertisements(hub)
             rospy.loginfo("Gateway : registering on the hub [%s]" % hub.name)
             self._publish_gateway_info()

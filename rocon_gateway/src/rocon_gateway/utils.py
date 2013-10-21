@@ -64,6 +64,33 @@ class Connection():
     def __repr__(self):
         return self.__str__()
 
+    def inConnectionList(self, connection_list):
+        '''
+          Checks to see if this connection has the same rule
+          as an item in the given connection_list
+
+          @param connection_list : connection list to trawl.
+          @type utils.Connection[]
+          @return true if this connection rule matches a connection rule in the list
+          @rtype Bool
+        '''
+        for connection in connection_list:
+            if self.hasSameRule(connection):
+                return True
+        return False
+
+    def hasSameRule(self, connection):
+        '''
+          Checks for equivalency regardless of type_info and xmlrpc_uri.
+
+          @param connection : connection to compare with
+          @type utils.Connection
+          @return true if equivalent, false otherwise
+          @rtype Bool
+        '''
+        return (self.rule.name == connection.rule.name and
+                self.rule.type == connection.rule.type and
+                self.rule.node == connection.rule.node)
 
 ##############################################################################
 # Registration

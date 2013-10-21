@@ -220,15 +220,16 @@ class Gateway(object):
           has become (un)available take appropriate action.
 
           @param local_connection_index : list of current local connections parsed from the master
-          @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
+          @type : { utils.ConnectionType.xxx : utils.Connection[] } dictionaries
         '''
-        new_conns, lost_conns = self.public_interface.update(local_connection_index)
+        # new_conns, lost_conns are of type { utils.ConnectionType.xxx : utils.Connection[] }
+        new_conns, lost_conns = self.public_interface.update(local_connection_index, self.master.generate_advertisement_connection_details)
+        # public_interface is of type gateway_msgs.Rule[]
         public_interface = self.public_interface.getInterface()
         for connection_type in utils.connection_types:
             for new_connection in new_conns[connection_type]:
-                connection = self.master.generate_advertisement_connection_details(new_connection.rule.type, new_connection.rule.name, new_connection.rule.node)
-                rospy.loginfo("Gateway : adding connection to public interface %s" % utils.format_rule(connection.rule))
-                self.hub_manager.advertise(connection)
+                rospy.loginfo("Gateway : adding connection to public interface %s" % utils.format_rule(new_connection.rule))
+                self.hub_manager.advertise(new_connection)
             for lost_connection in lost_conns[connection_type]:
                 rospy.loginfo("Gateway : removing connection from public interface %s" % utils.format_rule(lost_connection.rule))
                 self.hub_manager.unadvertise(lost_connection)
