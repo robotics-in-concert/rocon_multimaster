@@ -35,6 +35,9 @@ class RedisServer:
         self._parameters = parameters
         self._process = None
         self._home_dir = os.path.join(rospkg.get_ros_home(), 'redis', self._parameters['name'].lower().replace(" ", "_"))
+        # clean out old redis information
+        if os.path.isdir(self._home_dir):
+            shutil.rmtree(self._home_dir)
         self._files = {}
         self._files['redis_conf'] = os.path.join(self._home_dir, 'redis.conf')
         self._files['redis_conf_local'] = os.path.join(self._home_dir, 'redis.conf.local')
