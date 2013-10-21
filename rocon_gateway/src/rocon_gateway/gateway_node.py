@@ -91,24 +91,23 @@ class GatewayNode():
 
           @sa hub_discovery.HubDiscovery
         '''
-        # Connect to hub, register gateway and synchronise could feasibly be
-        # collapsed into one call - we don't use them anywhere else.
-        hub, error_code, error_code_str = self._hub_manager.connect_to_hub(ip, port)
+        existing_advertisements = self._gateway.public_interface.getConnections()
+        hub, error_code, error_code_str = \
+                self._hub_manager.connect_to_hub(
+                    ip,  # Hub Details
+                    port,
+                    self._param['firewall'],  # Gateway Details
+                    self._unique_name,
+                    self._gateway.remote_gateway_request_callbacks,
+                    self._gateway.disengage_hub,
+                    self._gateway.ip,
+                    existing_advertisements
+                    )
         if hub:
-            hub.register_gateway(self._param['firewall'],
-                                 self._unique_name,
-                                 self._gateway.remote_gateway_request_callbacks,
-                                 self._gateway.disengage_hub,  # hub connection lost hook
-                                 self._gateway.ip
-                                 )
-            advertisements = self._gateway.public_interface.getConnections()
-            #for connection_type in advertisements:
-            #    print("%s" % advertisements[connection_type])
-            self._hub_manager.synchronise_advertisements(hub)
             rospy.loginfo("Gateway : registering on the hub [%s]" % hub.name)
             self._publish_gateway_info()
         else:
-            rospy.logwarn("Gateway : not registering on the hub [%s]" % error_code_str)
+            rospy.logwarn("Gateway : failed to register gateway with the hub [%s]" % error_code_str)
         return error_code, error_code_str
 
     ##########################################################################

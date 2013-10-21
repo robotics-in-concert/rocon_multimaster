@@ -157,12 +157,31 @@ class HubManager(object):
     # Hub Connections
     ##########################################################################
 
-    def connect_to_hub(self, ip, port):
+    def connect_to_hub(self,
+                       ip,
+                       port,
+                       firewall_flag,
+                       gateway_unique_name,
+                       remote_gateway_request_callbacks,
+                       gateway_disengage_hub,  # hub connection lost hook
+                       gateway_ip,
+                       existing_advertisements
+                    ):
         '''
           Attempts to make a connection and register the gateway with a hub.
+          This is called from the gateway node's _register_gateway method.
 
           @param ip
           @param port
+          @param firewall_flag
+          @param gateway_unique_name
+          @param remote_gateway_request_callbacks
+          @type method : Gateway.remote_gateway_request_callbacks()
+          @param gateway_disengage_hub : this is the hub connection lost hook
+          @type method : Gateway.disengage_hub()
+          @param gateway_ip
+          @param existing advertisements
+          @type { utils.ConnectionTypes : utils.Connection[] }
 
           @return an integer indicating error (important for the service call)
           @rtype gateway_msgs.ErrorCodes
@@ -182,34 +201,20 @@ class HubManager(object):
         self._hub_lock.release()
         if not already_exists_error:
             self._hub_lock.acquire()
+            new_hub.register_gateway(firewall_flag,
+                                     gateway_unique_name,
+                                     remote_gateway_request_callbacks,
+                                     gateway_disengage_hub,  # hub connection lost hook
+                                     gateway_ip,
+                                     )
+            for connection_type in utils.connection_types:
+                for advertisement in existing_advertisements[connection_type]:
+                    new_hub.advertise(advertisement)
             self.hubs.append(new_hub)
             self._hub_lock.release()
             return new_hub, gateway_msgs.ErrorCodes.SUCCESS, "success"
         else:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS, "already connected to this hub"
-
-    def synchronise_advertisements(self, new_hub):
-        '''
-          Takes all existing local advertisements and synchronises them
-          on the new hub. This *could* be a bit dangerous - it might
-          be safer long run doing a mass synchronisation across all hubs.
-
-          This would typically get called after hub.register_gateway
-        '''
-        self._hub_lock.acquire()
-        connections = utils.create_empty_connection_type_dictionary()
-        for hub in self.hubs:
-            new_connections = hub.get_local_advertisements()
-            for connection_type in connections.keys():
-                # There are probably faster ways to do this merge
-                # Can't use sets because connections are not hashable
-                resulting_list = list(connections[connection_type])
-                resulting_list.extend(x for x in new_connections[connection_type] if x not in connections[connection_type])
-                connections[connection_type] = resulting_list
-        for connection_type in connections.keys():
-            for connection in connections[connection_type]:
-                new_hub.advertise(connection)
-        self._hub_lock.release()
 
     def disengage_hub(self, hub_to_be_disengaged):
         '''
