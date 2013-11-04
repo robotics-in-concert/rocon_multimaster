@@ -44,14 +44,14 @@ class WatcherThread(object):
           @param period : new setting in seconds
           @type float
         '''
-        self._watch_loop_period = self._default_watch_loop_period if period <= 0.0 else rospy.Duration(period)
+        self._watch_loop_period = self._default_watch_loop_period if period <= 0.0 else period
 
     def get_watch_loop_period(self):
         '''
           Use Duration's to_sec() method to convert this to float.
 
           @return the watcher loop period.
-          @rtype rospy.Duration
+          @rtype float
         '''
         return self._watch_loop_period
 

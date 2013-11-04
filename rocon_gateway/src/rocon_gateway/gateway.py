@@ -287,7 +287,7 @@ class Gateway(object):
           @rtgateway_srvs.srv.SetWatcherPeriodResponse
         '''
         self.watcher_thread.set_watch_loop_period(request.period)
-        return gateway_srvs.SetWatcherPeriodResponse(self.watcher_thread.get_watch_loop_period().to_sec())
+        return gateway_srvs.SetWatcherPeriodResponse(self.watcher_thread.get_watch_loop_period())
 
     def ros_subscriber_force_update(self, data):
         '''
