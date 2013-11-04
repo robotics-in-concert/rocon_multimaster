@@ -131,3 +131,10 @@ class SubscriberProxy():
 
     def _callback(self, data):
         self._data = data
+
+    def unregister(self):
+        '''
+          Unregister the subscriber so future instantiations of this class can pull a
+          fresh subscriber (important if the data is latched).
+        '''
+        self._subscriber.unregister()
