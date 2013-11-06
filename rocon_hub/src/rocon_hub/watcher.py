@@ -35,19 +35,32 @@ class Pinger(threading.Thread):
         self.time_last_seen = time.time()
         self.timeout = timeout
 
+        # Format is min, avg, max, mean deviation
+        self.latency_stats = [0.0, 0.0, 0.0, 0.0]
+
     def is_alive(self):
         return time.time() - self.time_last_seen <= self.timeout
+
+    def get_latency(self):
+        '''
+          Latency states are returned as list of 4 values
+          [min,avg,max,mean deviation]
+        '''
+        return self.latency_stats
 
     def run(self):
         rate = WallRate(self.ping_frequency)
         while True:
             # In case of failure, this call will take approx 10s
-            ret = subprocess.call("ping -c 1 %s" % self.ip,
-                                  shell=True,
-                                  stdout=open('/dev/null', 'w'),
-                                  stderr=subprocess.STDOUT)
-            if ret == 0:
+            try:
+                # Send 5 pings at an interval of 0.2s
+                output = subprocess.call("ping -c 5 -i 0.2 %s" % self.ip,
+                                         shell=True, stderr=subprocess.STDOUT)
                 self.time_last_seen = time.time()
+                self.latency_stats = [float(x) for x in output.splitlines()[-1].split(' ')[-2].split('/')]
+            except subprocess.CalledProcessError:
+                # Ping failed. Do not update time last seen
+                pass
             rate.sleep()
 
 ##############################################################################
