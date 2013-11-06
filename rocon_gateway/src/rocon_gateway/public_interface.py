@@ -346,8 +346,9 @@ class PublicInterface(object):
             for connection in permitted_connections[connection_type]:
                     if not connection.inConnectionList(self.public[connection_type]):
                         new_connection = generate_advertisement_connection_details(connection.rule.type, connection.rule.name, connection.rule.node)
-                        new_public[connection_type].append(new_connection)
-                        self.public[connection_type].append(new_connection)
+                        if new_connection is not None:  # can happen if connection disappeared in between getting the connection index (watcher thread) and checking for the topic_type (preceding line)
+                            new_public[connection_type].append(new_connection)
+                            self.public[connection_type].append(new_connection)
             removed_public[connection_type][:] = [x for x in self.public[connection_type] if not x.inConnectionList(permitted_connections[connection_type])]
             self.public[connection_type][:] = [x for x in self.public[connection_type] if not x.inConnectionList(removed_public[connection_type])]
         self.lock.release()
