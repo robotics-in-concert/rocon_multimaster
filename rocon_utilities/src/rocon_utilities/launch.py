@@ -143,6 +143,7 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
         parameters['options'] = default_roslaunch_options
         parameters['package'] = launch.get('package')
         parameters['name'] = launch.get('name')
+        parameters['title'] = launch.get('title')
         parameters['path'] = ros_utilities.find_resource(parameters['package'], parameters['name'])  # raises an IO error if there is a problem.
         parameters['port'] = launch.get('port', str(default_port))
         if parameters['port'] == str(default_port):
@@ -151,6 +152,8 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
             parameters['options'] = parameters['options'] + " " + "--wait"
         else:
             ports.append(parameters['port'])
+        if parameters['title'] is None:
+            parameters['title'] = 'rocon_launch:%s' % parameters['port']
         launchers.append(parameters)
         for tag in launch.findall('arg'):
             name, value = _process_arg_tag(tag, vars_dict)
@@ -259,7 +262,7 @@ def main():
         # Start the terminal
         ##########################
         if terminal == 'konsole':
-            p = subprocess.Popen([terminal, '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s" %
+            p = subprocess.Popen([terminal, '-p', 'tabtitle=%s' % launcher['title'], '--nofork', '--hold', '-e', "/bin/bash", "-c", "roslaunch %s --port %s %s" %
                               (launcher['options'], launcher['port'], temp.name)], preexec_fn=preexec)
         elif terminal == 'gnome-terminal.wrapper' or terminal == 'gnome-terminal':
             # --disable-factory inherits the current environment, bit wierd.
