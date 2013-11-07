@@ -105,7 +105,7 @@ class NetworkInterfaceManager(object):
             return gateway_statistics
 
         wifi = pythonwifi.Wireless(self.interface_name)
-        gateway_statistics.wireless_bitrate = wifi.wireless_info.getBitrate() #Raw bitrate
+        gateway_statistics.wireless_bitrate = wifi.wireless_info.getBitrate().value #Raw bitrate
         _, qual, _, _ = wifi.getStatistics()
         gateway_statistics.wireless_link_quality = qual.quality
         gateway_statistics.wireless_signal_level = qual.signallevel
