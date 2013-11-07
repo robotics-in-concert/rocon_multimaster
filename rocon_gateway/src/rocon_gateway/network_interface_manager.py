@@ -9,7 +9,7 @@
 ###############################################################################
 
 import netifaces
-import pythonwifi
+import pythonwifi.iwlibs as pythonwifi
 import rospy
 
 from gateway_msgs.msg import RemoteGateway
@@ -82,7 +82,7 @@ class NetworkInterfaceManager(object):
 
         return interfaces[0][0], interfaces[0][1]
     
-    def get_network_statistics(self):
+    def get_statistics(self):
         '''
           If the network interface manager is aware of which network interface
           was used to connect to the hub, then it prepares network statistics
