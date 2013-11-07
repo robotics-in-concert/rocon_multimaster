@@ -18,7 +18,7 @@ import roslib.names
 ##############################################################################
 
 
-def find_resource_from_string(resource):
+def find_resource_from_string(resource, rospack=None):
     '''
       Convenience wrapper around roslib to find a resource (file) inside
       a package. This function passes off the work to find_resource
@@ -32,10 +32,10 @@ def find_resource_from_string(resource):
     package, filename = roslib.names.package_resource_name(resource)
     if not package:
         raise IOError("resource could not be split with a valid leading package name [%s]" % (resource))
-    return find_resource(package, filename)
+    return find_resource(package, filename, rospack)
 
 
-def find_resource(package, filename):
+def find_resource(package, filename, rospack=None):
     '''
       Convenience wrapper around roslib to find a resource (file) inside
       a package. It checks the output, and provides the appropriate
@@ -48,7 +48,7 @@ def find_resource(package, filename):
       @raise IOError : raised if there is nothing found or multiple objects found.
     '''
     try:
-        resolved = roslib.packages.find_resource(package, filename)
+        resolved = roslib.packages.find_resource(package, filename, rospack=rospack)
         if not resolved:
             raise IOError("cannot locate [%s] in package [%s]" % (filename, package))
         elif len(resolved) == 1:
