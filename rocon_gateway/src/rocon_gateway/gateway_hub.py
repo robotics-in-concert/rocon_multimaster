@@ -155,7 +155,7 @@ class GatewayHub(rocon_hub_client.Hub):
         '''
         try:
             self._redis_pubsub_server.unsubscribe()
-            self._unregister_named_gateway(self._redis_keys['gateway'])
+            self.unregister_named_gateway(self._redis_keys['gateway'])
             self._redis_channels = {}
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
             # usually just means the hub has gone down just before us or is in the
@@ -165,7 +165,7 @@ class GatewayHub(rocon_hub_client.Hub):
         # should we not also shut down self.remote_gatew
         rospy.loginfo("Gateway : unregistered from the hub [%s]" % self.name)
 
-    def _unregister_named_gateway(self, gateway_key):
+    def unregister_named_gateway(self, gateway_key):
         '''
           Remove all gateway info for given gateway key from the hub.
         '''
@@ -177,6 +177,31 @@ class GatewayHub(rocon_hub_client.Hub):
             pipe.execute()
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
             pass
+
+    def update_named_gateway_latency_stats(self, gateway_name, latency_stats):
+        '''
+          For a given gateway, update the latency statistics
+          
+          #param gateway_name : gateway name, not the redis key
+          @type str
+          @param latency_stats : ping statistics to the gateway from the hub
+          @type list : 4-tuple of float values [min, avg, max, mean deviation]
+        '''
+        try:
+            min_latency_key = hub_api.create_rocon_gateway_key(gateway_name, 'latency:min')
+            avg_latency_key = hub_api.create_rocon_gateway_key(gateway_name, 'latency:avg')
+            max_latency_key = hub_api.create_rocon_gateway_key(gateway_name, 'latency:max')
+            mdev_latency_key = hub_api.create_rocon_gateway_key(gateway_name, 'latency:mdev')
+            self._redis_server.set(min_latency_key, latency_stats[0])
+            self._redis_server.set(avg_latency_key, latency_stats[1])
+            self._redis_server.set(max_latency_key, latency_stats[2])
+            self._redis_server.set(mdev_latency_key, latency_stats[3])
+        except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
+            rospy.logwarn("Unable to update latency stats for " + gateway_name)
+
+    def mark_named_gateway_available(self, gateway_key, available=True):
+        available_key = gateway_key + ":available"
+        self._redis_server.set(available_key, available)
 
     ##########################################################################
     # Hub Data Retrieval
