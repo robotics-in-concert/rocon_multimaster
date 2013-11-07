@@ -462,36 +462,56 @@ class LocalMaster(rosgraph.Master):
         @return the utils.Connection object complete with type_info and xmlrpc_uri
         @type utils.Connection
         '''
-        xmlrpc_uri = self.lookupNode(node)
+        # Very important here to check for the results of xmlrpc_uri and especially topic_type
+        #     https://github.com/robotics-in-concert/rocon_multimaster/issues/173
+        # In the watcher thread, we get the local connection index (whereby the arguments of this function
+        # come from) via master.get_connection_state. That means there is a small amount of time from
+        # getting the topic name, to checking for hte xmlrpc_uri and especially topic_type here in which
+        # the topic could have disappeared. When this happens, it returns None.
         connections = []
+        xmlrpc_uri = self.lookupNode(node)
+        if xmlrpc_uri is None:
+            return connections
         if connection_type == PUBLISHER or connection_type == SUBSCRIBER:
             type_info = rostopic.get_topic_type(name)[0]  # message type
-            connections.append(utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri))
+            if type_info is not None:
+                connections.append(utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri))
         elif connection_type == SERVICE:
             type_info = rosservice.get_service_uri(name)
-            connections.append(utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri))
+            if type_info is not None:
+                connections.append(utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri))
         elif connection_type == ACTION_SERVER:
-            type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
-            connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/goal', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
-            connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/cancel', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/status')[0]  # message type
-            connections.append(utils.Connection(Rule(PUBLISHER, name + '/status', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/feedback')[0]  # message type
-            connections.append(utils.Connection(Rule(PUBLISHER, name + '/feedback', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/result')[0]  # message type
-            connections.append(utils.Connection(Rule(PUBLISHER, name + '/result', node), type_info, xmlrpc_uri))
+            goal_type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
+            cancel_type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
+            status_type_info = rostopic.get_topic_type(name + '/status')[0]  # message type
+            feedback_type_info = rostopic.get_topic_type(name + '/feedback')[0]  # message type
+            result_type_info = rostopic.get_topic_type(name + '/result')[0]  # message type
+            if (
+                goal_type_info   is not None and cancel_type_info   is not None and
+                status_type_info is not None and feedback_type_info is not None and
+                result_type_info is not None
+               ):
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/goal', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/cancel', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/status', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/feedback', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/result', node), type_info, xmlrpc_uri))
         elif connection_type == ACTION_CLIENT:
-            type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
-            connections.append(utils.Connection(Rule(PUBLISHER, name + '/goal', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
-            connections.append(utils.Connection(Rule(PUBLISHER, name + '/cancel', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/status')[0]  # message type
-            connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/status', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/feedback')[0]  # message type
-            connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/feedback', node), type_info, xmlrpc_uri))
-            type_info = rostopic.get_topic_type(name + '/result')[0]  # message type
-            connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/result', node), type_info, xmlrpc_uri))
+            goal_type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
+            cancel_type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
+            status_type_info = rostopic.get_topic_type(name + '/status')[0]  # message type
+            feedback_type_info = rostopic.get_topic_type(name + '/feedback')[0]  # message type
+            result_type_info = rostopic.get_topic_type(name + '/result')[0]  # message type
+            if (
+                goal_type_info   is not None and cancel_type_info   is not None and
+                status_type_info is not None and feedback_type_info is not None and
+                result_type_info is not None
+               ):
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/goal', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/cancel', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/status', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/feedback', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/result', node), type_info, xmlrpc_uri))
         return connections
 
     def generate_advertisement_connection_details(self, connection_type, name, node):
@@ -513,18 +533,30 @@ class LocalMaster(rosgraph.Master):
         @return the utils.Connection object complete with type_info and xmlrpc_uri
         @type utils.Connection
         '''
+        # Very important here to check for the results of xmlrpc_uri and especially topic_type
+        #     https://github.com/robotics-in-concert/rocon_multimaster/issues/173
+        # In the watcher thread, we get the local connection index (whereby the arguments of this function
+        # come from) via master.get_connection_state. That means there is a small amount of time from
+        # getting the topic name, to checking for hte xmlrpc_uri and especially topic_type here in which
+        # the topic could have disappeared. When this happens, it returns None.
+        connection = None
         xmlrpc_uri = self.lookupNode(node)
+        if xmlrpc_uri is None:
+            return connection
         if connection_type == PUBLISHER or connection_type == SUBSCRIBER:
             type_info = rostopic.get_topic_type(name)[0]  # message type
-            connection = utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri)
+            if type_info is not None:
+                connection = utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri)
         elif connection_type == SERVICE:
             type_info = rosservice.get_service_uri(name)
-            connection = utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri)
+            if type_info is not None:
+                connection = utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri)
         elif connection_type == ACTION_SERVER or connection_type == ACTION_CLIENT:
             goal_topic = name + '/goal'
             goal_topic_type = rostopic.get_topic_type(goal_topic)
             type_info = re.sub('ActionGoal$', '', goal_topic_type[0])  # Base type for action
-            connection = utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri)
+            if type_info is not None:
+                connection = utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri)
         return connection
 
     def get_ros_ip(self):
