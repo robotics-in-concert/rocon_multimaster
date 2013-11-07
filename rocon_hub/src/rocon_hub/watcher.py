@@ -80,7 +80,7 @@ class WatcherThread(threading.Thread):
         self.gateway_unavailable_timeout = \
                 rospy.get_param('~gateway_unavailable_timeout', 30.0)
         self.gateway_dead_timeout = \
-                rospy.get_param('~gateway_dead_timeout', 60.0) #7200.0)
+                rospy.get_param('~gateway_dead_timeout', 7200.0)
         self.gateway_ping_frequency = rospy.get_param('~gateway_ping_frequency', 0.2)
         self.watcher_thread_rate = rospy.get_param('~watcher_thread_rate', 0.2)
         try:
