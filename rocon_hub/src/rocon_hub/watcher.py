@@ -59,7 +59,7 @@ class Pinger(threading.Thread):
             # In case of failure, this call will take approx 10s
             try:
                 # Send 5 pings at an interval of 0.2s
-                output = subprocess.call("ping -c 5 -i 0.2 %s" % self.ip,
+                output = subprocess.check_output("ping -c 5 -i 0.2 %s" % self.ip,
                                          shell=True, stderr=subprocess.STDOUT)
                 self.time_last_seen = time.time()
                 self.latency_stats = [float(x) for x in output.splitlines()[-1].split(' ')[-2].split('/')]

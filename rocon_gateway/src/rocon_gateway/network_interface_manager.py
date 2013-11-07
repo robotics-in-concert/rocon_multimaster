@@ -45,8 +45,15 @@ class NetworkInterfaceManager(object):
 
         interfaces = []
 
-        # Detect wired network interface
+        # Detect wireless interfaces first
+        for interface in pythonwifi.getWNICnames():
+            interfaces.append((interface, RemoteGateway.WIRELESS))
+
+        # Detect wired network interfaces. This command also detects wireless
+        # ones. Don't add them again
         for inf in netifaces.interfaces():                                               
+            if inf in pythonwifi.getWNICnames():
+                continue
             addrs = netifaces.ifaddresses(inf)                                           
             if not netifaces.AF_INET in addrs:                                           
                 continue                                                                 
@@ -55,10 +62,6 @@ class NetworkInterfaceManager(object):
                 if address.split('.')[0] == '127':
                     continue
                 interfaces.append((inf, RemoteGateway.WIRED))
-
-        # Detect wireless network interfaces
-        for interface in pythonwifi.getWNICnames():
-            interfaces.append((interface, RemoteGateway.WIRELESS))
 
         for interface in interfaces:
             if interface[0] == interface_name:
