@@ -80,7 +80,7 @@ class WatcherThread(threading.Thread):
         self.gateway_unavailable_timeout = \
                 rospy.get_param('~gateway_unavailable_timeout', 30.0)
         self.gateway_dead_timeout = \
-                rospy.get_param('~gateway_dead_timeout', 7200.0)
+                rospy.get_param('~gateway_dead_timeout', 60.0) #7200.0)
         self.gateway_ping_frequency = rospy.get_param('~gateway_ping_frequency', 0.2)
         self.watcher_thread_rate = rospy.get_param('~watcher_thread_rate', 0.2)
         try:
@@ -89,6 +89,7 @@ class WatcherThread(threading.Thread):
             rospy.logfatal("HubWatcherThread: Unable to connect to hub: %s"%str(e))
             sys.exit(-1)
         self.pingers = {}
+        self.unavailable_gateways = []
 
     def run(self):
         '''
@@ -121,12 +122,16 @@ class WatcherThread(threading.Thread):
 
                 # Check if gateway gone for low timeout
                 if pinger.is_unavailable():
-                    rospy.logwarn("HubWatcherThread: Gateway " + name + 
-                                  " has been unavailable for " + 
-                                  str(self.gateway_unavailable_timeout) +
-                                  " seconds! Marking as unavailable.")
-                    self.hub.mark_named_gateway_available(gateway_key, False)
+                    if name not in self.unavailable_gateways:
+                        rospy.logwarn("HubWatcherThread: Gateway " + name + 
+                                      " has been unavailable for " + 
+                                      str(self.gateway_unavailable_timeout) +
+                                      " seconds! Marking as unavailable.")
+                        self.hub.mark_named_gateway_available(gateway_key, False)
+                        self.unavailable_gateways.append(name)
                 else:
+                    if name in self.unavailable_gateways:
+                        self.unavailable_gateways.remove(name)
                     self.hub.update_named_gateway_latency_stats(name, 
                              pinger.get_latency())
                     self.hub.mark_named_gateway_available(gateway_key, True)
