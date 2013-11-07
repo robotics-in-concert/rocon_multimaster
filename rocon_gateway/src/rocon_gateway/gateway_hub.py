@@ -176,11 +176,11 @@ class GatewayHub(rocon_hub_client.Hub):
         try:
             network_info_available = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'network:info_available')
             self._redis_server.set(network_info_available, statistics.network_info_available)
-            if not network_info_available:
+            if not statistics.network_info_available:
                 return
             network_type = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'network:type')
             self._redis_server.set(network_type, statistics.network_type)
-            if network_type == gateway_msgs.RemoteGateway.WIRED:
+            if statistics.network_type == gateway_msgs.RemoteGateway.WIRED:
                 return
             wireless_bitrate = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'wireless:bitrate')
             self._redis_server.set(wireless_bitrate, statistics.wireless_bitrate)
@@ -403,7 +403,7 @@ class GatewayHub(rocon_hub_client.Hub):
             return 0.0
 
     def _parse_redis_bool(self, val):
-        if val and val == 'True':
+        if val and (val == 'True' or val == True):
             return True
         else:
             return False
