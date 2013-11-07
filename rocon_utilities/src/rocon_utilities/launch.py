@@ -266,7 +266,7 @@ def main():
                               (launcher['options'], launcher['port'], temp.name)], preexec_fn=preexec)
         elif terminal == 'gnome-terminal.wrapper' or terminal == 'gnome-terminal':
             # --disable-factory inherits the current environment, bit wierd.
-            p = subprocess.Popen(['gnome-terminal', '--disable-factory', '-e', "/bin/bash", "-e", "roslaunch %s --port %s %s" %
+            p = subprocess.Popen(['gnome-terminal', '--title=%s' % launcher['title'], '--disable-factory', '-e', "/bin/bash", "-e", "roslaunch %s --port %s %s" %
                               (launcher['options'], launcher['port'], temp.name)], preexec_fn=preexec)
         else:
             cmd = ["roslaunch"]
