@@ -274,49 +274,33 @@ class GatewayHub(rocon_hub_client.Hub):
             
             # Gateway health indicators
             remote_gateway.gateway_available = \
-                    self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'available'))
-            if remote_gateway.gateway_available:
-                remote_gateway.gateway_available = True
-            else:
-                remote_gateway.gateway_available = False
+                    self._parse_redis_bool(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'available')))
             remote_gateway.ping_latency_min = \
-                    self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'latency:min'))
-            if not remote_gateway.ping_latency_min:
-                remote_gateway.ping_latency_min = 0
+                    self._parse_redis_float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'latency:min')))
             remote_gateway.ping_latency_max = \
-                    self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'latency:max'))
-            if not remote_gateway.ping_latency_max:
-                remote_gateway.ping_latency_max = 0
+                    self._parse_redis_float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'latency:max')))
             remote_gateway.ping_latency_avg = \
-                    self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'latency:avg'))
-            if not remote_gateway.ping_latency_avg:
-                remote_gateway.ping_latency_avg = 0
+                    self._parse_redis_float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'latency:avg')))
             remote_gateway.ping_latency_mdev = \
-                    self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'latency:mdev'))
-            if not remote_gateway.ping_latency_mdev:
-                remote_gateway.ping_latency_mdev = 0
+                    self._parse_redis_float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'latency:mdev')))
 
             # Gateway network connection indicators
             remote_gateway.network_info_available = \
-                    self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'network:info_available'))
-            if remote_gateway.network_info_available:
-                remote_gateway.network_info_available = True 
-            else:
-                remote_gateway.network_info_available = False
+                    self._parse_redis_bool(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'network:info_available')))
             if not remote_gateway.network_info_available:
                 return remote_gateway
             remote_gateway.network_type = \
-                    int(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'network:type')))
+                    self._parse_redis_int(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'network:type')))
             if remote_gateway.network_type == gateway_msgs.RemoteGateway.WIRED:
                 return remote_gateway
             remote_gateway.wireless_bitrate = \
-                    float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'wireless:bitrate')))
+                    self._parse_redis_float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'wireless:bitrate')))
             remote_gateway.wireless_link_quality = \
-                    int(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'wireless:quality')))
+                    self._parse_redis_int(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'wireless:quality')))
             remote_gateway.wireless_signal_level = \
-                    float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'wireless:signal_level')))
+                    self._parse_redis_float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'wireless:signal_level')))
             remote_gateway.wireless_noise_level = \
-                    float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'wireless:noise_level')))
+                    self._parse_redis_float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'wireless:noise_level')))
             return remote_gateway
 
     def list_remote_gateway_names(self):
@@ -405,6 +389,24 @@ class GatewayHub(rocon_hub_client.Hub):
             return True if int(firewall) else False
         else:
             raise GatewayUnavailableError
+
+    def _parse_redis_float(self, val):
+        if val:
+            return float(val)
+        else:
+            return 0.0
+
+    def _parse_redis_int(self, val):
+        if val:
+            return int(val)
+        else:
+            return 0.0
+
+    def _parse_redis_bool(self, val):
+        if val and val == 'True':
+            return True
+        else:
+            return False
 
     ##########################################################################
     # Posting Information to the Hub
