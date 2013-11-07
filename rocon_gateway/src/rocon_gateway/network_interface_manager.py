@@ -107,8 +107,8 @@ class NetworkInterfaceManager(object):
         wifi = pythonwifi.Wireless(self.interface_name)
         gateway_statistics.wireless_bitrate = wifi.wireless_info.getBitrate().value #Raw bitrate
         _, qual, _, _ = wifi.getStatistics()
-        gateway_statistics.wireless_link_quality = qual.quality
-        gateway_statistics.wireless_signal_level = qual.signallevel
-        gateway_statistics.wireless_noise_level = qual.noiselevel
+        gateway_statistics.wireless_link_quality = float(qual.quality)
+        gateway_statistics.wireless_signal_level = float(qual.signallevel) - 256.0 # HACK. something seems to be wrong with the value returned from pythonwifi
+        gateway_statistics.wireless_noise_level = float(qual.noiselevel)
 
         return gateway_statistics
