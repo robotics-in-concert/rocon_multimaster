@@ -154,7 +154,7 @@ def getPowerManagement(wifi):
     if (power.disabled):
         status = ":off"
     else:
-        if (power.flags & IW_POWER_TYPE):
+        if (power.flags & pythonwifi.flags.IW_POWER_TYPE):
             if (power.flags & pythonwifi.flags.IW_POWER_MIN):
                 status = status + " min"
             if (power.flags & pythonwifi.flags.IW_POWER_MAX):
@@ -238,9 +238,9 @@ def iwconfig(interface):
         print line
 
         # Encryption line
-        line = "          "
-        line = line + getEncryption(wifi)
-        print line
+        # line = "          "
+        # line = line + getEncryption(wifi)
+        # print line
 
         # Power Management line
         line = "          "
