@@ -129,6 +129,7 @@ class GatewayHub(rocon_hub_client.Hub):
             # should never get here - unique should be unique
             pass
         unused_ret = self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
+        self.mark_named_gateway_available(self._redis_keys['gateway'])
         self._redis_server.set(self._redis_keys['firewall'], self._firewall)
         # I think we just used this for debugging, but we might want to hide it in future (it's the ros master hostname/ip)
         self._redis_keys['ip'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'ip')
