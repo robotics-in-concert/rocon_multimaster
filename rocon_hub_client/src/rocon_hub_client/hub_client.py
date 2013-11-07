@@ -22,6 +22,24 @@ from .exceptions import HubNameNotFoundError, HubNotFoundError, \
 ##############################################################################
 
 
+class HubConnection(redis.Connection):
+    '''
+      This allows us to create connectiosn with socket timeouts (the redis.Connection
+      objects makes these with socket_timeout=None. This allows us to timeout on
+      bad ip's. We had the experience of this happening with a mingled network of
+      wired 192.168.10.xxx and 192.168.0.xxx addresses.
+
+      This is the only way to get socket timeouts working on connections for the
+      connection thread pool object.
+    '''
+    def __init__(self, host='localhost', port=6379, db=0, password=None,
+                 socket_timeout=0.5, encoding='utf-8',
+                 encoding_errors='strict', decode_responses=False):
+        super(HubConnection, self).__init__(host, port, db, password,
+                 socket_timeout, encoding,
+                 encoding_errors, decode_responses)
+
+
 class Hub(object):
 
     def __init__(self, ip, port, whitelist=[], blacklist=[]):
@@ -43,7 +61,7 @@ class Hub(object):
 
         # redis server connection
         try:
-            self.pool = redis.ConnectionPool(host=ip, port=port, db=0)
+            self.pool = redis.ConnectionPool(host=ip, connection_class=HubConnection, port=port, db=0)
             self._redis_server = redis.Redis(connection_pool=self.pool)
             self._redis_pubsub_server = self._redis_server.pubsub()
             hub_key_name = self._redis_server.get("rocon:hub:name")
