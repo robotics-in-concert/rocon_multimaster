@@ -99,7 +99,7 @@ class NetworkInterfaceManager(object):
         if not self.interface_name:
             gateway_statistics.network_info_available = False
             return gateway_statistics
-
+        gateway_statistics.network_info_available = True
         gateway_statistics.network_type = self.interface_type
         if self.interface_type == RemoteGateway.WIRED:
             return gateway_statistics
