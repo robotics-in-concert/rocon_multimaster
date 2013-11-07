@@ -20,6 +20,7 @@ from .flipped_interface import FlippedInterface
 from .public_interface import PublicInterface
 from .pulled_interface import PulledInterface
 from .master_api import LocalMaster
+from .network_interface_manager import NetworkInterfaceManager
 
 ###############################################################################
 # Thread
@@ -68,6 +69,7 @@ class Gateway(object):
         self.remote_gateway_request_callbacks['flip'] = self.process_remote_gateway_flip_request
         self.remote_gateway_request_callbacks['unflip'] = self.process_remote_gateway_unflip_request
 
+        self.network_interface_manager = NetworkInterfaceManager(self._param['network_interface'])
         self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
 
     def spin(self):
@@ -235,6 +237,15 @@ class Gateway(object):
         if new_conns or lost_conns:
             self._publish_gateway_info()
         return public_interface
+
+    def update_network_information(self):
+        '''
+          If we are running over a wired connection, then do nothing.
+          If over the wireless, updated data transfer rate and signal strength
+          for this gateway on the hub
+        '''
+        statistics = self.network_interface_manager.get_statistics()
+        self.hub_manager.publish_network_statistics(statistics)
 
     ##########################################################################
     # Incoming commands from remote gateways

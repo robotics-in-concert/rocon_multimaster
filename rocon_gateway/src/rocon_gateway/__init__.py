@@ -22,5 +22,6 @@ from .gateway_node import GatewayNode
 from .graph import Graph
 import gateway
 from .gateway import Gateway
+from .network_interface_manger import NetworkInterfaceManager
 import samples
 import hub_manager

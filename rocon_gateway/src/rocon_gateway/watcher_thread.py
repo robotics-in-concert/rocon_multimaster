@@ -70,6 +70,7 @@ class WatcherThread(object):
                     self._sleep()
                     continue
                 remote_gateway_hub_index = self._hub_manager.create_remote_gateway_hub_index()
+                self._gateway.update_network_information()
                 self._gateway.update_flipped_interface(connections, remote_gateway_hub_index)
                 self._gateway.update_public_interface(connections)
                 self._gateway.update_pulled_interface(connections, remote_gateway_hub_index)
