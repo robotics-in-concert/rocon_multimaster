@@ -250,7 +250,7 @@ class GatewayHub(rocon_hub_client.Hub):
         available_key = gateway_key + ":available"
         self._redis_server.set(available_key, available)
         time_since_last_seen_key = gateway_key + ":time_since_last_seen"
-        self._redis_server.set(time_since_last_seen, time_since_last_seen_key)
+        self._redis_server.set(time_since_last_seen_key, time_since_last_seen)
 
     ##########################################################################
     # Hub Data Retrieval
