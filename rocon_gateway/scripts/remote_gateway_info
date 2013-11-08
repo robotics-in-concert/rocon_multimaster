@@ -13,7 +13,8 @@ import argparse
 import re
 import rospy
 import rocon_gateway
-import gateway_msgs
+import gateway_msgs.msg as gateway_msgs
+import gateway_msgs.srv as gateway_srvs
 import rocon_utilities
 import rocon_utilities.console as console
 import rocon_gateway.utils as utils
@@ -34,7 +35,7 @@ def resolve_local_gateway():
         console.error("Could not find a local gateway - did you start it?")
         raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
     #console.debug("Found a local gateway at %s"%gateway_namespace)
-    gateway_info = rocon_utilities.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)()
+    gateway_info = rocon_utilities.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.GatewayInfo)()
     return gateway_namespace, gateway_info.ip
 
 def resolve_remote_gateways(gateway_namespace):
@@ -42,8 +43,8 @@ def resolve_remote_gateways(gateway_namespace):
       @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 
     '''
     remote_gateways = []
-    remote_gateway_info = rospy.ServiceProxy(gateway_namespace+'/remote_gateway_info', gateway_msgs.srv.RemoteGatewayInfo)
-    req = gateway_msgs.srv.RemoteGatewayInfoRequest()
+    remote_gateway_info = rospy.ServiceProxy(gateway_namespace+'/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
+    req = gateway_srvs.RemoteGatewayInfoRequest()
     req.gateways = []
     resp = remote_gateway_info(req)
     #print("Remote gateway info: %s" % resp)
@@ -75,9 +76,18 @@ if __name__ == '__main__':
         console.pretty_print("Remote Gateway\n",console.bold)
         print("  Name        : %s" % rocon_utilities.gateway_basename(gateway.name))
         print("  Hash Name   : %s" % gateway.name)
-        print("  Ip/Hostname: %s"%gateway.ip)
-        print("  Firewall   : %s"%gateway.firewall)
-
+        print("  Ip/Hostname : %s" % gateway.ip)
+        print("  Firewall    : %s" % str(gateway.firewall).lower())
+        if gateway.network_type == gateway_msgs.RemoteGateway.WIRED:
+            print("  Connection  : wired")
+        elif gateway.network_type == gateway_msgs.RemoteGateway.WIRELESS:  # wireless
+            print("  Connection  : wireless")
+        else:
+            print("  Connection  : unknown")
+        print("  Latency (ms)")
+        print("    Min/Max   : %.3f-%.3f" % (gateway.ping_latency_min, gateway.ping_latency_max) )
+        print("    Average   : %.3f" % gateway.ping_latency_avg )
+        print("    MDev      : %.3f" % gateway.ping_latency_mdev )
         print("  Public Interface")
         if len(gateway.public_interface) == 0:
             print("          : -")
