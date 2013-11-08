@@ -141,9 +141,9 @@ class WatcherThread(threading.Thread):
                                       " has been unavailable for " + 
                                       str(self.gateway_unavailable_timeout) +
                                       " seconds! Marking as unavailable.")
-                        self.hub.mark_named_gateway_available(gateway_key,
-                                 False, pinger.get_time_since_last_seen())
                         self.unavailable_gateways.append(name)
+                    self.hub.mark_named_gateway_available(gateway_key, False, 
+                             pinger.get_time_since_last_seen())
                 else:
                     if name in self.unavailable_gateways:
                         self.unavailable_gateways.remove(name)
