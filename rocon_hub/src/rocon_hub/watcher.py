@@ -46,6 +46,9 @@ class Pinger(threading.Thread):
     def is_dead(self):
         return time.time() - self.time_last_seen > self.dead_timeout
 
+    def get_time_since_last_seen(self):
+        return time.time() - self.time_last_seen
+
     def get_latency(self):
         '''
           Latency states are returned as list of 4 values
@@ -129,7 +132,8 @@ class WatcherThread(threading.Thread):
                                       " has been unavailable for " + 
                                       str(self.gateway_unavailable_timeout) +
                                       " seconds! Marking as unavailable.")
-                        self.hub.mark_named_gateway_available(gateway_key, False)
+                        self.hub.mark_named_gateway_available(gateway_key,
+                                 False, pinger.get_time_since_last_seen())
                         self.unavailable_gateways.append(name)
                 else:
                     if name in self.unavailable_gateways:
