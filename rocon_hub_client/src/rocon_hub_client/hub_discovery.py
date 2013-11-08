@@ -143,7 +143,7 @@ class HubDiscovery(threading.Thread):
         #rospy.loginfo("Gateway : checking for autodiscovered gateway hubs")
         try:
             response = self._list_discovered_services(self._discovery_request)
-        except rospy.service.ServiceException, rospy.exceptions.ROSInterruptException:
+        except (rospy.service.ServiceException, rospy.exceptions.ROSInterruptException):
             # means we've shut down, just return so it can cleanly shutdown back in run()
             return [], []
         difference = lambda l1, l2: [x for x in l1 if x not in l2]
