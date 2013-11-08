@@ -258,3 +258,16 @@ class HubManager(object):
         matches = list(set(matches))
         weak_matches = list(set(weak_matches))
         return matches, weak_matches
+
+    def publish_network_statistics(self, statistics):
+        '''
+          Publish network statistics to every hub this gateway is connected to.
+
+          @param statistics
+          @type gateway_msgs.RemoteGateway
+        '''
+        self._hub_lock.acquire()
+        for hub in self.hubs:
+            hub.publish_network_statistics(statistics)
+        self._hub_lock.release()
+

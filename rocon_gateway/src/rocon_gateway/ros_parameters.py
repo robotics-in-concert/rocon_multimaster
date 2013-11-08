@@ -54,8 +54,10 @@ def setup_ros_parameters():
     param['default_flips'] = rospy.get_param('~default_flips', [])  # list of RemoteRule objects
     param['default_pulls'] = rospy.get_param('~default_pulls', [])  # list of RemoteRule objects
 
-    return param
+    # Network interface name (to be used when there are multiple active interfaces))
+    param['network_interface'] = rospy.get_param('~network_interface', '')  # string
 
+    return param
 
 def generate_rules(param):
     '''
