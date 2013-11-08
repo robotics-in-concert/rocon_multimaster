@@ -80,7 +80,7 @@ if __name__ == '__main__':
         print("  Firewall    : %s" % str(gateway.firewall).lower())
         if gateway.network_type == gateway_msgs.RemoteGateway.WIRED:
             print("  Connection  : wired")
-        elif gateway.network_type == gateway_msgs.RemoteGateway.WIRELESS:  # wireless
+        elif gateway.network_type == gateway_msgs.RemoteGateway.WIRELESS:
             print("  Connection  : wireless")
         else:
             print("  Connection  : unknown")
@@ -88,6 +88,11 @@ if __name__ == '__main__':
         print("    Min/Max   : %.3f-%.3f" % (gateway.ping_latency_min, gateway.ping_latency_max) )
         print("    Average   : %.3f" % gateway.ping_latency_avg )
         print("    MDev      : %.3f" % gateway.ping_latency_mdev )
+        if gateway.network_type == gateway_msgs.RemoteGateway.WIRELESS:
+            print("  Wireless statistics")
+            print("    Bitrate   : %sMb" % (gateway.wireless_bitrate/1000000) )
+            print("    Quality   : %s/70" % gateway.wireless_link_quality )
+            print("    Signal Lvl: %sdBm" % int(gateway.wireless_signal_level) )
         print("  Public Interface")
         if len(gateway.public_interface) == 0:
             print("          : -")
