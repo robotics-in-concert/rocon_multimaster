@@ -68,7 +68,12 @@ class RedisListenerThread(threading.Thread):
                         self._remote_gateway_request_callbacks['unflip'](utils.get_rule_from_list(contents), source)
                     else:
                         rospy.logerr("Gateway : received an unknown command from the hub.")
-        except redis.exceptions.ConnectionError:
+        except redis.exceptions.ConnectionError as unused_e:
+            # If we ever start using socket timeouts, we need to distinguish between
+            # timeouts here and actual conenction errors. Unfortunately we only have
+            # strings to do that:
+            #    "Error while reading from socket: ('timed out',)"
+            #    "Socket closed on remote end":
             self._hub_connection_lost_hook()
 
 ##############################################################################

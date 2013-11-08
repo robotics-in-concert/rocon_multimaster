@@ -32,7 +32,7 @@ class HubDiscovery(threading.Thread):
     def __init__(self, external_discovery_update_hook, direct_hub_uri_list=[], disable_zeroconf=False):
         '''
           @param external_discovery_update is a callback function that takes action on a discovery
-          @type gateway_node.update_discovery_hook(ip, port)
+          @type gateway_node.register_gateway(ip, port)
 
           @param direct_hub_uri_list : list of uri's to hubs (e.g. http://localhost:6380
           @type list of uri
