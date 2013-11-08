@@ -491,11 +491,11 @@ class LocalMaster(rosgraph.Master):
                 status_type_info is not None and feedback_type_info is not None and
                 result_type_info is not None
                ):
-                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/goal', node), type_info, xmlrpc_uri))
-                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/cancel', node), type_info, xmlrpc_uri))
-                connections.append(utils.Connection(Rule(PUBLISHER, name + '/status', node), type_info, xmlrpc_uri))
-                connections.append(utils.Connection(Rule(PUBLISHER, name + '/feedback', node), type_info, xmlrpc_uri))
-                connections.append(utils.Connection(Rule(PUBLISHER, name + '/result', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/goal', node), goal_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/cancel', node), cancel_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/status', node), status_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/feedback', node), feedback_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/result', node), result_type_info, xmlrpc_uri))
         elif connection_type == ACTION_CLIENT:
             goal_type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
             cancel_type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
@@ -507,11 +507,11 @@ class LocalMaster(rosgraph.Master):
                 status_type_info is not None and feedback_type_info is not None and
                 result_type_info is not None
                ):
-                connections.append(utils.Connection(Rule(PUBLISHER, name + '/goal', node), type_info, xmlrpc_uri))
-                connections.append(utils.Connection(Rule(PUBLISHER, name + '/cancel', node), type_info, xmlrpc_uri))
-                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/status', node), type_info, xmlrpc_uri))
-                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/feedback', node), type_info, xmlrpc_uri))
-                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/result', node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/goal', node), goal_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(PUBLISHER, name + '/cancel', node), cancel_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/status', node), status_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/feedback', node), feedback_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(Rule(SUBSCRIBER, name + '/result', node), result_type_info, xmlrpc_uri))
         return connections
 
     def generate_advertisement_connection_details(self, connection_type, name, node):
