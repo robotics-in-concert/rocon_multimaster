@@ -78,19 +78,25 @@ if __name__ == '__main__':
         print("  Hash Name   : %s" % gateway.name)
         print("  Ip/Hostname : %s" % gateway.ip)
         print("  Firewall    : %s" % str(gateway.firewall).lower())
+        print("  Alive       : "),
+        if not gateway.gateway_available:
+            console.pretty_print(str(gateway.gateway_available), console.red)
+            print(" (last Seen %i seconds ago)" % gateway.time_since_last_seen)
+        else:
+            console.pretty_print(str(gateway.gateway_available)+"\n", console.green)
         if gateway.network_type == gateway_msgs.RemoteGateway.WIRED:
             print("  Connection  : wired")
         elif gateway.network_type == gateway_msgs.RemoteGateway.WIRELESS:
             print("  Connection  : wireless")
         else:
             print("  Connection  : unknown")
-        print("  Latency (ms)")
-        print("    Min/Max   : %.3f-%.3f" % (gateway.ping_latency_min, gateway.ping_latency_max) )
-        print("    Average   : %.3f" % gateway.ping_latency_avg )
-        print("    MDev      : %.3f" % gateway.ping_latency_mdev )
+        print("  Latency from Hub(ms)")
+        print("    Min/Max        : %.3f-%.3f" % (gateway.ping_latency_min, gateway.ping_latency_max) )
+        print("    Average        : %.3f" % gateway.ping_latency_avg )
+        print("    Mean Deviation : %.3f" % gateway.ping_latency_mdev )
         if gateway.network_type == gateway_msgs.RemoteGateway.WIRELESS:
             print("  Wireless statistics")
-            print("    Bitrate   : %sMb" % (gateway.wireless_bitrate/1000000) )
+            print("    Bitrate   : %sMb/s" % (gateway.wireless_bitrate/1000000) )
             print("    Quality   : %s/70" % gateway.wireless_link_quality )
             print("    Signal Lvl: %sdBm" % int(gateway.wireless_signal_level) )
         print("  Public Interface")

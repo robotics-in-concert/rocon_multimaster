@@ -232,10 +232,25 @@ class GatewayHub(rocon_hub_client.Hub):
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
             rospy.logerr("Unable to update latency stats for " + gateway_name)
 
-    def mark_named_gateway_available(self, gateway_key, available=True):
+    def mark_named_gateway_available(self, gateway_key, available=True, 
+                                    time_since_last_seen=0.0):
+        '''
+          This function is used by the hub to mark if a gateway can be pinged.
+          If a gateway cannot be pinged, the hub indicates how longs has it been
+          since the hub was last seen
+
+          @param gateway_key : The gateway key (not the name)
+          @type str
+          @param available: If the gateway can be pinged right now
+          @type bool
+          @param time_since_last_seen: If available is false, how long has it
+                 been since the gateway was last seen (in seconds)
+          @type float
+        '''
         available_key = gateway_key + ":available"
         self._redis_server.set(available_key, available)
-
+        time_since_last_seen_key = gateway_key + ":time_since_last_seen"
+        self._redis_server.set(time_since_last_seen_key, time_since_last_seen)
 
     ##########################################################################
     # Hub Data Retrieval
@@ -280,6 +295,9 @@ class GatewayHub(rocon_hub_client.Hub):
             # Gateway health indicators
             remote_gateway.gateway_available = \
                     self._parse_redis_bool(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'available')))
+            remote_gateway.time_since_last_seen = \
+                    self._parse_redis_float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'time_since_last_seen')))
+
             remote_gateway.ping_latency_min = \
                     self._parse_redis_float(self._redis_server.get(hub_api.create_rocon_gateway_key(gateway, 'latency:min')))
             remote_gateway.ping_latency_max = \
