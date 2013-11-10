@@ -8,6 +8,7 @@
 # Imports
 ##############################################################################
 
+import os
 import rospy
 import rospkg
 import roslib
@@ -18,7 +19,7 @@ import roslib.names
 ##############################################################################
 
 
-def find_resource_from_string(resource, rospack=None):
+def find_resource_from_string(resource, rospack=None, extension=None):
     '''
       Convenience wrapper around roslib to find a resource (file) inside
       a package. This function passes off the work to find_resource
@@ -27,8 +28,17 @@ def find_resource_from_string(resource, rospack=None):
       @param package : ros package
       @param resource : string resource identifier of the form package/filename
 
-      @raise IOError : raised if the resource string couldn't be validated into package/remainder.
+      @param extension : file name extension to look for/expect
+      @type string
+
+      @raise IOError : raised if the resource is not found or has an inappropriate extension.
     '''
+    if extension is not None:
+        filename_extension = os.path.splitext(resource)[-1]
+        if filename_extension == '':  # no ext given
+            resource += ".interactions"
+        elif filename_extension != extension:
+            raise IOError("resource with invalid filename extension specified [%s][%s]" % (resource, extension))
     package, filename = roslib.names.package_resource_name(resource)
     if not package:
         raise IOError("resource could not be split with a valid leading package name [%s]" % (resource))
