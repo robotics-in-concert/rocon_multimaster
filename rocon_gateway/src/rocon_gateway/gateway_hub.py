@@ -214,7 +214,7 @@ class GatewayHub(rocon_hub_client.Hub):
     def update_named_gateway_latency_stats(self, gateway_name, latency_stats):
         '''
           For a given gateway, update the latency statistics
-          
+
           #param gateway_name : gateway name, not the redis key
           @type str
           @param latency_stats : ping statistics to the gateway from the hub
@@ -230,9 +230,9 @@ class GatewayHub(rocon_hub_client.Hub):
             self._redis_server.set(max_latency_key, latency_stats[2])
             self._redis_server.set(mdev_latency_key, latency_stats[3])
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
-            rospy.logerr("Unable to update latency stats for " + gateway_name)
+            rospy.logerr("Gateway: unable to update latency stats for " + gateway_name)
 
-    def mark_named_gateway_available(self, gateway_key, available=True, 
+    def mark_named_gateway_available(self, gateway_key, available=True,
                                     time_since_last_seen=0.0):
         '''
           This function is used by the hub to mark if a gateway can be pinged.

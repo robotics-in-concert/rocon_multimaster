@@ -15,3 +15,10 @@
 
 class TimeoutExpiredError(Exception):
     pass
+
+
+class ResourceNotFoundException(Exception):
+    """
+      Resource Not Found Exception
+    """
+    pass

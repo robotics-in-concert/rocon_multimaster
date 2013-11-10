@@ -44,8 +44,13 @@ def icon_resource_to_msg(resource):
       Loads the icon resource and puts in
       rocon_std_msgs.Icon format
 
-      @param : resource identifier (package/name)
+      @param resource : resource identifier (package/name)
       @type : string
+
+      @return the icon message
+      @rtype rocon_std_msgs.msg.Icon
     '''
     filename = find_resource_from_string(resource)
-    return icon_to_msg(filename)
+    icon = icon_to_msg(filename)
+    icon.resource_name = resource
+    return icon
