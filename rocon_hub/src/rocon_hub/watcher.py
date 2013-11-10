@@ -67,7 +67,7 @@ class Pinger(threading.Thread):
                 self.time_last_seen = time.time()
                 try:
                     parsed_output = \
-                            output.splitlines()[-1].split(' ')[-2].split('/')
+                            output.splitlines()[-1].split(' ')[3].split('/')
                     self.latency_stats = [float(x) for x in parsed_output] 
                 except (KeyError, ValueError) as e:
                     # Had one occasion when something was wrong with ping output
