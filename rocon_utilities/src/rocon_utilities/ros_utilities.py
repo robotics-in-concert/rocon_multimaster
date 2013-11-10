@@ -36,8 +36,8 @@ def find_resource_from_string(resource, rospack=None, extension=None):
     if extension is not None:
         filename_extension = os.path.splitext(resource)[-1]
         if filename_extension == '':  # no ext given
-            resource += ".interactions"
-        elif filename_extension != extension:
+            resource += ".%s" % extension
+        elif filename_extension != "." + extension and filename_extension != extension:
             raise IOError("resource with invalid filename extension specified [%s][%s]" % (resource, extension))
     package, filename = roslib.names.package_resource_name(resource)
     if not package:
