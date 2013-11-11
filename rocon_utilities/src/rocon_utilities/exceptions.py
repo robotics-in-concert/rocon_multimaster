@@ -17,7 +17,7 @@ class TimeoutExpiredError(Exception):
     pass
 
 
-class ResourceNotFoundException(Exception):
+class ResourceNotFoundException(IOError):
     """
       Resource Not Found Exception
     """
