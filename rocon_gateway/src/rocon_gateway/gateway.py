@@ -102,6 +102,7 @@ class Gateway(object):
           @param hub : the hub that will be deleted.
         '''
         self.hub_manager.disengage_hub(hub)
+        self._publish_gateway_info()
 
     ##########################################################################
     # Update interface states (jobs assigned from watcher thread)
@@ -224,6 +225,7 @@ class Gateway(object):
           @param local_connection_index : list of current local connections parsed from the master
           @type : { utils.ConnectionType.xxx : utils.Connection[] } dictionaries
         '''
+        state_changed = False
         # new_conns, lost_conns are of type { utils.ConnectionType.xxx : utils.Connection[] }
         new_conns, lost_conns = self.public_interface.update(local_connection_index, self.master.generate_advertisement_connection_details)
         # public_interface is of type gateway_msgs.Rule[]
@@ -232,10 +234,12 @@ class Gateway(object):
             for new_connection in new_conns[connection_type]:
                 rospy.loginfo("Gateway : adding connection to public interface %s" % utils.format_rule(new_connection.rule))
                 self.hub_manager.advertise(new_connection)
+                state_changed = True
             for lost_connection in lost_conns[connection_type]:
                 rospy.loginfo("Gateway : removing connection from public interface %s" % utils.format_rule(lost_connection.rule))
                 self.hub_manager.unadvertise(lost_connection)
-        if new_conns or lost_conns:
+                state_changed = True
+        if state_changed:
             self._publish_gateway_info()
         return public_interface
 
