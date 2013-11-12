@@ -113,6 +113,7 @@ class NetworkInterfaceManager(object):
             rospy.logwarn("Looks like the wireless dropped out. I won't " +
                           "update wireless statistics as the hub can't talk " +
                           "to me anyway. Error: " + str(e))
+            return gateway_statistics
 
         gateway_statistics.wireless_link_quality = int(qual.quality)
         # The -256 is a hack. The value returned by pythonwifi seems to be off.
