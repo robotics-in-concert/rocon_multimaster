@@ -2,6 +2,7 @@
   Designed to work with the underiscoverd_hub that has a redis server on 6382. 
  -->
 <launch>
+  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"/>
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway_tests)/param/wireless_handling/flip_talker.yaml" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
