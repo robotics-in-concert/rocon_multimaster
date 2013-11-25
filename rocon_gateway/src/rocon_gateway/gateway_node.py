@@ -56,6 +56,10 @@ class GatewayNode():
 
         # aliases
         self.spin = self._gateway.spin
+#        rospy.on_shutdown(self._shutdown)
+#
+#    def _shutdown(self):
+#        print("Gateway : shutdown hook")
 
     def shutdown(self):
         '''
