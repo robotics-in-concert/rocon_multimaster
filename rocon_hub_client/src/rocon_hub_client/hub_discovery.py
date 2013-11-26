@@ -146,11 +146,11 @@ class HubDiscovery(threading.Thread):
         except (rospy.service.ServiceException, rospy.exceptions.ROSInterruptException):
             # means we've shut down, just return so it can cleanly shutdown back in run()
             return [], []
-        except (rospy.exceptions.TransportTerminated):
-            # I'm guessing we should never ever see this - should always be wrapped up
-            # in the above exceptions, but the reality is it does leak through on
-            # shutdown periods. Haven't investigated a fix, but just handle it here for now.
-            # means we've shut down, just return so it can cleanly shutdown back in run()
+        except (rospy.exceptions.TransportTerminated, AttributeError) as unused_e:
+            # We should never ever see this - but we're calling the zeroconf node
+            # when we may be in a shutdown hook. Instead of getting one of the standard
+            # exceptions above, it gives us anyone of these curious errors.
+            # Rospy could handle this better...
             return [], []
         difference = lambda l1, l2: [x for x in l1 if x not in l2]
         new_services = difference(response.services, self._zeroconf_discovered_hubs)

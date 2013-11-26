@@ -89,9 +89,9 @@ class GatewayNode():
         '''
         rospy.loginfo("Gateway : shutting down.")
         try:
+            self._hub_discovery_thread.shutdown()
             self._gateway.shutdown()
             self._hub_manager.shutdown()
-            self._hub_discovery_thread.shutdown()
             self._gateway = None
         except Exception as e:
             rospy.logerr("Gateway : unknown error on shutdown [%s][%s]" % (str(e), type(e)))
