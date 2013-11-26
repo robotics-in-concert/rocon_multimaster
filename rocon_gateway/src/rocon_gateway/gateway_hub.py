@@ -117,7 +117,7 @@ class GatewayHub(rocon_hub_client.Hub):
           @param firewall
           @param unique_gateway_name
           @param remote_gateway_request_callbacks
-          @param hub_connection_lost_hook : used to trigger Gateway.disengage_hub(hub) on lost hub connections in redis pubsub listener thread.
+          @param hub_connection_lost_gateway_hook : used to trigger Gateway.disengage_hub(hub) on lost hub connections in redis pubsub listener thread.
           @gateway_ip
 
           @raise HubConnectionLostError if for some reason, the redis server has become unavailable.

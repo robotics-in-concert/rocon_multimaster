@@ -11,3 +11,4 @@ from ros_utilities import SubscriberProxy, find_resource, find_resource_from_str
 from exceptions import TimeoutExpiredError
 from icons import icon_to_msg, icon_resource_to_msg
 from wall_rate import WallRate
+from system import Popen
