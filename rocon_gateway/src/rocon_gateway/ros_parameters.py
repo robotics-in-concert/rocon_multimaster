@@ -57,7 +57,13 @@ def setup_ros_parameters():
     # Network interface name (to be used when there are multiple active interfaces))
     param['network_interface'] = rospy.get_param('~network_interface', '')  # string
 
+    # Let an external party (e.g. concert conductor) manually shutdown the gateway
+    # so we can have control over when flips and pulls get deregistered (lets us do last
+    # minute service calls across masters before our own master goes down)
+    param['external_shutdown'] = rospy.get_param('~external_shutdown', False)
+
     return param
+
 
 def generate_rules(param):
     '''

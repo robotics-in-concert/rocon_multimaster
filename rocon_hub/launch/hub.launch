@@ -6,10 +6,13 @@
   <arg name="hub_name" default="Rocon Hub" />
   <arg name="hub_port" default="6380" />
   <arg name="zeroconf" default="true" />
-  <node pkg="rocon_hub" type="hub.py" name="gateway_hub">
+  <!-- useful if you want to do stuff before shutting down the hub in ros' shutdown hooks -->
+  <arg name="external_shutdown" default="false" />
+  <node pkg="rocon_hub" type="hub.py" name="hub">
     <rosparam command="load" file="$(find rocon_hub)/param/default.yaml" />
     <param name="name" value="$(arg hub_name)" />
     <param name="port" value="$(arg hub_port)" />
     <param name="zeroconf" value="$(arg zeroconf)" />
+    <param name="external_shutdown" value="$(arg external_shutdown)" />
   </node>
 </launch>

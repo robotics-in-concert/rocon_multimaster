@@ -13,6 +13,7 @@ import uuid
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
 import std_msgs.msg as std_msgs
+import std_srvs.srv as std_srvs
 from urlparse import urlparse
 import rocon_hub_client
 
@@ -54,14 +55,35 @@ class GatewayNode():
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
         self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'])
 
-        # aliases
-        self.spin = self._gateway.spin
-#        rospy.on_shutdown(self._shutdown)
-#
-#    def _shutdown(self):
-#        print("Gateway : shutdown hook")
+        # Shutdown hooks - allowing external triggers for shutting down
+        if self._param['external_shutdown']:
+            rospy.on_shutdown(self._wait_for_shutdown)
+            unused_shutdown_service = rospy.Service('~shutdown', std_srvs.Empty, self.ros_service_shutdown)
 
-    def shutdown(self):
+    def spin(self):
+        self._gateway.spin()
+        if not self._param['external_shutdown']:
+            self._shutdown()
+        #else the shutdown hook handles it.
+
+    def _wait_for_shutdown(self):
+        '''
+          Shutdown hook - we wait here for an external shutdown via ros service
+          timing out after a reasonable time if we need to.
+        '''
+        if self._param['external_shutdown']:
+            timeout = 5.0
+            count = 0.0
+            while count < timeout:
+                if self._gateway is None:
+                    return
+                else:
+                    count += 0.5
+                    rospy.rostime.wallsleep(0.5)  # human time
+            rospy.logwarn("Gateway : timed out waiting for external shutdown by ros service, forcing shutdown now.")
+            self._shutdown()
+
+    def _shutdown(self):
         '''
           Clears this gateway's information from the redis server.
         '''
@@ -70,6 +92,7 @@ class GatewayNode():
             self._gateway.shutdown()
             self._hub_manager.shutdown()
             self._hub_discovery_thread.shutdown()
+            self._gateway = None
         except Exception as e:
             rospy.logerr("Gateway : unknown error on shutdown [%s][%s]" % (str(e), type(e)))
             raise
@@ -144,6 +167,10 @@ class GatewayNode():
     ##########################################################################
     # Ros Service Callbacks
     ##########################################################################
+
+    def ros_service_shutdown(self, unused_request):
+        self._shutdown()
+        return std_srvs.EmptyResponse()
 
     def ros_service_connect_hub(self, request):
         '''

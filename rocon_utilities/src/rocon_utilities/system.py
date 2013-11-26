@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_utilities/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 
 ##############################################################################
@@ -11,6 +11,8 @@
 import os
 import time
 import errno
+import threading
+import subprocess
 # Local imports
 from .exceptions import TimeoutExpiredError
 
@@ -37,6 +39,59 @@ def which(program):
 
     return None
 
+##############################################################################
+# Subprocess
+##############################################################################
+
+
+class Popen(object):
+    '''
+      Use this if you want to attach a postexec function to popen (which
+      is not supported by popen at all).
+    '''
+    __slots__ = [
+            '_proc',
+            '_thread',
+            'terminate'
+        ]
+
+    def __init__(self, popen_args, preexec_fn=None, postexec_fn=None):
+        '''
+          @param popen_args : list/tuple of usual popen args
+          @type list/tuple
+
+          @param preexec_fn : usual popen pre-exec function
+          @type method with no args
+
+          @param postexec_fn : the callback which we support for postexec.
+          @type method with no args
+        '''
+        self._proc = None
+        self._thread = threading.Thread(target=self._run_in_thread, args=(popen_args, preexec_fn, postexec_fn))
+        self._thread.start()
+
+    def send_signal(self, sig):
+        self._proc.send_signal(sig)
+
+    def terminate(self):
+        '''
+          @raise OSError if the process has already shut down.
+        '''
+        return self._proc.terminate() if self._proc is not None else None
+
+    def _run_in_thread(self, popen_args, preexec_fn, postexec_fn):
+        '''
+          Worker function for the thread, creates the subprocess itself.
+        '''
+        if preexec_fn is not None:
+            self._proc = subprocess.Popen(popen_args, preexec_fn=preexec_fn)
+            print("PID: %s" % self._proc.pid)
+        else:
+            self._proc = subprocess.Popen(popen_args)
+        self._proc.wait()
+        if postexec_fn is not None:
+            postexec_fn()
+        return
 
 ##############################################################################
 # PID

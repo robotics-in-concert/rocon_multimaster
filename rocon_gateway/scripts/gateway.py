@@ -20,4 +20,3 @@ if __name__ == '__main__':
     rospy.init_node('gateway')
     gateway = GatewayNode()
     gateway.spin()
-    gateway.shutdown()

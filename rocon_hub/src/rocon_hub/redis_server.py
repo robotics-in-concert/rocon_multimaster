@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_hub/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 ##############################################################################
 # Imports
@@ -12,6 +12,7 @@ import sys
 import re
 import shutil
 import subprocess
+import signal
 
 # Ros imports
 import rospy
@@ -80,7 +81,8 @@ class RedisServer:
 
           Aborts the program if the connection fails.
         '''
-        self._process = subprocess.Popen(["redis-server", self._files['redis_conf']])
+        # Launch as a separate process group so we can control when it gets shut down.
+        self._process = subprocess.Popen(["redis-server", self._files['redis_conf']], preexec_fn=os.setpgrp)
         pool = redis.ConnectionPool(host='localhost', port=int(self._parameters['port']), db=0)
         no_attempts = 5
         count = 0
@@ -123,10 +125,17 @@ class RedisServer:
             if len(keys_to_delete) != 0:
                 pipe.delete(*keys_to_delete)  # * unpacks the list args - http://stackoverflow.com/questions/2921847/python-once-and-for-all-what-does-the-star-operator-mean-in-python
             pipe.execute()
-            rospy.logdebug("Hub : clearing hub variables on the redis server.")
+            #rospy.loginfo("Hub : clearing hub variables on the redis server.")
         except redis.ConnectionError:
             pass
-        self._process.terminate()
+        try:
+            # because we start the redis sserver as a separate process group, we need to handle its shutdown
+            # as roslaunch knows nothing of it.
+            self._process.send_signal(signal.SIGINT)
+            self._process.wait()
+        except OSError:
+            pass  # process already shut down
+
 
 ##############################################################################
 # Functions

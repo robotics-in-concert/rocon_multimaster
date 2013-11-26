@@ -27,6 +27,7 @@
   <run_depend>rosservice</run_depend>
   <run_depend>zeroconf_msgs</run_depend>
   <run_depend>gateway_msgs</run_depend>
+  <run_depend>std_srvs</run_depend>
   <!-- 
     Don't hardcode a dependency to a particular platform's zeroconf implementation 
     even if it does appeal to us ubuntu eggheads.
