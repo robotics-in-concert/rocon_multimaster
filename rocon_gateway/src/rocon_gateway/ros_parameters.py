@@ -61,6 +61,7 @@ def setup_ros_parameters():
     # so we can have control over when flips and pulls get deregistered (lets us do last
     # minute service calls across masters before our own master goes down)
     param['external_shutdown'] = rospy.get_param('~external_shutdown', False)
+    param['external_shutdown_timeout'] = rospy.get_param('~external_shutdown_timeout', 15)  # seconds
 
     return param
 

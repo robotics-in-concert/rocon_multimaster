@@ -26,6 +26,7 @@ from . import zeroconf
 ##############################################################################
 
 redi = None
+timeout = 15
 
 ##############################################################################
 # Shutdown Handlers
@@ -55,7 +56,7 @@ def wait_for_shutdown():
       timing out after a reasonable time if we need to.
     '''
     global redi
-    timeout = 2.0
+    global timeout
     count = 0.0
     while count < timeout:
         if redi is None:
@@ -74,6 +75,7 @@ def wait_for_shutdown():
 
 def main():
     global redi
+    global timeout
     while not utils.check_master():
         rospy.logerr("Unable to communicate with master!")
         rospy.rostime.wallsleep(1.0)
@@ -87,6 +89,7 @@ def main():
     if param['zeroconf']:
         utils.check_if_executable_available('avahi-daemon')
     if param['external_shutdown']:
+        timeout = param['external_shutdown_timeout']
         rospy.on_shutdown(wait_for_shutdown)
         unused_shutdown_service = rospy.Service('~shutdown', std_srvs.Empty, ros_service_shutdown)
 

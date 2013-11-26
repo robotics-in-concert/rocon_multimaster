@@ -72,7 +72,7 @@ class GatewayNode():
           timing out after a reasonable time if we need to.
         '''
         if self._param['external_shutdown']:
-            timeout = 5.0
+            timeout = self._param['external_shutdown_timeout']
             count = 0.0
             while count < timeout:
                 if self._gateway is None:
