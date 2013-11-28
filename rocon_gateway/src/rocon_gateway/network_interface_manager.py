@@ -104,11 +104,21 @@ class NetworkInterfaceManager(object):
         if self.interface_type == RemoteGateway.WIRED:
             return gateway_statistics
 
-        wifi = pythonwifi.Wireless(self.interface_name)
-        gateway_statistics.wireless_bitrate = float(wifi.wireless_info.getBitrate().value) #Raw bitrate
-        _, qual, _, _ = wifi.getStatistics()
+        try:
+            wifi = pythonwifi.Wireless(self.interface_name)
+            gateway_statistics.wireless_bitrate = \
+                    float(wifi.wireless_info.getBitrate().value) #Raw bitrate
+            _, qual, _, _ = wifi.getStatistics()
+        except IOError as e:
+            rospy.logwarn("Looks like the wireless dropped out. I won't " +
+                          "update wireless statistics as the hub can't talk " +
+                          "to me anyway. Error: " + str(e))
+            return gateway_statistics
+
         gateway_statistics.wireless_link_quality = int(qual.quality)
-        gateway_statistics.wireless_signal_level = float(qual.signallevel) - 256.0 # HACK. something seems to be wrong with the value returned from pythonwifi
+        # The -256 is a hack. The value returned by pythonwifi seems to be off.
+        gateway_statistics.wireless_signal_level = \
+                          float(qual.signallevel) - 256.0
         gateway_statistics.wireless_noise_level = float(qual.noiselevel)
 
         return gateway_statistics

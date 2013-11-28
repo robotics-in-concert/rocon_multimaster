@@ -19,10 +19,32 @@ from rocon_hub_client import hub_api
 from rocon_hub_client.exceptions import HubConnectionLostError, \
               HubNameNotFoundError, HubNotFoundError
 
-
 # local imports
 from .exceptions import GatewayUnavailableError
 
+###############################################################################
+# Redis Connection Checker
+##############################################################################
+
+class HubConnectionCheckerThread(threading.Thread):
+    '''
+      Pings redis periodically to figure out if redis is still alive.
+    '''
+    def __init__(self, ip, port, hub_connection_lost_hook):
+        threading.Thread.__init__(self)
+        self.daemon = True # clean shut down of thread when hub connection is lost
+        self.ping_frequency = 0.2 # Too spammy? # TODO Need to parametrize
+        self._hub_connection_lost_hook = hub_connection_lost_hook
+        self.ip = ip
+        self.port = port
+
+    def run(self):
+        rate = rocon_utilities.WallRate(self.ping_frequency)
+        alive = True
+        while alive:
+            alive = hub_api.ping_hub(self.ip, self.port)
+            rate.sleep()
+        self._hub_connection_lost_hook()
 
 ###############################################################################
 # Redis Callback Handler
@@ -35,6 +57,7 @@ class RedisListenerThread(threading.Thread):
     '''
     def __init__(self, redis_pubsub_server, remote_gateway_request_callbacks, hub_connection_lost_hook):
         threading.Thread.__init__(self)
+        self.daemon = True # clean shut down of thread when hub connection is lost
         self._redis_pubsub_server = redis_pubsub_server
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
         self._hub_connection_lost_hook = hub_connection_lost_hook
@@ -143,6 +166,8 @@ class GatewayHub(rocon_hub_client.Hub):
         self._redis_pubsub_server.subscribe(self._redis_channels['gateway'])
         self.remote_gateway_listener_thread = RedisListenerThread(self._redis_pubsub_server, self._remote_gateway_request_callbacks, self._hub_connection_lost_hook)
         self.remote_gateway_listener_thread.start()
+        self.hub_connection_checker_thread = HubConnectionCheckerThread(self.ip, self.port, self._hub_connection_lost_hook)
+        self.hub_connection_checker_thread.start()
 
     def _hub_connection_lost_hook(self):
         '''

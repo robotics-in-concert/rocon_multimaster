@@ -126,7 +126,7 @@ class GatewayNode():
                     self._param['firewall'],  # Gateway Details
                     self._unique_name,
                     self._gateway.remote_gateway_request_callbacks,
-                    self._gateway.disengage_hub,
+                    self._disengage_hub,
                     self._gateway.ip,
                     existing_advertisements
                     )
@@ -136,6 +136,21 @@ class GatewayNode():
         else:
             rospy.logwarn("Gateway : failed to register gateway with the hub [%s]" % error_code_str)
         return error_code, error_code_str
+
+    def _disengage_hub(self, hub):
+        '''
+          Called whenever gateway_hub detects the connection to the hub has been
+          lost.
+
+          This function informs the hub discovery thread that the hub was lost,
+          which allows the hub_discovery thread to start looking for the hub.
+
+          @param hub: hub to be disengaged
+          @type GatewayHub
+        '''
+
+        self._hub_discovery_thread.disengage_hub(hub)
+        self._gateway.disengage_hub(hub)
 
     ##########################################################################
     # Ros Pubs, Subs and Services
