@@ -54,6 +54,10 @@ class GatewayNode():
         self._gateway_subscribers = self._setup_ros_subscribers()  # Needs self._gateway
         # 'ip:port' : (error_code, error_code_str) dictionary of hubs that this gateway has tried to register, but not been permitted (hub is not in whitelist, or is blacklisted)
         self._disallowed_hubs = {}
+        self._disallowed_hubs_error_codes = [gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST,
+                                             gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED,
+                                             gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND
+                                            ]
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
         self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'])
 
@@ -141,7 +145,7 @@ class GatewayNode():
             rospy.loginfo("Gateway : registering on the hub [%s]" % hub.name)
             self._publish_gateway_info()
         else:
-            if error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST or error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED:
+            if error_code in self._disallowed_hubs_error_codes:
                 self._disallowed_hubs[uri] = (error_code, error_code_str)
             rospy.logwarn("Gateway : failed to register gateway with the hub [%s][%s]" % (error_code, error_code_str))
         return error_code, error_code_str
