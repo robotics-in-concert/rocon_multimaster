@@ -92,7 +92,7 @@ class Hub(object):
         if self.name in blacklist or self.name in nonuuid_whitelist:
             raise HubConnectionBlacklistedError("ignoring blacklisted hub [%s]" % self.uri)
         if not ((len(whitelist) == 0) or (self.uri in uri_whitelist) or (self.name in whitelist)):
-            raise HubConnectionNotWhitelistedError("hub/ip not in non-empty whitelist [%s][%s]%s" % (self.name, self.uri, whitelist))
+            raise HubConnectionNotWhitelistedError("hub/ip not in non-empty whitelist [%s, %s]%s" % (self.name, self.uri, whitelist))
 
     def disconnect(self):
         '''

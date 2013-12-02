@@ -52,6 +52,8 @@ class GatewayNode():
         self._gateway = gateway.Gateway(self._hub_manager, self._param, self._unique_name, self._publish_gateway_info)  # self._publish_gateway_info needs self._gateway_publishers
         self._gateway_services = self._setup_ros_services()  # Needs self._gateway
         self._gateway_subscribers = self._setup_ros_subscribers()  # Needs self._gateway
+        # 'ip:port' : (error_code, error_code_str) dictionary of hubs that this gateway has tried to register, but not been permitted (hub is not in whitelist, or is blacklisted)
+        self._disallowed_hubs = {}
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
         self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'])
 
@@ -118,6 +120,11 @@ class GatewayNode():
 
           @sa hub_discovery.HubDiscovery
         '''
+        uri = ip + ':' + str(port)
+        if uri in self._disallowed_hubs.keys():
+            # we already tried this one before, quietly return from here.
+            return self._disallowed_hubs[uri]
+
         existing_advertisements = self._gateway.public_interface.getConnections()
         hub, error_code, error_code_str = \
                 self._hub_manager.connect_to_hub(
@@ -134,7 +141,9 @@ class GatewayNode():
             rospy.loginfo("Gateway : registering on the hub [%s]" % hub.name)
             self._publish_gateway_info()
         else:
-            rospy.logwarn("Gateway : failed to register gateway with the hub [%s]" % error_code_str)
+            if error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST or error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED:
+                self._disallowed_hubs[uri] = (error_code, error_code_str)
+            rospy.logwarn("Gateway : failed to register gateway with the hub [%s][%s]" % (error_code, error_code_str))
         return error_code, error_code_str
 
     def _disengage_hub(self, hub):
