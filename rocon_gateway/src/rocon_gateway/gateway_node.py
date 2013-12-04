@@ -145,9 +145,11 @@ class GatewayNode():
             rospy.loginfo("Gateway : registering on the hub [%s]" % hub.name)
             self._publish_gateway_info()
         else:
-            if error_code in self._disallowed_hubs_error_codes:
+            if error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS:
+                pass  # be quiet - usually happens if we connect directly, then zeroconf tries.
+            elif error_code in self._disallowed_hubs_error_codes:
                 self._disallowed_hubs[uri] = (error_code, error_code_str)
-            rospy.logwarn("Gateway : failed to register gateway with the hub [%s][%s]" % (error_code, error_code_str))
+                rospy.logwarn("Gateway : failed to register gateway with the hub [%s][%s]" % (error_code, error_code_str))
         return error_code, error_code_str
 
     def _disengage_hub(self, hub):
