@@ -1,0 +1,18 @@
+<!--
+  Fires up the hub, gateway and a talker. We need to flip the talker.
+ -->
+<launch>
+  <include file="$(find rocon_gateway_tests)/launch/wireless_handling/remote_gateway.xml"/>
+  <!-- app manager -->
+  <arg name="robot_name" default="local_client"/>
+  <arg name="robot_type" default="pc"/>
+  <arg name="robot_icon" default="rocon_app_manager/cybernetic_pirate.png"/>
+  <arg name="rapp_lists" default="rocon_apps/rocon.rapps"/> <!-- semi colon separated list of rapp list resource names --> 
+  <include file="$(find rocon_app_manager)/launch/includes/_app_manager.xml">
+    <arg name="robot_name" value="$(arg robot_name)" />
+    <arg name="robot_type" value="$(arg robot_type)" />
+    <arg name="robot_icon" value="$(arg robot_icon)" />
+    <arg name="rapp_lists" value="$(arg rapp_lists)" />
+  </include>
+
+</launch>
