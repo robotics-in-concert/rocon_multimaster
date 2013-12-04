@@ -20,6 +20,7 @@
     <remap from="conductor/remote_gateway_info" to="gateway/remote_gateway_info" />
     <remap from="conductor/gateway_info" to="gateway/gateway_info" />
     <remap from="conductor/pull" to="gateway/pull" />
+    <param name="auto_invite" value="true" />
   </node>
 
 </launch>
