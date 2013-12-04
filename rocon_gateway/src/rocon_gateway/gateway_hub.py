@@ -43,6 +43,7 @@ class HubConnectionCheckerThread(threading.Thread):
         return self.pinger.get_latency()
 
     def run(self):
+        self.pinger.start()
         rate = rocon_utilities.WallRate(self.ping_frequency)
         alive = True
         while alive:

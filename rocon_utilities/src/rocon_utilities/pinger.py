@@ -23,8 +23,8 @@ def mean(vals):
     return sum(vals) / len(vals)
 
 def mdev(vals):
-    mean_vals = mean(vals)
-    mean_diff = [abs(vals[i] - mean_vals[i]) for i in range(len(vals))]
+    mean_val = mean(vals)
+    mean_diff = [abs(vals[i] - mean_val) for i in range(len(vals))]
     return mean(mean_diff)
 
 ##############################################################################
@@ -62,10 +62,10 @@ class Pinger(threading.Thread):
         '''
         if self.values_available == 0:
             return [0.0, 0.0, 0.0, 0.0]
-        latency_stats = [min(self.latency_stats[:self.values_available]),
-                         mean(self.latency_stats[:self.values_available]),
-                         min(self.latency_stats[:self.values_available]),
-                         mdev(self.latency_stats[:self.values_available])]
+        latency_stats = [min(self.buffer[:self.values_available]),
+                         mean(self.buffer[:self.values_available]),
+                         max(self.buffer[:self.values_available]),
+                         mdev(self.buffer[:self.values_available])]
         return latency_stats
 
     def run(self):

@@ -62,6 +62,10 @@ class WatcherThread(threading.Thread):
                 ping_key = hub_api.create_rocon_gateway_key(name, ':ping')
                 expiration_time = self.hub._redis_server.ttl(ping_key)
 
+                if expiration_time is None:
+                    # Probably in the process of starting up, ignore for now
+                    continue
+
                 seconds_since_last_seen = \
                         ConnectionStatistics.MAX_TTL - expiration_time
                 # Check if gateway gone for low timeout (unavailable)
