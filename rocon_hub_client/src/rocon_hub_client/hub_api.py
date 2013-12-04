@@ -69,11 +69,12 @@ def ping_hub(ip, port):
       Pings the hub for identification. This is currently used
       by the hub discovery module.
 
-      @return Bool
+      @return Bool, Latency
     '''
     try:
         r = redis.Redis(host=ip, port=port)
         name = r.get("rocon:hub:name")
+
     except redis.exceptions.ConnectionError:
         return False
     if name is None:  # returns None if the server was there, but the key was not found.

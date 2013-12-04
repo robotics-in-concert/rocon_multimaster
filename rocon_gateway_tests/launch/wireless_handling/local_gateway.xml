@@ -6,6 +6,7 @@
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway_tests)/param/wireless_handling/flip_talker.yaml" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <rosparam command="load" file="$(find rocon_app_manager)/param/app_manager_advertisements.yaml" />
     <rosparam param="hub_uri">http://localhost:6380</rosparam>
     <rosparam param="name">local_gateway</rosparam>
     <rosparam param="firewall">false</rosparam>
