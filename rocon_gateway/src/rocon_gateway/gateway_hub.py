@@ -358,26 +358,26 @@ class GatewayHub(rocon_hub_client.Hub):
 
             # Gateway network connection indicators
             network_info_available_key = hub_api.create_rocon_gateway_key(gateway, 'network:info_available')
-            remote_gateway.network_info_available = \
+            remote_gateway.conn_stats.network_info_available = \
                     self._parse_redis_bool(self._redis_server.get(network_info_available_key))
-            if not remote_gateway.network_info_available:
+            if not remote_gateway.conn_stats.network_info_available:
                 return remote_gateway
             network_type_key = hub_api.create_rocon_gateway_key(gateway, 'network:type')
             remote_gateway.conn_stats.network_type = \
                     self._parse_redis_int(self._redis_server.get(network_type_key))
-            if remote_gateway.network_type == gateway_msgs.RemoteGateway.WIRED:
+            if remote_gateway.conn_stats.network_type == gateway_msgs.RemoteGateway.WIRED:
                 return remote_gateway
             wireless_bitrate_key = hub_api.create_rocon_gateway_key(gateway, 'wireless:bitrate')
-            remote_gateway.wireless_bitrate = \
+            remote_gateway.conn_stats.wireless_bitrate = \
                     self._parse_redis_float(self._redis_server.get(wireless_bitrate_key))
             wireless_link_quality_key = hub_api.create_rocon_gateway_key(gateway, 'wireless:quality')
-            remote_gateway.wireless_link_quality = \
+            remote_gateway.conn_stats.wireless_link_quality = \
                     self._parse_redis_int(self._redis_server.get(wireless_link_quality_key))
             wireless_signal_level_key = hub_api.create_rocon_gateway_key(gateway, 'wireless:signal_level')
-            remote_gateway.wireless_signal_level = \
+            remote_gateway.conn_stats.wireless_signal_level = \
                     self._parse_redis_float(self._redis_server.get(wireless_signal_level_key))
             wireless_noise_level_key = hub_api.create_rocon_gateway_key(gateway, 'wireless:noise_level')
-            remote_gateway.wireless_noise_level = \
+            remote_gateway.conn_stats.wireless_noise_level = \
                     self._parse_redis_float(self._redis_server.get(wireless_noise_level_key))
             return remote_gateway
 
