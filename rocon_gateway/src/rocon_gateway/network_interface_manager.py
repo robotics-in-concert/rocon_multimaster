@@ -18,6 +18,7 @@ from gateway_msgs.msg import ConnectionStatistics
 # Thread
 ###############################################################################
 
+
 class NetworkInterfaceManager(object):
     '''
       Uses netifaces and pythonwifi to pull information about the network
@@ -32,10 +33,9 @@ class NetworkInterfaceManager(object):
         self.interface_name, self.interface_type = \
                 self.detect_network_interface(interface_name)
 
-
     def detect_network_interface(self, interface_name=''):
         '''
-          Auto detects the network interface is none is supplied. If one is 
+          Auto detects the network interface is none is supplied. If one is
           supplied, this function verifies that the interface is connected.
 
           @return interface_name, interface_type : if detected succesfully,
@@ -51,13 +51,13 @@ class NetworkInterfaceManager(object):
 
         # Detect wired network interfaces. This command also detects wireless
         # ones. Don't add them again
-        for inf in netifaces.interfaces():                                               
+        for inf in netifaces.interfaces():
             if inf in pythonwifi.getWNICnames():
                 continue
-            addrs = netifaces.ifaddresses(inf)                                           
-            if not netifaces.AF_INET in addrs:                                           
-                continue                                                                 
-            else:                                                                        
+            addrs = netifaces.ifaddresses(inf)
+            if not netifaces.AF_INET in addrs:
+                continue
+            else:
                 address = addrs[netifaces.AF_INET][0]['addr']
                 if address.split('.')[0] == '127':
                     continue
@@ -77,14 +77,14 @@ class NetworkInterfaceManager(object):
                     "send network information to hub.")
             return None, None
         elif len(interfaces) > 1:
-            rospy.logerr("This machine is connected via multiple active " + 
-                    "interfaces. Detected: " + str(interfaces) + ". Please " +  
-                    "select a single interface using the network_interface " + 
+            rospy.logerr("This machine is connected via multiple active " +
+                    "interfaces. Detected: " + str(interfaces) + ". Please " +
+                    "select a single interface using the network_interface " +
                     "param. Cannot send network information to hub.")
             return None, None
 
         return interfaces[0][0], interfaces[0][1]
-    
+
     def get_statistics(self):
         '''
           If the network interface manager is aware of which network interface
@@ -107,7 +107,7 @@ class NetworkInterfaceManager(object):
         try:
             wifi = pythonwifi.Wireless(self.interface_name)
             gateway_statistics.wireless_bitrate = \
-                    float(wifi.wireless_info.getBitrate().value) #Raw bitrate
+                    float(wifi.wireless_info.getBitrate().value)  # Raw bitrate
             _, qual, _, _ = wifi.getStatistics()
         except IOError as e:
             rospy.logwarn("Looks like the wireless dropped out. I won't " +
