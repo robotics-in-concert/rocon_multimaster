@@ -22,3 +22,7 @@ class ResourceNotFoundException(IOError):
       Resource Not Found Exception
     """
     pass
+
+
+class InvalidPlatformInfoString(Exception):
+    pass

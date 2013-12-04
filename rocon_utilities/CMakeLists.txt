@@ -18,8 +18,9 @@ catkin_add_env_hooks(15.roconbash SHELLS bash tcsh zsh DIRECTORY ${CMAKE_CURRENT
 # Tests
 ##############################################################################
 
-add_rostest(test/test_utilities.launch)
-#catkin_add_nosetests(test)
+if (CATKIN_ENABLE_TESTING)
+  add_subdirectory(tests)
+endif()
 
 ##############################################################################
 # Installs

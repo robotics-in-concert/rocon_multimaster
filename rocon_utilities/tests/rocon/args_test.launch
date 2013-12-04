@@ -1,4 +1,5 @@
 <launch>
+  <!-- This needs conversion into a proper rocon_test and added to CMakeLists.txt -->
   <arg name="dude" default="bruce"/>
   <node pkg="rocon_utilities" type="args_test.py" name="$(arg dude)"  output="screen">
     <param name="dude" value="$(arg dude)"/>\n
