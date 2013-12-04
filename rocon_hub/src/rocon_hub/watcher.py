@@ -8,9 +8,11 @@
 # Imports
 ##############################################################################
 
+from gateway_msgs.msg import ConnectionStatistics
 from rocon_gateway import gateway_hub
 from rocon_hub_client import hub_api
 from rocon_utilities import WallRate
+
 
 import rocon_hub_client
 import rospy
@@ -51,21 +53,17 @@ class WatcherThread(threading.Thread):
         rate = WallRate(self.watcher_thread_rate)
         while True:
             remote_gateway_names = self.hub.list_remote_gateway_names()
-            current_time, _ = self.hub._redis_server.time()
             
             # Check all pingers
             for name in remote_gateway_names:
 
                 gateway_key = hub_api.create_rocon_key(name)
                 # Get time for this gateway when hub was last seen
-                gateway_server_time_key = \
-                        hub_api.create_rocon_gateway_key(name, 
-                                ':seen_at_server_time')
-                gateway_time = \
-                        self._parse_redis_int(
-                            self._redis_server.get(gateway_server_time_key))
+                ping_key = hub_api.create_rocon_gateway_key(name, ':ping')
+                expiration_time = self.hub._redis_server.ttl(ping_key)
 
-                seconds_since_last_seen = current_time - gateway_time
+                seconds_since_last_seen = \
+                        ConnectionStatistics.MAX_TTL - expiration_time
                 # Check if gateway gone for low timeout (unavailable)
                 if seconds_since_last_seen > self.gateway_unavailable_timeout:
                     if name not in self.unavailable_gateways:

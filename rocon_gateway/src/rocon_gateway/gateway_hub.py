@@ -173,6 +173,11 @@ class GatewayHub(rocon_hub_client.Hub):
         self.hub_connection_checker_thread = HubConnectionCheckerThread(self.ip, self.port, self._hub_connection_lost_hook)
         self.hub_connection_checker_thread.start()
 
+        # Let hub know we are alive
+        ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
+        self._redis_server.set(ping_key, True)
+        self._redis_server.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
+
     def _hub_connection_lost_hook(self):
         '''
           This gets triggered by the redis pubsub listener when the hub connection is lost.
@@ -232,9 +237,9 @@ class GatewayHub(rocon_hub_client.Hub):
         self.update_named_gateway_latency_stats(self._unique_gateway_name, latency)
 
         # Let hub know that we are alive
-        seen_at_server_time_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':seen_at_server_time')
-        seconds, _ = self._redis_server.time()
-        self._redis_server.set(seen_at_server_time_key, seconds)
+        ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
+        self._redis_server.set(ping_key, True)
+        self._redis_server.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
 
     def unregister_named_gateway(self, gateway_key):
         '''
