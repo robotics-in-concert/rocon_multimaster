@@ -266,7 +266,7 @@ class HubManager(object):
           Publish network statistics to every hub this gateway is connected to.
 
           @param statistics
-          @type gateway_msgs.RemoteGateway
+          @type gateway_msgs.ConnectionStatistics
         '''
         self._hub_lock.acquire()
         for hub in self.hubs:

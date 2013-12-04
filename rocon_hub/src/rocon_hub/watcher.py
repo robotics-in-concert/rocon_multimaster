@@ -14,76 +14,12 @@ from rocon_utilities import WallRate
 
 import rocon_hub_client
 import rospy
-import subprocess
 import sys
 import threading
-import time
-
-##############################################################################
-# Helpers
-##############################################################################
-
-
-class Pinger(threading.Thread):
-
-    def __init__(self, ip, ping_frequency=0.2,
-                 unavailable_timeout=30.0, dead_timeout=7200.0):
-
-        threading.Thread.__init__(self)
-        self.daemon = True
-
-        self.ip = ip
-        self.ping_frequency = ping_frequency
-        self.time_last_seen = time.time()
-        self.unavailable_timeout = unavailable_timeout
-        self.dead_timeout = dead_timeout
-
-        # Format is min, avg, max, mean deviation
-        self.latency_stats = [0.0, 0.0, 0.0, 0.0]
-
-    def is_unavailable(self):
-        return time.time() - self.time_last_seen > self.unavailable_timeout
-
-    def is_dead(self):
-        return time.time() - self.time_last_seen > self.dead_timeout
-
-    def get_time_since_last_seen(self):
-        return time.time() - self.time_last_seen
-
-    def get_latency(self):
-        '''
-          Latency states are returned as list of 4 values
-          [min,avg,max,mean deviation]
-        '''
-        return self.latency_stats
-
-    def run(self):
-        rate = WallRate(self.ping_frequency)
-        while True:
-            # In case of failure, this call will take approx 10s
-            try:
-                # Send 5 pings at an interval of 0.2s
-                output = subprocess.check_output("ping -c 5 -i 0.2 %s" % self.ip,
-                                         shell=True, stderr=subprocess.STDOUT)
-                self.time_last_seen = time.time()
-                try:
-                    parsed_output = \
-                            output.splitlines()[-1].split(' ')[3].split('/')
-                    self.latency_stats = [float(x) for x in parsed_output]
-                except (KeyError, ValueError) as e:
-                    # Had one occasion when something was wrong with ping output
-                    rospy.logwarn("Unable to update latency statistics from " +
-                                  self.ip + ". Error parsing ping output: " +
-                                  str(e))
-            except subprocess.CalledProcessError:
-                # Ping failed. Do not update time last seen
-                pass
-            rate.sleep()
 
 ##############################################################################
 # Main watcher thread
 ##############################################################################
-
 
 class WatcherThread(threading.Thread):
 
@@ -102,7 +38,6 @@ class WatcherThread(threading.Thread):
         except rocon_hub_client.HubError as e:
             rospy.logfatal("HubWatcher: Unable to connect to hub: %s" % str(e))
             sys.exit(-1)
-        self.pingers = {}
         self.unavailable_gateways = []
 
     def run(self):
@@ -116,28 +51,23 @@ class WatcherThread(threading.Thread):
         rate = WallRate(self.watcher_thread_rate)
         while True:
             remote_gateway_names = self.hub.list_remote_gateway_names()
-
-            # Add new pingers
-            new_gateways = [x for x in remote_gateway_names
-                            if x not in self.pingers]
-            for gateway in new_gateways:
-                gateway_info = self.hub.remote_gateway_info(gateway)
-                self.pingers[gateway] = Pinger(gateway_info.ip,
-                                               self.gateway_ping_frequency,
-                                               self.gateway_unavailable_timeout,
-                                               self.gateway_dead_timeout)
-                self.pingers[gateway].start()
-            remove_pingers = [x for x in self.pingers
-                              if x not in remote_gateway_names]
-            for pinger in remove_pingers:
-                del self.pingers[pinger]
-
+            current_time, _ = self.hub._redis_server.time()
+            
             # Check all pingers
-            for name, pinger in self.pingers.iteritems():
-                gateway_key = hub_api.create_rocon_key(name)
+            for name in remote_gateway_names:
 
-                # Check if gateway gone for low timeout
-                if pinger.is_unavailable():
+                gateway_key = hub_api.create_rocon_key(name)
+                # Get time for this gateway when hub was last seen
+                gateway_server_time_key = \
+                        hub_api.create_rocon_gateway_key(name, 
+                                ':seen_at_server_time')
+                gateway_time = \
+                        self._parse_redis_int(
+                            self._redis_server.get(gateway_server_time_key))
+
+                seconds_since_last_seen = current_time - gateway_time
+                # Check if gateway gone for low timeout (unavailable)
+                if seconds_since_last_seen > self.gateway_unavailable_timeout:
                     if name not in self.unavailable_gateways:
                         rospy.logwarn("HubWatcherThread: Gateway " + name +
                                       " has been unavailable for " +
@@ -145,21 +75,18 @@ class WatcherThread(threading.Thread):
                                       " seconds! Marking as unavailable.")
                         self.unavailable_gateways.append(name)
                     self.hub.mark_named_gateway_available(gateway_key, False,
-                             pinger.get_time_since_last_seen())
+                             seconds_since_last_seen)
                 else:
                     if name in self.unavailable_gateways:
                         self.unavailable_gateways.remove(name)
-                    self.hub.update_named_gateway_latency_stats(name,
-                             pinger.get_latency())
-                    self.hub.mark_named_gateway_available(gateway_key, True)
+                    self.hub.mark_named_gateway_available(gateway_key, True,
+                             seconds_since_last_seen)
 
-                # Check if gateway gone for high timeout
-                if pinger.is_dead():
+                # Check if gateway gone for high timeout (dead)
+                if seconds_since_last_seen > self.gateway_dead_timeout:
                     rospy.logwarn("HubWatcherThread: Gateway " + name +
                                   " has been unavailable for " +
                                   str(self.gateway_dead_timeout) +
                                   " seconds! Removing from hub.")
-                    # This should automatically remove the pinger in the next
-                    # iteration
                     self.hub.unregister_named_gateway(gateway_key)
             rate.sleep()

@@ -12,7 +12,7 @@ import netifaces
 import pythonwifi.iwlibs as pythonwifi
 import rospy
 
-from gateway_msgs.msg import RemoteGateway
+from gateway_msgs.msg import ConnectionStatistics
 
 ###############################################################################
 # Thread
@@ -47,7 +47,7 @@ class NetworkInterfaceManager(object):
 
         # Detect wireless interfaces first
         for interface in pythonwifi.getWNICnames():
-            interfaces.append((interface, RemoteGateway.WIRELESS))
+            interfaces.append((interface, ConnectionStatistics.WIRELESS))
 
         # Detect wired network interfaces. This command also detects wireless
         # ones. Don't add them again
@@ -61,7 +61,7 @@ class NetworkInterfaceManager(object):
                 address = addrs[netifaces.AF_INET][0]['addr']
                 if address.split('.')[0] == '127':
                     continue
-                interfaces.append((inf, RemoteGateway.WIRED))
+                interfaces.append((inf, ConnectionStatistics.WIRED))
 
         for interface in interfaces:
             if interface[0] == interface_name:
@@ -92,16 +92,16 @@ class NetworkInterfaceManager(object):
           for that interface
 
           @return network_statistics
-          @rtype gateway_msgs.RemoteGateway
+          @rtype gateway_msgs.ConnectionStatistics
         '''
 
-        gateway_statistics = RemoteGateway()
+        gateway_statistics = ConnectionStatistics()
         if not self.interface_name:
             gateway_statistics.network_info_available = False
             return gateway_statistics
         gateway_statistics.network_info_available = True
         gateway_statistics.network_type = self.interface_type
-        if self.interface_type == RemoteGateway.WIRED:
+        if self.interface_type == ConnectionStatistics.WIRED:
             return gateway_statistics
 
         try:
