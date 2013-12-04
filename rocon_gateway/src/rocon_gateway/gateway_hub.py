@@ -337,7 +337,7 @@ class GatewayHub(rocon_hub_client.Hub):
             
             # Gateway health/network connection statistics indicators
             gateway_available_key = hub_api.create_rocon_gateway_key(gateway, 'available')
-            remote_gateway.conn_stats_gateway_available = \
+            remote_gateway.conn_stats.gateway_available = \
                     self._parse_redis_bool(self._redis_server.get(gateway_available_key))
             time_since_last_seen_key = hub_api.create_rocon_gateway_key(gateway, 'time_since_last_seen')
             remote_gateway.conn_stats.time_since_last_seen = \
