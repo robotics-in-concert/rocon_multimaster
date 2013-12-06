@@ -26,14 +26,15 @@ from .exceptions import GatewayUnavailableError
 # Redis Connection Checker
 ##############################################################################
 
+
 class HubConnectionCheckerThread(threading.Thread):
     '''
       Pings redis periodically to figure out if redis is still alive.
     '''
     def __init__(self, ip, port, hub_connection_lost_hook):
         threading.Thread.__init__(self)
-        self.daemon = True # clean shut down of thread when hub connection is lost
-        self.ping_frequency = 0.2 # Too spammy? # TODO Need to parametrize
+        self.daemon = True  # clean shut down of thread when hub connection is lost
+        self.ping_frequency = 0.2  # Too spammy? # TODO Need to parametrize
         self._hub_connection_lost_hook = hub_connection_lost_hook
         self.ip = ip
         self.port = port
@@ -43,6 +44,8 @@ class HubConnectionCheckerThread(threading.Thread):
         return self.pinger.get_latency()
 
     def run(self):
+        # This runs in the background to gather the latest connection statistics
+        # Note - it's not used in the keep alive check
         self.pinger.start()
         rate = rocon_utilities.WallRate(self.ping_frequency)
         alive = True
@@ -54,6 +57,7 @@ class HubConnectionCheckerThread(threading.Thread):
 ###############################################################################
 # Redis Callback Handler
 ##############################################################################
+
 
 class RedisListenerThread(threading.Thread):
     '''
@@ -220,6 +224,16 @@ class GatewayHub(rocon_hub_client.Hub):
                 return
             network_type = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'network:type')
             self._redis_server.set(network_type, statistics.network_type)
+            # Let hub know that we are alive - even for wired connections. Perhaps something can
+            # go wrong for them too, though no idea what. Anyway, writing one entry is low cost
+            # and it makes the logic easier on the hub side.
+            ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
+            self._redis_server.set(ping_key, True)
+            self._redis_server.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
+            # Update latency statistics
+            latency = self.hub_connection_checker_thread.get_latency()
+            self.update_named_gateway_latency_stats(self._unique_gateway_name, latency)
+            # If wired, don't worry about wireless statistics.
             if statistics.network_type == gateway_msgs.RemoteGateway.WIRED:
                 return
             wireless_bitrate_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'wireless:bitrate')
@@ -232,15 +246,6 @@ class GatewayHub(rocon_hub_client.Hub):
             self._redis_server.set(wireless_noise_level, statistics.wireless_noise_level)
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
             rospy.logerr("Gateway: Unable to update network interface information")
-
-        # Update latency statistics
-        latency = self.hub_connection_checker_thread.get_latency()
-        self.update_named_gateway_latency_stats(self._unique_gateway_name, latency)
-
-        # Let hub know that we are alive
-        ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
-        self._redis_server.set(ping_key, True)
-        self._redis_server.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
 
     def unregister_named_gateway(self, gateway_key):
         '''

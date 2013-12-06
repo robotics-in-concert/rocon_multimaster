@@ -53,7 +53,7 @@ class WatcherThread(threading.Thread):
         rate = WallRate(self.watcher_thread_rate)
         while True:
             remote_gateway_names = self.hub.list_remote_gateway_names()
-            
+
             # Check all pingers
             for name in remote_gateway_names:
 

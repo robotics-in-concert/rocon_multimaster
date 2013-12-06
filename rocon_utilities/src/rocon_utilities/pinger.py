@@ -1,9 +1,7 @@
-#!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_hub/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
-
 ##############################################################################
 # Imports
 ##############################################################################
@@ -19,8 +17,10 @@ import time
 # Helper class
 ##############################################################################
 
+
 def mean(vals):
     return sum(vals) / len(vals)
+
 
 def mdev(vals):
     mean_val = mean(vals)
@@ -30,6 +30,7 @@ def mdev(vals):
 ##############################################################################
 # Pinger class
 ##############################################################################
+
 
 class Pinger(threading.Thread):
     '''
