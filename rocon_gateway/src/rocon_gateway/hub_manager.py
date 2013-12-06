@@ -1,7 +1,7 @@
 #!/usr/bin/env pythonupdate
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro_devel/hub_manager/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 ###############################################################################
 # Imports
