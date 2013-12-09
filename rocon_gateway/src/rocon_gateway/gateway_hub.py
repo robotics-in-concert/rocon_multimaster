@@ -191,6 +191,7 @@ class GatewayHub(rocon_hub_client.Hub):
         '''
         self.connection_lost_lock.acquire()
         if self._hub_connection_lost_gateway_hook is not None:
+            rospy.loginfo("Gateway : Lost connection with hub. Attempting to disconnect...")
             self._hub_connection_lost_gateway_hook(self)
             self._hub_connection_lost_gateway_hook = None
         self.connection_lost_lock.release()
