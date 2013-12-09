@@ -12,7 +12,7 @@ import rocon_std_msgs.msg as rocon_std_msgs
 from .exceptions import InvalidPlatformInfoString
 
 ##############################################################################
-# Resources
+# Conversions
 ##############################################################################
 
 
@@ -52,6 +52,46 @@ def to_msg(platform_info_string_tuple):
     msg.platform = platform_info_tuple_list[3]
     msg.name = platform_info_tuple_list[4]
     return msg
+
+##############################################################################
+# Setters
+##############################################################################
+
+
+def set_name(platform_info_string_tuple, name):
+    '''
+      Replaces the name part of the tuple with the provided name.
+
+      @param platform_info_string_tuple
+      @type string
+
+      @param name
+      @type string
+    '''
+    # Check for valid name
+    (platform_part, unused_separator, unused_name) = platform_info_string_tuple.rpartition('.')
+    return platform_part + '.' + name
+
+##############################################################################
+# Validation
+##############################################################################
+
+
+def is_valid(platform_info_string_tuple):
+    '''
+      Make various checks to ensure the string tuple is valid.
+
+      @param platform_info_string_tuple
+      @type string
+    '''
+    # Check for correct number of fields
+    # Check for no illegal characters
+    # Check for correct regular expression wildcard combinations
+    return True
+
+##############################################################################
+# Matching
+##############################################################################
 
 
 def matches(platform_info_a, platform_info_b):
@@ -97,17 +137,17 @@ def matches(platform_info_a, platform_info_b):
     return True
 
 
-def string_matches(platform_info_a, platform_info_b):
+def string_matches(platform_info_a_string_tuple, platform_info_b_string_tuple):
     '''
       A tuple string equivalent of the matches command.
 
-      @param platform_info_a in tuple string format.
+      @param platform_info_a_string_tuple
       @type string
 
-      @param platform_info_b in tuple string format.
+      @param platform_info_b_string_tuple
       @type string
 
       @result true if the first argument matches the second's specification
       @rtype boolean
     '''
-    return matches(to_msg(platform_info_a), to_msg(platform_info_b))
+    return matches(to_msg(platform_info_a_string_tuple), to_msg(platform_info_b_string_tuple))
