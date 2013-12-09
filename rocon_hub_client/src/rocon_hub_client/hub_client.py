@@ -1,7 +1,7 @@
-#!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_hub_client/LICENSE
+#
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 ###############################################################################
 # Imports
@@ -101,7 +101,7 @@ class Hub(object):
           will hang all open connections indefinitely
         '''
         self._redis_server.connection_pool.disconnect()
-    
+
     def __eq__(self, other):
         return self.uri == other.uri
 

@@ -30,13 +30,16 @@ class HubDiscovery(threading.Thread):
     '''
       Used to discover hubs via zeroconf.
     '''
-    def __init__(self, external_discovery_update_hook, direct_hub_uri_list=[], disable_zeroconf=False):
+    def __init__(self, external_discovery_update_hook, direct_hub_uri_list=[], disable_zeroconf=False, blacklisted_hubs={}):
         '''
           @param external_discovery_update is a callback function that takes action on a discovery
           @type gateway_node.register_gateway(ip, port)
 
           @param direct_hub_uri_list : list of uri's to hubs (e.g. http://localhost:6380
           @type list of uri
+
+          @param disallowed_hubs
+          @type # 'ip:port' : (error_code, error_code_str) dictionary of hubs that have been blacklisted (maintained by manager of this class)
         '''
         threading.Thread.__init__(self)
         self.discovery_update_hook = external_discovery_update_hook
@@ -45,6 +48,7 @@ class HubDiscovery(threading.Thread):
         self._direct_hub_uri_list = direct_hub_uri_list
         self._direct_discovered_hubs = []
         self._zeroconf_services_available = False if disable_zeroconf else _zeroconf_services_available()
+        self._blacklisted_hubs = blacklisted_hubs
         if self._zeroconf_services_available:
             self._discovery_request = zeroconf_srvs.ListDiscoveredServicesRequest()
             self._discovery_request.service_type = HubDiscovery.gateway_hub_service
@@ -75,10 +79,10 @@ class HubDiscovery(threading.Thread):
           Note that the zeroconf service is persistent. Alternatively we could use the zeroconf
           subscriber to be a wee bit more efficient.
         '''
-        half_sec = 0.5 # rospy.Duration(0, 500000000)
+        half_sec = 0.5  # rospy.Duration(0, 500000000)
         self._loop_period = half_sec
         self._internal_sleep_period = half_sec
-        self._last_loop_timestamp = time.time() # rospy.Time.now()
+        self._last_loop_timestamp = time.time()  # rospy.Time.now()
         while not rospy.is_shutdown() and not self._trigger_shutdown:
             self._discovered_hubs_modification_mutex.acquire()
             # Zeroconf scanning
@@ -86,10 +90,12 @@ class HubDiscovery(threading.Thread):
                 new_services, unused_lost_services = self._zeroconf_scan()
                 for service in new_services:
                     (ip, port) = _resolve_address(service)
-                    rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
-                    result, _ = self.discovery_update_hook(ip, port)
-                    if result == ErrorCodes.SUCCESS or result == ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS:
-                        self._zeroconf_discovered_hubs.append(service)
+                    service_uri = str(ip) + ':' + str(port)
+                    if service_uri not in self._blacklisted_hubs.keys():
+                        rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
+                        result, _ = self.discovery_update_hook(ip, port)
+                        if result == ErrorCodes.SUCCESS or result == ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS:
+                            self._zeroconf_discovered_hubs.append(service)
                 # Direct scanning
             new_hubs, unused_lost_hubs = self._direct_scan()
             for hub_uri in new_hubs:

@@ -59,7 +59,7 @@ class GatewayNode():
                                              gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND
                                             ]
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
-        self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'])
+        self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'], self._disallowed_hubs)
 
         # Shutdown hooks - allowing external triggers for shutting down
         if self._param['external_shutdown']:

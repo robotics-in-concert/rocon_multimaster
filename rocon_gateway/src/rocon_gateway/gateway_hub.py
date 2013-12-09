@@ -1,6 +1,6 @@
-#!/usr/bin/env python
 #
 # License: BSD
+#
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 ###############################################################################
@@ -66,7 +66,7 @@ class RedisListenerThread(threading.Thread):
     '''
     def __init__(self, redis_pubsub_server, remote_gateway_request_callbacks, hub_connection_lost_hook):
         threading.Thread.__init__(self)
-        self.daemon = True # clean shut down of thread when hub connection is lost
+        self.daemon = True  # clean shut down of thread when hub connection is lost
         self._redis_pubsub_server = redis_pubsub_server
         self._remote_gateway_request_callbacks = remote_gateway_request_callbacks
         self._hub_connection_lost_hook = hub_connection_lost_hook
