@@ -2,6 +2,9 @@
 Changelog for package rocon_gateway_tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.6.1 (2013-09-11)
 ------------------
 

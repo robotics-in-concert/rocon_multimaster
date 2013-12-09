@@ -2,6 +2,9 @@
 Changelog for package rocon_multimaster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.6.1 (2013-09-11)
 ------------------
 

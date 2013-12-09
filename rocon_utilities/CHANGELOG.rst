@@ -2,6 +2,10 @@
 Changelog for package rocon_utilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add missing installs for tcsh and zsch environment rules.
+
 0.6.1 (2013-09-11)
 ------------------
 * unreliable fix for determining gateway basenames.
