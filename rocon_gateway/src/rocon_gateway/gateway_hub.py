@@ -177,6 +177,7 @@ class GatewayHub(rocon_hub_client.Hub):
         self.remote_gateway_listener_thread.start()
         self.hub_connection_checker_thread = HubConnectionCheckerThread(self.ip, self.port, self._hub_connection_lost_hook)
         self.hub_connection_checker_thread.start()
+        self.connection_lost_lock = threading.Lock()
 
         # Let hub know we are alive
         ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
@@ -188,8 +189,11 @@ class GatewayHub(rocon_hub_client.Hub):
           This gets triggered by the redis pubsub listener when the hub connection is lost.
           The trigger is passed to the gateway who needs to remove the hub.
         '''
+        self.connection_lost_lock.acquire()
         if self._hub_connection_lost_gateway_hook is not None:
             self._hub_connection_lost_gateway_hook(self)
+            self._hub_connection_lost_gateway_hook = None
+        self.connection_lost_lock.release()
 
     def unregister_gateway(self):
         '''
