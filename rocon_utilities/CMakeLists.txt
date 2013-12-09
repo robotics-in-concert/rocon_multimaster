@@ -26,7 +26,7 @@ endif()
 # Installs
 ##############################################################################
 
-install(FILES roconbash DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(FILES roconbash rocontcsh roconzsh DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 install(PROGRAMS scripts/example_slave_api
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
