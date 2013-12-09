@@ -41,10 +41,10 @@ firewall: false
 # Note that the pull_all, flip_all default rules negate any 
 # other default rules for the targeted gateways.
 #
-# default_advertisements: 
-#    - name: /chatter
-#      node: None
-#      type: publisher
+default_advertisements: 
+   - name: /advertised_chatter_from_local
+     node: None
+     type: publisher
 #    - name: /chat.*
 #      node: None
 #      type: subscriber
@@ -54,7 +54,7 @@ default_flips:
 #    - gateway: pirate_gateway       # flip to a specific rule to a gateway
     - gateway: remote_gateway       # flip_all to this gateway, blacklist is only the default_blacklist 
       rule:  
-        name: /chatter
+        name: /flipped_chatter_from_local
         node: None
         type: publisher
 #    - gateway: pirate_.*            # regex can be used for the rule too
@@ -63,14 +63,14 @@ default_flips:
 #        node: None
 #        type: subscriber
 #
-# default_pulls:
+default_pulls:
 #    - gateway: pirate_gateway 
 #    - gateway: pirate_.* 
-#    - gateway: pirate_gateway
-#      rule:  
-#        name: /chatter
-#        node: None
-#        type: publisher
+   - gateway: remote_gateway
+     rule:  
+       name: /advertised_chatter_from_remote
+       node: None
+       type: publisher
 #    - gateway: pirate_.*
 #      rule:  
 #        name: /chat.*

@@ -1,7 +1,7 @@
-
 <launch>
+
   <include file="$(find rocon_gateway_tests)/launch/common/primary_hub.xml"/>
-  <include file="$(find rocon_gateway_tests)/launch/wireless_handling/local_gateway.xml"/>
+  <include file="$(find rocon_gateway_tests)/launch/wireless_handling/local_client.xml"/>
 
   <!-- app manager -->
   <arg name="robot_name" default="local_client"/>

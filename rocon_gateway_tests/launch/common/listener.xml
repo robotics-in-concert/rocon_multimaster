@@ -1,3 +1,14 @@
 <launch>
-  <node pkg="roscpp_tutorials" type="listener" name="listener"/>
+
+  <arg name="topic" default="chatter" />
+  <arg name="anonymize" default="false" />
+
+  <node if="$(arg anonymize)" pkg="roscpp_tutorials" type="listener" name="$(anon listener)">
+    <remap from="chatter" to="$(arg topic)" />
+  </node>
+
+  <node unless="$(arg anonymize)" pkg="roscpp_tutorials" type="listener" name="listener">
+    <remap from="chatter" to="$(arg topic)" />
+  </node>
+
 </launch>
