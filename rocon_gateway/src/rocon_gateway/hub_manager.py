@@ -99,7 +99,8 @@ class HubManager(object):
             if remote_gateway_name in hub.list_remote_gateway_names():
                 # I don't think we need more than one hub's info....
                 remote_gateway_info = hub.remote_gateway_info(remote_gateway_name)
-                break
+                if remote_gateway_info is not None:
+                    break
         self._hub_lock.release()
         return remote_gateway_info
 

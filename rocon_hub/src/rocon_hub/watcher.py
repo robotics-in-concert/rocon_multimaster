@@ -67,7 +67,7 @@ class WatcherThread(threading.Thread):
                     continue
 
                 seconds_since_last_seen = \
-                        ConnectionStatistics.MAX_TTL - expiration_time
+                        int(ConnectionStatistics.MAX_TTL - expiration_time)
                 # Check if gateway gone for low timeout (unavailable)
                 if seconds_since_last_seen > self.gateway_unavailable_timeout:
                     if name not in self.unavailable_gateways:
