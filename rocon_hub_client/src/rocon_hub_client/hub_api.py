@@ -10,6 +10,8 @@
 import redis
 import re
 
+from .hub_client import HubConnection
+
 ###############################################################################
 # Utility Functions
 ###############################################################################
@@ -72,7 +74,9 @@ def ping_hub(ip, port):
       @return Bool, Latency
     '''
     try:
-        r = redis.Redis(host=ip, port=port)
+        connection_pool = redis.ConnectionPool(host=ip, port=port,
+                                               connection_class=HubConnection)
+        r = redis.Redis(connection_pool=connection_pool)
         name = r.get("rocon:hub:name")
 
     except redis.exceptions.ConnectionError:

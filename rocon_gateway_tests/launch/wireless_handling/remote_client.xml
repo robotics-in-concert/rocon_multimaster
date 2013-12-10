@@ -4,8 +4,8 @@
 <launch>
   <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"/>
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
-    <rosparam command="load" file="$(find rocon_gateway_tests)/param/wireless_handling/remote_gateway.yaml" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <rosparam command="load" file="$(find rocon_app_manager)/param/app_manager_advertisements.yaml" />
     <rosparam param="hub_uri">http://10.0.0.2:6380</rosparam>
     <rosparam param="name">remote_gateway</rosparam>
     <rosparam param="firewall">false</rosparam>

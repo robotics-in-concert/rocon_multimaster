@@ -3,5 +3,25 @@
  -->
 <launch>
   <include file="$(find rocon_gateway_tests)/launch/wireless_handling/remote_gateway.xml"/>
-  <include file="$(find rocon_gateway_tests)/launch/common/listener.xml"/>
+  
+  <include file="$(find rocon_gateway_tests)/launch/common/talker.xml">
+    <arg name="anonymize" value="true" />
+    <arg name="topic" value="advertised_chatter_from_remote" />
+  </include>
+
+  <include file="$(find rocon_gateway_tests)/launch/common/talker.xml">
+    <arg name="anonymize" value="true" />
+    <arg name="topic" value="flipped_chatter_from_remote" />
+  </include>
+
+  <include file="$(find rocon_gateway_tests)/launch/common/listener.xml">
+    <arg name="anonymize" value="true" />
+    <arg name="topic" value="advertised_chatter_from_local" />
+  </include>
+
+  <include file="$(find rocon_gateway_tests)/launch/common/listener.xml">
+    <arg name="anonymize" value="true" />
+    <arg name="topic" value="flipped_chatter_from_local" />
+  </include>
+
 </launch>

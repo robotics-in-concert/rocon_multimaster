@@ -2,7 +2,7 @@
   Fires up the hub, gateway and a talker. We need to flip the talker.
  -->
 <launch>
-  <include file="$(find rocon_gateway_tests)/launch/wireless_handling/remote_gateway.xml"/>
+  <include file="$(find rocon_gateway_tests)/launch/wireless_handling/remote_client.xml"/>
   <!-- app manager -->
   <arg name="robot_name" default="local_client"/>
   <arg name="robot_type" default="pc"/>

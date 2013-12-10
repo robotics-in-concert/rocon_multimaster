@@ -100,7 +100,13 @@ class Hub(object):
           necessary if the server is out of range, as the py-redis client
           will hang all open connections indefinitely
         '''
-        self._redis_server.connection_pool.disconnect()
+        try:
+            self._redis_server.connection_pool.disconnect()
+        except AttributeError:
+            # Disconnecting individual connection takes some time. This
+            # exception is raised when disconnect is called on 2 connections
+            # simultaneously. The redis Connection object is not thread-safe
+            pass
 
     def __eq__(self, other):
         return self.uri == other.uri
