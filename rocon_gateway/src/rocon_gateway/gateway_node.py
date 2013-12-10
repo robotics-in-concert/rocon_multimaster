@@ -218,6 +218,8 @@ class GatewayNode():
         return response
 
     def _publish_gateway_info(self):
+        if self._gateway is None:
+            return  # not everything initialised yet
         gateway_info = gateway_msgs.GatewayInfo()
         gateway_info.name = self._unique_name
         gateway_info.ip = self._gateway.ip
