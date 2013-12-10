@@ -299,7 +299,7 @@ class GatewayHub(rocon_hub_client.Hub):
         available_key = gateway_key + ":available"
         self._redis_server.set(available_key, available)
         time_since_last_seen_key = gateway_key + ":time_since_last_seen"
-        self._redis_server.set(time_since_last_seen_key, time_since_last_seen)
+        self._redis_server.set(time_since_last_seen_key, int(time_since_last_seen))
 
     ##########################################################################
     # Hub Data Retrieval
@@ -347,7 +347,7 @@ class GatewayHub(rocon_hub_client.Hub):
                     self._parse_redis_bool(self._redis_server.get(gateway_available_key))
             time_since_last_seen_key = hub_api.create_rocon_gateway_key(gateway, 'time_since_last_seen')
             remote_gateway.conn_stats.time_since_last_seen = \
-                    self._parse_redis_float(self._redis_server.get(time_since_last_seen_key))
+                    self._parse_redis_int(self._redis_server.get(time_since_last_seen_key))
 
             ping_latency_min_key = hub_api.create_rocon_gateway_key(gateway, 'latency:min')
             remote_gateway.conn_stats.ping_latency_min = \
