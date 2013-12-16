@@ -52,6 +52,14 @@ class TestPlatformInfo(unittest.TestCase):
         self.assertEqual(rocon_std_msgs.PlatformInfo.PLATFORM_TURTLEBOT, msg.platform)
         self.assertEqual('cybernetic_pirate', msg.name)
 
+    def test_set_name(self):
+        tuple = 'linux.*.ros.turtlebot.unknown'
+        new_tuple = rocon_utilities.platform_info.set_name(tuple, 'cybernetic_pirate')
+        new_name = rocon_utilities.platform_info.get_name(new_tuple)
+        self.assertEqual(new_tuple, 'linux.*.ros.turtlebot.cybernetic_pirate')
+        self.assertEqual(new_name, 'cybernetic_pirate')
+
+
     def test_matches(self):
         tuple_a = 'linux.*.ros.turtlebot.cybernetic_pirate'
         tuple_b = 'linux.*.ros.*.cybernetic_pirate'

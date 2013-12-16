@@ -72,6 +72,21 @@ def set_name(platform_info_string_tuple, name):
     (platform_part, unused_separator, unused_name) = platform_info_string_tuple.rpartition('.')
     return platform_part + '.' + name
 
+
+def get_name(platform_info_string_tuple):
+    '''
+      Returns the name part of a platform info string.
+
+      @param platform_info_string_tuple
+      @type string
+
+      @return name
+      @rtype string
+    '''
+    # Check for valid name
+    (unused_platform_part, unused_separator, name) = platform_info_string_tuple.rpartition('.')
+    return name
+
 ##############################################################################
 # Validation
 ##############################################################################
