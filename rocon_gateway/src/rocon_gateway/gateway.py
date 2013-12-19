@@ -196,10 +196,11 @@ class Gateway(object):
                     rospy.loginfo("Gateway : pulling in connection %s[%s]" % (utils.format_rule(pull.rule), remote_gateway))
                     registration = utils.Registration(connection, pull.gateway)
                     new_registration = self.master.register(registration)
-                    self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
-                    hub = remote_gateway_hub_index[pull.gateway][0]
-                    hub.post_pull_details(pull.gateway, pull.rule.name, pull.rule.type, pull.rule.node)
-                    state_changed = True
+                    if new_registration is not None:
+                        self.pulled_interface.registrations[registration.connection.rule.type].append(new_registration)
+                        hub = remote_gateway_hub_index[pull.gateway][0]
+                        hub.post_pull_details(pull.gateway, pull.rule.name, pull.rule.type, pull.rule.node)
+                        state_changed = True
             for pull in lost_pulls[connection_type]:
                 # Unregister this pull
                 existing_registration = self.pulled_interface.find_registration_match(pull.gateway, pull.rule.name, pull.rule.node, pull.rule.type)
@@ -273,7 +274,7 @@ class Gateway(object):
             existing_registration = self.flipped_interface.find_registration_match(registration.remote_gateway, registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
             if not existing_registration:
                 new_registration = self.master.register(registration)
-                if new_registration:
+                if new_registration is not None:
                     self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
                     self._publish_gateway_info()
 

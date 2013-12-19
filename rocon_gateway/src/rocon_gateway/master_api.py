@@ -328,17 +328,28 @@ class LocalMaster(rosgraph.Master):
             self._register_subscriber(node_master, registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
             return registration
         elif registration.connection.rule.type == SERVICE:
-            if rosservice.get_service_node(registration.connection.rule.name):
-                rospy.logwarn("Gateway : tried to register a service that is already locally available, aborting [%s]" % registration.connection.rule.name)
+            node_name = rosservice.get_service_node(registration.connection.rule.name)
+            if node_name is not None:
+                rospy.logwarn("Gateway : tried to register a service that is already locally available, aborting [%s][%s]" % (registration.connection.rule.name, node_name))
                 return None
             else:
                 if registration.connection.rule.name is None:
                     rospy.logerr("Gateway : tried to register a service with name set to None [%s, %s, %s]" % (registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri))
+                    return None
                 if registration.connection.type_info is None:
                     rospy.logerr("Gateway : tried to register a service with type_info set to None [%s, %s, %s]" % (registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri))
+                    return None
                 if registration.connection.xmlrpc_uri is None:
                     rospy.logerr("Gateway : tried to register a service with xmlrpc_uri set to None [%s, %s, %s]" % (registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri))
-                node_master.registerService(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
+                    return None
+                try:
+                    node_master.registerService(registration.connection.rule.name, registration.connection.type_info, registration.connection.xmlrpc_uri)
+                except rosgraph.masterapi.Error as e:
+                    rospy.logerr("Gateway : got error trying to register a service on the local master [%s][%s]" % (registration.connection.rule.name, str(e)))
+                    return None
+                except rosgraph.masterapi.Failure as e:
+                    rospy.logerr("Gateway : failed to register a service on the local master [%s][%s]" % (registration.connection.rule.name, str(e)))
+                    return None
                 return registration
         elif registration.connection.rule.type == ACTION_SERVER:
             # Need to update these with self._register_subscriber
