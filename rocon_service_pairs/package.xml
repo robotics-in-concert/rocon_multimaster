@@ -1,0 +1,18 @@
+<package>
+  <name>rocon_service_pairs</name>
+  <version>0.6.1</version>
+  <description>
+    Service pair libraries for pub/sub non-blocking services.
+  </description>
+  <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
+  <license>BSD</license>
+  <url type="website">http://ros.org/wiki/rocon_service_pairs</url>
+  <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
+  <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
+  <author email="d.stonier@gmail.com">Daniel Stonier</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>rospy</run_depend>
+  <run_depend>uuid_msgs</run_depend>
+</package>
