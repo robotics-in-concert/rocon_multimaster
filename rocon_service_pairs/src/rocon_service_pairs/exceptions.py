@@ -3,7 +3,9 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 ##############################################################################
-# Imports
+# Exceptions
 ##############################################################################
 
-from rocon_service_pairs.service_pair_client import ServicePairClient
+
+class ServicePairException(Exception):
+    pass

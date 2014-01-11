@@ -1,0 +1,11 @@
+<!-- rostest launch file for service pair client -->
+
+<launch>
+
+  <test test-name="test_service_proxy"
+        pkg="rocon_service_pairs" type="test_service_pair_client.py"
+        name="test_service_proxy" time-limit="30.0" />
+
+  <node pkg="rocon_service_pairs" type="example_raw_server.py" name="example_server" />
+
+</launch>
