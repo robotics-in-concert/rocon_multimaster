@@ -16,7 +16,7 @@ import functools
 from .exceptions import ServicePairException
 
 ##############################################################################
-# Classes
+# Request Handlers
 ##############################################################################
 
 
@@ -42,18 +42,19 @@ class NonBlockingRequestHandler(RequestHandlerBase):
         self.callback = callback
         self.error_callback = error_callback
 
+##############################################################################
+# Client Class
+##############################################################################
+
 
 class ServicePairClient(object):
     '''
-      Manages connectivity information provided by services and provides this
-      for human interactive agent (aka remocon) connections.
+      The client side of a pubsub service pair.
     '''
     __slots__ = [
             '_publisher',
             '_subscriber',
-            '_callback',        # external callback invoked upon receiving a reply for a non-blocking call
-            '_error_callback',  # external callback invoked upon receiving an error for a non-blocking call
-            '_request_handlers',  # list of request id's to associate with returning replies [uuid_msgs/UniqueId].
+            '_request_handlers',  # initiate, track and execute requests with these { hex string ids : dic of RequestHandler objects (Blocking/NonBlocking) }
             'ServicePairSpec',
             'ServicePairRequest',
             'ServicePairResponse',
@@ -69,9 +70,6 @@ class ServicePairClient(object):
           @type str
           @param ServicePairSpec : the pair type (e.g. rocon_service_pair_msgs.msg.TestiesPair)
           @type str
-          @param timeout : timeout on the wait operation (None = /infty)
-          @type rospy.Duration()
-          @return msg type data or None
         '''
         try:
             p = ServicePairSpec()
@@ -82,9 +80,11 @@ class ServicePairClient(object):
             raise ServicePairException("Type is not an pair spec: %s" % str(ServicePairSpec))
         self._subscriber = rospy.Subscriber(name + "/response", self.ServicePairResponse, self._internal_callback)
         self._publisher = rospy.Publisher(name + "/request", self.ServicePairRequest)
-        self._callback = None  # these should be dicts, keyed by uuid
-        self._error_callback = None
         self._request_handlers = {}  # [uuid_msgs/UniqueId]
+
+    ##########################################################################
+    # Execute Blocking/NonBlocking
+    ##########################################################################
 
     def __call__(self, msg, timeout=None, callback=None, error_callback=None):
         '''
@@ -114,6 +114,10 @@ class ServicePairClient(object):
             self._request_handlers[key] = NonBlockingRequestHandler(key, callback, error_callback)
             self._make_non_blocking_call(self._request_handlers[key], pair_request_msg, timeout)
             return pair_request_msg.id
+
+    ##########################################################################
+    # Private Support Methods
+    ##########################################################################
 
     def _make_blocking_call(self, request_handler, msg, timeout):
         '''
@@ -149,9 +153,15 @@ class ServicePairClient(object):
             delete_request_handler = functools.partial(self._timer_callback, request_handler=request_handler)
             request_handler.timer = rospy.Timer(timeout, delete_request_handler, oneshot=True)
 
-    def _timer_callback(self, event, request_handler):
+    def _timer_callback(self, unused_event, request_handler):
         '''
           Handle a timeout for non-blocking requests.
+
+          @param event : regular rospy timer event object (not used)
+
+          @param request_handler : a handler that gets bound when this callback is passed into the timer
+          @type NonBlockingRequestHandler
+
           @todo respond on the error callback.
         '''
         try:
