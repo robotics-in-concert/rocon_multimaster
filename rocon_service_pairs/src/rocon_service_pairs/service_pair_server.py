@@ -6,11 +6,8 @@
 # Imports
 ##############################################################################
 
-#import threading
 import rospy
-import unique_id
-#import copy
-#import functools
+#import unique_id
 
 # Local imports
 from .exceptions import ServicePairException

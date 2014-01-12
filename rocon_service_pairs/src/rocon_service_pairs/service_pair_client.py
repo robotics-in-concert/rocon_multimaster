@@ -7,9 +7,10 @@
 ##############################################################################
 
 import threading
+import time
 import rospy
+import uuid
 import unique_id
-#import copy
 import functools
 
 # Local imports
@@ -42,6 +43,18 @@ class NonBlockingRequestHandler(RequestHandlerBase):
         self.callback = callback
         self.error_callback = error_callback
 
+    def copy(self):
+        '''
+          The deepcopy function has some issues (related to threads),
+          so using this independant copy method here. Note that this only
+          ever gets used for non-blocking calls to help handle the
+          race conditions between timeout handling and normal callback
+          handling
+        '''
+        new_copy = NonBlockingRequestHandler(self.key, self.callback, self.error_callback)
+        new_copy.timer = self.timer
+        return new_copy
+
 ##############################################################################
 # Client Class
 ##############################################################################
@@ -58,6 +71,7 @@ class ServicePairClient(object):
             'ServicePairSpec',
             'ServicePairRequest',
             'ServicePairResponse',
+            '_lock'               # prevent race conditions in handling of non-blocking callbacks and timeouts.
         ]
 
     ##########################################################################
@@ -78,9 +92,30 @@ class ServicePairClient(object):
             self.ServicePairResponse = type(p.pair_response)
         except AttributeError:
             raise ServicePairException("Type is not an pair spec: %s" % str(ServicePairSpec))
+        self._lock = threading.Lock()
         self._subscriber = rospy.Subscriber(name + "/response", self.ServicePairResponse, self._internal_callback)
         self._publisher = rospy.Publisher(name + "/request", self.ServicePairRequest)
         self._request_handlers = {}  # [uuid_msgs/UniqueId]
+
+    def wait_for_service_pair_server(self, timeout):
+        '''
+          Waits for the service pair server to appear.
+
+          @param timeout : timeout time in seconds
+          @type double
+
+          @raise ROSException: if specified timeout is exceeded
+          @raise ROSInterruptException: if shutdown interrupts wait
+        '''
+        timeout_time = time.time() + timeout
+        while not rospy.is_shutdown() and time.time() < timeout_time:
+            if self._subscriber.get_num_connections() > 0 and self._publisher.get_num_connections() > 0:
+                return
+            rospy.rostime.wallsleep(0.1)
+        if rospy.is_shutdown():
+            raise rospy.ROSInterruptException("rospy shutdown")
+        else:
+            raise rospy.ROSException("timeout exceeded while waiting for service pair server %s" % self._subscriber.resolved_name[:-len('/response')])
 
     ##########################################################################
     # Execute Blocking/NonBlocking
@@ -111,8 +146,9 @@ class ServicePairClient(object):
             self._request_handlers[key] = BlockingRequestHandler(key)
             return self._make_blocking_call(self._request_handlers[key], pair_request_msg, timeout)
         else:
-            self._request_handlers[key] = NonBlockingRequestHandler(key, callback, error_callback)
-            self._make_non_blocking_call(self._request_handlers[key], pair_request_msg, timeout)
+            request_handler = NonBlockingRequestHandler(key, callback, error_callback)
+            self._request_handlers[key] = request_handler.copy()
+            self._make_non_blocking_call(request_handler, pair_request_msg, timeout)
             return pair_request_msg.id
 
     ##########################################################################
@@ -133,7 +169,7 @@ class ServicePairClient(object):
         else:
             request_handler.event.wait(timeout.to_sec())
         if request_handler.response is not None:
-            response = request_handler.response  # do we need a deepcopy here?
+            response = request_handler.response
         else:
             response = None
         del self._request_handlers[request_handler.key]
@@ -141,7 +177,7 @@ class ServicePairClient(object):
 
     def _make_non_blocking_call(self, request_handler, msg, timeout):
         '''
-          @param request_handler : information and event handler for the request
+          @param request_handler : a copy of information and event handler for the request (used for the timer)
           @type RequestHandler
 
           @param msg : the request pair message structure
@@ -155,23 +191,26 @@ class ServicePairClient(object):
 
     def _timer_callback(self, unused_event, request_handler):
         '''
-          Handle a timeout for non-blocking requests.
+          Handle a timeout for non-blocking requests. This will call the user's defined error callback function
+          (with args: (uuid_msgs.UniqueID, str)).
 
           @param event : regular rospy timer event object (not used)
 
-          @param request_handler : a handler that gets bound when this callback is passed into the timer
+          @param request_handler : a copy of the handler that gets bound when this callback is passed into the timer
           @type NonBlockingRequestHandler
 
           @todo respond on the error callback.
         '''
+        already_handled = False
+        self._lock.acquire()
         try:
             del self._request_handlers[request_handler.key]
-            # process error callback here:
-            # if request_handler.error_callback is not None:
-            #     request_handler.error_callback(...)
         except KeyError:
-            # already deleted upon receipt of successful callback, just pass
-            pass
+            already_handled = True
+        self._lock.release()
+        if not already_handled:
+            if request_handler.error_callback is not None:
+                request_handler.error_callback(unique_id.toMsg(uuid.UUID(request_handler.key)), "timeout")
 
     def _internal_callback(self, msg):
         '''
@@ -180,15 +219,23 @@ class ServicePairClient(object):
         '''
         # Check if it is a blocking call that has requested it.
         key = unique_id.toHexString(msg.id)
-        if key in self._request_handlers.keys():
+        already_handled = False
+        non_blocking_request_handler = None
+        self._lock.acquire()
+        try:
             request_handler = self._request_handlers[key]
             request_handler.response = msg.response
             if isinstance(request_handler, BlockingRequestHandler):
                 request_handler.event.set()
+                already_handled = True
             else:  # NonBlocking
-                # Could use EAFP approach here since they will almost never be None, but this is more readable
-                if request_handler.timer is not None:
-                    request_handler.timer.shutdown()
-                if request_handler.callback is not None:
-                    request_handler.callback(msg.id, msg.response)
-                del self._request_handlers[request_handler.key]
+                # make a copy and delete so we can release the lock. Process after.
+                non_blocking_request_handler = request_handler.copy()
+                del self._request_handlers[key]
+        except KeyError:
+            already_handled = True  # it's either a blocking, or a non-blocking call handled by the timeout
+        self._lock.release()
+        if not already_handled:
+            # Could use EAFP approach here since they will almost never be None, but this is more readable
+            if non_blocking_request_handler.callback is not None:
+                request_handler.callback(msg.id, msg.response)

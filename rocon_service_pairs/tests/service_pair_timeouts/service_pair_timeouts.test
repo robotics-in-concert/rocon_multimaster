@@ -1,0 +1,11 @@
+<!-- Tests functionality of the service pairs when things go wrong. -->
+
+<launch>
+
+  <test test-name="test_service_pair_timeouts"
+        pkg="rocon_service_pairs" type="test_service_pair_timeouts.py"
+        name="test_service_pair_timeouts" time-limit="30.0" />
+
+   <node pkg="rocon_service_pairs" type="service_pair_server.py" name="example_server" />
+
+</launch>
