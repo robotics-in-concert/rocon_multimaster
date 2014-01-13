@@ -29,6 +29,7 @@ import ros_utilities
 
 processes = []
 roslaunch_pids = []
+hold = False  # keep terminals open when sighandling them
 
 ##############################################################################
 # Methods
@@ -68,6 +69,7 @@ def get_roslaunch_pid(parent_pid):
 def signal_handler(sig, frame):
     global processes
     global roslaunch_pids
+    global hold
     for p in processes:
         roslaunch_pids.extend(get_roslaunch_pid(p.pid))
     # kill roslaunch's
@@ -81,6 +83,8 @@ def signal_handler(sig, frame):
         wait_pid(pid)
         #console.pretty_println("Terminated roslaunch [pid: %d]" % pid, console.bold)
     sleep(1)
+    if hold:
+        raw_input("Press <Enter> to close terminals...")
     # now kill konsoles
     for p in processes:
         p.terminate()
@@ -162,17 +166,20 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
 
 
 def parse_arguments():
+    global hold
     parser = argparse.ArgumentParser(description="Rocon's multiple master launcher.")
     terminal_group = parser.add_mutually_exclusive_group()
     terminal_group.add_argument('-k', '--konsole', default=False, action='store_true', help='spawn individual ros systems via multiple konsole terminals')
     terminal_group.add_argument('-g', '--gnome', default=False, action='store_true', help='spawn individual ros systems via multiple gnome terminals')
     parser.add_argument('--screen', action='store_true', help='run each roslaunch with the --screen option')
     parser.add_argument('--no-terminals', action='store_true', help='do not spawn terminals for each roslaunch')
+    parser.add_argument('--hold', action='store_true', help='hold terminals open after upon completion (incompatible with --no-terminals)')
     # Force package, launcher pairs, I like this better than roslaunch style which is a bit vague
     parser.add_argument('package', nargs='?', default='', help='name of the package in which to find the concert launcher')
     parser.add_argument('launcher', nargs=1, help='name of the concert launch configuration (xml) file')
     #parser.add_argument('launchers', nargs='+', help='package and concert launch configuration (xml) file configurations, roslaunch style')
     args = parser.parse_args()
+    hold = args.hold
     return args
 
 
