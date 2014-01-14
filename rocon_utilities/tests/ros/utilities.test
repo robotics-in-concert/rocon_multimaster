@@ -1,5 +1,3 @@
 <launch>
-  <node name="latched_talker" pkg="rocon_utilities" type="latched_talker.py" />
-  <test test-name="subscriber_proxy" pkg="rocon_utilities" type="subscriber_proxy.py" />
   <test test-name="basename" pkg="rocon_utilities" type="basename.py" />
 </launch>
