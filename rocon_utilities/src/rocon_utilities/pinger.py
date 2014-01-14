@@ -6,7 +6,7 @@
 # Imports
 ##############################################################################
 
-from rocon_utilities import WallRate
+from rocon_python_comms import WallRate
 
 import rospy
 import subprocess

@@ -8,8 +8,6 @@
 ##############################################################################
 
 import os
-import time
-import rospy
 import rospkg
 import roslib.names
 from catkin_pkg.packages import find_packages
@@ -68,18 +66,6 @@ def find_resource(package, filename, rospack=None):
     except rospkg.ResourceNotFound:
         raise IOError("[%s] is not a package or launch file name" % package)
     return None
-
-
-def is_absolute_name(name):
-    '''
-      Checks if the name begins with a leading slash which validates it
-      either as an absolute or relative name in the ros world.
-
-      Note : this is redundant with roslib.names.is_global(name)
-
-      https://github.com/ros/ros/blob/hydro-devel/core/roslib/src/roslib/names.py#L113
-    '''
-    return name[:1] == '/'
 
 
 def package_index_from_package_path(package_paths):
