@@ -8,6 +8,7 @@
 ##############################################################################
 
 import os
+import time
 import rospy
 import rospkg
 import roslib.names
@@ -73,6 +74,10 @@ def is_absolute_name(name):
     '''
       Checks if the name begins with a leading slash which validates it
       either as an absolute or relative name in the ros world.
+
+      Note : this is redundant with roslib.names.is_global(name)
+
+      https://github.com/ros/ros/blob/hydro-devel/core/roslib/src/roslib/names.py#L113
     '''
     return name[:1] == '/'
 
@@ -132,12 +137,13 @@ class SubscriberProxy():
           @type rospy.Duration
           @return latest data or None
         '''
-        r = rospy.Rate(10)
-        start_time = rospy.Time.now()
+        if timeout:
+            # everything in floating point calculations
+            timeout_time = time.time() + timeout.to_sec()
         while not rospy.is_shutdown() and self._data == None:
-            r.sleep()
+            rospy.rostime.wallsleep(0.1)
             if timeout:
-                if rospy.Time.now() - start_time > timeout:
+                if time.time() > timeout_time:
                     return None
         return self._data
 
