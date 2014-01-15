@@ -1,0 +1,4 @@
+<launch>
+  <!-- <node pkg="rocon_unreliable_experiments" name="talker" type="talker"/> -->
+  <node pkg="rocon_unreliable_experiments" name="listener" type="listener"/>
+</launch>
