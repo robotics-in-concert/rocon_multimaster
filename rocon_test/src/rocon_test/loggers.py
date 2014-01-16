@@ -25,6 +25,15 @@ from rostest.rostestutil import rostest_name_from_path
 # Methods
 ##############################################################################
 
+def xml_results_file(package, results_log_name):
+    '''
+      Generate the absolute results log file name. This will be located in the
+      cmake build directory, prefixed with 'rocon_test' and using the specially
+      generated underscore separated log name.
+    '''
+    results_log_file = rosunit.xml_results_file(package, results_log_name, is_rostest=True)
+    # rostest's results_file is prefixed with 'rostest' - switch it to our 'rocon_test'
+    return results_log_file.replace('rostest', 'rocon_test', 1)
 
 def configure_logging(package, filename):
     '''
@@ -38,8 +47,8 @@ def configure_logging(package, filename):
     results_log_name = rostest_name_from_path(pkg_dir, filename)
     log_basename = 'rocon_test-%s-%s.log' % (socket.gethostname(), os.getpid())
     unused_log_name = rosgraph.roslogging.configure_logging('rocon_test', filename=log_basename)
-    results_file = rosunit.xml_results_file(package, results_log_name, is_rostest=True)
-    return results_log_name, results_file
+    results_log_file = xml_results_file(package, results_log_name)
+    return results_log_name, results_log_file
 
 
 def printlog(msg, *args):
