@@ -16,8 +16,6 @@
   
   <run_depend>rosbash</run_depend>
   <run_depend>std_msgs</run_depend>
-
-  <!-- to be moved once SubscriberProxy is fully deprecated -->
   <run_depend>rocon_console</run_depend>
   <run_depend>rocon_python_comms</run_depend>
 

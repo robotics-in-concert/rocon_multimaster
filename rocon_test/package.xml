@@ -18,6 +18,7 @@
   <run_depend>rospy</run_depend>
   <run_depend>rostest</run_depend>
   <run_depend>rosunit</run_depend>
+  <run_depend>rocon_console</run_depend>
   <run_depend>rocon_utilities</run_depend>
   <run_depend>roslaunch</run_depend>
 

@@ -29,12 +29,13 @@ def to_string(msg):
     return '.'.join([msg.os, msg.version, msg.system, msg.platform, msg.name])
 
 
-def to_msg(platform_info_string_tuple):
+def to_msg(platform_string_tuple):
     '''
-      Converts a platform info string tuple (e.g. ubuntu.precise.ros.turtlebot.Dude)
-      into it's message equivalent.
+      This fills out the platform tuple (e.g. ubuntu.precise.ros.turtlebot.Dude)
+      fields of a rocon_std_msgs/PlatformInfo message Note that this leaves
+      non-tuple fields empty (e.g. Icon).
 
-      @param platform_info_string_tuple : string representation
+      @param platform_string_tuple : string representation
       @type str
 
       @return platform info message
@@ -42,7 +43,7 @@ def to_msg(platform_info_string_tuple):
 
       @raise InvalidPlatformInfoString
     '''
-    platform_info_tuple_list = platform_info_string_tuple.split('.')
+    platform_info_tuple_list = platform_string_tuple.split('.')
     if len(platform_info_tuple_list) != 5:
         raise InvalidPlatformInfoString("Platform info string tuple not of the correct length [%s != 5]" % len(platform_info_tuple_list))
     msg = rocon_std_msgs.PlatformInfo()
@@ -58,33 +59,33 @@ def to_msg(platform_info_string_tuple):
 ##############################################################################
 
 
-def set_name(platform_info_string_tuple, name):
+def set_name(platform_string_tuple, name):
     '''
       Replaces the name part of the tuple with the provided name.
 
-      @param platform_info_string_tuple
+      @param platform_string_tuple
       @type string
 
       @param name
       @type string
     '''
     # Check for valid name
-    (platform_part, unused_separator, unused_name) = platform_info_string_tuple.rpartition('.')
+    (platform_part, unused_separator, unused_name) = platform_string_tuple.rpartition('.')
     return platform_part + '.' + name
 
 
-def get_name(platform_info_string_tuple):
+def get_name(platform_string_tuple):
     '''
       Returns the name part of a platform info string.
 
-      @param platform_info_string_tuple
+      @param platform_string_tuple
       @type string
 
       @return name
       @rtype string
     '''
     # Check for valid name
-    (unused_platform_part, unused_separator, name) = platform_info_string_tuple.rpartition('.')
+    (unused_platform_part, unused_separator, name) = platform_string_tuple.rpartition('.')
     return name
 
 ##############################################################################
@@ -92,11 +93,11 @@ def get_name(platform_info_string_tuple):
 ##############################################################################
 
 
-def is_valid(platform_info_string_tuple):
+def is_valid(platform_string_tuple):
     '''
       Make various checks to ensure the string tuple is valid.
 
-      @param platform_info_string_tuple
+      @param platform_string_tuple
       @type string
     '''
     # Check for correct number of fields

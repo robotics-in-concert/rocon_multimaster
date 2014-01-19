@@ -16,8 +16,9 @@ import rospy
 import rocon_gateway
 import gateway_msgs
 import rocon_utilities
-import rocon_utilities.console as console
+import rocon_console.console as console
 import rocon_gateway.utils as utils
+import rocon_python_comms
 
 ##############################################################################
 # Functions
@@ -40,7 +41,7 @@ def resolve_gateway_info(gateway_namespace):
     '''
       @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 
     '''
-    gateway_info = rocon_utilities.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)()
+    gateway_info = rocon_python_comms.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)()
     return gateway_info
 
 ##############################################################################

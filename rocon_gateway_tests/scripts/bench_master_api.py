@@ -9,7 +9,7 @@
 
 import rospy
 import rocon_gateway
-import rocon_utilities.console as console
+import rocon_console.console as console
 from gateway_msgs.msg import ConnectionType
 import sys
 import itertools

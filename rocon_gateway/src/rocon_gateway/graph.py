@@ -18,6 +18,7 @@ from master_api import LocalMaster
 import rosgraph
 from rosgraph.impl.graph import Edge, EdgeList
 import rocon_utilities
+import rocon_python_comms
 
 ##############################################################################
 # Graph
@@ -52,7 +53,7 @@ class Graph(object):
             self.configure()
 
     def configure(self):
-        self._gateway_info = rocon_utilities.SubscriberProxy(self.gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)
+        self._gateway_info = rocon_python_comms.SubscriberProxy(self.gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)
         self._remote_gateway_info = rospy.ServiceProxy(self.gateway_namespace + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
 
     def local_gateway_name(self):

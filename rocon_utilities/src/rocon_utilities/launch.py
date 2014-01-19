@@ -19,7 +19,7 @@ import tempfile
 
 # Local imports
 from .system import which, wait_pid
-import rocon_utilities.console as console
+import rocon_console.console as console
 import xml.etree.ElementTree as ElementTree
 import ros_utilities
 

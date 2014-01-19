@@ -13,6 +13,7 @@ import rospy
 import re
 import utils
 import gateway_msgs.msg as gateway_msgs
+import rocon_python_comms
 import rocon_utilities
 import rocon_hub_client
 from rocon_hub_client import hub_api
@@ -47,7 +48,7 @@ class HubConnectionCheckerThread(threading.Thread):
         # This runs in the background to gather the latest connection statistics
         # Note - it's not used in the keep alive check
         self.pinger.start()
-        rate = rocon_utilities.WallRate(self.ping_frequency)
+        rate = rocon_python_comms.WallRate(self.ping_frequency)
         alive = True
         while alive:
             alive = hub_api.ping_hub(self.ip, self.port)

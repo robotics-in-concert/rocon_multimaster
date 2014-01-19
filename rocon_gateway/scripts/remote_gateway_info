@@ -16,8 +16,9 @@ import rocon_gateway
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
 import rocon_utilities
-import rocon_utilities.console as console
+import rocon_console.console as console
 import rocon_gateway.utils as utils
+import rocon_python_comms
 
 ##############################################################################
 # Functions
@@ -35,7 +36,7 @@ def resolve_local_gateway():
         console.error("Could not find a local gateway - did you start it?")
         raise rocon_gateway.GatewayError("Cannot proceed without a local gateway, aborting")
     #console.debug("Found a local gateway at %s"%gateway_namespace)
-    gateway_info = rocon_utilities.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.GatewayInfo)()
+    gateway_info = rocon_python_comms.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.GatewayInfo)()
     return gateway_namespace, gateway_info.ip
 
 def resolve_remote_gateways(gateway_namespace):

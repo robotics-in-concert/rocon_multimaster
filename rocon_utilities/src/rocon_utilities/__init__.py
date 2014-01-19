@@ -3,6 +3,18 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_utilities/LICENSE
 #
 ##############################################################################
+# Notifications
+##############################################################################
+# SubscriberProxy, WallRate and console modules have moved, throw some info
+# if the user hasn't got rocon_tools installed
+try:
+    import rocon_python_comms
+except ImportError:
+    import sys
+    print("Error: some functionality has shifted - please make sure [rocon_tools](https://github.com/robotics-in-concert/rocon_tools) is in your workspace.")
+    sys.exit(1)
+
+##############################################################################
 # Imports
 ##############################################################################
 
@@ -18,18 +30,4 @@ from exceptions import TimeoutExpiredError
 from icons import icon_to_msg, icon_resource_to_msg
 from system import Popen
 from pinger import Pinger
-import platform_info
-
-##############################################################################
-# Deprecating Messages
-##############################################################################
-# SubscriberProxy and console has moved, but bring it in here to support current code
-# and notify users of a new repository.
-try:
-    from rocon_python_comms import SubscriberProxy
-    from rocon_python_comms import WallRate
-    from rocon_console import console
-except ImportError:
-    import sys
-    print("Error: some functionality has shifted - please make sure [rocon_tools](https://github.com/robotics-in-concert/rocon_tools) is in your workspace.")
-    sys.exit(1)
+from rocon_utilities import platform_tuples

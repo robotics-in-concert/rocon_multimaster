@@ -11,6 +11,7 @@ import rospy
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
 import rocon_utilities
+import rocon_python_comms
 
 # local imports
 from .exceptions import GatewaySampleRuntimeError
@@ -31,7 +32,7 @@ def wait_for_gateway(ns=_gateway_namespace, timeout=rospy.Duration(5.0)):
     '''
       Slowly loop (and block) until the gateway is connected to a hub.
     '''
-    gateway_info_service = rocon_utilities.SubscriberProxy(ns + '/gateway_info', gateway_msgs.GatewayInfo)
+    gateway_info_service = rocon_python_comms.SubscriberProxy(ns + '/gateway_info', gateway_msgs.GatewayInfo)
     start_time = rospy.Time.now()
     while not rospy.is_shutdown():
         gateway_info = gateway_info_service()

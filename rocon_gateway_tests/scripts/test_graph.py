@@ -9,7 +9,7 @@
 
 import rospy
 import sys
-import rocon_utilities.console as console
+import rocon_console.console as console
 import rocon_utilities
 from rocon_gateway import Graph
 from rocon_gateway import GatewayError

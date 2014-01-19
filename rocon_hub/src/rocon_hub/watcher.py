@@ -11,7 +11,7 @@
 from gateway_msgs.msg import ConnectionStatistics
 from rocon_gateway import gateway_hub
 from rocon_hub_client import hub_api
-from rocon_utilities import WallRate
+from rocon_python_comms import WallRate
 
 
 import rocon_hub_client

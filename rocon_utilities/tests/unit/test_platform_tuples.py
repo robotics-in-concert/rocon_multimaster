@@ -17,7 +17,7 @@ import unittest
 import rosunit
 
 # module being tested:
-import rocon_utilities.platform_info
+import rocon_utilities.platform_tuples
 import rocon_std_msgs.msg as rocon_std_msgs
 
 TEST_UUID_HEX = '0123456789abcdef0123456789abcdef'
@@ -40,12 +40,12 @@ class TestPlatformInfo(unittest.TestCase):
         msg.system = rocon_std_msgs.PlatformInfo.SYSTEM_ROS
         msg.platform = rocon_std_msgs.PlatformInfo.PLATFORM_TURTLEBOT
         msg.name = 'cybernetic_pirate'
-        tuple = rocon_utilities.platform_info.to_string(msg)
+        tuple = rocon_utilities.platform_tuples.to_string(msg)
         self.assertEqual(tuple, 'linux.*.ros.turtlebot.cybernetic_pirate')
 
     def test_string_to_message(self):
         tuple = 'linux.*.ros.turtlebot.cybernetic_pirate'
-        msg = rocon_utilities.platform_info.to_msg(tuple)
+        msg = rocon_utilities.platform_tuples.to_msg(tuple)
         print("Msg: %s" %msg)
         self.assertEqual(rocon_std_msgs.PlatformInfo.VERSION_ANY, msg.version)
         self.assertEqual(rocon_std_msgs.PlatformInfo.SYSTEM_ROS, msg.system)
@@ -54,8 +54,8 @@ class TestPlatformInfo(unittest.TestCase):
 
     def test_set_name(self):
         tuple = 'linux.*.ros.turtlebot.unknown'
-        new_tuple = rocon_utilities.platform_info.set_name(tuple, 'cybernetic_pirate')
-        new_name = rocon_utilities.platform_info.get_name(new_tuple)
+        new_tuple = rocon_utilities.platform_tuples.set_name(tuple, 'cybernetic_pirate')
+        new_name = rocon_utilities.platform_tuples.get_name(new_tuple)
         self.assertEqual(new_tuple, 'linux.*.ros.turtlebot.cybernetic_pirate')
         self.assertEqual(new_name, 'cybernetic_pirate')
 
@@ -63,14 +63,14 @@ class TestPlatformInfo(unittest.TestCase):
     def test_matches(self):
         tuple_a = 'linux.*.ros.turtlebot.cybernetic_pirate'
         tuple_b = 'linux.*.ros.*.cybernetic_pirate'
-        msg_a = rocon_utilities.platform_info.to_msg(tuple_a)
-        msg_b = rocon_utilities.platform_info.to_msg(tuple_b)
-        self.assertEqual(rocon_utilities.platform_info.string_matches(tuple_a, tuple_b), True)
-        self.assertEqual(rocon_utilities.platform_info.string_matches(tuple_b, tuple_a), False)
-        self.assertEqual(rocon_utilities.platform_info.matches(msg_a, msg_b), True)
-        self.assertEqual(rocon_utilities.platform_info.matches(msg_b, msg_a), False)
+        msg_a = rocon_utilities.platform_tuples.to_msg(tuple_a)
+        msg_b = rocon_utilities.platform_tuples.to_msg(tuple_b)
+        self.assertEqual(rocon_utilities.platform_tuples.string_matches(tuple_a, tuple_b), True)
+        self.assertEqual(rocon_utilities.platform_tuples.string_matches(tuple_b, tuple_a), False)
+        self.assertEqual(rocon_utilities.platform_tuples.matches(msg_a, msg_b), True)
+        self.assertEqual(rocon_utilities.platform_tuples.matches(msg_b, msg_a), False)
         
 if __name__ == '__main__':
-    rosunit.unitrun('rocon_utilities_platform_info',
-                    'test_platform_info',
+    rosunit.unitrun('rocon_utilities_platform_tuples',
+                    'test_platform_tuples',
                     TestCommonModule)

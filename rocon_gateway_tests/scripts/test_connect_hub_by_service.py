@@ -9,7 +9,7 @@
 
 import sys
 import rospy
-import rocon_utilities.console as console
+import rocon_console.console as console
 from rocon_gateway import samples
 import gateway_msgs.msg as gateway_msgs
 import unittest
