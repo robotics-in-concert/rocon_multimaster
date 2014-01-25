@@ -30,4 +30,3 @@ from exceptions import TimeoutExpiredError
 from icons import icon_to_msg, icon_resource_to_msg
 from system import Popen
 from pinger import Pinger
-import platform_tuples
