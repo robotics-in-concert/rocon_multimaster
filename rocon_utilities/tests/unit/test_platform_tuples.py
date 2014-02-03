@@ -27,18 +27,18 @@ TEST_UUID = uuid.UUID(hex=TEST_UUID_HEX)
 # Test Class
 ##############################################################################
 
-class TestPlatformInfo(unittest.TestCase):
+class TestPlatformTuples(unittest.TestCase):
     """Unit tests for platform info manipulation.
 
     These tests do not require a running ROS core.
     """
 
     def test_message_to_string(self):
-        msg = rocon_std_msgs.PlatformInfo()
+        msg = rocon_std_msgs.PlatformTuple()
         msg.os = 'linux'
-        msg.version = rocon_std_msgs.PlatformInfo.VERSION_ANY
-        msg.system = rocon_std_msgs.PlatformInfo.SYSTEM_ROS
-        msg.platform = rocon_std_msgs.PlatformInfo.PLATFORM_TURTLEBOT
+        msg.version = rocon_std_msgs.PlatformTuple.VERSION_ANY
+        msg.system = rocon_std_msgs.PlatformTuple.SYSTEM_ROS
+        msg.platform = rocon_std_msgs.PlatformTuple.PLATFORM_TURTLEBOT
         msg.name = 'cybernetic_pirate'
         tuple = rocon_utilities.platform_tuples.to_string(msg)
         self.assertEqual(tuple, 'linux.*.ros.turtlebot.cybernetic_pirate')
@@ -47,9 +47,9 @@ class TestPlatformInfo(unittest.TestCase):
         tuple = 'linux.*.ros.turtlebot.cybernetic_pirate'
         msg = rocon_utilities.platform_tuples.to_msg(tuple)
         print("Msg: %s" %msg)
-        self.assertEqual(rocon_std_msgs.PlatformInfo.VERSION_ANY, msg.version)
-        self.assertEqual(rocon_std_msgs.PlatformInfo.SYSTEM_ROS, msg.system)
-        self.assertEqual(rocon_std_msgs.PlatformInfo.PLATFORM_TURTLEBOT, msg.platform)
+        self.assertEqual(rocon_std_msgs.PlatformTuple.VERSION_ANY, msg.version)
+        self.assertEqual(rocon_std_msgs.PlatformTuple.SYSTEM_ROS, msg.system)
+        self.assertEqual(rocon_std_msgs.PlatformTuple.PLATFORM_TURTLEBOT, msg.platform)
         self.assertEqual('cybernetic_pirate', msg.name)
 
     def test_set_name(self):
@@ -73,4 +73,4 @@ class TestPlatformInfo(unittest.TestCase):
 if __name__ == '__main__':
     rosunit.unitrun('rocon_utilities_platform_tuples',
                     'test_platform_tuples',
-                    TestCommonModule)
+                    TestPlatformTuples)

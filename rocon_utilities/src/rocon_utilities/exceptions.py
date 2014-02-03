@@ -24,5 +24,5 @@ class ResourceNotFoundException(IOError):
     pass
 
 
-class InvalidPlatformInfoString(Exception):
+class InvalidPlatformTuple(Exception):
     pass
