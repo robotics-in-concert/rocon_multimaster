@@ -12,6 +12,7 @@ import time
 import errno
 import threading
 import subprocess
+import signal
 # Local imports
 from .exceptions import TimeoutExpiredError
 
@@ -46,11 +47,13 @@ def which(program):
 class Popen(object):
     '''
       Use this if you want to attach a postexec function to popen (which
-      is not supported by popen at all).
+      is not supported by popen at all). It also defaults setting and
+      terminating whole process groups (something we do quite often in ros).
     '''
     __slots__ = [
             '_proc',
             '_thread',
+            '_external_preexec_fn',
             'terminate'
         ]
 
@@ -66,25 +69,34 @@ class Popen(object):
           @type method with no args
         '''
         self._proc = None
-        self._thread = threading.Thread(target=self._run_in_thread, args=(popen_args, preexec_fn, postexec_fn))
+        self._external_preexec_fn = preexec_fn
+        self._thread = threading.Thread(target=self._run_in_thread, args=(popen_args, self._preexec_fn, postexec_fn))
         self._thread.start()
 
     def send_signal(self, sig):
-        self._proc.send_signal(sig)
+        os.killpg(self._proc.pid, sig)
+        # This would be the normal way if not defaulting settings for process groups
+        #self._proc.send_signal(sig)
+
+    def _preexec_fn(self):
+        os.setpgrp()
+        if self._external_preexec_fn is not None:
+            self._external_preexec_fn()
 
     def terminate(self):
         '''
           @raise OSError if the process has already shut down.
         '''
-        return self._proc.terminate() if self._proc is not None else None
+        return os.killpg(self._proc.pid, signal.SIGTERM)
+        # if we were not setting process groups
+        #return self._proc.terminate() if self._proc is not None else None
 
     def _run_in_thread(self, popen_args, preexec_fn, postexec_fn):
         '''
           Worker function for the thread, creates the subprocess itself.
         '''
         if preexec_fn is not None:
-            self._proc = subprocess.Popen(popen_args, preexec_fn=preexec_fn)
-            print("PID: %s" % self._proc.pid)
+            self._proc = subprocess.Popen(popen_args, preexec_fn=os.setpgrp)
         else:
             self._proc = subprocess.Popen(popen_args)
         self._proc.wait()

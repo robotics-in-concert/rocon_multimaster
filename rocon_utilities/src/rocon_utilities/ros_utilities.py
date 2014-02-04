@@ -29,6 +29,9 @@ def find_resource_from_string(resource, rospack=None, extension=None):
       @param extension : file name extension to look for/expect
       @type string
 
+      @return full pathname to the resource
+      @rtype str
+
       @raise IOError : raised if the resource is not found or has an inappropriate extension.
     '''
     if extension is not None:
