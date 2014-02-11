@@ -66,7 +66,7 @@ def resolve_local_gateway():
     logger.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
 
-   
+
 def resolve_remote_gateways(gateway_namespace):
     '''
       @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 

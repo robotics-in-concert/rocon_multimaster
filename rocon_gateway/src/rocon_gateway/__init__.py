@@ -14,7 +14,7 @@
 #__date__ = "2012-08-29"
 
 from .exceptions import GatewayError, GatewaySampleRuntimeError
-from .utils import connection_types, create_empty_connection_type_dictionary, Connection
+from .utils import connection_types, create_empty_connection_type_dictionary, Connection, resolve_local_gateway, resolve_gateway_info
 from .ros_parameters import setup_ros_parameters
 from .flipped_interface import FlippedInterface
 from .master_api import LocalMaster, ConnectionCache

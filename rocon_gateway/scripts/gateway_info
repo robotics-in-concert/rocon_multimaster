@@ -29,21 +29,6 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def resolve_local_gateway():
-    master = rocon_gateway.LocalMaster()
-    gateway_namespace = master.find_gateway_namespace()
-    if not gateway_namespace:
-        raise rocon_gateway.GatewayError("Could not find a local gateway - did you start it?")
-    #console.debug("Found a local gateway at %s"%gateway_namespace)
-    return gateway_namespace
-   
-def resolve_gateway_info(gateway_namespace):
-    '''
-      @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available. 
-    '''
-    gateway_info = rocon_python_comms.SubscriberProxy(gateway_namespace+'/gateway_info', gateway_msgs.msg.GatewayInfo)()
-    return gateway_info
-
 ##############################################################################
 # Main
 ##############################################################################
@@ -56,8 +41,8 @@ if __name__ == '__main__':
     gateway_info = None
     
     try:
-        gateway_namespace = resolve_local_gateway()
-        gateway = resolve_gateway_info(gateway_namespace)
+        gateway_namespace = rocon_gateway.resolve_local_gateway()
+        gateway = rocon_gateway.resolve_gateway_info(gateway_namespace)
     except rocon_gateway.GatewayError, e:
         console.error(str(e))
         sys.exit(1)
