@@ -54,13 +54,17 @@ class Popen(object):
             '_proc',
             '_thread',
             '_external_preexec_fn',
+            '_shell',
             'terminate'
         ]
 
-    def __init__(self, popen_args, preexec_fn=None, postexec_fn=None):
+    def __init__(self, popen_args, shell=False, preexec_fn=None, postexec_fn=None):
         '''
           @param popen_args : list/tuple of usual popen args
           @type list/tuple
+
+          @param shell : same as the shell argument passed to subprocess.Popen
+          @type bool
 
           @param preexec_fn : usual popen pre-exec function
           @type method with no args
@@ -69,6 +73,7 @@ class Popen(object):
           @type method with no args
         '''
         self._proc = None
+        self._shell = shell
         self._external_preexec_fn = preexec_fn
         self._thread = threading.Thread(target=self._run_in_thread, args=(popen_args, self._preexec_fn, postexec_fn))
         self._thread.start()
@@ -96,9 +101,14 @@ class Popen(object):
           Worker function for the thread, creates the subprocess itself.
         '''
         if preexec_fn is not None:
-            self._proc = subprocess.Popen(popen_args, preexec_fn=os.setpgrp)
+            if self._shell == True:
+                print("rocon_utilities.Popen: %s" % " ".join(popen_args))
+                self._proc = subprocess.Popen(" ".join(popen_args), shell=True, preexec_fn=preexec_fn)
+            else:
+                print("rocon_utilities.Popen: %s" % popen_args)
+                self._proc = subprocess.Popen(popen_args, shell=self._shell, preexec_fn=preexec_fn)
         else:
-            self._proc = subprocess.Popen(popen_args)
+            self._proc = subprocess.Popen(popen_args, shell=self._shell)
         self._proc.wait()
         if postexec_fn is not None:
             postexec_fn()
