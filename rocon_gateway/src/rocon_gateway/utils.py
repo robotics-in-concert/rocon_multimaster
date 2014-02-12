@@ -8,6 +8,8 @@
 # Imports
 ##############################################################################
 
+import rospy
+import time
 import json
 import collections
 from gateway_msgs.msg import Rule, ConnectionType
@@ -263,12 +265,19 @@ def create_empty_connection_type_dictionary():
 ##########################################################################
 
 
-def resolve_local_gateway():
+def resolve_local_gateway(timeout=rospy.rostime.Duration(1.0)):
     '''
+      @param timeout : timeout on checking for the gateway.
+      @type rospy.rostime.Duration
+
       @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available.
     '''
     master = master_api.LocalMaster()
-    gateway_namespace = master.find_gateway_namespace()
+    gateway_namespace = None
+    timeout_time = time.time() + timeout.to_sec()
+    while not rospy.is_shutdown() and time.time() < timeout_time and not gateway_namespace:
+        gateway_namespace = master.find_gateway_namespace()
+        rospy.rostime.wallsleep(0.1)
     if not gateway_namespace:
         raise exceptions.GatewayError("Could not find a local gateway - did you start it?")
     #console.debug("Found a local gateway at %s"%gateway_namespace)
