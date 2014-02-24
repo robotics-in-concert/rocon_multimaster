@@ -1,6 +1,6 @@
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_utilities/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 ##############################################################################
 # Imports
@@ -8,7 +8,7 @@
 
 from launch import main as launch, parse_rocon_launcher
 from gateways import create_gateway_remote_rule, create_gateway_rule, gateway_basename
-from exceptions import TimeoutExpiredError
+from exceptions import TimeoutExpiredError, ResourceNotFoundException
 from icons import icon_to_msg, icon_resource_to_msg
 from system import Popen
 from pinger import Pinger
