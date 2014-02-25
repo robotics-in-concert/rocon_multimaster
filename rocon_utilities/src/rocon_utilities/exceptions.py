@@ -24,5 +24,12 @@ class ResourceNotFoundException(IOError):
     pass
 
 
+class ServiceNotFoundException(IOError):
+    """
+      Raised when a service with service type cannot be found.
+    """
+    pass
+
+
 class InvalidPlatformTuple(Exception):
     pass
