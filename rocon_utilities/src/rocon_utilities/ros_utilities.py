@@ -8,14 +8,10 @@
 ##############################################################################
 
 import os
-import time
-import rospy
 import rospkg
 import roslib.names
 from catkin_pkg.packages import find_packages
-from rosservice import rosservice_find
 
-from .exceptions import ServiceNotFoundException
 ##############################################################################
 # Resources
 ##############################################################################
@@ -98,19 +94,3 @@ def package_index_from_package_path(package_paths):
         for unused_package_path, package in find_packages(path).items():
             result[package.name] = package
     return result
-
-
-def find_service(service_type, timeout=rospy.rostime.Duration(5.0)):
-    service_name = None
-    timeout_time = time.time() + timeout.to_sec()
-    while not rospy.is_shutdown() and time.time() < timeout_time and not service_name:
-        service_names = rosservice_find(service_type)
-        if len(service_names) > 1:
-            raise ServiceNotFoundException("multiple services found %s." % service_names)
-        elif len(service_names) == 1:
-            service_name = service_names[0]
-        else:
-            rospy.rostime.wallsleep(0.1)
-    if service_name is None:
-        raise ServiceNotFoundException("timed out")
-    return service_name

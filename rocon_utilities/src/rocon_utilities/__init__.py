@@ -15,7 +15,6 @@ from pinger import Pinger
 from ros_utilities import (
          find_resource,
          find_resource_from_string,
-         package_index_from_package_path,
-         find_service
+         package_index_from_package_path
          )
 import ros_utilities as ros

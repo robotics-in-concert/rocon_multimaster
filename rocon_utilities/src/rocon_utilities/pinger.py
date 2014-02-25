@@ -34,7 +34,7 @@ def mdev(vals):
 
 class Pinger(threading.Thread):
     '''
-      The pinger class can run a threaded pinger at the desired frequency to 
+      The pinger class can run a threaded pinger at the desired frequency to
       check if a machine is available or not
     '''
 
@@ -99,4 +99,3 @@ class Pinger(threading.Thread):
                 # Ping failed. Do not update time last seen
                 pass
             rate.sleep()
-
