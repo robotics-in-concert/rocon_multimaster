@@ -94,7 +94,7 @@ def main():
         unused_shutdown_service = rospy.Service('~shutdown', std_srvs.Empty, ros_service_shutdown)
 
     redi = redis_server.RedisServer(param)
-    redi.start()  # sys exits if server connection is unavailable
+    redi.start()  # sys exits if server connection is unavailable or incorrect version
 
     if param['zeroconf']:
         zeroconf.advertise_port_to_avahi(param['port'], param['name'])  # sys exits if running avahi-daemon not found

@@ -22,6 +22,7 @@ try:
 except ImportError:
     # actually unused right now while we use redis as a ros package
     sys.exit("\n[ERROR] No python-redis found - 'rosdep install rocon_hub'\n")
+import rocon_semantic_version as semantic_version
 
 # Local imports
 import utils
@@ -81,6 +82,21 @@ class RedisServer:
 
           Aborts the program if the connection fails.
         '''
+        process = subprocess.Popen(["redis-server", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = process.communicate()
+        version_string = re.search('v=([0-9.]+)', output).group(1)
+        version =semantic_version.Version(version_string)
+        rospy.loginfo("Hub : version %s" % (version_string))
+        spec_2_2 = semantic_version.Spec('>=2.2.0,<2.4.0')
+        spec_2_6 = semantic_version.Spec('>=2.6.0,<2.8.0')
+        if spec_2_2.match(version):
+            version_extension = '2.2'
+        elif spec_2_6.match(version):
+            version_extension = '2.6'
+        else:
+            rospy.logerr("Hub : the version of the redis server you have installed is not supported by rocon.")
+            rospy.logerr("Hub : please submit a ticket at https://github.com/robotics-in-concert/rocon_multimaster")
+            sys.exit(1)
         # Launch as a separate process group so we can control when it gets shut down.
         self._process = subprocess.Popen(["redis-server", self._files['redis_conf']], preexec_fn=os.setpgrp)
         pool = redis.ConnectionPool(host='localhost', port=int(self._parameters['port']), db=0)
