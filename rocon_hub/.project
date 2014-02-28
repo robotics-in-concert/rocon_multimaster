@@ -3,6 +3,7 @@
 	<name>rocon_hub</name>
 	<comment></comment>
 	<projects>
+		<project>rocon_semantic_version</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

@@ -1,0 +1,22 @@
+
+daemonize no
+port %(port)s
+
+# We don't need all those databases
+databases 1
+
+# Don't do any saving to disk.
+# save 900 1
+# save 300 10
+# save 60 10000
+
+# Keep it small
+maxmemory %(max_memory)s
+
+# Do not log
+appendonly no
+
+# Working directory (uses this as a dump directory)
+dir %(working_dir)s
+
+logfile %(logfile)s

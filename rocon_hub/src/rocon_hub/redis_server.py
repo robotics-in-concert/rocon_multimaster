@@ -41,12 +41,33 @@ class RedisServer:
         if os.path.isdir(self._home_dir):
             shutil.rmtree(self._home_dir)
         self._files = {}
-        self._files['redis_conf'] = os.path.join(self._home_dir, 'redis.conf')
-        self._files['redis_conf_local'] = os.path.join(self._home_dir, 'redis.conf.local')
+        self._version_extension = self._introspect_redis_service()
+        self._files['redis_conf'] = os.path.join(self._home_dir, 'redis-%s.conf' % self._version_extension)
+        self._files['redis_conf_local'] = os.path.join(self._home_dir, 'redis-%s.conf.local' % self._version_extension)
         self._files['redis_server_log'] = os.path.join(self._home_dir, 'redis-server.log')
         self._server = None
-
         self._setup()
+
+    def _introspect_redis_service(self):
+        '''
+          Sniff the version in major.minor format for decision making elsewhere (patch we disregard since our
+          decisions don't depend on it). Exit this script if a compatible version was not found.
+        '''
+        process = subprocess.Popen(["redis-server", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, unused_error = process.communicate()
+        version_string = re.search('v=([0-9.]+)', output).group(1)
+        version = semantic_version.Version(version_string)
+        rospy.loginfo("Hub : version %s" % (version_string))
+        spec_2_2 = semantic_version.Spec('>=2.2.0,<2.4.0')
+        spec_2_6 = semantic_version.Spec('>=2.6.0,<2.8.0')
+        if spec_2_2.match(version):
+            version_extension = '2.2'
+        elif spec_2_6.match(version):
+            version_extension = '2.6'
+        else:
+            utils.logfatal("Hub : the version of the redis server you have installed is not supported by rocon.")
+            sys.exit(utils.logfatal("Hub : please submit a ticket at https://github.com/robotics-in-concert/rocon_multimaster"))
+        return version_extension
 
     def _setup(self):
         '''
@@ -57,13 +78,14 @@ class RedisServer:
             shutil.rmtree(self._home_dir)
         os.makedirs(self._home_dir)
         rospack = rospkg.RosPack()
-        redis_conf_template = utils.read_template(os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis.conf'))
+        redis_conf_template = utils.read_template(os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis-%s.conf' % self._version_extension))
         redis_conf_template = instantiate_redis_conf_template(redis_conf_template, self._files['redis_conf_local'])
-        redis_local_template = utils.read_template(os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis.conf.local'))
+        redis_local_template = utils.read_template(os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis-%s.conf.local' % self._version_extension))
         redis_local_template = instantiate_local_conf_template(redis_local_template,
                                                                self._parameters['port'],
                                                                self._parameters['max_memory'],
-                                                               self._files['redis_server_log'])
+                                                               self._files['redis_server_log'],
+                                                               self._home_dir)
         try:
             f = open(self._files['redis_conf'], 'w')
             f.write(redis_conf_template.encode('utf-8'))
@@ -82,21 +104,6 @@ class RedisServer:
 
           Aborts the program if the connection fails.
         '''
-        process = subprocess.Popen(["redis-server", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, error = process.communicate()
-        version_string = re.search('v=([0-9.]+)', output).group(1)
-        version =semantic_version.Version(version_string)
-        rospy.loginfo("Hub : version %s" % (version_string))
-        spec_2_2 = semantic_version.Spec('>=2.2.0,<2.4.0')
-        spec_2_6 = semantic_version.Spec('>=2.6.0,<2.8.0')
-        if spec_2_2.match(version):
-            version_extension = '2.2'
-        elif spec_2_6.match(version):
-            version_extension = '2.6'
-        else:
-            rospy.logerr("Hub : the version of the redis server you have installed is not supported by rocon.")
-            rospy.logerr("Hub : please submit a ticket at https://github.com/robotics-in-concert/rocon_multimaster")
-            sys.exit(1)
         # Launch as a separate process group so we can control when it gets shut down.
         self._process = subprocess.Popen(["redis-server", self._files['redis_conf']], preexec_fn=os.setpgrp)
         pool = redis.ConnectionPool(host='localhost', port=int(self._parameters['port']), db=0)
@@ -168,7 +175,7 @@ def instantiate_redis_conf_template(template, local_conf_filename):
     return template % locals()
 
 
-def instantiate_local_conf_template(template, port, max_memory, logfile):
+def instantiate_local_conf_template(template, port, max_memory, logfile, working_dir):
     '''
       Variable substitution in a template file.
 
@@ -178,6 +185,10 @@ def instantiate_local_conf_template(template, port, max_memory, logfile):
       @type string
       @param max_memory: how much memory to allocate to the redis server in bytes
       @type string (e.g. 10mb)
+      @param logfile
+      @type string
+      @param working_dir : filesystem which redis uses to dump (can we turn this off in 2.6?)
+      @type string
     '''
     return template % locals()
 
