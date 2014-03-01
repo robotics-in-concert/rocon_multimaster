@@ -17,6 +17,7 @@ import signal
 # Ros imports
 import rospy
 import rospkg
+import rocon_console.console as console
 try:
     import redis
 except ImportError:
@@ -41,46 +42,55 @@ class RedisServer:
         if os.path.isdir(self._home_dir):
             shutil.rmtree(self._home_dir)
         self._files = {}
-        self._version_extension = self._introspect_redis_service()
+        self._version_extension = self._introspect_redis_server_version()
         self._files['redis_conf'] = os.path.join(self._home_dir, 'redis-%s.conf' % self._version_extension)
         self._files['redis_conf_local'] = os.path.join(self._home_dir, 'redis-%s.conf.local' % self._version_extension)
         self._files['redis_server_log'] = os.path.join(self._home_dir, 'redis-server.log')
         self._server = None
         self._setup()
 
-    def _introspect_redis_service(self):
+    def _introspect_redis_server_version(self):
         '''
           Sniff the version in major.minor format for decision making elsewhere (patch we disregard since our
-          decisions don't depend on it). Exit this script if a compatible version was not found.
+          decisions don't depend on it).
+
+          @return version extension in 'major.minor' format.
+          @rtype str
         '''
         process = subprocess.Popen(["redis-server", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, unused_error = process.communicate()
-        version_string = re.search('v=([0-9.]+)', output).group(1)
+        print(console.red + "Output: %s" % output + console.reset)
+        try:
+            version_string = re.search('v=([0-9.]+)', output).group(1)  # 2.6+ pattern
+        except AttributeError:
+            version_string = re.search('version ([0-9.]+)', output).group(1)  # 2.2 pattern
         version = semantic_version.Version(version_string)
         rospy.loginfo("Hub : version %s" % (version_string))
-        spec_2_2 = semantic_version.Spec('>=2.2.0,<2.4.0')
-        spec_2_6 = semantic_version.Spec('>=2.6.0,<2.8.0')
-        if spec_2_2.match(version):
-            version_extension = '2.2'
-        elif spec_2_6.match(version):
-            version_extension = '2.6'
-        else:
-            utils.logfatal("Hub : the version of the redis server you have installed is not supported by rocon.")
-            sys.exit(utils.logfatal("Hub : please submit a ticket at https://github.com/robotics-in-concert/rocon_multimaster"))
-        return version_extension
+        return str(version.major) + "." + str(version.minor)
 
     def _setup(self):
         '''
           Clear and configure redis conf, log files in the ros home
           directories under a subdirectory styled by the name of this hub.
+
+          Also check that we have support for the redis server - i.e. check if we
+          have a .conf file for that version and exit this script if not found.
         '''
         if os.path.isdir(self._home_dir):
             shutil.rmtree(self._home_dir)
         os.makedirs(self._home_dir)
         rospack = rospkg.RosPack()
-        redis_conf_template = utils.read_template(os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis-%s.conf' % self._version_extension))
-        redis_conf_template = instantiate_redis_conf_template(redis_conf_template, self._files['redis_conf_local'])
-        redis_local_template = utils.read_template(os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis-%s.conf.local' % self._version_extension))
+        package_redis_conf_file = os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis-%s.conf' % self._version_extension)
+        package_redis_conf_local_file = os.path.join(rospack.get_path('rocon_hub'), 'redis', 'redis-%s.conf.local' % self._version_extension)
+
+        # Checks
+        if not os.path.isfile(package_redis_conf_file):
+            utils.logfatal("Hub : the version of the redis server you have installed is not supported by rocon.")
+            sys.exit(utils.logfatal("Hub : please submit a ticket at https://github.com/robotics-in-concert/rocon_multimaster"))
+
+        redis_conf_template = utils.read_template(package_redis_conf_file)
+        redis_conf_template = instantiate_redis_conf_template(redis_conf_template, self._files['redis_conf_local'])  # drop the local file path to use into the settings
+        redis_local_template = utils.read_template(package_redis_conf_local_file)
         redis_local_template = instantiate_local_conf_template(redis_local_template,
                                                                self._parameters['port'],
                                                                self._parameters['max_memory'],

@@ -3,6 +3,8 @@
 	<name>rocon_hub</name>
 	<comment></comment>
 	<projects>
+		<project>redis</project>
+		<project>rocon_console</project>
 		<project>rocon_semantic_version</project>
 	</projects>
 	<buildSpec>
