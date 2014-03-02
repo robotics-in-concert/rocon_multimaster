@@ -8,7 +8,6 @@
 ##############################################################################
 
 import sys
-import signal
 
 # Ros imports
 import rospy

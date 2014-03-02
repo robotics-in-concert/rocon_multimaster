@@ -3,21 +3,13 @@
 # License: BSD
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
-
 ##############################################################################
 # Imports
 ##############################################################################
 
-import rospy
-import time
 import json
 import collections
 from gateway_msgs.msg import Rule, ConnectionType
-import gateway_msgs.msg as gateway_msgs
-import rocon_python_comms
-# local imports
-import master_api
-import exceptions
 
 ##############################################################################
 # Constants
@@ -259,40 +251,3 @@ def create_empty_connection_type_dictionary():
     for connection_type in connection_types:
         dic[connection_type] = []
     return dic
-
-##########################################################################
-# Gateway Existence
-##########################################################################
-
-
-def resolve_local_gateway(timeout=rospy.rostime.Duration(1.0)):
-    '''
-      @param timeout : timeout on checking for the gateway.
-      @type rospy.rostime.Duration
-
-      @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available.
-    '''
-    master = master_api.LocalMaster()
-    gateway_namespace = None
-    timeout_time = time.time() + timeout.to_sec()
-    while not rospy.is_shutdown() and time.time() < timeout_time and not gateway_namespace:
-        gateway_namespace = master.find_gateway_namespace()
-        rospy.rostime.wallsleep(0.1)
-    if not gateway_namespace:
-        raise exceptions.GatewayError("Could not find a local gateway - did you start it?")
-    #console.debug("Found a local gateway at %s"%gateway_namespace)
-    return gateway_namespace
-
-
-def resolve_gateway_info(gateway_namespace):
-    '''
-      @param the local topic namespace to prepend to the 'gateway_info' identifier (use resolve_local_gateway).
-      @type str
-
-      @return the local gateway info in all its gory detail.
-      @rtype gateway_msgs.GatewayInfo
-
-      @raise rocon_gateway.GatewayError: if no remote gateways or no matching gateways available.
-    '''
-    gateway_info = rocon_python_comms.SubscriberProxy(gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)()
-    return gateway_info

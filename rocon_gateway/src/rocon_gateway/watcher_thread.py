@@ -34,7 +34,7 @@ class WatcherThread(object):
         self._default_watch_loop_period = watch_loop_period
         self._watch_loop_period = watch_loop_period
         self._last_loop_timestamp = time.time()
-        self._internal_sleep_period = 0.2 # 200ms
+        self._internal_sleep_period = 0.2  # 200ms
 
     def set_watch_loop_period(self, period):
         '''

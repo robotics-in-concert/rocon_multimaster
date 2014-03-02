@@ -15,19 +15,20 @@
   <url type="website">http://www.ros.org/wiki/rocon_multimaster</url>
   <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
   <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
-  <author email="d.stonier@gmail.com">Daniel Stonier</author>
-  <author email="jihoonlee.in@gmail.com">Jihoon Lee</author>
-  <author email="piyushk@gmail.com">Piyush Khandelwal</author>
+  <author>Daniel Stonier</author>
+  <author>Jihoon Lee</author>
+  <author>Piyush Khandelwal</author>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <run_depend>redis</run_depend>
-  <run_depend>rocon_hub</run_depend>
-  <run_depend>rocon_utilities</run_depend>
-  <run_depend>rocon_hub_client</run_depend>
+
   <run_depend>rocon_gateway</run_depend>
   <run_depend>rocon_gateway_tests</run_depend>
-  <run_depend>rocon_unreliable_experiments</run_depend>
+  <run_depend>rocon_gateway_utils</run_depend>
+  <run_depend>rocon_hub</run_depend>
+  <run_depend>rocon_hub_client</run_depend>
+  <run_depend>rocon_launch</run_depend>
   <run_depend>rocon_test</run_depend>
+  <run_depend>rocon_unreliable_experiments</run_depend>
   
   <export>
     <metapackage/>

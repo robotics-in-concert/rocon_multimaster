@@ -17,7 +17,6 @@ import gateway_msgs.msg as gateway_msgs
 from master_api import LocalMaster
 import rosgraph
 from rosgraph.impl.graph import Edge, EdgeList
-import rocon_utilities
 import rocon_python_comms
 
 ##############################################################################

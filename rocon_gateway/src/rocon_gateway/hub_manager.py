@@ -8,14 +8,14 @@
 ###############################################################################
 
 import threading
+
 import rospy
 import gateway_msgs.msg as gateway_msgs
 import rocon_hub_client
 
-# local imports
 from .exceptions import GatewayUnavailableError
-import gateway_hub
-import utils
+from . import gateway_hub
+from . import utils
 
 ##############################################################################
 # Hub Manager

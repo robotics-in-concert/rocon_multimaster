@@ -14,19 +14,21 @@ import shutil
 import subprocess
 import signal
 
-# Ros imports
+# Delete this once we upgrade (hopefully anything after precise)
+# Refer to https://github.com/robotics-in-concert/rocon_multimaster/issues/248
+import threading
+threading._DummyThread._Thread__stop = lambda x: 42
+
 import rospy
 import rospkg
-import rocon_console.console as console
 try:
-    import redis
+    import rocon_python_redis as redis
 except ImportError:
     # actually unused right now while we use redis as a ros package
     sys.exit("\n[ERROR] No python-redis found - 'rosdep install rocon_hub'\n")
 import rocon_semantic_version as semantic_version
 
-# Local imports
-import utils
+from . import utils
 
 ##############################################################################
 # Redis Server
@@ -59,7 +61,6 @@ class RedisServer:
         '''
         process = subprocess.Popen(["redis-server", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, unused_error = process.communicate()
-        print(console.red + "Output: %s" % output + console.reset)
         try:
             version_string = re.search('v=([0-9.]+)', output).group(1)  # 2.6+ pattern
         except AttributeError:

@@ -5,7 +5,7 @@
 #
 
 import hub_api
-from .hub_client import Hub
+from .hub_client import Hub, ping_hub
 from .hub_discovery import HubDiscovery
 from .exceptions import HubError, \
                         HubNotFoundError, HubNameNotFoundError, \

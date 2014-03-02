@@ -12,9 +12,8 @@ import rospy
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
 
-# local imports
-import utils
-import ros_parameters
+from . import utils
+from . import ros_parameters
 from .watcher_thread import WatcherThread
 from .flipped_interface import FlippedInterface
 from .public_interface import PublicInterface

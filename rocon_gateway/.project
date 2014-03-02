@@ -3,8 +3,13 @@
 	<name>rocon_gateway</name>
 	<comment></comment>
 	<projects>
-		<project>redis</project>
+		<project>rocon_console</project>
+		<project>rocon_gateway_utils</project>
 		<project>rocon_hub_client</project>
+		<project>rocon_python_comms</project>
+		<project>rocon_python_redis</project>
+		<project>rocon_python_utils</project>
+		<project>rocon_python_wifi</project>
 		<project>rocon_utilities</project>
 	</projects>
 	<buildSpec>

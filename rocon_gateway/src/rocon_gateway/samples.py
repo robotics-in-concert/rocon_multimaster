@@ -10,12 +10,11 @@
 import rospy
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
-import rocon_utilities
+import rocon_gateway_utils
 import rocon_python_comms
 
-# local imports
 from .exceptions import GatewaySampleRuntimeError
-from utils import connection_types
+from .utils import connection_types
 
 ##############################################################################
 # Constants
@@ -42,6 +41,7 @@ def wait_for_gateway(ns=_gateway_namespace, timeout=rospy.Duration(5.0)):
             raise GatewaySampleRuntimeError("timed out waiting for the gateway to connect to a hub")
         rospy.sleep(0.5)
 
+
 def wait_for_remote_gateway(remote_gateway_name, ns=_gateway_namespace, timeout=rospy.Duration(5.0)):
     '''
       Slowly loop (and block) until remote the gateway is visible on our hub.
@@ -61,7 +61,7 @@ def wait_for_remote_gateway(remote_gateway_name, ns=_gateway_namespace, timeout=
             if remote_gateway_name == gateway.name:
                 matched = True
                 break
-            remote_gateway_basename = rocon_utilities.gateway_basename(gateway.name)
+            remote_gateway_basename = rocon_gateway_utils.gateway_basename(gateway.name)
             print("Samples: gateway comparison [%s][%s]" % (remote_gateway_basename, remote_gateway_name))
             if remote_gateway_name == remote_gateway_basename:
                 matched = True

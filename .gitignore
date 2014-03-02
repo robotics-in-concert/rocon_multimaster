@@ -20,3 +20,6 @@
 
 #build directories
 build
+
+#eclipse github markdown generated html
+.*.md.html

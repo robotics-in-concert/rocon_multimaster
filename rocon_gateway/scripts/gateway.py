@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#       
+#
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/rocon_gateway/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 
 ##############################################################################
@@ -16,7 +16,7 @@ from rocon_gateway import GatewayNode
 ##############################################################################
 
 if __name__ == '__main__':
-    
+
     rospy.init_node('gateway')
     gateway = GatewayNode()
     gateway.spin()

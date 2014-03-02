@@ -10,11 +10,11 @@
 import rospy
 import sys
 import rocon_console.console as console
-import rocon_utilities
 from rocon_gateway import Graph
 from rocon_gateway import GatewayError
 import unittest
 import rosunit
+import rocon_gateway_utils
 
 ##############################################################################
 # Logging
@@ -55,7 +55,7 @@ class TestGraph(unittest.TestCase):
         printtest("********************************************************************")
         printtest("%s" % self.graph._remote_gateways)
         for remote_gateway in self.graph._remote_gateways:
-            self.assertEquals("remote_gateway", rocon_utilities.gateway_basename(remote_gateway.name))
+            self.assertEquals("remote_gateway", rocon_gateway_utils.gateway_basename(remote_gateway.name))
 
     def tearDown(self):
         pass

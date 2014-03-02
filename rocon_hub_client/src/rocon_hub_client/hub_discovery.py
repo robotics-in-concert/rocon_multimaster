@@ -1,9 +1,7 @@
-#!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_hub_client/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
-
 ###############################################################################
 # Imports
 ###############################################################################
@@ -15,8 +13,7 @@ import time
 import zeroconf_msgs.srv as zeroconf_srvs
 from gateway_msgs.msg import ErrorCodes
 
-# local imports
-import hub_api
+from . import hub_client
 
 ###############################################################################
 # Thread
@@ -158,7 +155,7 @@ class HubDiscovery(threading.Thread):
                 rospy.logerr("Gateway : Unable to parse direct hub uri [%s]" % uri)
                 remove_uris.append(uri)
                 continue
-            if hub_api.ping_hub(hostname, port):
+            if hub_client.ping_hub(hostname, port):
                 discovered_hubs.append(uri)
         difference = lambda l1, l2: [x for x in l1 if x not in l2]
         self._direct_hub_uri_list[:] = difference(self._direct_hub_uri_list,

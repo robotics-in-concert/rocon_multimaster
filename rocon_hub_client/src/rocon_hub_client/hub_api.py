@@ -7,10 +7,7 @@
 # Imports
 ###############################################################################
 
-import redis
 import re
-
-from .hub_client import HubConnection
 
 ###############################################################################
 # Utility Functions
@@ -64,23 +61,3 @@ def key_base_name(key):
       e.g. rocon:key:pirate24 -> pirate24
     '''
     return key.split(':')[-1]
-
-
-def ping_hub(ip, port):
-    '''
-      Pings the hub for identification. This is currently used
-      by the hub discovery module.
-
-      @return Bool, Latency
-    '''
-    try:
-        connection_pool = redis.ConnectionPool(host=ip, port=port,
-                                               connection_class=HubConnection)
-        r = redis.Redis(connection_pool=connection_pool)
-        name = r.get("rocon:hub:name")
-
-    except redis.exceptions.ConnectionError:
-        return False
-    if name is None:  # returns None if the server was there, but the key was not found.
-        return False
-    return True

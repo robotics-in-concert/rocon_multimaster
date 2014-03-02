@@ -3,6 +3,8 @@
 	<name>rocon_test</name>
 	<comment></comment>
 	<projects>
+		<project>rocon_launch</project>
+		<project>rocon_python_utils</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

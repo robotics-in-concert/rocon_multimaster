@@ -7,20 +7,20 @@
 # Imports
 ###############################################################################
 
-import redis
 import threading
 import rospy
 import re
 import utils
 import gateway_msgs.msg as gateway_msgs
 import rocon_python_comms
-import rocon_utilities
+import rocon_python_utils
+import rocon_gateway_utils
 import rocon_hub_client
-from rocon_hub_client import hub_api
+import rocon_python_redis as redis
+from rocon_hub_client import hub_api, hub_client
 from rocon_hub_client.exceptions import HubConnectionLostError, \
               HubNameNotFoundError, HubNotFoundError
 
-# local imports
 from .exceptions import GatewayUnavailableError
 
 ###############################################################################
@@ -39,7 +39,7 @@ class HubConnectionCheckerThread(threading.Thread):
         self._hub_connection_lost_hook = hub_connection_lost_hook
         self.ip = ip
         self.port = port
-        self.pinger = rocon_utilities.Pinger(self.ip, self.ping_frequency)
+        self.pinger = rocon_python_utils.network.Pinger(self.ip, self.ping_frequency)
 
     def get_latency(self):
         return self.pinger.get_latency()
@@ -51,7 +51,7 @@ class HubConnectionCheckerThread(threading.Thread):
         rate = rocon_python_comms.WallRate(self.ping_frequency)
         alive = True
         while alive:
-            alive = hub_api.ping_hub(self.ip, self.port)
+            alive = hub_client.ping_hub(self.ip, self.port)
             rate.sleep()
         self._hub_connection_lost_hook()
 
@@ -439,7 +439,7 @@ class GatewayHub(rocon_hub_client.Hub):
         weak_matches = []
         try:
             for remote_gateway in self.list_remote_gateway_names():
-                if re.match(gateway, rocon_utilities.gateway_basename(remote_gateway)):
+                if re.match(gateway, rocon_gateway_utils.gateway_basename(remote_gateway)):
                     weak_matches.append(remote_gateway)
         except HubConnectionLostError:
             raise

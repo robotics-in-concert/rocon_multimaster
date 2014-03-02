@@ -1,0 +1,6 @@
+<launch>
+  <arg name="topic_name" default="chatter"/>
+  <node pkg="roscpp_tutorials" type="talker" name="talker">
+    <remap from="chatter" to="$(arg topic_name)"/>
+  </node>
+</launch>
