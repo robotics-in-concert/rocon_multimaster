@@ -9,11 +9,11 @@
 
 import copy
 import re
-import rocon_utilities
 
-# Local imports
-import utils
-import interactive_interface
+import rocon_gateway_utils
+
+from . import utils
+from . import interactive_interface
 
 ##############################################################################
 # Flipped Interface
@@ -152,7 +152,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                 gateway_match_result = re.match(flip_rule.gateway, gateway)
                 if gateway_match_result and gateway_match_result.group() == gateway:
                     matched_gateways.append(gateway)
-                elif flip_rule.gateway == rocon_utilities.gateway_basename(gateway):
+                elif flip_rule.gateway == rocon_gateway_utils.gateway_basename(gateway):
                     matched_gateways.append(gateway)
             if not matched_gateways:
                 continue

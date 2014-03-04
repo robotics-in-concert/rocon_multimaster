@@ -17,11 +17,7 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <run_depend>gateway_msgs</run_depend>
-  <run_depend>redis</run_depend>
   <run_depend>rospy</run_depend>
-  <run_depend>rocon_utilities</run_depend>
-
-  <export>
-    <rosdoc config="rosdoc.yaml"/>
-  </export>
+  <run_depend>rocon_python_redis</run_depend>
+  <run_depend>rocon_gateway_utils</run_depend>
 </package>

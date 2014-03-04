@@ -9,7 +9,7 @@
 ###############################################################################
 
 import netifaces
-import pythonwifi.iwlibs as pythonwifi
+import rocon_python_wifi.iwlibs as pythonwifi
 import rospy
 
 from gateway_msgs.msg import ConnectionStatistics

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #       
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/master/multimaster_server/rocon_hub/LICENSE 
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 
 import rospy

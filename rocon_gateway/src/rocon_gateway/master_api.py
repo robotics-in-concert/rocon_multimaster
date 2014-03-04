@@ -10,11 +10,6 @@
 import os
 import socket
 import errno
-import rospy
-import rosgraph
-import rostopic
-import rosservice
-import roslib.names
 import xmlrpclib
 from rosmaster.util import xmlrpcapi
 try:
@@ -22,10 +17,19 @@ try:
 except ImportError:
     import urlparse
 import re
+
+import rospy
+import rosgraph
+import rostopic
+import rosservice
+import roslib.names
 from gateway_msgs.msg import Rule, ConnectionType
 
-# local imports
-import utils
+from . import utils
+
+##############################################################################
+# Aliases
+##############################################################################
 
 # Can't see an easier way to alias or import these
 PUBLISHER = ConnectionType.PUBLISHER
@@ -448,7 +452,7 @@ class LocalMaster(rosgraph.Master):
         except xmlrpclib.Fault:
             # This occurs when the subscriber has gone down and unflipped.
             # For us this is not an error since we were only informing
-            # the subscriber of an updated publisher state...which 
+            # the subscriber of an updated publisher state...which
             # it no longer needs!
             pass
         node_master.unregisterSubscriber(name, xmlrpc_uri)

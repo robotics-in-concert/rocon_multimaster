@@ -1,0 +1,21 @@
+<package>
+  <name>rocon_launch</name>
+  <version>0.6.1</version>
+  <description>
+    Roslauncher for multimaster systems (i.e. multi-roslaunch).
+  </description>
+  <maintainer email="d.stonier@gmail.com">Daniel Stonier</maintainer>
+  <license>BSD</license>
+  <url type="website">http://ros.org/wiki/rocon_launch</url>
+  <url type="repository">https://github.com/robotics-in-concert/rocon_multimaster</url>
+  <url type="bugtracker">https://github.com/robotics-in-concert/rocon_multimaster/issues</url>
+  <author>Daniel Stonier</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>rospy</run_depend>
+  <run_depend>roslaunch</run_depend>
+  <run_depend>rocon_console</run_depend>
+  <run_depend>rocon_python_utils</run_depend>
+
+</package>

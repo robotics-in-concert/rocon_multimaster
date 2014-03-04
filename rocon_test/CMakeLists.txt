@@ -15,6 +15,7 @@ catkin_package(
 )
 
 catkin_python_setup()
+catkin_add_env_hooks(15.rocon_test SHELLS bash tcsh zsh DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env-hooks)
 
 ##############################################################################
 # Installs
@@ -22,6 +23,8 @@ catkin_python_setup()
 
 install(DIRECTORY test DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION} USE_SOURCE_PERMISSIONS)
 install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY shells DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
 install(
     PROGRAMS 
         scripts/listener.py

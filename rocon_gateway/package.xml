@@ -18,12 +18,14 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <run_depend>redis</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>rocon_hub_client</run_depend>
   <run_depend>rocon_console</run_depend>
   <run_depend>rocon_python_comms</run_depend>
-  <run_depend>rocon_utilities</run_depend>
+  <run_depend>rocon_python_redis</run_depend>
+  <run_depend>rocon_gateway_utils</run_depend>
+  <run_depend>rocon_python_utils</run_depend>
+  <run_depend>rocon_python_wifi</run_depend>
   <run_depend>roslib</run_depend>
   <run_depend>rostopic</run_depend>
   <run_depend>rosservice</run_depend>

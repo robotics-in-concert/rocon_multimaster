@@ -11,5 +11,6 @@
     <rosparam param="name">Gateway</rosparam>
     <rosparam param="watch_loop_period">2</rosparam>
     <rosparam param="firewall">false</rosparam>
+    <param name="network_interface" value="$(optenv GATEWAY_NETWORK_INTERFACE)"/>
   </node>
 </launch>

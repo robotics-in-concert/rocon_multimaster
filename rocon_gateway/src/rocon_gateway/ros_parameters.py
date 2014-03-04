@@ -4,10 +4,12 @@
 #   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 
-import rospy
 import re
+
+import rospy
 from gateway_msgs.msg import Rule, RemoteRule
-import utils
+
+from . import utils
 
 ###############################################################################
 # Functions

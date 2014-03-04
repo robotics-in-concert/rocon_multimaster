@@ -18,10 +18,6 @@ catkin_python_setup()
 # Tests
 ##############################################################################
 
-add_rocon_test(test/multimaster/connect_hub_by_service.test)
-add_rocon_test(test/multimaster/flips.test)
-add_rocon_test(test/multimaster/pulls.test)
-add_rocon_test(test/multimaster/advertisements.test)
-add_rocon_test(test/multimaster/graph.test)
-
-catkin_add_nosetests(test/unit/test_connection_cache.py)
+if (CATKIN_ENABLE_TESTING)
+  add_subdirectory(tests)
+endif()

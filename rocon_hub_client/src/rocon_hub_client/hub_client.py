@@ -7,15 +7,16 @@
 # Imports
 ###############################################################################
 
-import redis
-import rospy
 from urlparse import urlparse
-import rocon_utilities
 
-# local imports
-import hub_api
+import rospy
+import rocon_python_redis as redis
+import rocon_gateway_utils
+
+from . import hub_api
 from .exceptions import HubNameNotFoundError, HubNotFoundError, \
                         HubConnectionBlacklistedError, HubConnectionNotWhitelistedError
+
 
 ##############################################################################
 # Hub
@@ -34,6 +35,35 @@ class HubConnection(redis.Connection):
         super(HubConnection, self).__init__(host, port, db, password,
                  socket_timeout, encoding,
                  encoding_errors, decode_responses)
+
+
+##############################################################################
+# Ping
+##############################################################################
+
+
+def ping_hub(ip, port):
+    '''
+      Pings the hub for identification. This is currently used
+      by the hub discovery module.
+
+      @return Bool, Latency
+    '''
+    try:
+        connection_pool = redis.ConnectionPool(host=ip, port=port,
+                                               connection_class=HubConnection)
+        r = redis.Redis(connection_pool=connection_pool)
+        name = r.get("rocon:hub:name")
+
+    except redis.exceptions.ConnectionError:
+        return False
+    if name is None:  # returns None if the server was there, but the key was not found.
+        return False
+    return True
+
+##############################################################################
+# Hub
+##############################################################################
 
 
 class Hub(object):
@@ -85,8 +115,8 @@ class Hub(object):
         # whitelists, blacklists - check against uri's hash names and non-uuid names
         uri_blacklist = [urlparse(x).hostname + ':' + str(urlparse(x).port) for x in blacklist if urlparse(x).hostname is not None]
         uri_whitelist = [urlparse(x).hostname + ':' + str(urlparse(x).port) for x in whitelist if urlparse(x).hostname is not None]
-        nonuuid_blacklist = [rocon_utilities.gateway_basename(x) for x in blacklist if urlparse(x) is None and rocon_utilities.gateway_basename(x)]
-        nonuuid_whitelist = [rocon_utilities.gateway_basename(x) for x in whitelist if urlparse(x) is None and rocon_utilities.gateway_basename(x)]
+        nonuuid_blacklist = [rocon_gateway_utils.gateway_basename(x) for x in blacklist if urlparse(x) is None and rocon_gateway_utils.gateway_basename(x)]
+        nonuuid_whitelist = [rocon_gateway_utils.gateway_basename(x) for x in whitelist if urlparse(x) is None and rocon_gateway_utils.gateway_basename(x)]
         if self.uri in uri_blacklist or self.name in blacklist or self.name in nonuuid_blacklist:
             raise HubConnectionBlacklistedError("ignoring blacklisted hub [%s]" % self.uri)
         if self.name in blacklist or self.name in nonuuid_whitelist:

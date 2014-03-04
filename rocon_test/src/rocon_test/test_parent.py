@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_test/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
-
 ##############################################################################
 # Imports
 ##############################################################################

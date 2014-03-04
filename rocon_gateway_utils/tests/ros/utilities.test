@@ -1,0 +1,3 @@
+<launch>
+  <test test-name="basename" pkg="rocon_gateway_utils" type="basename.py" />
+</launch>

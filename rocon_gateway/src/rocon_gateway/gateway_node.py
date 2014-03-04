@@ -17,9 +17,8 @@ import std_srvs.srv as std_srvs
 from urlparse import urlparse
 import rocon_hub_client
 
-# Local imports
-import gateway
-import hub_manager
+from . import gateway
+from . import hub_manager
 
 ##############################################################################
 # Gateway Configuration and Main Loop Class

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # License: BSD
-#   https://raw.github.com/robotics-in-concert/rocon_multimaster/hydro-devel/rocon_test/LICENSE
+#   https://raw.github.com/robotics-in-concert/rocon_multimaster/license/LICENSE
 #
 
 ##############################################################################
@@ -12,20 +12,20 @@ from __future__ import print_function
 
 import os
 import sys
-import unittest
-import rostest.runner
-import rocon_utilities
-import rospkg
 import argparse
 from argparse import RawTextHelpFormatter
-from rostest.rostestutil import printRostestSummary, xmlResultsFile
+import unittest
+
+import rostest.runner
+import rospkg
+from rostest.rostestutil import printRostestSummary
 import rosunit
 from roslaunch.pmon import pmon_shutdown
+import rocon_python_utils
+import rocon_launch
 
-# Local imports
-import loggers
-#from loggers import printlog
-import runner
+from . import loggers
+from . import runner
 
 ##############################################################################
 # Methods
@@ -73,7 +73,7 @@ def test_main():
         else:
             raise IOError("cannot locate [%s]" % name)
     else:
-        rocon_launcher = rocon_utilities.find_resource(package, name)  # raises an IO error if there is a problem.
+        rocon_launcher = rocon_python_utils.ros.find_resource(package, name)  # raises an IO error if there is a problem.
 
     if results_filename:
         results_log_name = results_filename
@@ -83,7 +83,7 @@ def test_main():
     else:
         results_log_name, results_log_file = loggers.configure_logging(package, rocon_launcher)
 
-    launchers = rocon_utilities.parse_rocon_launcher(rocon_launcher, launch_arguments)
+    launchers = rocon_launch.parse_rocon_launcher(rocon_launcher, launch_arguments)
 
     try:
         test_case = runner.create_unit_rocon_test(rocon_launcher, launchers)

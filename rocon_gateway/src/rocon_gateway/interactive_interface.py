@@ -8,13 +8,13 @@
 # Imports
 ##############################################################################
 
-import threading
-from gateway_msgs.msg import RemoteRule
 import re
 import copy
+import threading
 
-# Local imports
-import utils
+from gateway_msgs.msg import RemoteRule
+
+from . import utils
 
 ##############################################################################
 # Classes
