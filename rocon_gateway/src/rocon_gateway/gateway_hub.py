@@ -410,7 +410,10 @@ class GatewayHub(rocon_hub_client.Hub):
             for gateway in gateway_keys:
                 if hub_api.key_base_name(gateway) != self._unique_gateway_name:
                     gateways.append(hub_api.key_base_name(gateway))
-        except redis.ConnectionError as unused_e:
+        except (redis.ConnectionError, AttributeError) as unused_e:
+            # redis misbehaves a little here, sometimes it doesn't catch a disconnection properly
+            # see https://github.com/robotics-in-concert/rocon_multimaster/issues/251 so it
+            # pops up as an AttributeError
             pass
         return gateways
 
