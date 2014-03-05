@@ -348,7 +348,7 @@ class GatewayHub(rocon_hub_client.Hub):
             [target_gateway, name, connection_type, node] = utils.deserialize(encoded_pull)
             remote_rule = gateway_msgs.RemoteRule(target_gateway, gateway_msgs.Rule(connection_type, name, node))
             remote_gateway.pulled_interface.append(remote_rule)
-        
+
         # Gateway health/network connection statistics indicators
         gateway_available_key = hub_api.create_rocon_gateway_key(gateway, 'available')
         remote_gateway.conn_stats.gateway_available = \
