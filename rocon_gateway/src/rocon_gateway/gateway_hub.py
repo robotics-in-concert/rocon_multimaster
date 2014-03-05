@@ -457,10 +457,14 @@ class GatewayHub(rocon_hub_client.Hub):
        '''
         connections = utils.create_empty_connection_type_dictionary()
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'advertisements')
-        public_interface = self._redis_server.smembers(key)
-        for connection_str in public_interface:
-            connection = utils.deserialize_connection(connection_str)
-            connections[connection.rule.type].append(connection)
+        try:
+            public_interface = self._redis_server.smembers(key)
+            for connection_str in public_interface:
+                connection = utils.deserialize_connection(connection_str)
+                connections[connection.rule.type].append(connection)
+        except redis.exceptions.ConnectionError:
+            # will arrive here if the hub happens to have been lost last update and arriving here
+            pass
         return connections
 
     def get_remote_gateway_firewall_flag(self, gateway):
