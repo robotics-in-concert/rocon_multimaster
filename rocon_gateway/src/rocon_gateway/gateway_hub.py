@@ -348,7 +348,7 @@ class GatewayHub(rocon_hub_client.Hub):
             [target_gateway, name, connection_type, node] = utils.deserialize(encoded_pull)
             remote_rule = gateway_msgs.RemoteRule(target_gateway, gateway_msgs.Rule(connection_type, name, node))
             remote_gateway.pulled_interface.append(remote_rule)
-        
+
         # Gateway health/network connection statistics indicators
         gateway_available_key = hub_api.create_rocon_gateway_key(gateway, 'available')
         remote_gateway.conn_stats.gateway_available = \
@@ -410,7 +410,10 @@ class GatewayHub(rocon_hub_client.Hub):
             for gateway in gateway_keys:
                 if hub_api.key_base_name(gateway) != self._unique_gateway_name:
                     gateways.append(hub_api.key_base_name(gateway))
-        except redis.ConnectionError as unused_e:
+        except (redis.ConnectionError, AttributeError) as unused_e:
+            # redis misbehaves a little here, sometimes it doesn't catch a disconnection properly
+            # see https://github.com/robotics-in-concert/rocon_multimaster/issues/251 so it
+            # pops up as an AttributeError
             pass
         return gateways
 
@@ -457,10 +460,14 @@ class GatewayHub(rocon_hub_client.Hub):
        '''
         connections = utils.create_empty_connection_type_dictionary()
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'advertisements')
-        public_interface = self._redis_server.smembers(key)
-        for connection_str in public_interface:
-            connection = utils.deserialize_connection(connection_str)
-            connections[connection.rule.type].append(connection)
+        try:
+            public_interface = self._redis_server.smembers(key)
+            for connection_str in public_interface:
+                connection = utils.deserialize_connection(connection_str)
+                connections[connection.rule.type].append(connection)
+        except redis.exceptions.ConnectionError:
+            # will arrive here if the hub happens to have been lost last update and arriving here
+            pass
         return connections
 
     def get_remote_gateway_firewall_flag(self, gateway):

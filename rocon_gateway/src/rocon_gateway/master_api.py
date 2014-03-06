@@ -9,6 +9,7 @@
 
 import os
 import socket
+import httplib
 import errno
 import xmlrpclib
 from rosmaster.util import xmlrpcapi
@@ -454,6 +455,10 @@ class LocalMaster(rosgraph.Master):
             # For us this is not an error since we were only informing
             # the subscriber of an updated publisher state...which
             # it no longer needs!
+            pass
+        except httplib.CannotSendRequest:
+            # This occurs if the master has shut down, just ignore this gracefully.
+            # I'm not aware that it's important to catch this at any othe time.
             pass
         node_master.unregisterSubscriber(name, xmlrpc_uri)
 
