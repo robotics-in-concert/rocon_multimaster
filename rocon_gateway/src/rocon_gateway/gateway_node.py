@@ -224,24 +224,27 @@ class GatewayNode():
     def _publish_gateway_info(self):
         if self._gateway is None:
             return  # not everything initialised yet
-        gateway_info = gateway_msgs.GatewayInfo()
-        gateway_info.name = self._unique_name
-        gateway_info.ip = self._gateway.ip
-        gateway_info.connected = self._gateway.is_connected()
-        gateway_info.hub_names = []
-        gateway_info.hub_uris = []
-        for hub in self._hub_manager.hubs:
-            gateway_info.hub_names.append(hub.name)
-            gateway_info.hub_uris.append(hub.uri)
-        gateway_info.firewall = self._param['firewall']
-        gateway_info.flipped_connections = self._gateway.flipped_interface.get_flipped_connections()
-        gateway_info.flipped_in_connections = self._gateway.flipped_interface.getLocalRegistrations()
-        gateway_info.flip_watchlist = self._gateway.flipped_interface.getWatchlist()
-        gateway_info.pulled_connections = self._gateway.pulled_interface.getLocalRegistrations()
-        gateway_info.pull_watchlist = self._gateway.pulled_interface.getWatchlist()
-        gateway_info.public_watchlist = self._gateway.public_interface.getWatchlist()
-        gateway_info.public_interface = self._gateway.public_interface.getInterface()
-        self._gateway_publishers['gateway_info'].publish(gateway_info)
+        try:
+            gateway_info = gateway_msgs.GatewayInfo()
+            gateway_info.name = self._unique_name
+            gateway_info.ip = self._gateway.ip
+            gateway_info.connected = self._gateway.is_connected()
+            gateway_info.hub_names = []
+            gateway_info.hub_uris = []
+            for hub in self._hub_manager.hubs:
+                gateway_info.hub_names.append(hub.name)
+                gateway_info.hub_uris.append(hub.uri)
+            gateway_info.firewall = self._param['firewall']
+            gateway_info.flipped_connections = self._gateway.flipped_interface.get_flipped_connections()
+            gateway_info.flipped_in_connections = self._gateway.flipped_interface.getLocalRegistrations()
+            gateway_info.flip_watchlist = self._gateway.flipped_interface.getWatchlist()
+            gateway_info.pulled_connections = self._gateway.pulled_interface.getLocalRegistrations()
+            gateway_info.pull_watchlist = self._gateway.pulled_interface.getWatchlist()
+            gateway_info.public_watchlist = self._gateway.public_interface.getWatchlist()
+            gateway_info.public_interface = self._gateway.public_interface.getInterface()
+            self._gateway_publishers['gateway_info'].publish(gateway_info)
+        except AttributeError:
+            pass  # occurs if self._gateway is reset to None in the middle of all this.
 
     def ros_service_remote_gateway_info(self, request):
         response = gateway_srvs.RemoteGatewayInfoResponse()
