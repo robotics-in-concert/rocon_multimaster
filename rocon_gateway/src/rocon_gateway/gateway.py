@@ -64,9 +64,6 @@ class Gateway(object):
                                                 )
         if self._param['advertise_all']:
             self.public_interface.advertise_all([])  # no extra blacklist beyond the default (keeping it simple in yaml for now)
-        self.remote_gateway_request_callbacks = {}
-        self.remote_gateway_request_callbacks['flip'] = self.process_remote_gateway_flip_request
-        self.remote_gateway_request_callbacks['unflip'] = self.process_remote_gateway_unflip_request
 
         self.network_interface_manager = NetworkInterfaceManager(self._param['network_interface'])
         self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
@@ -243,6 +240,57 @@ class Gateway(object):
             self._publish_gateway_info()
         return public_interface
 
+    def update_flipped_in_interface(self, registrations, remote_gateway_hub_index):
+        '''
+          Match the flipped in connections to supplied registrations using 
+          supplied registrations, flipping and unflipping as necessary.
+
+          @param registrations : registrations to be processed
+          @type list of utils.Registration
+        '''
+        if self.flipped_interface.firewall:
+            rospy.logwarn("Gateway : firewalled, but received flip requests...")
+            for registration in registrations:
+                remote_gateway_hub_index[registration.remote_gateway].block_flip_request(registration)
+            return
+
+        state_changed = False
+
+        # Add new registrations
+        added_registrations = []
+        for registration in registrations:
+            rospy.loginfo("Gateway : received a flip request %s" % registration)
+            # probably not necessary as the flipping gateway will already check this
+            existing_registration = self.flipped_interface.find_registration_match(registration.remote_gateway, registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
+            if not existing_registration:
+                state_changed = True
+                remote_gateway_hub_index[registration.remote_gateway].accept_flip_request(registration)
+                added_registrations.append(registration)
+                new_registration = self.master.register(registration)
+                if new_registration is not None:
+                    self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
+
+        # Remove local registrations that are no longer flipped to this gateway
+        local_registrations = self.flipped_interface.getLocalRegistrations()
+        for local_registration in local_registrations:
+            matched_registration = None
+            for registration in registrations:
+                if (registration.remote_gateway == local_registration.remote_gateway) and \
+                   (registration.connection.rule.name == local_registration.connection.rule.name) and \
+                   (registration.connection.rule.node == local_registration.connection.rule.node) and \
+                   (registration.connection.rule.type == local_registration.connection.rule.type):
+                    matched_registration = registration
+                    break
+                else:
+                    continue
+            if matched_registration is None:
+                state_changed = True
+                self.master.unregister(local_registration)
+                self.flipped_interface.registrations[local_registration.connection.rule.type].remove(local_registration)
+
+        if state_changed:
+            self._publish_gateway_info()
+
     def update_network_information(self):
         '''
           If we are running over a wired connection, then do nothing.
@@ -251,39 +299,6 @@ class Gateway(object):
         '''
         statistics = self.network_interface_manager.get_statistics()
         self.hub_manager.publish_network_statistics(statistics)
-
-    ##########################################################################
-    # Incoming commands from remote gateways
-    ##########################################################################
-
-    def process_remote_gateway_flip_request(self, registration):
-        '''
-          Used as a callback for incoming requests on redis pubsub channels.
-          It gets assigned to RedisManager.callback.
-
-          @param registration : fully detailed registration to be processed
-          @type utils.Registration
-        '''
-        pass
-        if self.flipped_interface.firewall:
-            rospy.logwarn("Gateway : firewalling a flip request %s" % registration)
-        else:
-            rospy.loginfo("Gateway : received a flip request %s" % registration)
-            # probably not necessary as the flipping gateway will already check this
-            existing_registration = self.flipped_interface.find_registration_match(registration.remote_gateway, registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
-            if not existing_registration:
-                new_registration = self.master.register(registration)
-                if new_registration is not None:
-                    self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
-                    self._publish_gateway_info()
-
-    def process_remote_gateway_unflip_request(self, rule, remote_gateway):
-        rospy.loginfo("Gateway : received an unflip request from gateway %s: %s" % (remote_gateway, utils.format_rule(rule)))
-        existing_registration = self.flipped_interface.find_registration_match(remote_gateway, rule.name, rule.node, rule.type)
-        if existing_registration:
-            self.master.unregister(existing_registration)
-            self.flipped_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
-            self._publish_gateway_info()
 
     ##########################################################################
     # Incoming commands from local system (ros service callbacks)

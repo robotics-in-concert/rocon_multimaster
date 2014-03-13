@@ -192,7 +192,6 @@ def serialize_connection_request(command, source, connection):
                       connection.xmlrpc_uri]
                      )
 
-
 def serialize_rule_request(command, source, rule):
     return serialize([command, source, rule.type, rule.name, rule.node])
 
