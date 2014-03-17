@@ -147,6 +147,18 @@ class Gateway(object):
                         # This hub was used to send the original flip request
                         hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
                         break
+
+        # Update flip status
+        flipped_connections = self.flipped_interface.get_flipped_connections()
+        for flip in flipped_connections:
+            for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
+                status = hub.get_flip_request_status(flip.remote_rule.gateway, flip.remote_rule.rule) 
+                if status is not None:
+                    self.flipped_interface.update_flip_status(flip.remote_rule, status)
+                    # TODO state may not have changed
+                    state_changed = True
+                    break
+                    
         if state_changed:
             self._publish_gateway_info()
 
