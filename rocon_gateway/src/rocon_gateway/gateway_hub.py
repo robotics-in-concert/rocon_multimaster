@@ -11,6 +11,7 @@ import threading
 import rospy
 import re
 import utils
+from gateway_msgs.msg import RemoteRuleWithStatus as FlipStatus
 import gateway_msgs.msg as gateway_msgs
 import rocon_python_comms
 import rocon_python_utils
@@ -577,6 +578,10 @@ class GatewayHub(rocon_hub_client.Hub):
     ##########################################################################
 
     def get_unblocked_flipped_in_connections(self):
+        ''' 
+          Returns all unblocked flips (accepted or pending) that have been
+          requested through this hub
+        '''
         registrations = []
         key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'flip_ins')
         encoded_flip_ins = []
@@ -589,17 +594,32 @@ class GatewayHub(rocon_hub_client.Hub):
             cmd, source, connection_list = utils.deserialize_request(flip_in)
             connection = utils.get_connection_from_list(connection_list)
             connection = utils.decrypt_connection(connection, self.private_key)
-            if cmd != 'block':
+            if cmd != FlipStatus.BLOCKED:
                 registrations.append(utils.Registration(connection, source))
         return registrations
 
     def block_flip_request(self, registration):
-        self._update_flip_request_status(registration, 'block')
+        ''' Convenience wrapper for updating flip request status '''
+        return self._update_flip_request_status(registration, FlipStatus.BLOCKED)
 
     def accept_flip_request(self, registration):
-        self._update_flip_request_status(registration, 'active')
+        ''' Convenience wrapper for updating flip request status '''
+        return self._update_flip_request_status(registration, FlipStatus.ACCEPTED)
 
     def _update_flip_request_status(self, registration, status):
+        ''' 
+          Updates the flip request status for this hub
+
+          @param registration : the flip registration for which we are updating status
+          @type utils.Registration
+
+          @param status : pending/accepted/blocked 
+          @type same as gateway_msgs.msg.RemoteRuleWithStatus.status
+
+          @return True if this hub was used to send the flip request, and the status was updated. False otherwise.
+          @rtype Boolean
+        '''
+        hub_found = False
         key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'flip_ins')
         encoded_flip_ins = self._redis_server.smembers(key)
         for flip_in in encoded_flip_ins:
@@ -609,12 +629,38 @@ class GatewayHub(rocon_hub_client.Hub):
             if source == registration.remote_gateway and \
                connection == registration.connection:
                 self._redis_server.srem(key, flip_in)
-        encrypted_connection = utils.encrypt_connection(registration.connection,
-                                                        self.private_key)
-        serialized_data = utils.serialize_connection_request(status, 
-                                                             registration.remote_gateway,
-                                                             encrypted_connection)
-        self._redis_server.sadd(key, serialized_data)
+                hub_found = True
+        if hub_found:
+            encrypted_connection = utils.encrypt_connection(registration.connection,
+                                                            self.private_key)
+            serialized_data = utils.serialize_connection_request(status, 
+                                                                 registration.remote_gateway,
+                                                                 encrypted_connection)
+            self._redis_server.sadd(key, serialized_data)
+            return True
+        return False
+
+    def get_flip_request_status(self, remote_gateway, rule):
+        '''
+          Get the status of a flipped registration. If the flip request does not
+          exist (for instance, in the case where this hub was not used to send
+          the request), then None is returned
+
+          @return the flip status or None
+          @rtype same as gateway_msgs.msg.RemoteRuleWithStatus.status or None 
+        '''
+        key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
+        encoded_flips = self._redis_server.smembers(key)
+        for flip in encoded_flips:
+            cmd, source, connection_list = utils.deserialize_request(flip)
+            if source != self._unique_gateway_name:
+                continue
+            connection = utils.get_connection_from_list(connection_list)
+            # Compare rules as xmlrpc_uri and type_info are encrypted
+            if connection.rule == rule:
+                return cmd
+        # Probably, this hub was not used to send this flip request
+        return None
 
     def send_flip_request(self, remote_gateway, connection, timeout=15.0):
         '''
@@ -662,7 +708,8 @@ class GatewayHub(rocon_hub_client.Hub):
         encrypted_connection = utils.encrypt_connection(connection, remote_gateway_public_key)
 
         # Send data
-        serialized_data = utils.serialize_connection_request('new', source, encrypted_connection)
+        serialized_data = utils.serialize_connection_request(
+            FlipStatus.PENDING, source, encrypted_connection)
         #TODO remove existing request if present
         self._redis_server.sadd(key, serialized_data)
         return True
@@ -700,6 +747,14 @@ class GatewayHub(rocon_hub_client.Hub):
             self._send_unflip_request(remote_gateway, rule)
 
     def _send_unflip_request(self, remote_gateway, rule):
+        '''
+          Unflip a previously flipped registration. If the flip request does not
+          exist (for instance, in the case where this hub was not used to send
+          the request), then False is returned
+
+          @return True if the flip existed and was removed, False otherwise
+          @rtype Boolean
+        '''
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
         encoded_flip_ins = self._redis_server.smembers(key)
         for flip_in in encoded_flip_ins:

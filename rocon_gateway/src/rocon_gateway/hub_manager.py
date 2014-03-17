@@ -144,8 +144,8 @@ class HubManager(object):
 
     def send_unflip_request(self, remote_gateway_name, remote_rule):
         '''
-          Send an unflip request to the specified gateway through
-          the first common hub that can be found.
+          Send an unflip request to the specified gateway through all available
+          hubs.
 
           Doesn't raise GatewayUnavailableError if nothing got sent as the higher level
           doesn't need any logic there yet (only called from gateway.shutdown).
@@ -159,11 +159,10 @@ class HubManager(object):
         self._hub_lock.acquire()
         for hub in self.hubs:
             if remote_gateway_name in hub.list_remote_gateway_names():
-                # I don't think we need more than one hub's info....
                 try:
-                    hub.send_unflip_request(remote_gateway_name, remote_rule)
-                    self._hub_lock.release()
-                    return
+                    if hub.send_unflip_request(remote_gateway_name, remote_rule):
+                        self._hub_lock.release()
+                        return
                 except GatewayUnavailableError:
                     pass  # cycle through the other hubs looking as well.
         self._hub_lock.release()

@@ -142,9 +142,11 @@ class Gateway(object):
             for flip in lost_flips[connection_type]:
                 state_changed = True
                 rospy.loginfo("Gateway : sending unflip request [%s]%s" % (flip.gateway, utils.format_rule(flip.rule)))
-                hub = remote_gateway_hub_index[flip.gateway][0]  # first one should be enough
-                hub.send_unflip_request(flip.gateway, flip.rule)
-                hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                for hub in remote_gateway_hub_index[flip.gateway]:
+                    if hub.send_unflip_request(flip.gateway, flip.rule):
+                        # This hub was used to send the original flip request
+                        hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                        break
         if state_changed:
             self._publish_gateway_info()
 
@@ -254,7 +256,9 @@ class Gateway(object):
             if len(registrations) != 0:
                 rospy.logwarn("Gateway : firewalled, but received flip requests...")
                 for registration in registrations:
-                    remote_gateway_hub_index[registration.remote_gateway][0].block_flip_request(registration)
+                    for hub in remote_gateway_hub_index[registration.remote_gateway]:
+                        if hub.block_flip_request(registration):
+                            break
             return
 
         state_changed = False
@@ -267,7 +271,9 @@ class Gateway(object):
             if not existing_registration:
                 rospy.loginfo("Gateway : received a flip request %s" % str(registration))
                 state_changed = True
-                remote_gateway_hub_index[registration.remote_gateway][0].accept_flip_request(registration)
+                for hub in remote_gateway_hub_index[registration.remote_gateway]:
+                    if hub.accept_flip_request(registration):
+                        break
                 added_registrations.append(registration)
                 new_registration = self.master.register(registration)
                 if new_registration is not None:
