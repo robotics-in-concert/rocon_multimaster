@@ -7,9 +7,10 @@
 # Imports
 ##############################################################################
 
-import collections
+#import collections
 import copy
-import json
+import cPickle
+#import simplejson as json
 import os
 
 from Crypto.PublicKey import RSA
@@ -148,26 +149,28 @@ class Registration():
 ##########################################################################
 
 
-def convert(data):
-    '''
-      Convert unicode to standard string (Not sure how necessary this is)
-      http://stackoverflow.com/questions/1254454/fastest-way-to-convert-a-dicts-keys-values-from-unicode-to-str
-    '''
-    if isinstance(data, unicode):
-        return str(data)
-    elif isinstance(data, collections.Mapping):
-        return dict(map(convert, data.iteritems()))
-    elif isinstance(data, collections.Iterable):
-        return type(data)(map(convert, data))
-    else:
-        return data
-
+# def convert(data):
+#     '''
+#       Convert unicode to standard string (Not sure how necessary this is)
+#       http://stackoverflow.com/questions/1254454/fastest-way-to-convert-a-dicts-keys-values-from-unicode-to-str
+#     '''
+#     if isinstance(data, unicode):
+#         return str(data)
+#     elif isinstance(data, collections.Mapping):
+#         return dict(map(convert, data.iteritems()))
+#     elif isinstance(data, collections.Iterable):
+#         return type(data)(map(convert, data))
+#     else:
+#         return data
+# 
 
 def serialize(data):
-    return json.dumps(data)
+    #return json.dumps(data)
+    return cPickle.dumps(data)
 
 def deserialize(str_msg):
-    return convert(json.loads(str_msg))
+    #return convert(json.loads(str_msg))
+    return cPickle.loads(str_msg)
 
 def serialize_connection(connection):
     return serialize([connection.rule.type,
@@ -234,12 +237,13 @@ def encrypt(plaintext, public_key):
         #TODO need to have arbitrary lengths
         raise ValueError('Trying to encrypt text longer than ' + MAX_PLAINTEXT_LENGTH + ' bytes!')
     K = CUN.getRandomNumber(128, os.urandom) # Not used, legacy compatibility
-    #return unicode(public_key.encrypt(plaintext, K))
-    return plaintext
+    ciphertext = public_key.encrypt(plaintext, K)
+    return ciphertext[0]
+    #return plaintext
 
 def decrypt(ciphertext, key):
-    #return key.decrypt(str(ciphertext))
-    return ciphertext
+    return key.decrypt(ciphertext)
+    #return ciphertext
 
 def decrypt_connection(connection, key):
     decrypted_connection = copy.deepcopy(connection)

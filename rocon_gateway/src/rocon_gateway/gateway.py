@@ -279,7 +279,8 @@ class Gateway(object):
             for local_registration in local_registrations[connection_type]:
                 matched_registration = None
                 for registration in registrations:
-                    if registration == local_registration:
+                    if registration.connection == local_registration.connection and \
+                       registration.remote_gateway == local_registration.remote_gateway:
                         matched_registration = registration
                         break
                     else:
