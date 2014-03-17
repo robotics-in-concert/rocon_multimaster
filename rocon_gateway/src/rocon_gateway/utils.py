@@ -238,9 +238,8 @@ def encrypt(plaintext, public_key):
     return plaintext
 
 def decrypt(ciphertext, key):
-    import rospy
-    rospy.loginfo(str(len(ciphertext)) + " : " + ciphertext)
-    return str(key.decrypt(ciphertext))
+    #return key.decrypt(str(ciphertext))
+    return ciphertext
 
 def decrypt_connection(connection, key):
     decrypted_connection = copy.deepcopy(connection)

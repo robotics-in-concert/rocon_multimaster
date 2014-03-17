@@ -8,6 +8,7 @@
 # Imports
 ###############################################################################
 
+import copy
 import rospy
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
@@ -248,10 +249,12 @@ class Gateway(object):
           @param registrations : registrations to be processed
           @type list of utils.Registration
         '''
+
         if self.flipped_interface.firewall:
-            rospy.logwarn("Gateway : firewalled, but received flip requests...")
-            for registration in registrations:
-                remote_gateway_hub_index[registration.remote_gateway].block_flip_request(registration)
+            if len(registrations) != 0:
+                rospy.logwarn("Gateway : firewalled, but received flip requests...")
+                for registration in registrations:
+                    remote_gateway_hub_index[registration.remote_gateway][0].block_flip_request(registration)
             return
 
         state_changed = False
@@ -259,34 +262,33 @@ class Gateway(object):
         # Add new registrations
         added_registrations = []
         for registration in registrations:
-            rospy.loginfo("Gateway : received a flip request %s" % registration)
             # probably not necessary as the flipping gateway will already check this
             existing_registration = self.flipped_interface.find_registration_match(registration.remote_gateway, registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
             if not existing_registration:
+                rospy.loginfo("Gateway : received a flip request %s" % str(registration))
                 state_changed = True
-                remote_gateway_hub_index[registration.remote_gateway].accept_flip_request(registration)
+                remote_gateway_hub_index[registration.remote_gateway][0].accept_flip_request(registration)
                 added_registrations.append(registration)
                 new_registration = self.master.register(registration)
                 if new_registration is not None:
                     self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
 
         # Remove local registrations that are no longer flipped to this gateway
-        local_registrations = self.flipped_interface.getLocalRegistrations()
-        for local_registration in local_registrations:
-            matched_registration = None
-            for registration in registrations:
-                if (registration.remote_gateway == local_registration.remote_gateway) and \
-                   (registration.connection.rule.name == local_registration.connection.rule.name) and \
-                   (registration.connection.rule.node == local_registration.connection.rule.node) and \
-                   (registration.connection.rule.type == local_registration.connection.rule.type):
-                    matched_registration = registration
-                    break
-                else:
-                    continue
-            if matched_registration is None:
-                state_changed = True
-                self.master.unregister(local_registration)
-                self.flipped_interface.registrations[local_registration.connection.rule.type].remove(local_registration)
+        local_registrations = copy.deepcopy(self.flipped_interface.registrations)
+        for connection_type in utils.connection_types:
+            for local_registration in local_registrations[connection_type]:
+                matched_registration = None
+                for registration in registrations:
+                    if registration == local_registration:
+                        matched_registration = registration
+                        break
+                    else:
+                        continue
+                if matched_registration is None:
+                    state_changed = True
+                    rospy.loginfo("Gateway : unflipping %s" % str(local_registration))
+                    self.master.unregister(local_registration)
+                    self.flipped_interface.registrations[connection_type].remove(local_registration)
 
         if state_changed:
             self._publish_gateway_info()
