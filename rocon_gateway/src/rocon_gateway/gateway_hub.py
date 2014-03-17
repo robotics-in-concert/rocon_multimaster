@@ -712,7 +712,6 @@ class GatewayHub(rocon_hub_client.Hub):
         # Send data
         serialized_data = utils.serialize_connection_request(
             FlipStatus.PENDING, source, encrypted_connection)
-        #TODO remove existing request if present
         self._redis_server.sadd(key, serialized_data)
         return True
 
