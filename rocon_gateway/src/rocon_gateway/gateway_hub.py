@@ -7,6 +7,7 @@
 # Imports
 ###############################################################################
 
+# import copy
 import threading
 import rospy
 import re
@@ -115,6 +116,11 @@ class GatewayHub(rocon_hub_client.Hub):
         # I think we just used this for debugging, but we might want to hide it in future (it's the ros master hostname/ip)
         self._redis_keys['ip'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'ip')
         self._redis_server.set(self._redis_keys['ip'], gateway_ip)
+
+        self.private_key, public_key =  utils.generate_private_public_key()
+        self._redis_keys['public_key'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'public_key')
+        self._redis_server.set(self._redis_keys['public_key'], utils.serialize_key(public_key))
+
         self.hub_connection_checker_thread = HubConnectionCheckerThread(self.ip, self.port, self._hub_connection_lost_hook)
         self.hub_connection_checker_thread.start()
         self.connection_lost_lock = threading.Lock()
@@ -632,6 +638,15 @@ class GatewayHub(rocon_hub_client.Hub):
         '''
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
         source = hub_api.key_base_name(self._redis_keys['gateway'])
+
+        #Encrypt as necessary
+        # remote_gateway_public_key_str = self._redis_server.get(
+        #     hub_api.create_rocon_gateway_key(remote_gateway, 'public_key'))
+        # remote_gateway_public_key = utils.deserialize_key(remote_gateway_public_key_str)
+        # encrypted_connection = copy.deepcopy(connection)
+        # encrypted_connection.type_info = remote_gateway_public_key_str
+
+        # Send data
         serialized_data = utils.serialize_connection_request('new', source, connection)
         #TODO remove existing request if present
         self._redis_server.sadd(key, serialized_data)

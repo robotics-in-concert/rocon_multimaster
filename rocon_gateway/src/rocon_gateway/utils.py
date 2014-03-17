@@ -7,8 +7,13 @@
 # Imports
 ##############################################################################
 
-import json
 import collections
+import json
+import os
+
+from Crypto.PublicKey import RSA
+import Crypto.Util.number as CUN
+
 from gateway_msgs.msg import Rule, ConnectionType
 
 ##############################################################################
@@ -208,6 +213,28 @@ def get_connection_from_list(connection_argument_list):
 
 def get_rule_from_list(rule_argument_list):
     return Rule(rule_argument_list[0], rule_argument_list[1], rule_argument_list[2])
+
+##########################################################################
+# Encryption/Decryption 
+##########################################################################
+
+def generate_private_public_key():
+    key = RSA.generate(2048)
+    public_key = key.publickey()
+    return key, public_key
+
+def deserialize_key(str):
+    return RSA.importKey(str) 
+
+def serialize_key(key):
+    return key.exportKey()
+
+def encrypt(str, public_key):
+    K = CUN.getRandomNumber(128, os.urandom) # Not used, legacy compatibility
+    return public_key.encrypt(str, K)
+
+def decrypt(ciphertext, key):
+    return key.decrypt(ciphertext)
 
 ##########################################################################
 # Regex
