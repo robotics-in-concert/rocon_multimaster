@@ -9,7 +9,7 @@
 
 #import collections
 import copy
-import cPickle
+import cPickle as pickle
 #import simplejson as json
 import os
 
@@ -166,11 +166,11 @@ class Registration():
 
 def serialize(data):
     #return json.dumps(data)
-    return cPickle.dumps(data)
+    return pickle.dumps(data)
 
 def deserialize(str_msg):
     #return convert(json.loads(str_msg))
-    return cPickle.loads(str_msg)
+    return pickle.loads(str_msg)
 
 def serialize_connection(connection):
     return serialize([connection.rule.type,
