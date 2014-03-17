@@ -40,7 +40,7 @@ class TestFlips(unittest.TestCase):
         #print("%s" % self.graph._local_gateway)
         self.assertEquals("2", str(len(flipped_interface)))
         for remote_rule in flipped_interface:
-            self.assertEquals("/chatter", remote_rule.rule.name)
+            self.assertEquals("/chatter", remote_rule.remote_rule.rule.name)
             # Should probably assert rule.type and rule.node here as well.
         # Revert state
         try:
@@ -59,7 +59,7 @@ class TestFlips(unittest.TestCase):
             self.fail("Runtime error caught when flipping tutorial connections.")
         flipped_interface = self._wait_for_flipped_interface()
         #print("%s" % self.graph._local_gateway)
-        self.assertIn("/chatter", [remote_rule.rule.name for remote_rule in flipped_interface])
+        self.assertIn("/chatter", [remote_rule.remote_rule.rule.name for remote_rule in flipped_interface])
         try:
             samples.flip_tutorials(cancel=True) 
         except GatewaySampleRuntimeError as e:
@@ -76,7 +76,7 @@ class TestFlips(unittest.TestCase):
             self.fail("Runtime error caught when flipping tutorial connections.")
         flipped_interface = self._wait_for_flipped_interface()
         print("%s" % self.graph._local_gateway)
-        self.assertIn("/chatter", [remote_rule.rule.name for remote_rule in flipped_interface])
+        self.assertIn("/chatter", [remote_rule.remote_rule.rule.name for remote_rule in flipped_interface])
         try:
             samples.flip_tutorials(cancel=True, regex_patterns=True) 
         except GatewaySampleRuntimeError as e:
