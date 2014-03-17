@@ -640,7 +640,7 @@ class GatewayHub(rocon_hub_client.Hub):
             return True
         return False
 
-    def get_flip_request_status(self, remote_gateway, rule):
+    def get_flip_request_status(self, remote_gateway, rule, source_gateway=None):
         '''
           Get the status of a flipped registration. If the flip request does not
           exist (for instance, in the case where this hub was not used to send
@@ -649,11 +649,13 @@ class GatewayHub(rocon_hub_client.Hub):
           @return the flip status or None
           @rtype same as gateway_msgs.msg.RemoteRuleWithStatus.status or None 
         '''
+        if source_gateway == None:
+            source_gateway = self._unique_gateway_name
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
         encoded_flips = self._redis_server.smembers(key)
         for flip in encoded_flips:
             cmd, source, connection_list = utils.deserialize_request(flip)
-            if source != self._unique_gateway_name:
+            if source != source_gateway:
                 continue
             connection = utils.get_connection_from_list(connection_list)
             # Compare rules as xmlrpc_uri and type_info are encrypted
