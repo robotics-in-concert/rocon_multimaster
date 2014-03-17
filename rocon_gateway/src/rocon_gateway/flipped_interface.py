@@ -94,12 +94,24 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                 flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, remote_gateways, unique_name))
             new_flips[connection_type] = diff(flipped[connection_type], self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type], flipped[connection_type])
-        self.flipped = copy.deepcopy(flipped)
 
-        # set flip status to unknown for now
-        self.flip_status = utils.create_empty_connection_type_dictionary() # unset flip status till it is updated
+        # set flip status to unknown first, and then read previous status if available
+        flip_status = utils.create_empty_connection_type_dictionary()
         for connection_type in utils.connection_types:
-            self.flip_status[connection_type] = [RemoteRuleWithStatus.UNKNOWN] * len(self.flipped[connection_type])
+            flip_status[connection_type] = [RemoteRuleWithStatus.UNKNOWN] * len(flipped[connection_type])
+
+        for connection_type in utils.connection_types:
+            for new_index, flip in enumerate(flipped[connection_type]):
+                try:
+                    index = self.flipped[connection_type].index(flip)
+                    flip_status[connection_type][new_index] = \
+                            self.flip_status[connection_type][index]
+                except:
+                    # The new flip probably did not exist. Let it remain unknown
+                    pass
+
+        self.flip_status = copy.deepcopy(flip_status)
+        self.flipped = copy.deepcopy(flipped)
 
         self._lock.release()
         return new_flips, removed_flips
@@ -126,13 +138,20 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         '''
           Update the status of a flip from the hub. This should be called right
           after update once self.flipped is established
+
+          @return True if status was indeed changed, False otherwise
+          @rtype Boolean
         '''
+        state_changed = False
         self._lock.acquire()
-        for i, stored_flip in enumerate(self.flipped[flip.rule.type]):
-            if stored_flip == flip:
-                self.flip_status[flip.rule.type][i] = status
-                break
+        try:
+            index = self.flipped[flip.rule.type].index(flip)
+            state_changed = (self.flip_status[flip.rule.type][index] != status)
+            self.flip_status[flip.rule.type][index] = status
+        except ValueError:
+            pass
         self._lock.release()
+        return state_changed
 
     ##########################################################################
     # Utility Methods

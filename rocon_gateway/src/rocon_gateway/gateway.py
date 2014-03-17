@@ -154,9 +154,8 @@ class Gateway(object):
             for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
                 status = hub.get_flip_request_status(flip.remote_rule.gateway, flip.remote_rule.rule) 
                 if status is not None:
-                    self.flipped_interface.update_flip_status(flip.remote_rule, status)
-                    # TODO state may not have changed
-                    state_changed = True
+                    flip_state_changed = self.flipped_interface.update_flip_status(flip.remote_rule, status)
+                    state_changed = state_changed or flip_state_changed
                     break
                     
         if state_changed:
