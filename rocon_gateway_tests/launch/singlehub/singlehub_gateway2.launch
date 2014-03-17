@@ -1,0 +1,31 @@
+<launch>
+
+  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"/>
+  <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
+    <rosparam param="name">gateway2</rosparam>
+    <rosparam param="firewall">false</rosparam>
+    <rosparam param="disable_uuids">true</rosparam>
+    <rosparam command="load" file="$(find rocon_gateway_tests)/param/singlehub/gateway2.yaml" />
+  </node>
+
+  <include file="$(find rocon_gateway_tests)/launch/common/talker.xml">
+    <arg name="anonymize" value="true" />
+    <arg name="topic" value="advertised_chatter_from_gateway2" />
+  </include>
+
+  <include file="$(find rocon_gateway_tests)/launch/common/talker.xml">
+    <arg name="anonymize" value="true" />
+    <arg name="topic" value="flipped_chatter_from_gateway2" />
+  </include>
+
+  <include file="$(find rocon_gateway_tests)/launch/common/listener.xml">
+    <arg name="anonymize" value="true" />
+    <arg name="topic" value="advertised_chatter_from_gateway1" />
+  </include>
+
+  <include file="$(find rocon_gateway_tests)/launch/common/listener.xml">
+    <arg name="anonymize" value="true" />
+    <arg name="topic" value="flipped_chatter_from_gateway1" />
+  </include>
+
+</launch>
