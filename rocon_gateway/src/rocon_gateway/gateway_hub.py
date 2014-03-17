@@ -7,7 +7,6 @@
 # Imports
 ###############################################################################
 
-# import copy
 import threading
 import rospy
 import re
@@ -18,6 +17,7 @@ import rocon_python_utils
 import rocon_gateway_utils
 import rocon_hub_client
 import rocon_python_redis as redis
+import time
 from rocon_hub_client import hub_api, hub_client
 from rocon_hub_client.exceptions import HubConnectionLostError, \
               HubNameNotFoundError, HubNotFoundError
@@ -110,7 +110,6 @@ class GatewayHub(rocon_hub_client.Hub):
         if not self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):
             # should never get here - unique should be unique
             pass
-        unused_ret = self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
         self.mark_named_gateway_available(self._redis_keys['gateway'])
         self._redis_server.set(self._redis_keys['firewall'], self._firewall)
         # I think we just used this for debugging, but we might want to hide it in future (it's the ros master hostname/ip)
@@ -121,6 +120,8 @@ class GatewayHub(rocon_hub_client.Hub):
         self._redis_keys['public_key'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'public_key')
         self._redis_server.set(self._redis_keys['public_key'], utils.serialize_key(public_key))
 
+        # Mark this gateway as now available
+        self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
         self.hub_connection_checker_thread = HubConnectionCheckerThread(self.ip, self.port, self._hub_connection_lost_hook)
         self.hub_connection_checker_thread.start()
         self.connection_lost_lock = threading.Lock()
@@ -587,6 +588,7 @@ class GatewayHub(rocon_hub_client.Hub):
         for flip_in in encoded_flip_ins:
             cmd, source, connection_list = utils.deserialize_request(flip_in)
             connection = utils.get_connection_from_list(connection_list)
+            connection = utils.decrypt_connection(connection, self.private_key)
             if cmd != 'block':
                 registrations.append(utils.Registration(connection, source))
         return registrations
@@ -603,13 +605,18 @@ class GatewayHub(rocon_hub_client.Hub):
         for flip_in in encoded_flip_ins:
             cmd, source, connection_list = utils.deserialize_request(flip_in)
             connection = utils.get_connection_from_list(connection_list)
+            connection = utils.decrypt_connection(connection, self.private_key)
             if source == registration.remote_gateway and \
                connection == registration.connection:
                 self._redis_server.srem(key, flip_in)
-        serialized_data = utils.serialize_connection_request(status, registration.remote_gateway, registration.connection)
+        encrypted_connection = utils.encrypt_connection(registration.connection,
+                                                        self.private_key)
+        serialized_data = utils.serialize_connection_request(status, 
+                                                             registration.remote_gateway,
+                                                             encrypted_connection)
         self._redis_server.sadd(key, serialized_data)
 
-    def send_flip_request(self, remote_gateway, connection):
+    def send_flip_request(self, remote_gateway, connection, timeout=15.0):
         '''
           Sends a message to the remote gateway via redis pubsub channel. This is called from the
           watcher thread, when a flip rule gets activated.
@@ -639,15 +646,23 @@ class GatewayHub(rocon_hub_client.Hub):
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
         source = hub_api.key_base_name(self._redis_keys['gateway'])
 
-        #Encrypt as necessary
-        # remote_gateway_public_key_str = self._redis_server.get(
-        #     hub_api.create_rocon_gateway_key(remote_gateway, 'public_key'))
-        # remote_gateway_public_key = utils.deserialize_key(remote_gateway_public_key_str)
-        # encrypted_connection = copy.deepcopy(connection)
-        # encrypted_connection.type_info = remote_gateway_public_key_str
+        # Encrypt the transmission
+        start_time = time.time()
+        while time.time() - start_time <= timeout:
+            remote_gateway_public_key_str = self._redis_server.get(
+                hub_api.create_rocon_gateway_key(remote_gateway, 'public_key'))
+            if remote_gateway_public_key_str is not None:
+                break
+        if remote_gateway_public_key_str is None:
+            rospy.logerr("Gateway : flip to " + remote_gateway +
+                         " failed as public key not found")
+            return False
+
+        remote_gateway_public_key = utils.deserialize_key(remote_gateway_public_key_str)
+        encrypted_connection = utils.encrypt_connection(connection, remote_gateway_public_key)
 
         # Send data
-        serialized_data = utils.serialize_connection_request('new', source, connection)
+        serialized_data = utils.serialize_connection_request('new', source, encrypted_connection)
         #TODO remove existing request if present
         self._redis_server.sadd(key, serialized_data)
         return True

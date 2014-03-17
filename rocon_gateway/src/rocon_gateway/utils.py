@@ -8,6 +8,7 @@
 ##############################################################################
 
 import collections
+import copy
 import json
 import os
 
@@ -165,10 +166,8 @@ def convert(data):
 def serialize(data):
     return json.dumps(data)
 
-
 def deserialize(str_msg):
     return convert(json.loads(str_msg))
-
 
 def serialize_connection(connection):
     return serialize([connection.rule.type,
@@ -177,7 +176,6 @@ def serialize_connection(connection):
                       connection.type_info,
                       connection.xmlrpc_uri]
                      )
-
 
 def deserialize_connection(connection_str):
     deserialized_list = deserialize(connection_str)
@@ -218,23 +216,43 @@ def get_rule_from_list(rule_argument_list):
 # Encryption/Decryption 
 ##########################################################################
 
+MAX_PLAINTEXT_LENGTH = 256
+
 def generate_private_public_key():
-    key = RSA.generate(2048)
+    key = RSA.generate(8 * MAX_PLAINTEXT_LENGTH)
     public_key = key.publickey()
     return key, public_key
 
-def deserialize_key(str):
-    return RSA.importKey(str) 
+def deserialize_key(serialized_key):
+    return RSA.importKey(serialized_key) 
 
 def serialize_key(key):
     return key.exportKey()
 
-def encrypt(str, public_key):
+def encrypt(plaintext, public_key):
+    if len(plaintext) > MAX_PLAINTEXT_LENGTH:
+        #TODO need to have arbitrary lengths
+        raise ValueError('Trying to encrypt text longer than ' + MAX_PLAINTEXT_LENGTH + ' bytes!')
     K = CUN.getRandomNumber(128, os.urandom) # Not used, legacy compatibility
-    return public_key.encrypt(str, K)
+    #return unicode(public_key.encrypt(plaintext, K))
+    return plaintext
 
 def decrypt(ciphertext, key):
-    return key.decrypt(ciphertext)
+    import rospy
+    rospy.loginfo(str(len(ciphertext)) + " : " + ciphertext)
+    return str(key.decrypt(ciphertext))
+
+def decrypt_connection(connection, key):
+    decrypted_connection = copy.deepcopy(connection)
+    decrypted_connection.type_info = decrypt(connection.type_info, key)
+    decrypted_connection.xmlrpc_uri = decrypt(connection.xmlrpc_uri, key)
+    return decrypted_connection
+
+def encrypt_connection(connection, key):
+    encrypted_connection = copy.deepcopy(connection)
+    encrypted_connection.type_info = encrypt(connection.type_info, key)
+    encrypted_connection.xmlrpc_uri = encrypt(connection.xmlrpc_uri, key)
+    return encrypted_connection
 
 ##########################################################################
 # Regex
