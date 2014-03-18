@@ -22,11 +22,13 @@ from . import interactive_interface
 
 
 class FlippedInterface(interactive_interface.InteractiveInterface):
+
     '''
       The flipped interface is the set of rules
       (pubs/subs/services/actions) and rules controlling flips
       to other gateways.
     '''
+
     def __init__(self, firewall, default_rule_blacklist, default_rules, all_targets):
         '''
           Initialises the flipped interface.
@@ -87,11 +89,18 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         # Prune locally cached flip list for flips that have lost their remotes, keep the rules though
         for connection_type in utils.connection_types:
             # flip.gateway is a hash name, so is the remote_gateways list
-            self.flipped[connection_type] = [flip for flip in self.flipped[connection_type] if flip.gateway in remote_gateways]
+            self.flipped[connection_type] = [
+                flip for flip in self.flipped[connection_type] if flip.gateway in remote_gateways]
         # Totally regenerate a new flipped interface, compare with old
         for connection_type in connections:
             for connection in connections[connection_type]:
-                flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, remote_gateways, unique_name))
+                flipped[connection_type].extend(
+                    self._generate_flips(
+                        connection.rule.type,
+                        connection.rule.name,
+                        connection.rule.node,
+                        remote_gateways,
+                        unique_name))
             new_flips[connection_type] = diff(flipped[connection_type], self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type], flipped[connection_type])
 
@@ -105,7 +114,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                 try:
                     index = self.flipped[connection_type].index(flip)
                     flip_status[connection_type][new_index] = \
-                            self.flip_status[connection_type][index]
+                        self.flip_status[connection_type][index]
                 except:
                     # The new flip probably did not exist. Let it remain unknown
                     pass

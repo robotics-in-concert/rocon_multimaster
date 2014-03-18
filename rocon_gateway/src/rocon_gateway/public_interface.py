@@ -53,6 +53,7 @@ def publicRuleExists(public_rule, public_rules):
 
 
 class PublicInterface(object):
+
     '''
       The public interface is the set of rules
       (pubs/subs/services/actions) that are exposed and made available for
@@ -63,6 +64,7 @@ class PublicInterface(object):
        * list of rules and filters that will be watched
          and shared if they become available
     '''
+
     def __init__(self, default_rule_blacklist, default_rules):
         '''
           Initialises the public interface
@@ -345,12 +347,18 @@ class PublicInterface(object):
         self.lock.acquire()  # protect self.public
         for connection_type in utils.connection_types:
             for connection in permitted_connections[connection_type]:
-                    if not connection.inConnectionList(self.public[connection_type]):
-                        new_connection = generate_advertisement_connection_details(connection.rule.type, connection.rule.name, connection.rule.node)
-                        if new_connection is not None:  # can happen if connection disappeared in between getting the connection index (watcher thread) and checking for the topic_type (preceding line)
-                            new_public[connection_type].append(new_connection)
-                            self.public[connection_type].append(new_connection)
-            removed_public[connection_type][:] = [x for x in self.public[connection_type] if not x.inConnectionList(permitted_connections[connection_type])]
-            self.public[connection_type][:] = [x for x in self.public[connection_type] if not x.inConnectionList(removed_public[connection_type])]
+                if not connection.inConnectionList(self.public[connection_type]):
+                    new_connection = generate_advertisement_connection_details(
+                        connection.rule.type, connection.rule.name, connection.rule.node)
+                    # can happen if connection disappeared in between getting the connection
+                    # index (watcher thread) and checking for the topic_type (preceding line)
+                    if new_connection is not None:
+                        new_public[connection_type].append(new_connection)
+                        self.public[connection_type].append(new_connection)
+            removed_public[connection_type][:] = [
+                x for x in self.public[connection_type] if not x.inConnectionList(
+                    permitted_connections[connection_type])]
+            self.public[connection_type][:] = [
+                x for x in self.public[connection_type] if not x.inConnectionList(removed_public[connection_type])]
         self.lock.release()
         return new_public, removed_public

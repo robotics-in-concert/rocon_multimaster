@@ -21,11 +21,13 @@ from . import interactive_interface
 
 
 class PulledInterface(interactive_interface.InteractiveInterface):
+
     '''
       The pulled interface is the set of rules
       (pubs/subs/services/actions) and rules controlling pulls from
       other gateways.
     '''
+
     def __init__(self, default_rule_blacklist, default_rules, all_targets):
         '''
           Initialises the pulled interface.
@@ -69,7 +71,13 @@ class PulledInterface(interactive_interface.InteractiveInterface):
             connections = remote_connections[remote_gateway]
             for connection_type in connections:
                 for connection in connections[connection_type]:
-                    pulled[connection_type].extend(self._generate_pulls(connection.rule.type, connection.rule.name, connection.rule.node, remote_gateway, unique_name))
+                    pulled[connection_type].extend(
+                        self._generate_pulls(
+                            connection.rule.type,
+                            connection.rule.name,
+                            connection.rule.node,
+                            remote_gateway,
+                            unique_name))
         for connection_type in utils.connection_types:
             new_pulls[connection_type] = diff(pulled[connection_type], self.pulled[connection_type])
             removed_pulls[connection_type] = diff(self.pulled[connection_type], pulled[connection_type])

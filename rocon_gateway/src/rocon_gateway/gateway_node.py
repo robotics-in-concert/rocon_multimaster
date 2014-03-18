@@ -26,6 +26,7 @@ from . import hub_manager
 
 
 class GatewayNode():
+
     '''
       Currently this just provides getup and go for the gateway.
     '''
@@ -39,27 +40,32 @@ class GatewayNode():
             self._unique_name = self._param['name']
             rospy.logwarn("Gateway : uuid's disabled, using possibly non-unique name [%s]" % self._unique_name)
         else:  # append a unique hex string
-            key = uuid.uuid4()  # random 16 byte string, alternatively uuid.getnode() returns a hash based on the mac address, uuid.uid1() based on localhost and time
+            # random 16 byte string, alternatively uuid.getnode() returns a hash based
+            # on the mac address, uuid.uid1() based on localhost and time
+            key = uuid.uuid4()
             self._unique_name = self._param['name'] + key.hex
             rospy.loginfo("Gateway : generated unique hash name [%s]" % self._unique_name)
         self._hub_manager = hub_manager.HubManager(
-                             hub_whitelist=self._param['hub_whitelist'],
-                             hub_blacklist=self._param['hub_blacklist']
-                             )
+            hub_whitelist=self._param['hub_whitelist'],
+            hub_blacklist=self._param['hub_blacklist']
+        )
         # Be careful of the construction sequence here, parts depend on others.
         self._gateway_publishers = self._setup_ros_publishers()
-        self._gateway = gateway.Gateway(self._hub_manager, self._param, self._unique_name, self._publish_gateway_info)  # self._publish_gateway_info needs self._gateway_publishers
+        # self._publish_gateway_info needs self._gateway_publishers
+        self._gateway = gateway.Gateway(self._hub_manager, self._param, self._unique_name, self._publish_gateway_info)
         self._gateway_services = self._setup_ros_services()  # Needs self._gateway
         self._gateway_subscribers = self._setup_ros_subscribers()  # Needs self._gateway
-        # 'ip:port' : (error_code, error_code_str) dictionary of hubs that this gateway has tried to register, but not been permitted (hub is not in whitelist, or is blacklisted)
+        # 'ip:port' : (error_code, error_code_str) dictionary of hubs that this gateway has tried to register,
+        # but not been permitted (hub is not in whitelist, or is blacklisted)
         self._disallowed_hubs = {}
         self._disallowed_hubs_error_codes = [gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST,
                                              gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED,
                                              gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND,
                                              gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
-                                            ]
+                                             ]
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
-        self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'], self._disallowed_hubs)
+        self._hub_discovery_thread = rocon_hub_client.HubDiscovery(
+            self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'], self._disallowed_hubs)
 
         # Shutdown hooks - allowing external triggers for shutting down
         if self._param['external_shutdown']:
@@ -70,7 +76,7 @@ class GatewayNode():
         self._gateway.spin()
         if not self._param['external_shutdown']:
             self._shutdown()
-        #else the shutdown hook handles it.
+        # else the shutdown hook handles it.
 
     def _wait_for_shutdown(self):
         '''
@@ -131,15 +137,15 @@ class GatewayNode():
 
         existing_advertisements = self._gateway.public_interface.getConnections()
         hub, error_code, error_code_str = \
-                self._hub_manager.connect_to_hub(
-                    ip,  # Hub Details
-                    port,
-                    self._param['firewall'],  # Gateway Details
-                    self._unique_name,
-                    self._disengage_hub,
-                    self._gateway.ip,
-                    existing_advertisements
-                    )
+            self._hub_manager.connect_to_hub(
+                ip,  # Hub Details
+                port,
+                self._param['firewall'],  # Gateway Details
+                self._unique_name,
+                self._disengage_hub,
+                self._gateway.ip,
+                existing_advertisements
+            )
         if hub:
             rospy.loginfo("Gateway : registering on the hub [%s]" % hub.name)
             self._publish_gateway_info()
@@ -148,9 +154,12 @@ class GatewayNode():
                 pass  # be quiet - usually happens if we connect directly, then zeroconf tries.
             elif error_code in self._disallowed_hubs_error_codes:
                 self._disallowed_hubs[uri] = (error_code, error_code_str)
-                rospy.logwarn("Gateway : failed to register gateway with the hub [%s][%s]" % (error_code, error_code_str))
+                rospy.logwarn(
+                    "Gateway : failed to register gateway with the hub [%s][%s]" % (error_code, error_code_str))
             else:
-                rospy.logwarn("Gateway : caught an unknown error trying register gateway with the hub [%s][%s]" % (error_code, error_code_str))
+                rospy.logwarn(
+                    "Gateway : caught an unknown error trying register gateway with the hub [%s][%s]" %
+                    (error_code, error_code_str))
         return error_code, error_code_str
 
     def _disengage_hub(self, hub):
@@ -179,15 +188,26 @@ class GatewayNode():
 
     def _setup_ros_services(self):
         gateway_services = {}
-        gateway_services['connect_hub']         = rospy.Service('~connect_hub',         gateway_srvs.ConnectHub,       self.ros_service_connect_hub) #@IgnorePep8
-        gateway_services['remote_gateway_info'] = rospy.Service('~remote_gateway_info', gateway_srvs.RemoteGatewayInfo,self.ros_service_remote_gateway_info) #@IgnorePep8
-        gateway_services['advertise']           = rospy.Service('~advertise',           gateway_srvs.Advertise,        self._gateway.ros_service_advertise) #@IgnorePep8
-        gateway_services['advertise_all']       = rospy.Service('~advertise_all',       gateway_srvs.AdvertiseAll,     self._gateway.ros_service_advertise_all) #@IgnorePep8
-        gateway_services['flip']                = rospy.Service('~flip',                gateway_srvs.Remote,           self._gateway.ros_service_flip) #@IgnorePep8
-        gateway_services['flip_all']            = rospy.Service('~flip_all',            gateway_srvs.RemoteAll,        self._gateway.ros_service_flip_all) #@IgnorePep8
-        gateway_services['pull']                = rospy.Service('~pull',                gateway_srvs.Remote,           self._gateway.ros_service_pull) #@IgnorePep8
-        gateway_services['pull_all']            = rospy.Service('~pull_all',            gateway_srvs.RemoteAll,        self._gateway.ros_service_pull_all) #@IgnorePep8
-        gateway_services['set_watcher_period']  = rospy.Service('~set_watcher_period',  gateway_srvs.SetWatcherPeriod, self._gateway.ros_service_set_watcher_period) #@IgnorePep8
+        gateway_services['connect_hub'] = rospy.Service(
+            '~connect_hub', gateway_srvs.ConnectHub, self.ros_service_connect_hub)  # @IgnorePep8
+        gateway_services['remote_gateway_info'] = rospy.Service(
+            '~remote_gateway_info', gateway_srvs.RemoteGatewayInfo, self.ros_service_remote_gateway_info)  # @IgnorePep8
+        gateway_services['advertise'] = rospy.Service(
+            '~advertise', gateway_srvs.Advertise, self._gateway.ros_service_advertise)  # @IgnorePep8
+        gateway_services['advertise_all'] = rospy.Service(
+            '~advertise_all', gateway_srvs.AdvertiseAll, self._gateway.ros_service_advertise_all)  # @IgnorePep8
+        gateway_services['flip'] = rospy.Service(
+            '~flip', gateway_srvs.Remote, self._gateway.ros_service_flip)  # @IgnorePep8
+        gateway_services['flip_all'] = rospy.Service(
+            '~flip_all', gateway_srvs.RemoteAll, self._gateway.ros_service_flip_all)  # @IgnorePep8
+        gateway_services['pull'] = rospy.Service(
+            '~pull', gateway_srvs.Remote, self._gateway.ros_service_pull)  # @IgnorePep8
+        gateway_services['pull_all'] = rospy.Service(
+            '~pull_all', gateway_srvs.RemoteAll, self._gateway.ros_service_pull_all)  # @IgnorePep8
+        gateway_services['set_watcher_period'] = rospy.Service(
+            '~set_watcher_period',
+            gateway_srvs.SetWatcherPeriod,
+            self._gateway.ros_service_set_watcher_period)  # @IgnorePep8
         return gateway_services
 
     def _setup_ros_publishers(self):
@@ -197,7 +217,8 @@ class GatewayNode():
 
     def _setup_ros_subscribers(self):
         gateway_subscribers = {}
-        gateway_subscribers['force_update'] = rospy.Subscriber('~force_update', std_msgs.Empty, self._gateway.ros_subscriber_force_update)
+        gateway_subscribers['force_update'] = rospy.Subscriber(
+            '~force_update', std_msgs.Empty, self._gateway.ros_subscriber_force_update)
         return gateway_subscribers
 
     ##########################################################################
