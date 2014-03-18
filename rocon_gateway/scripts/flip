@@ -30,6 +30,7 @@ class Flags(object):
 
 
 class Logger(object):
+
     def __init(self):
         self.debug_flag = False
 
@@ -159,12 +160,15 @@ def resolve_connections(gateway_namespace, remote_gateways, flipped_connections)
     connections = []
     for connection_type in connection_dictionary:
         connections.extend(connection_dictionary[connection_type])
-    connections[:] = [connection for connection in connections if not is_in_flipped_connection_list(remote_gateways, connection, flipped_connections)]
+    connections[:] = [connection for connection in connections
+                      if not is_in_flipped_connection_list(remote_gateways, connection, flipped_connections)]
     # some things you should never flip
-    connections[:] = [connection for connection in connections if not re.match('.*set_logger_level', connection.rule.name)]
+    connections[:] = [connection for connection in connections if not re.match(
+        '.*set_logger_level', connection.rule.name)]
     connections[:] = [connection for connection in connections if not re.match('.*get_loggers', connection.rule.name)]
     connections[:] = [connection for connection in connections if not re.match('.*rosout', connection.rule.name)]
-    connections[:] = [connection for connection in connections if not re.match(gateway_namespace + '/.*', connection.rule.name)]
+    connections[:] = [connection for connection in connections
+                      if not re.match(gateway_namespace + '/.*', connection.rule.name)]
     connections[:] = [connection for connection in connections if not re.match('.*zeroconf.*', connection.rule.name)]
     max_index = len(connections) - 1
     flips = []

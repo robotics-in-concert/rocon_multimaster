@@ -23,8 +23,10 @@ from gateway_msgs.msg import Rule, ConnectionType
 ##############################################################################
 
 # for help in iterating over the set of connection constants
-connection_types = frozenset([ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER, ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER])
-connection_types_list = [ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER, ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER]
+connection_types = frozenset([ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER,
+                             ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER])
+connection_types_list = [ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER,
+                         ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER]
 connection_type_strings_list = ["publisher", "subscriber", "service", "action_client", "action_server"]
 action_types = ['/goal', '/cancel', '/status', '/feedback', '/result']
 
@@ -34,6 +36,7 @@ action_types = ['/goal', '/cancel', '/status', '/feedback', '/result']
 
 
 class Connection():
+
     '''
       An object that represents a connection containing all the gory details
       about a connection, allowing a connection to be passed through to a
@@ -43,6 +46,7 @@ class Connection():
        - type_info              (msg type for pubsub or service api for services)
        - xmlrpc_uri             (the xmlrpc node uri for the connection)
     '''
+
     def __init__(self, rule, type_info, xmlrpc_uri):
         '''
           @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
@@ -63,9 +67,11 @@ class Connection():
 
     def __str__(self):
         if self.rule.type == ConnectionType.SERVICE:
-            return '{type: %s, name: %s, node: %s, uri: %s, service_api: %s}' % (self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
+            return '{type: %s, name: %s, node: %s, uri: %s, service_api: %s}' % (
+                self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
         else:
-            return '{type: %s, name: %s, node: %s, uri: %s, topic_type: %s}' % (self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
+            return '{type: %s, name: %s, node: %s, uri: %s, topic_type: %s}' % (
+                self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
 
     def __repr__(self):
         return self.__str__()
@@ -104,6 +110,7 @@ class Connection():
 
 
 class Registration():
+
     '''
       An object that represents a connection registered with the local
       master (or about to be registered). This has all the gory detail
@@ -114,6 +121,7 @@ class Registration():
        - remote_gateway         (the remote gateway from where this connection originated)
        - local_node             (the local anonymously generated node name)
     '''
+
     def __init__(self, connection, remote_gateway, local_node=None):
         '''
           @param connection : string identifier storing the remote connection details (type, name, node)
@@ -162,15 +170,17 @@ class Registration():
 #         return type(data)(map(convert, data))
 #     else:
 #         return data
-# 
+#
 
 def serialize(data):
-    #return json.dumps(data)
+    # return json.dumps(data)
     return pickle.dumps(data)
 
+
 def deserialize(str_msg):
-    #return convert(json.loads(str_msg))
+    # return convert(json.loads(str_msg))
     return pickle.loads(str_msg)
+
 
 def serialize_connection(connection):
     return serialize([connection.rule.type,
@@ -179,6 +189,7 @@ def serialize_connection(connection):
                       connection.type_info,
                       connection.xmlrpc_uri]
                      )
+
 
 def deserialize_connection(connection_str):
     deserialized_list = deserialize(connection_str)
@@ -198,6 +209,7 @@ def serialize_connection_request(command, source, connection):
                       connection.xmlrpc_uri]
                      )
 
+
 def serialize_rule_request(command, source, rule):
     return serialize([command, source, rule.type, rule.name, rule.node])
 
@@ -216,40 +228,47 @@ def get_rule_from_list(rule_argument_list):
     return Rule(rule_argument_list[0], rule_argument_list[1], rule_argument_list[2])
 
 ##########################################################################
-# Encryption/Decryption 
+# Encryption/Decryption
 ##########################################################################
 
 MAX_PLAINTEXT_LENGTH = 256
+
 
 def generate_private_public_key():
     key = RSA.generate(8 * MAX_PLAINTEXT_LENGTH)
     public_key = key.publickey()
     return key, public_key
 
+
 def deserialize_key(serialized_key):
-    return RSA.importKey(serialized_key) 
+    return RSA.importKey(serialized_key)
+
 
 def serialize_key(key):
     return key.exportKey()
 
+
 def encrypt(plaintext, public_key):
     if len(plaintext) > MAX_PLAINTEXT_LENGTH:
-        #TODO need to have arbitrary lengths
+        # TODO need to have arbitrary lengths
         raise ValueError('Trying to encrypt text longer than ' + MAX_PLAINTEXT_LENGTH + ' bytes!')
-    K = CUN.getRandomNumber(128, os.urandom) # Not used, legacy compatibility
+    K = CUN.getRandomNumber(128, os.urandom)  # Not used, legacy compatibility
     ciphertext = public_key.encrypt(plaintext, K)
     return ciphertext[0]
-    #return plaintext
+    # return plaintext
+
 
 def decrypt(ciphertext, key):
     return key.decrypt(ciphertext)
-    #return ciphertext
+    # return ciphertext
+
 
 def decrypt_connection(connection, key):
     decrypted_connection = copy.deepcopy(connection)
     decrypted_connection.type_info = decrypt(connection.type_info, key)
     decrypted_connection.xmlrpc_uri = decrypt(connection.xmlrpc_uri, key)
     return decrypted_connection
+
 
 def encrypt_connection(connection, key):
     encrypted_connection = copy.deepcopy(connection)

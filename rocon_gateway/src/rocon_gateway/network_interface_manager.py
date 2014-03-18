@@ -20,10 +20,12 @@ from gateway_msgs.msg import ConnectionStatistics
 
 
 class NetworkInterfaceManager(object):
+
     '''
       Uses netifaces and pythonwifi to pull information about the network
       being used to connect to the hub
     '''
+
     def __init__(self, interface_name=None):
         '''
           Initializes the interface manager. If the interface_name is None or an
@@ -31,7 +33,7 @@ class NetworkInterfaceManager(object):
           interface being used.
         '''
         self.interface_name, self.interface_type = \
-                self.detect_network_interface(interface_name)
+            self.detect_network_interface(interface_name)
 
     def detect_network_interface(self, interface_name=''):
         '''
@@ -74,13 +76,13 @@ class NetworkInterfaceManager(object):
 
         if len(interfaces) == 0:
             rospy.logerr("Unable to auto detect a single interface. Cannot " +
-                    "send network information to hub.")
+                         "send network information to hub.")
             return None, None
         elif len(interfaces) > 1:
             rospy.logerr("This machine is connected via multiple active " +
-                    "interfaces. Detected: " + str(interfaces) + ". Please " +
-                    "select a single interface using the network_interface " +
-                    "param. Cannot send network information to hub.")
+                         "interfaces. Detected: " + str(interfaces) + ". Please " +
+                         "select a single interface using the network_interface " +
+                         "param. Cannot send network information to hub.")
             return None, None
 
         return interfaces[0][0], interfaces[0][1]
@@ -107,7 +109,7 @@ class NetworkInterfaceManager(object):
         try:
             wifi = pythonwifi.Wireless(self.interface_name)
             gateway_statistics.wireless_bitrate = \
-                    float(wifi.wireless_info.getBitrate().value)  # Raw bitrate
+                float(wifi.wireless_info.getBitrate().value)  # Raw bitrate
             _, qual, _, _ = wifi.getStatistics()
         except IOError as e:
             rospy.logwarn("Looks like the wireless dropped out. I won't " +
@@ -118,7 +120,7 @@ class NetworkInterfaceManager(object):
         gateway_statistics.wireless_link_quality = int(qual.quality)
         # The -256 is a hack. The value returned by pythonwifi seems to be off.
         gateway_statistics.wireless_signal_level = \
-                          float(qual.signallevel) - 256.0
+            float(qual.signallevel) - 256.0
         gateway_statistics.wireless_noise_level = float(qual.noiselevel)
 
         return gateway_statistics

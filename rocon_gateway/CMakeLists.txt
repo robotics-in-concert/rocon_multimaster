@@ -9,7 +9,8 @@ project(rocon_gateway)
 # Catkin
 ##############################################################################
 
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED
+  COMPONENTS roslint)
 catkin_package()
 
 catkin_python_setup()
@@ -36,4 +37,12 @@ install(DIRECTORY launch
 
 install(DIRECTORY param
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+# Lint Python modules for PEP8 compatibility
+file(GLOB_RECURSE ${PROJECT_NAME}_PY_SCRIPTS
+     RELATIVE ${PROJECT_SOURCE_DIR} scripts/*)
+file(GLOB_RECURSE ${PROJECT_NAME}_PY_SRC
+RELATIVE ${PROJECT_SOURCE_DIR} src/${PROJECT_NAME}/*.py)
+roslint_python(${${PROJECT_NAME}_PY_SCRIPTS})
+roslint_python(${${PROJECT_NAME}_PY_SRC})
 

@@ -99,33 +99,33 @@ def create_tutorial_dictionaries(use_regex_patterns=False):
     nodes = {}
     if use_regex_patterns:
         names = {
-         gateway_msgs.ConnectionType.PUBLISHER: '.*ter',
-         gateway_msgs.ConnectionType.SUBSCRIBER: '.*ter',
-         gateway_msgs.ConnectionType.SERVICE: '/add_two_.*',
-         gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/cli.*',
-         gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/ser.*'
+            gateway_msgs.ConnectionType.PUBLISHER: '.*ter',
+            gateway_msgs.ConnectionType.SUBSCRIBER: '.*ter',
+            gateway_msgs.ConnectionType.SERVICE: '/add_two_.*',
+            gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/cli.*',
+            gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/ser.*'
         }
         nodes = {
-         gateway_msgs.ConnectionType.PUBLISHER: '/t.*er',
-         gateway_msgs.ConnectionType.SUBSCRIBER: '',
-         gateway_msgs.ConnectionType.SERVICE: '',
-         gateway_msgs.ConnectionType.ACTION_CLIENT: '',
-         gateway_msgs.ConnectionType.ACTION_SERVER: ''
-         }
+            gateway_msgs.ConnectionType.PUBLISHER: '/t.*er',
+            gateway_msgs.ConnectionType.SUBSCRIBER: '',
+            gateway_msgs.ConnectionType.SERVICE: '',
+            gateway_msgs.ConnectionType.ACTION_CLIENT: '',
+            gateway_msgs.ConnectionType.ACTION_SERVER: ''
+        }
     else:
         names = {
-         gateway_msgs.ConnectionType.PUBLISHER: '/chatter',
-         gateway_msgs.ConnectionType.SUBSCRIBER: '/chatter',
-         gateway_msgs.ConnectionType.SERVICE: '/add_two_ints',
-         gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/client',
-         gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/server'
+            gateway_msgs.ConnectionType.PUBLISHER: '/chatter',
+            gateway_msgs.ConnectionType.SUBSCRIBER: '/chatter',
+            gateway_msgs.ConnectionType.SERVICE: '/add_two_ints',
+            gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/client',
+            gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/server'
         }
         nodes = {
-         gateway_msgs.ConnectionType.PUBLISHER: '',
-         gateway_msgs.ConnectionType.SUBSCRIBER: '',
-         gateway_msgs.ConnectionType.SERVICE: '',
-         gateway_msgs.ConnectionType.ACTION_CLIENT: '',
-         gateway_msgs.ConnectionType.ACTION_SERVER: ''
+            gateway_msgs.ConnectionType.PUBLISHER: '',
+            gateway_msgs.ConnectionType.SUBSCRIBER: '',
+            gateway_msgs.ConnectionType.SERVICE: '',
+            gateway_msgs.ConnectionType.ACTION_CLIENT: '',
+            gateway_msgs.ConnectionType.ACTION_SERVER: ''
         }
     return names, nodes
 
@@ -175,7 +175,8 @@ def advertise_tutorials(cancel=False, regex_patterns=False, ns=_gateway_namespac
         rule.name = names[connection_type]
         rule.type = connection_type
         rule.node = nodes[connection_type]
-        rospy.loginfo("Advertise : %s [%s,%s,%s]." % (_action_text(cancel, 'advertising'), rule.type, rule.name, rule.node or 'None'))
+        rospy.loginfo("Advertise : %s [%s,%s,%s]." %
+                      (_action_text(cancel, 'advertising'), rule.type, rule.name, rule.node or 'None'))
         req.rules.append(rule)
         resp = advertise(req)
         if resp.result != 0:
@@ -217,7 +218,15 @@ def pull_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
         rule.name = names[connection_type]
         rule.type = connection_type
         rule.node = nodes[connection_type]
-        rospy.loginfo("Pull : %s [%s,%s,%s][%s]." % (_action_text(cancel, 'sending pull rule to the gateway'), rule.type, rule.name, rule.node or 'None', remote_gateway_name))
+        rospy.loginfo(
+            "Pull : %s [%s,%s,%s][%s]." %
+            (_action_text(
+                cancel,
+                'sending pull rule to the gateway'),
+                rule.type,
+                rule.name,
+                rule.node or 'None',
+                remote_gateway_name))
         req.remotes.append(gateway_msgs.RemoteRule(remote_gateway_name, rule))
     resp = pull(req)
     if resp.result != 0:
@@ -236,7 +245,8 @@ def flip_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
     req.gateway = remote_gateway_name
     req.cancel = cancel
     req.blacklist = []
-    rospy.loginfo("Flip All : %s [%s]." % (_action_text(cancel, 'sending flip rule for all to the gateway'), remote_gateway_name))
+    rospy.loginfo("Flip All : %s [%s]." %
+                  (_action_text(cancel, 'sending flip rule for all to the gateway'), remote_gateway_name))
     resp = flip_all(req)
     if resp.result != 0:
         raise GatewaySampleRuntimeError("failed to flip all to %s [%s]" % (remote_gateway_name, resp.error_message))
@@ -259,7 +269,15 @@ def flip_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
         rule.name = names[connection_type]
         rule.type = connection_type
         rule.node = nodes[connection_type]
-        rospy.loginfo("Flip : %s [%s,%s,%s][%s]." % (_action_text(cancel, 'requesting flip to gateway'), rule.type, rule.name, rule.node or 'None', remote_gateway_name))
+        rospy.loginfo(
+            "Flip : %s [%s,%s,%s][%s]." %
+            (_action_text(
+                cancel,
+                'requesting flip to gateway'),
+                rule.type,
+                rule.name,
+                rule.node or 'None',
+                remote_gateway_name))
         req.remotes.append(gateway_msgs.RemoteRule(remote_gateway_name, rule))
     resp = flip(req)
     if resp.result != 0:

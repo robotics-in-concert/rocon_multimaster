@@ -45,7 +45,9 @@ def setup_ros_parameters():
     # The gateway can automagically detect zeroconf, but sometimes you want to force it off
     param['disable_zeroconf'] = rospy.get_param('~disable_zeroconf', False)
 
-    # The gateway uses uui'd to guarantee uniqueness, but this can be disabled if you want clean names without uuid's (but you have to manually guarantee uniqueness)
+    # The gateway uses uui'd to guarantee uniqueness, but this can be disabled
+    # if you want clean names without uuid's (but you have to manually
+    # guarantee uniqueness)
     param['disable_uuids'] = rospy.get_param('~disable_uuids', False)
 
     # Make everything publicly available (excepting the default blacklist)
@@ -110,12 +112,12 @@ def generate_remote_rules(param):
             # maybe also check for '' here?
             node = None if pattern.match(remote_rule['rule']['node']) else remote_rule['rule']['node']
             remote_rules.append(RemoteRule(remote_rule['gateway'],
-                                       Rule(remote_rule['rule']['type'],
-                                            remote_rule['rule']['name'],
-                                            node
-                                            )
-                                       )
-                            )
+                                           Rule(remote_rule['rule']['type'],
+                                                remote_rule['rule']['name'],
+                                                node
+                                                )
+                                           )
+                                )
         else:
             all_targets.append(remote_rule['gateway'])
     return remote_rules, all_targets

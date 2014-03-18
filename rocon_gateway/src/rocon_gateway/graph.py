@@ -25,6 +25,7 @@ import rocon_python_comms
 
 
 class Graph(object):
+
     '''
     Utility class for polling statistics from a running gateway-hub network.
     '''
@@ -52,8 +53,10 @@ class Graph(object):
             self.configure()
 
     def configure(self):
-        self._gateway_info = rocon_python_comms.SubscriberProxy(self.gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)
-        self._remote_gateway_info = rospy.ServiceProxy(self.gateway_namespace + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
+        self._gateway_info = rocon_python_comms.SubscriberProxy(
+            self.gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)
+        self._remote_gateway_info = rospy.ServiceProxy(
+            self.gateway_namespace + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
 
     def local_gateway_name(self):
         if self._local_gateway:
@@ -81,7 +84,8 @@ class Graph(object):
         for remote_rule in self._local_gateway.flipped_connections:
             self.gateway_edges.add(Edge(self._local_gateway.name, remote_rule.remote_rule.gateway))
             # this adds a bloody magic space, to help disambiguate node names from topic names
-            connection_id = rosgraph.impl.graph.topic_node(remote_rule.remote_rule.rule.name + '-' + remote_rule.remote_rule.rule.type)
+            connection_id = rosgraph.impl.graph.topic_node(
+                remote_rule.remote_rule.rule.name + '-' + remote_rule.remote_rule.rule.type)
             self.flipped_nodes.append(connection_id)
             self.flipped_edges.add(Edge(self._local_gateway.name, connection_id))
             self.flipped_edges.add(Edge(connection_id, remote_rule.remote_rule.gateway))
@@ -92,7 +96,7 @@ class Graph(object):
             self.pulled_edges.add(Edge(connection_id, remote_rule.gateway))
         for rule in self._local_gateway.public_interface:
             connection_id = rosgraph.impl.graph.topic_node(rule.name + '-' + rule.type)
-            #print "pulled edge: %s->%s" % (self._local_gateway.name, connection_id)
+            # print "pulled edge: %s->%s" % (self._local_gateway.name, connection_id)
             self.pulled_nodes.append(connection_id)
             self.pulled_edges.add(Edge(self._local_gateway.name, connection_id))
         # Check remote gateways

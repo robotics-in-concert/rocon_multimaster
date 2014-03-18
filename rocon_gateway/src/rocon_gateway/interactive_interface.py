@@ -22,9 +22,11 @@ from . import utils
 
 
 class InteractiveInterface(object):
+
     '''
       Parent interface for flip and pull interfaces.
     '''
+
     def __init__(self, default_rule_blacklist, default_rules, all_targets):
         '''
           @param default_rule_blacklist : used when in flip/pull all mode
@@ -41,15 +43,19 @@ class InteractiveInterface(object):
         self.active = utils.create_empty_connection_type_dictionary()
 
         # Default rules used in the xxxAll modes
-        self._default_blacklist = default_rule_blacklist  # dictionary of gateway-gateway_msgs.msg.Rule lists, not RemoteRules!
+        # dictionary of gateway-gateway_msgs.msg.Rule lists, not RemoteRules!
+        self._default_blacklist = default_rule_blacklist
 
         # keys are connection_types, elements are lists of gateway_msgs.msg.RemoteRule objects
-        self.watchlist = utils.create_empty_connection_type_dictionary()    # Specific rules used to determine what local rules to flip
+        # Specific rules used to determine what local rules to flip
+        self.watchlist = utils.create_empty_connection_type_dictionary()
 
         # keys are connection_types, elements are lists of utils.Registration objects
-        self.registrations = utils.create_empty_connection_type_dictionary()  # Flips from remote gateways that have been locally registered
+        # Flips from remote gateways that have been locally registered
+        self.registrations = utils.create_empty_connection_type_dictionary()
 
-        # Blacklists when doing flip all - different for each gateway, each value is one of our usual rule type dictionaries
+        # Blacklists when doing flip all - different for each gateway, each value
+        # is one of our usual rule type dictionaries
         self._blacklist = {}
 
         self._lock = threading.Lock()
@@ -158,7 +164,8 @@ class InteractiveInterface(object):
             remote_rule.rule.node = None
             remote_rule.rule.type = connection_type
             # Remove all other rules for that gateway
-            self.watchlist[connection_type][:] = [rule for rule in self.watchlist[connection_type] if rule.gateway != gateway]
+            self.watchlist[connection_type][:] = [
+                rule for rule in self.watchlist[connection_type] if rule.gateway != gateway]
             # basically self.add_rule() - do it manually here so we don't deadlock locks
             self.watchlist[connection_type].append(remote_rule)
         self._lock.release()

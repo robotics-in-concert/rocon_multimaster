@@ -84,7 +84,7 @@ class HubManager(object):
         return dic
 
     def get_flip_requests(self):
-        ''' 
+        '''
           Returns all unblocked flip requests received by this hub
 
           @return list of flip registration requests
@@ -179,7 +179,7 @@ class HubManager(object):
                        gateway_disengage_hub,  # hub connection lost hook
                        gateway_ip,
                        existing_advertisements
-                    ):
+                       ):
         '''
           Attempts to make a connection and register the gateway with a hub.
           This is called from the gateway node's _register_gateway method.
@@ -237,10 +237,11 @@ class HubManager(object):
         '''
         #uri = str(ip) + ":" + str(port)
         # Could dig in and find the name here, but not worth the bother.
-        hub_to_be_disengaged.disconnect() # necessary to kill failing socket receives
+        hub_to_be_disengaged.disconnect()  # necessary to kill failing socket receives
         self._hub_lock.acquire()
         if hub_to_be_disengaged in self.hubs:
-            rospy.loginfo("Gateway : lost connection to the hub [%s][%s]" % (hub_to_be_disengaged.name, hub_to_be_disengaged.uri))
+            rospy.loginfo("Gateway : lost connection to the hub [%s][%s]" % (
+                hub_to_be_disengaged.name, hub_to_be_disengaged.uri))
             self.hubs[:] = [hub for hub in self.hubs if hub != hub_to_be_disengaged]
         self._hub_lock.release()
 
@@ -284,4 +285,3 @@ class HubManager(object):
         for hub in self.hubs:
             hub.publish_network_statistics(statistics)
         self._hub_lock.release()
-

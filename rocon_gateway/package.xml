@@ -18,6 +18,8 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>roslint</build_depend>
+
   <run_depend>gateway_msgs</run_depend>
   <run_depend>python-crypto</run_depend>
   <run_depend>rospy</run_depend>

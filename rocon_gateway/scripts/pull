@@ -34,6 +34,7 @@ class Flags(object):
 
 
 class Logger(object):
+
     def __init(self):
         self.debug_flag = False
 
@@ -147,13 +148,18 @@ def is_in_pulled_connection_list(remote_gateway, advertisement, pulled_connectio
 def resolve_connections(gateway_namespace, remote_gateway, remote_advertisements, pulled_connections):
 
     advertisements = []
-    advertisements[:] = [advertisement for advertisement in remote_advertisements \
-                             if not is_in_pulled_connection_list(remote_gateway, advertisement, pulled_connections)]
-    advertisements[:] = [advertisement for advertisement in advertisements if not re.match('.*set_logger_level', advertisement.name)]
-    advertisements[:] = [advertisement for advertisement in advertisements if not re.match('.*get_loggers', advertisement.name)]
-    advertisements[:] = [advertisement for advertisement in advertisements if not re.match('.*rosout', advertisement.name)]
-    advertisements[:] = [advertisement for advertisement in advertisements if not re.match(gateway_namespace + '/.*', advertisement.name)]
-    advertisements[:] = [advertisement for advertisement in advertisements if not re.match('.*zeroconf.*', advertisement.name)]
+    advertisements[:] = [advertisement for advertisement in remote_advertisements
+                         if not is_in_pulled_connection_list(remote_gateway, advertisement, pulled_connections)]
+    advertisements[:] = [advertisement for advertisement in advertisements
+                         if not re.match('.*set_logger_level', advertisement.name)]
+    advertisements[:] = [advertisement for advertisement in advertisements
+                         if not re.match('.*get_loggers', advertisement.name)]
+    advertisements[:] = [advertisement for advertisement in advertisements
+                         if not re.match('.*rosout', advertisement.name)]
+    advertisements[:] = [advertisement for advertisement in advertisements
+                         if not re.match(gateway_namespace + '/.*', advertisement.name)]
+    advertisements[:] = [advertisement for advertisement in advertisements
+                         if not re.match('.*zeroconf.*', advertisement.name)]
     max_index = len(advertisements) - 1
     pulls = []
     if max_index == 0:
@@ -215,7 +221,8 @@ if __name__ == '__main__':
             remote_rules = resolve_unpulls(pull_watchlist)
         else:
             remote_gateway, remote_advertisements = resolve_remote_gateways(gateway_namespace)
-            remote_rules = resolve_connections(gateway_namespace, remote_gateway, remote_advertisements, pulled_connections)
+            remote_rules = resolve_connections(
+                gateway_namespace, remote_gateway, remote_advertisements, pulled_connections)
     except rocon_gateway.GatewayError, e:
         logger.error(str(e))
         sys.exit(1)

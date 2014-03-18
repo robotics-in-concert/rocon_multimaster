@@ -72,26 +72,28 @@ def resolve_unadvertise(advertise_watchlist):
         print("Select an advertisement to cancel (gateway-name-type-node):")
         for watch_rule in advertise_watchlist:
             if watch_rule.node == "None" or watch_rule.node == '':
-                watch_rule.node = r'.*' 
+                watch_rule.node = r'.*'
             print("    " + str(index) + ") "),
-            console.pretty_print(watch_rule.name,console.green)
+            console.pretty_print(watch_rule.name, console.green)
             print("-"),
-            console.pretty_print(watch_rule.type,console.cyan)
+            console.pretty_print(watch_rule.type, console.cyan)
             print("-"),
-            console.pretty_print(watch_rule.node+"\n",console.yellow)
-            index +=1
-        input_response = raw_input("Enter [0-%s]: "%str(max_index))
+            console.pretty_print(watch_rule.node + "\n", console.yellow)
+            index += 1
+        input_response = raw_input("Enter [0-%s]: " % str(max_index))
         index = int(input_response)
         unadvertisements.append(advertise_watchlist[index])
     return unadvertisements
+
 
 def is_in_advertised_list(connection, advertisements):
     for advertisement in advertisements:
         if advertisement.name == connection.rule.name and \
            advertisement.type == connection.rule.type and \
            advertisement.node == connection.rule.node:
-                return True
+            return True
     return False
+
 
 def resolve_advertisements(gateway_namespace, advertisements):
     master = rocon_gateway.LocalMaster()
@@ -101,47 +103,50 @@ def resolve_advertisements(gateway_namespace, advertisements):
         connections.extend(connection_dictionary[connection_type])
     connections[:] = [connection for connection in connections if not is_in_advertised_list(connection, advertisements)]
     # some things you should never advertise
-    connections[:] = [connection for connection in connections if not re.match('.*set_logger_level', connection.rule.name)]
+    connections[:] = [connection for connection in connections
+                      if not re.match('.*set_logger_level', connection.rule.name)]
     connections[:] = [connection for connection in connections if not re.match('.*get_loggers', connection.rule.name)]
     connections[:] = [connection for connection in connections if not re.match('.*rosout', connection.rule.name)]
-    connections[:] = [connection for connection in connections if not re.match(gateway_namespace+'/.*', connection.rule.name)]
-    connections[:] = [connection for connection in connections if not re.match('.*zeroconf.*', connection.rule.name)]
+    connections[:] = [connection for connection in connections if not re.match(
+        gateway_namespace + '/.*', connection.rule.name)]
+    connections[:] = [connection for connection in connections
+                      if not re.match('.*zeroconf.*', connection.rule.name)]
     max_index = len(connections) - 1
     advertisement_rules = []
     if max_index == 0:
-        console.warning("Automatically selecting %s (only one visible)"%connections[0].rule.name)
+        console.warning("Automatically selecting %s (only one visible)" % connections[0].rule.name)
         advertisement_rules.append(connections[0].rule)
     elif max_index < 0:
         raise rocon_gateway.GatewayError("No advertisements possible (all are either advertised or blacklisted).")
     else:
-        index = 0;
+        index = 0
         print("Select a connection to advertise (name-type-node):")
         for connection in connections:
             print("    " + str(index) + ") "),
-            console.pretty_print(connection.rule.name,console.green)
+            console.pretty_print(connection.rule.name, console.green)
             print("-"),
-            console.pretty_print(connection.rule.type,console.cyan)
+            console.pretty_print(connection.rule.type, console.cyan)
             print("-"),
-            console.pretty_print(connection.rule.node+"\n",console.yellow)
-            index +=1
-        input_response = raw_input("Enter [0-%s] or regex keyed by name [e.g. /cha.* or .*]: "%str(max_index))
+            console.pretty_print(connection.rule.node + "\n", console.yellow)
+            index += 1
+        input_response = raw_input("Enter [0-%s] or regex keyed by name [e.g. /cha.* or .*]: " % str(max_index))
         try:
             index = int(input_response)
             advertisement_rules.append(connections[index].rule)
-        except ValueError, e: # It's a regex
+        except ValueError, e:  # It's a regex
             for connection in connections:
                 if re.match(input_response, connection.rule.name):
-                     advertisement_rules.append(connection.rule)
+                    advertisement_rules.append(connection.rule)
     return advertisement_rules
 
 
 def advertise(gateway_namespace, rules, flag):
-    advertise_service = rospy.ServiceProxy(gateway_namespace + '/advertise',gateway_srvs.Advertise)
+    advertise_service = rospy.ServiceProxy(gateway_namespace + '/advertise', gateway_srvs.Advertise)
     req = gateway_srvs.AdvertiseRequest()
     for rule in rules:
         req.cancel = True if flag == Flags.cancel else False
-        if rule.node == r'.*': # ugly hack
-            rule.node = '' 
+        if rule.node == r'.*':  # ugly hack
+            rule.node = ''
         req.rules.append(rule)
         resp = advertise_service(req)
 
@@ -150,13 +155,13 @@ def advertise(gateway_namespace, rules, flag):
 ##############################################################################
 
 if __name__ == '__main__':
-    
+
     rospy.init_node('advertise')
     args = parse_arguments()
     gateway_namespace = None
     flag = None
     rules = None
-    
+
     try:
         gateway_namespace = rocon_gateway_utils.resolve_local_gateway()
         flag = resolve_flags()
@@ -168,9 +173,9 @@ if __name__ == '__main__':
     except rocon_gateway.GatewayError, e:
         console.error(str(e))
         sys.exit(1)
-    console.pretty_print("Information\n",console.bold)
-    print("  Local Gateway: %s"%gateway_namespace)
-    print("  Operation    : %s"%flag)
+    console.pretty_print("Information\n", console.bold)
+    print("  Local Gateway: %s" % gateway_namespace)
+    print("  Operation    : %s" % flag)
     first_rule = True
     print("  Advertise Rules   : "),
     for rule in rules:
@@ -178,11 +183,11 @@ if __name__ == '__main__':
             first_rule = False
         else:
             print("               : "),
-        console.pretty_print(rule.name,console.green)
+        console.pretty_print(rule.name, console.green)
         print("-"),
-        console.pretty_print(rule.type,console.cyan)
+        console.pretty_print(rule.type, console.cyan)
         print("-"),
-        console.pretty_print(rule.node+"\n",console.yellow)
+        console.pretty_print(rule.node + "\n", console.yellow)
     proceed = raw_input("Proceed? (y/n): ")
     if proceed == 'y':
         advertise(gateway_namespace, rules, flag)

@@ -17,6 +17,7 @@ import time
 
 
 class WatcherThread(object):
+
     '''
       This used to be on a thread of its own, but now moved into
       the gateway's main thread for running.
@@ -83,7 +84,8 @@ class WatcherThread(object):
           Internal non-interruptible sleep loop to check for shutdown and update triggers.
           This lets us set a really long watch_loop update if we wish.
         '''
-        while not rospy.is_shutdown() and not self.trigger_update and (time.time() - self._last_loop_timestamp < self._watch_loop_period):
+        while (not rospy.is_shutdown() and not self.trigger_update and
+               (time.time() - self._last_loop_timestamp < self._watch_loop_period)):
             rospy.rostime.wallsleep(self._internal_sleep_period)
         self.trigger_update = False
         self._last_loop_timestamp = time.time()
