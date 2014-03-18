@@ -91,7 +91,7 @@ class HubDiscovery(threading.Thread):
                     if service_uri not in self._blacklisted_hubs.keys():
                         rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
                         result, _ = self.discovery_update_hook(ip, port)
-                        if result == ErrorCodes.SUCCESS or result == ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS:
+                        if result == ErrorCodes.SUCCESS or result == ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS or result == ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST:
                             self._zeroconf_discovered_hubs.append(service)
                 # Direct scanning
             new_hubs, unused_lost_hubs = self._direct_scan()
@@ -99,7 +99,7 @@ class HubDiscovery(threading.Thread):
                 hostname, port = _resolve_url(hub_uri)
                 rospy.loginfo("Gateway : discovered hub directly [%s]" % hub_uri)
                 result, _ = self.discovery_update_hook(hostname, port)
-                if result == ErrorCodes.SUCCESS or result == ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS:
+                if result == ErrorCodes.SUCCESS or result == ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS or result == ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST:
                     self._direct_discovered_hubs.append(hub_uri)
 
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
@@ -114,7 +114,7 @@ class HubDiscovery(threading.Thread):
         '''
           Called when a discovered hub is lost in the upstream application.
 
-          This method should remove the hub from the list of discoverd hubs. 
+          This method should remove the hub from the list of discovered hubs.
           When the hub comes back up again, the hub discovery thread will
           call the discovery_update_hook again
 
@@ -187,13 +187,12 @@ class HubDiscovery(threading.Thread):
         difference = lambda l1, l2: [x for x in l1 if x not in l2]
         new_services = difference(response.services, self._zeroconf_discovered_hubs)
         lost_services = difference(self._zeroconf_discovered_hubs, response.services)
-        #self._zeroconf_discovered_hubs = response.services
-        #self._zeroconf_discovered_hubs.extend(new_services)
         return new_services, lost_services
 
 ###############################################################################
 # Functions
 ###############################################################################
+
 
 def _resolve_url(url):
     '''
