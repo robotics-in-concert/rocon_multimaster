@@ -55,7 +55,8 @@ class GatewayNode():
         self._disallowed_hubs = {}
         self._disallowed_hubs_error_codes = [gateway_msgs.ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST,
                                              gateway_msgs.ErrorCodes.HUB_CONNECTION_BLACKLISTED,
-                                             gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND
+                                             gateway_msgs.ErrorCodes.HUB_NAME_NOT_FOUND,
+                                             gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
                                             ]
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
         self._hub_discovery_thread = rocon_hub_client.HubDiscovery(self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'], self._disallowed_hubs)
@@ -149,6 +150,8 @@ class GatewayNode():
             elif error_code in self._disallowed_hubs_error_codes:
                 self._disallowed_hubs[uri] = (error_code, error_code_str)
                 rospy.logwarn("Gateway : failed to register gateway with the hub [%s][%s]" % (error_code, error_code_str))
+            else:
+                rospy.logwarn("Gateway : caught an unknown error trying register gateway with the hub [%s][%s]" % (error_code, error_code_str))
         return error_code, error_code_str
 
     def _disengage_hub(self, hub):

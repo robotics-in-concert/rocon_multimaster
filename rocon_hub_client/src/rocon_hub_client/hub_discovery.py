@@ -80,6 +80,13 @@ class HubDiscovery(threading.Thread):
         self._loop_period = half_sec
         self._internal_sleep_period = half_sec
         self._last_loop_timestamp = time.time()  # rospy.Time.now()
+        # error codes which inform the client is should stop scanning for this hub
+        reasons_not_to_keep_scanning = [
+                ErrorCodes.SUCCESS,
+                ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS,
+                ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST,
+                ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
+                ]
         while not rospy.is_shutdown() and not self._trigger_shutdown:
             self._discovered_hubs_modification_mutex.acquire()
             # Zeroconf scanning
@@ -91,7 +98,7 @@ class HubDiscovery(threading.Thread):
                     if service_uri not in self._blacklisted_hubs.keys():
                         rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
                         result, _ = self.discovery_update_hook(ip, port)
-                        if result == ErrorCodes.SUCCESS or result == ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS or result == ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST:
+                        if result in reasons_not_to_keep_scanning:
                             self._zeroconf_discovered_hubs.append(service)
                 # Direct scanning
             new_hubs, unused_lost_hubs = self._direct_scan()
@@ -99,9 +106,8 @@ class HubDiscovery(threading.Thread):
                 hostname, port = _resolve_url(hub_uri)
                 rospy.loginfo("Gateway : discovered hub directly [%s]" % hub_uri)
                 result, _ = self.discovery_update_hook(hostname, port)
-                if result == ErrorCodes.SUCCESS or result == ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS or result == ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST:
+                if result in reasons_not_to_keep_scanning:
                     self._direct_discovered_hubs.append(hub_uri)
-
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
                 rospy.logfatal("Gateway : zeroconf unavailable and no valid direct hub uris. Stopping hub discovery.")
                 break  # nothing left to do
