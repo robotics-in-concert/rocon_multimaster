@@ -136,7 +136,6 @@ class GatewayNode():
                     port,
                     self._param['firewall'],  # Gateway Details
                     self._unique_name,
-                    self._gateway.remote_gateway_request_callbacks,
                     self._disengage_hub,
                     self._gateway.ip,
                     existing_advertisements

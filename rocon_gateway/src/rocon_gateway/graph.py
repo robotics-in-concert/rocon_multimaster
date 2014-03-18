@@ -79,12 +79,12 @@ class Graph(object):
         self.flipped_edges = EdgeList()
         # Check local gateway
         for remote_rule in self._local_gateway.flipped_connections:
-            self.gateway_edges.add(Edge(self._local_gateway.name, remote_rule.gateway))
+            self.gateway_edges.add(Edge(self._local_gateway.name, remote_rule.remote_rule.gateway))
             # this adds a bloody magic space, to help disambiguate node names from topic names
-            connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
+            connection_id = rosgraph.impl.graph.topic_node(remote_rule.remote_rule.rule.name + '-' + remote_rule.remote_rule.rule.type)
             self.flipped_nodes.append(connection_id)
             self.flipped_edges.add(Edge(self._local_gateway.name, connection_id))
-            self.flipped_edges.add(Edge(connection_id, remote_rule.gateway))
+            self.flipped_edges.add(Edge(connection_id, remote_rule.remote_rule.gateway))
         for remote_rule in self._local_gateway.pulled_connections:
             connection_id = rosgraph.impl.graph.topic_node(remote_rule.rule.name + '-' + remote_rule.rule.type)
             self.pulled_nodes.append(connection_id)

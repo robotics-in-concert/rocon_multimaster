@@ -1,0 +1,5 @@
+<concert>
+  <launch package="rocon_hub" name="hub.launch" port="11311"/>
+  <launch package="rocon_gateway_tests" name="singlehub_gateway1.launch" port="11312"/>
+  <launch package="rocon_gateway_tests" name="singlehub_gateway2.launch" port="11313"/>
+</concert>

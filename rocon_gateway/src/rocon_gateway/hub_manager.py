@@ -83,6 +83,20 @@ class HubManager(object):
         self._hub_lock.release()
         return dic
 
+    def get_flip_requests(self):
+        ''' 
+          Returns all unblocked flip requests received by this hub
+
+          @return list of flip registration requests
+          @rtype list of utils.Registration
+        '''
+        registrations = []
+        self._hub_lock.acquire()
+        for hub in self.hubs:
+            registrations.extend(hub.get_unblocked_flipped_in_connections())
+        self._hub_lock.release()
+        return registrations
+
     def remote_gateway_info(self, remote_gateway_name):
         '''
           Return information that a remote gateway has posted on the hub(s).
@@ -130,8 +144,8 @@ class HubManager(object):
 
     def send_unflip_request(self, remote_gateway_name, remote_rule):
         '''
-          Send an unflip request to the specified gateway through
-          the first common hub that can be found.
+          Send an unflip request to the specified gateway through all available
+          hubs.
 
           Doesn't raise GatewayUnavailableError if nothing got sent as the higher level
           doesn't need any logic there yet (only called from gateway.shutdown).
@@ -145,11 +159,10 @@ class HubManager(object):
         self._hub_lock.acquire()
         for hub in self.hubs:
             if remote_gateway_name in hub.list_remote_gateway_names():
-                # I don't think we need more than one hub's info....
                 try:
-                    hub.send_unflip_request(remote_gateway_name, remote_rule)
-                    self._hub_lock.release()
-                    return
+                    if hub.send_unflip_request(remote_gateway_name, remote_rule):
+                        self._hub_lock.release()
+                        return
                 except GatewayUnavailableError:
                     pass  # cycle through the other hubs looking as well.
         self._hub_lock.release()
@@ -163,7 +176,6 @@ class HubManager(object):
                        port,
                        firewall_flag,
                        gateway_unique_name,
-                       remote_gateway_request_callbacks,
                        gateway_disengage_hub,  # hub connection lost hook
                        gateway_ip,
                        existing_advertisements
@@ -204,7 +216,6 @@ class HubManager(object):
             self._hub_lock.acquire()
             new_hub.register_gateway(firewall_flag,
                                      gateway_unique_name,
-                                     remote_gateway_request_callbacks,
                                      gateway_disengage_hub,  # hub connection lost hook
                                      gateway_ip,
                                      )

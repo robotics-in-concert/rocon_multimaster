@@ -11,6 +11,7 @@ import copy
 import re
 
 import rocon_gateway_utils
+from gateway_msgs.msg import RemoteRuleWithStatus
 
 from . import utils
 from . import interactive_interface
@@ -46,6 +47,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
         # Function aliases
         self.flipped = self.active
+        self.flip_status = utils.create_empty_connection_type_dictionary()
         self.flip_all = self.add_all
         self.unflip_all = self.remove_all
 
@@ -92,7 +94,25 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                 flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, remote_gateways, unique_name))
             new_flips[connection_type] = diff(flipped[connection_type], self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type], flipped[connection_type])
+
+        # set flip status to unknown first, and then read previous status if available
+        flip_status = utils.create_empty_connection_type_dictionary()
+        for connection_type in utils.connection_types:
+            flip_status[connection_type] = [RemoteRuleWithStatus.UNKNOWN] * len(flipped[connection_type])
+
+        for connection_type in utils.connection_types:
+            for new_index, flip in enumerate(flipped[connection_type]):
+                try:
+                    index = self.flipped[connection_type].index(flip)
+                    flip_status[connection_type][new_index] = \
+                            self.flip_status[connection_type][index]
+                except:
+                    # The new flip probably did not exist. Let it remain unknown
+                    pass
+
+        self.flip_status = copy.deepcopy(flip_status)
         self.flipped = copy.deepcopy(flipped)
+
         self._lock.release()
         return new_flips, removed_flips
 
@@ -113,6 +133,25 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         #         check for matches, if found, flou
         #
         # diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
+
+    def update_flip_status(self, flip, status):
+        '''
+          Update the status of a flip from the hub. This should be called right
+          after update once self.flipped is established
+
+          @return True if status was indeed changed, False otherwise
+          @rtype Boolean
+        '''
+        state_changed = False
+        self._lock.acquire()
+        try:
+            index = self.flipped[flip.rule.type].index(flip)
+            state_changed = (self.flip_status[flip.rule.type][index] != status)
+            self.flip_status[flip.rule.type][index] = status
+        except ValueError:
+            pass
+        self._lock.release()
+        return state_changed
 
     ##########################################################################
     # Utility Methods
@@ -193,9 +232,10 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         '''
         flipped_connections = []
         for connection_type in utils.connection_types:
-            flipped_connections.extend(copy.deepcopy(self.flipped[connection_type]))
+            for i, connection in enumerate(self.flipped[connection_type]):
+                flipped_connections.append(RemoteRuleWithStatus(connection,
+                                                                self.flip_status[connection_type][i]))
         return flipped_connections
-
 
 if __name__ == "__main__":
 

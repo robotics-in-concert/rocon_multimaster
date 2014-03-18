@@ -8,6 +8,7 @@
 # Imports
 ###############################################################################
 
+import copy
 import rospy
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
@@ -64,9 +65,6 @@ class Gateway(object):
                                                 )
         if self._param['advertise_all']:
             self.public_interface.advertise_all([])  # no extra blacklist beyond the default (keeping it simple in yaml for now)
-        self.remote_gateway_request_callbacks = {}
-        self.remote_gateway_request_callbacks['flip'] = self.process_remote_gateway_flip_request
-        self.remote_gateway_request_callbacks['unflip'] = self.process_remote_gateway_unflip_request
 
         self.network_interface_manager = NetworkInterfaceManager(self._param['network_interface'])
         self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
@@ -144,9 +142,22 @@ class Gateway(object):
             for flip in lost_flips[connection_type]:
                 state_changed = True
                 rospy.loginfo("Gateway : sending unflip request [%s]%s" % (flip.gateway, utils.format_rule(flip.rule)))
-                hub = remote_gateway_hub_index[flip.gateway][0]  # first one should be enough
-                hub.send_unflip_request(flip.gateway, flip.rule)
-                hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                for hub in remote_gateway_hub_index[flip.gateway]:
+                    if hub.send_unflip_request(flip.gateway, flip.rule):
+                        # This hub was used to send the original flip request
+                        hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                        break
+
+        # Update flip status
+        flipped_connections = self.flipped_interface.get_flipped_connections()
+        for flip in flipped_connections:
+            for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
+                status = hub.get_flip_request_status(flip.remote_rule.gateway, flip.remote_rule.rule) 
+                if status is not None:
+                    flip_state_changed = self.flipped_interface.update_flip_status(flip.remote_rule, status)
+                    state_changed = state_changed or flip_state_changed
+                    break
+                    
         if state_changed:
             self._publish_gateway_info()
 
@@ -243,6 +254,63 @@ class Gateway(object):
             self._publish_gateway_info()
         return public_interface
 
+    def update_flipped_in_interface(self, registrations, remote_gateway_hub_index):
+        '''
+          Match the flipped in connections to supplied registrations using 
+          supplied registrations, flipping and unflipping as necessary.
+
+          @param registrations : registrations to be processed
+          @type list of utils.Registration
+        '''
+
+        if self.flipped_interface.firewall:
+            if len(registrations) != 0:
+                rospy.logwarn("Gateway : firewalled, but received flip requests...")
+                for registration in registrations:
+                    for hub in remote_gateway_hub_index[registration.remote_gateway]:
+                        if hub.block_flip_request(registration):
+                            break
+            return
+
+        state_changed = False
+
+        # Add new registrations
+        added_registrations = []
+        for registration in registrations:
+            # probably not necessary as the flipping gateway will already check this
+            existing_registration = self.flipped_interface.find_registration_match(registration.remote_gateway, registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
+            if not existing_registration:
+                rospy.loginfo("Gateway : received a flip request %s" % str(registration))
+                state_changed = True
+                for hub in remote_gateway_hub_index[registration.remote_gateway]:
+                    if hub.accept_flip_request(registration):
+                        break
+                added_registrations.append(registration)
+                new_registration = self.master.register(registration)
+                if new_registration is not None:
+                    self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
+
+        # Remove local registrations that are no longer flipped to this gateway
+        local_registrations = copy.deepcopy(self.flipped_interface.registrations)
+        for connection_type in utils.connection_types:
+            for local_registration in local_registrations[connection_type]:
+                matched_registration = None
+                for registration in registrations:
+                    if registration.connection == local_registration.connection and \
+                       registration.remote_gateway == local_registration.remote_gateway:
+                        matched_registration = registration
+                        break
+                    else:
+                        continue
+                if matched_registration is None:
+                    state_changed = True
+                    rospy.loginfo("Gateway : unflipping %s" % str(local_registration))
+                    self.master.unregister(local_registration)
+                    self.flipped_interface.registrations[connection_type].remove(local_registration)
+
+        if state_changed:
+            self._publish_gateway_info()
+
     def update_network_information(self):
         '''
           If we are running over a wired connection, then do nothing.
@@ -251,39 +319,6 @@ class Gateway(object):
         '''
         statistics = self.network_interface_manager.get_statistics()
         self.hub_manager.publish_network_statistics(statistics)
-
-    ##########################################################################
-    # Incoming commands from remote gateways
-    ##########################################################################
-
-    def process_remote_gateway_flip_request(self, registration):
-        '''
-          Used as a callback for incoming requests on redis pubsub channels.
-          It gets assigned to RedisManager.callback.
-
-          @param registration : fully detailed registration to be processed
-          @type utils.Registration
-        '''
-        pass
-        if self.flipped_interface.firewall:
-            rospy.logwarn("Gateway : firewalling a flip request %s" % registration)
-        else:
-            rospy.loginfo("Gateway : received a flip request %s" % registration)
-            # probably not necessary as the flipping gateway will already check this
-            existing_registration = self.flipped_interface.find_registration_match(registration.remote_gateway, registration.connection.rule.name, registration.connection.rule.node, registration.connection.rule.type)
-            if not existing_registration:
-                new_registration = self.master.register(registration)
-                if new_registration is not None:
-                    self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
-                    self._publish_gateway_info()
-
-    def process_remote_gateway_unflip_request(self, rule, remote_gateway):
-        rospy.loginfo("Gateway : received an unflip request from gateway %s: %s" % (remote_gateway, utils.format_rule(rule)))
-        existing_registration = self.flipped_interface.find_registration_match(remote_gateway, rule.name, rule.node, rule.type)
-        if existing_registration:
-            self.master.unregister(existing_registration)
-            self.flipped_interface.registrations[existing_registration.connection.rule.type].remove(existing_registration)
-            self._publish_gateway_info()
 
     ##########################################################################
     # Incoming commands from local system (ros service callbacks)

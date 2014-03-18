@@ -74,6 +74,8 @@ class WatcherThread(object):
                 self._gateway.update_flipped_interface(connections, remote_gateway_hub_index)
                 self._gateway.update_public_interface(connections)
                 self._gateway.update_pulled_interface(connections, remote_gateway_hub_index)
+                registrations = self._hub_manager.get_flip_requests()
+                self._gateway.update_flipped_in_interface(registrations, remote_gateway_hub_index)
             self._sleep()
 
     def _sleep(self):

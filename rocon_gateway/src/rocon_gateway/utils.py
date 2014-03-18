@@ -7,8 +7,15 @@
 # Imports
 ##############################################################################
 
-import json
-import collections
+#import collections
+import copy
+import cPickle as pickle
+#import simplejson as json
+import os
+
+from Crypto.PublicKey import RSA
+import Crypto.Util.number as CUN
+
 from gateway_msgs.msg import Rule, ConnectionType
 
 ##############################################################################
@@ -142,28 +149,28 @@ class Registration():
 ##########################################################################
 
 
-def convert(data):
-    '''
-      Convert unicode to standard string (Not sure how necessary this is)
-      http://stackoverflow.com/questions/1254454/fastest-way-to-convert-a-dicts-keys-values-from-unicode-to-str
-    '''
-    if isinstance(data, unicode):
-        return str(data)
-    elif isinstance(data, collections.Mapping):
-        return dict(map(convert, data.iteritems()))
-    elif isinstance(data, collections.Iterable):
-        return type(data)(map(convert, data))
-    else:
-        return data
-
+# def convert(data):
+#     '''
+#       Convert unicode to standard string (Not sure how necessary this is)
+#       http://stackoverflow.com/questions/1254454/fastest-way-to-convert-a-dicts-keys-values-from-unicode-to-str
+#     '''
+#     if isinstance(data, unicode):
+#         return str(data)
+#     elif isinstance(data, collections.Mapping):
+#         return dict(map(convert, data.iteritems()))
+#     elif isinstance(data, collections.Iterable):
+#         return type(data)(map(convert, data))
+#     else:
+#         return data
+# 
 
 def serialize(data):
-    return json.dumps(data)
-
+    #return json.dumps(data)
+    return pickle.dumps(data)
 
 def deserialize(str_msg):
-    return convert(json.loads(str_msg))
-
+    #return convert(json.loads(str_msg))
+    return pickle.loads(str_msg)
 
 def serialize_connection(connection):
     return serialize([connection.rule.type,
@@ -172,7 +179,6 @@ def serialize_connection(connection):
                       connection.type_info,
                       connection.xmlrpc_uri]
                      )
-
 
 def deserialize_connection(connection_str):
     deserialized_list = deserialize(connection_str)
@@ -192,7 +198,6 @@ def serialize_connection_request(command, source, connection):
                       connection.xmlrpc_uri]
                      )
 
-
 def serialize_rule_request(command, source, rule):
     return serialize([command, source, rule.type, rule.name, rule.node])
 
@@ -209,6 +214,48 @@ def get_connection_from_list(connection_argument_list):
 
 def get_rule_from_list(rule_argument_list):
     return Rule(rule_argument_list[0], rule_argument_list[1], rule_argument_list[2])
+
+##########################################################################
+# Encryption/Decryption 
+##########################################################################
+
+MAX_PLAINTEXT_LENGTH = 256
+
+def generate_private_public_key():
+    key = RSA.generate(8 * MAX_PLAINTEXT_LENGTH)
+    public_key = key.publickey()
+    return key, public_key
+
+def deserialize_key(serialized_key):
+    return RSA.importKey(serialized_key) 
+
+def serialize_key(key):
+    return key.exportKey()
+
+def encrypt(plaintext, public_key):
+    if len(plaintext) > MAX_PLAINTEXT_LENGTH:
+        #TODO need to have arbitrary lengths
+        raise ValueError('Trying to encrypt text longer than ' + MAX_PLAINTEXT_LENGTH + ' bytes!')
+    K = CUN.getRandomNumber(128, os.urandom) # Not used, legacy compatibility
+    ciphertext = public_key.encrypt(plaintext, K)
+    return ciphertext[0]
+    #return plaintext
+
+def decrypt(ciphertext, key):
+    return key.decrypt(ciphertext)
+    #return ciphertext
+
+def decrypt_connection(connection, key):
+    decrypted_connection = copy.deepcopy(connection)
+    decrypted_connection.type_info = decrypt(connection.type_info, key)
+    decrypted_connection.xmlrpc_uri = decrypt(connection.xmlrpc_uri, key)
+    return decrypted_connection
+
+def encrypt_connection(connection, key):
+    encrypted_connection = copy.deepcopy(connection)
+    encrypted_connection.type_info = encrypt(connection.type_info, key)
+    encrypted_connection.xmlrpc_uri = encrypt(connection.xmlrpc_uri, key)
+    return encrypted_connection
 
 ##########################################################################
 # Regex

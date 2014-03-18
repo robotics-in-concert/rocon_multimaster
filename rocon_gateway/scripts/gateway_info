@@ -100,13 +100,14 @@ if __name__ == '__main__':
         print("       : -")
     for remote_rule in gateway.flipped_connections:
         print("       : "),
-        console.pretty_print(remote_rule.gateway, console.red)
+        console.pretty_print(remote_rule.remote_rule.gateway, console.red)
         print("-"),
-        console.pretty_print(remote_rule.rule.name, console.green)
+        console.pretty_print(remote_rule.remote_rule.rule.name, console.green)
         print("-"),
-        console.pretty_print(remote_rule.rule.type, console.cyan)
+        console.pretty_print(remote_rule.remote_rule.rule.type, console.cyan)
         print("-"),
-        console.pretty_print(remote_rule.rule.node + "\n", console.yellow)
+        console.pretty_print(remote_rule.remote_rule.rule.node, console.yellow)
+        print(" [" + remote_rule.status + "]")
 
     print("  Flipped in Connections")
     if len(gateway.flipped_in_connections) == 0:
