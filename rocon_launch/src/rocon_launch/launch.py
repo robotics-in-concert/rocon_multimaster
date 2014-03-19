@@ -45,11 +45,11 @@ def preexec():
 
 def get_roslaunch_pid(parent_pid):
     '''
-      Get the pid of the roslaunch process running in the terminal
-      specified by the parent pid.
+      Search the pstree of the parent pid for any rocon launched process.
     '''
     ps_command = subprocess.Popen("ps -o pid -o comm --ppid %d --noheaders" % parent_pid, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     ps_output = ps_command.stdout.read()
+
     retcode = ps_command.wait()
     pids = []
     if retcode == 0:
@@ -57,6 +57,8 @@ def get_roslaunch_pid(parent_pid):
             [pid, command] = pair.lstrip(' ').split(" ")
             if command == 'roslaunch':
                 pids.append(int(pid))
+            else:
+                pids.extend(get_roslaunch_pid(int(pid)))
     else:
         # Presume this roslaunch was killed by ctrl-c or terminated already.
         # Am not worrying about classifying between the above presumption and real errors for now
@@ -82,7 +84,10 @@ def signal_handler(sig, frame):
         #console.pretty_println("Terminated roslaunch [pid: %d]" % pid, console.bold)
     sleep(1)
     if hold:
-        raw_input("Press <Enter> to close terminals...")
+        try:
+            raw_input("Press <Enter> to close terminals...")
+        except RuntimeError:
+            pass  # this happens when you ctrl-c again instead of enter
     # now kill konsoles
     for p in processes:
         p.terminate()
@@ -177,7 +182,7 @@ def parse_arguments():
     parser.add_argument('launcher', nargs=1, help='name of the concert launch configuration (xml) file')
     #parser.add_argument('launchers', nargs='+', help='package and concert launch configuration (xml) file configurations, roslaunch style')
     args = parser.parse_args()
-    hold = args.hold
+    hold = args.hold  # global argument
     return args
 
 
@@ -271,8 +276,9 @@ def main():
                               (launcher['options'], launcher['port'], temp.name)], preexec_fn=preexec)
         elif terminal == 'gnome-terminal.wrapper' or terminal == 'gnome-terminal':
             # --disable-factory inherits the current environment, bit wierd.
-            p = subprocess.Popen(['gnome-terminal', '--title=%s' % launcher['title'], '--disable-factory', '-e', "/bin/bash", "-e", "roslaunch %s --disable-title --port %s %s" %
-                              (launcher['options'], launcher['port'], temp.name)], preexec_fn=preexec)
+            cmd = ['gnome-terminal', '--title=%s' % launcher['title'], '--disable-factory', "-e", "/bin/bash -c 'roslaunch %s --disable-title --port %s %s';/bin/bash" %
+                              (launcher['options'], launcher['port'], temp.name)]
+            p = subprocess.Popen(cmd, preexec_fn=preexec)
         else:
             cmd = ["roslaunch"]
             if launcher['options']:
