@@ -162,6 +162,17 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         self._lock.release()
         return state_changed
 
+    def remove_flip(self, flip):
+        '''
+          Removes a flip, so that it can be resent as necessary
+        '''
+        self._lock.acquire()
+        try:
+            self.flipped[flip.rule.type].remove(flip)
+        except ValueError:
+            pass
+        self._lock.release()
+
     ##########################################################################
     # Utility Methods
     ##########################################################################

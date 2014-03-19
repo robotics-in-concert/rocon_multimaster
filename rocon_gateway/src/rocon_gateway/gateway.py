@@ -13,6 +13,8 @@ import rospy
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
 
+from gateway_msgs.msg import RemoteRuleWithStatus as FlipStatus
+
 from . import utils
 from . import ros_parameters
 from .watcher_thread import WatcherThread
@@ -121,6 +123,23 @@ class Gateway(object):
           @type string
         '''
         state_changed = False
+
+        # Get flip status of existing requests, and remove those requests that
+        # need to be resent
+        flipped_connections = self.flipped_interface.get_flipped_connections()
+        for flip in flipped_connections:
+            if flip.remote_rule.gateway in remote_gateway_hub_index:
+                for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
+                    status = hub.get_flip_request_status(flip.remote_rule.gateway, flip.remote_rule.rule)
+                    if status is FlipStatus.RESEND:
+                        rospy.loginfo("Gateway : resend requested for flip request [%s]%s" %
+                                      (flip.gateway, utils.format_rule(flip.rule)))
+                        # Remove the flip, so that it will be resent as part of new_flips
+                        self.flipped_interface.remove_flip(flip)
+                        hub.send_unflip_request(flip.gateway, flip.rule)
+                        hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                        break
+
         new_flips, lost_flips = self.flipped_interface.update(
             local_connection_index, remote_gateway_hub_index, self._unique_name)
         for connection_type in utils.connection_types:
@@ -324,7 +343,7 @@ class Gateway(object):
                         continue
                 if matched_registration is None:
                     state_changed = True
-                    rospy.loginfo("Gateway : unflipping %s" % str(local_registration))
+                    rospy.loginfo("Gateway : unflipping received flip %s" % str(local_registration))
                     self.master.unregister(local_registration)
                     self.flipped_interface.registrations[connection_type].remove(local_registration)
 
