@@ -630,6 +630,8 @@ class GatewayHub(rocon_hub_client.Hub):
             pass
         for flip_in in encoded_flip_ins:
             status, source, connection_list = utils.deserialize_request(flip_in)
+            if source not in self.list_remote_gateway_names():
+                continue
             connection = utils.get_connection_from_list(connection_list)
             connection = utils.decrypt_connection(connection, self.private_key)
             if status != FlipStatus.BLOCKED and status != FlipStatus.RESEND:
@@ -661,14 +663,14 @@ class GatewayHub(rocon_hub_client.Hub):
         key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'flip_ins')
         encoded_flip_ins = self._redis_server.smembers(key)
         for flip_in in encoded_flip_ins:
-            status, source, connection_list = utils.deserialize_request(flip_in)
+            old_status, source, connection_list = utils.deserialize_request(flip_in)
             connection = utils.get_connection_from_list(connection_list)
             connection = utils.decrypt_connection(connection, self.private_key)
-            if source == registration.remote_gateway and \
-               connection == registration.connection:
+            if source == registration.remote_gateway and connection == registration.connection:
                 self._redis_server.srem(key, flip_in)
                 hub_found = True
         if hub_found:
+
             encrypted_connection = utils.encrypt_connection(registration.connection,
                                                             self.private_key)
             serialized_data = utils.serialize_connection_request(status,
@@ -690,7 +692,12 @@ class GatewayHub(rocon_hub_client.Hub):
         if source_gateway is None:
             source_gateway = self._unique_gateway_name
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
-        encoded_flips = self._redis_server.smembers(key)
+        encoded_flips = []
+        try:
+            encoded_flips = self._redis_server.smembers(key)
+        except (redis.ConnectionError, AttributeError) as unused_e:
+            # probably disconnected from the hub
+            pass
         for flip in encoded_flips:
             status, source, connection_list = utils.deserialize_request(flip)
             if source != source_gateway:
@@ -731,6 +738,10 @@ class GatewayHub(rocon_hub_client.Hub):
         '''
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
         source = hub_api.key_base_name(self._redis_keys['gateway'])
+
+        # Check if a flip request already exists on the hub
+        if self.get_flip_request_status(remote_gateway, connection.rule) is not None:
+            return True
 
         # Encrypt the transmission
         start_time = time.time()

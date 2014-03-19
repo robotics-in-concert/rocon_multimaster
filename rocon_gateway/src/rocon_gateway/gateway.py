@@ -124,20 +124,22 @@ class Gateway(object):
         '''
         state_changed = False
 
-        # Get flip status of existing requests, and remove those requests that
-        # need to be resent
+        # Get flip status of existing requests, and remove those requests that need to be resent
         flipped_connections = self.flipped_interface.get_flipped_connections()
         for flip in flipped_connections:
             if flip.remote_rule.gateway in remote_gateway_hub_index:
                 for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
                     status = hub.get_flip_request_status(flip.remote_rule.gateway, flip.remote_rule.rule)
-                    if status is FlipStatus.RESEND:
+                    if status == FlipStatus.RESEND:
                         rospy.loginfo("Gateway : resend requested for flip request [%s]%s" %
-                                      (flip.gateway, utils.format_rule(flip.rule)))
+                                      (flip.remote_rule.gateway, utils.format_rule(flip.remote_rule.rule)))
                         # Remove the flip, so that it will be resent as part of new_flips
-                        self.flipped_interface.remove_flip(flip)
-                        hub.send_unflip_request(flip.gateway, flip.rule)
-                        hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
+                        self.flipped_interface.remove_flip(flip.remote_rule)
+                        hub.send_unflip_request(flip.remote_rule.gateway, flip.remote_rule.rule)
+                        hub.remove_flip_details(flip.remote_rule.gateway,
+                                                flip.remote_rule.rule.name,
+                                                flip.remote_rule.rule.type,
+                                                flip.remote_rule.rule.node)
                         break
 
         new_flips, lost_flips = self.flipped_interface.update(
@@ -328,6 +330,11 @@ class Gateway(object):
                 new_registration = self.master.register(registration)
                 if new_registration is not None:
                     self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
+            else:
+                # Just make sure that this flip request is marked as accepted
+                for hub in remote_gateway_hub_index[registration.remote_gateway]:
+                    if hub.accept_flip_request(registration):
+                        break
 
         # Remove local registrations that are no longer flipped to this gateway
         local_registrations = copy.deepcopy(self.flipped_interface.registrations)
