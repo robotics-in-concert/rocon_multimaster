@@ -17,5 +17,7 @@
   <run_depend>roslaunch</run_depend>
   <run_depend>rocon_console</run_depend>
   <run_depend>rocon_python_utils</run_depend>
+  <!-- Just because it's a really useful dependency -->
+  <run_depend>rosbash</run_depend>
 
 </package>

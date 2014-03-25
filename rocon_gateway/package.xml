@@ -36,10 +36,10 @@
   <run_depend>std_srvs</run_depend>
   <run_depend>zeroconf_msgs</run_depend>
   <!-- 
-    Don't hardcode a dependency to a particular platform's zeroconf implementation 
-    even if it does appeal to us ubuntu eggheads.
-    <run_depend>zeroconf_avahi</run_depend> 
+    This is kinda bad, as it forces a dependency on ubuntu, but we're not
+    scaling up any other way yet, so this is convenient. 
   -->
+  <run_depend>zeroconf_avahi</run_depend> 
   <export>
     <rosdoc config="rosdoc.yaml"/>
   </export>
