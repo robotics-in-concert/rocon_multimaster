@@ -614,7 +614,6 @@ class GatewayHub(rocon_hub_client.Hub):
             # probably disconnected from the hub
             pass
 
-
     def get_unblocked_flipped_in_connections(self):
         '''
           Returns all unblocked flips (accepted or pending) that have been
@@ -659,26 +658,31 @@ class GatewayHub(rocon_hub_client.Hub):
           @return True if this hub was used to send the flip request, and the status was updated. False otherwise.
           @rtype Boolean
         '''
+        result = False
         hub_found = False
         key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'flip_ins')
-        encoded_flip_ins = self._redis_server.smembers(key)
-        for flip_in in encoded_flip_ins:
-            old_status, source, connection_list = utils.deserialize_request(flip_in)
-            connection = utils.get_connection_from_list(connection_list)
-            connection = utils.decrypt_connection(connection, self.private_key)
-            if source == registration.remote_gateway and connection == registration.connection:
-                self._redis_server.srem(key, flip_in)
-                hub_found = True
-        if hub_found:
-
-            encrypted_connection = utils.encrypt_connection(registration.connection,
-                                                            self.private_key)
-            serialized_data = utils.serialize_connection_request(status,
-                                                                 registration.remote_gateway,
-                                                                 encrypted_connection)
-            self._redis_server.sadd(key, serialized_data)
-            return True
-        return False
+        try:
+            encoded_flip_ins = self._redis_server.smembers(key)
+            for flip_in in encoded_flip_ins:
+                unused_old_status, source, connection_list = utils.deserialize_request(flip_in)
+                connection = utils.get_connection_from_list(connection_list)
+                connection = utils.decrypt_connection(connection, self.private_key)
+                if source == registration.remote_gateway and connection == registration.connection:
+                    self._redis_server.srem(key, flip_in)
+                    hub_found = True
+            if hub_found:
+                encrypted_connection = utils.encrypt_connection(registration.connection,
+                                                                self.private_key)
+                serialized_data = utils.serialize_connection_request(status,
+                                                                     registration.remote_gateway,
+                                                                     encrypted_connection)
+                self._redis_server.sadd(key, serialized_data)
+                result = True
+        except redis.exceptions.ConnectionError:
+            # Means the hub has gone down (typically on shutdown so just be quiet)
+            # If we really need to know that a hub is crashed, change this policy
+            pass
+        return result
 
     def get_flip_request_status(self, remote_gateway, rule, source_gateway=None):
         '''
