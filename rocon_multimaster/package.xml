@@ -26,7 +26,6 @@
   <run_depend>rocon_gateway_utils</run_depend>
   <run_depend>rocon_hub</run_depend>
   <run_depend>rocon_hub_client</run_depend>
-  <run_depend>rocon_launch</run_depend>
   <run_depend>rocon_test</run_depend>
   <run_depend>rocon_unreliable_experiments</run_depend>
   
