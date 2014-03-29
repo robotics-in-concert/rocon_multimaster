@@ -17,7 +17,7 @@ from time import sleep
 import roslaunch
 import tempfile
 import rocon_python_utils
-
+import rosgraph
 import rocon_console.console as console
 import xml.etree.ElementTree as ElementTree
 
@@ -120,12 +120,13 @@ def _process_arg_tag(tag, args_dict=None):
     return (name, value)
 
 
-def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
+def parse_rocon_launcher(rocon_launcher, default_roslaunch_options, args_mappings):
     '''
       Parses an rocon multi-launcher (xml file).
 
-      @param rocon_launcher : xml file in rocon_launch format
-      @param default_roslaunch_options : options to pass to roslaunch (usually "--screen")
+      :param rocon_launcher str: xml string in rocon_launch format
+      :param default_roslaunch_options list: options to pass to roslaunch (usually "--screen")
+      :param args_mappings dict: command line mapping overrides, { arg_name : arg_value }
       @return launchers : list with launcher parameters as dictionary elements of the list.
 
       @raise IOError : if it can't find any of the individual launchers on the filesystem.
@@ -140,10 +141,11 @@ def parse_rocon_launcher(rocon_launcher, default_roslaunch_options):
     vars_dict = {}
     # We do this the roslaunch way since we use their resolvers, even if we only do it for args.
     vars_dict['arg'] = {}
-    args_dict = vars_dict['arg']
+    args_dict = vars_dict['arg']  # convenience ref to the vars_dict['args'] variable
     for tag in root.findall('arg'):
         name, value = _process_arg_tag(tag, args_dict)
         args_dict[name] = value
+    args_dict.update(args_mappings)  # bring in command line overrides
     for launch in root.findall('launch'):
         parameters = {}
         parameters['args'] = []
@@ -181,9 +183,11 @@ def parse_arguments():
     parser.add_argument('package', nargs='?', default='', help='name of the package in which to find the concert launcher')
     parser.add_argument('launcher', nargs=1, help='name of the concert launch configuration (xml) file')
     #parser.add_argument('launchers', nargs='+', help='package and concert launch configuration (xml) file configurations, roslaunch style')
-    args = parser.parse_args()
+    mappings = rosgraph.names.load_mappings(sys.argv)  # gets the arg mappings, e.g. scheduler_type:=simple
+    argv = rosgraph.myargv(sys.argv[1:])  # strips the mappings
+    args = parser.parse_args(argv)
     hold = args.hold  # global argument
-    return args
+    return (args, mappings)
 
 
 def choose_terminal(gnome_flag, konsole_flag):
@@ -228,7 +232,7 @@ def main():
     global processes
     global roslaunch_pids
     signal.signal(signal.SIGINT, signal_handler)
-    args = parse_arguments()
+    (args, mappings) = parse_arguments()
     terminal = None
     if not args.no_terminals:
         if not rocon_python_utils.system.which('konsole') and not rocon_python_utils.system.which('gnome-terminal')and not rocon_python_utils.system.which('x-terminal-emulator'):
@@ -244,7 +248,7 @@ def main():
         roslaunch_options = "--screen"
     else:
         roslaunch_options = ""
-    launchers = parse_rocon_launcher(rocon_launcher, roslaunch_options)
+    launchers = parse_rocon_launcher(rocon_launcher, roslaunch_options, mappings)
     temporary_launchers = []
     for launcher in launchers:
         console.pretty_println("Launching [%s, %s] on port %s" % (launcher['package'], launcher['name'], launcher['port']), console.bold)
