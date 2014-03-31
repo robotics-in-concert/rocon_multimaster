@@ -811,11 +811,17 @@ class GatewayHub(rocon_hub_client.Hub):
         '''
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
         encoded_flip_ins = self._redis_server.smembers(key)
-        for flip_in in encoded_flip_ins:
-            status, source, connection_list = utils.deserialize_request(flip_in)
-            connection = utils.get_connection_from_list(connection_list)
-            if source == hub_api.key_base_name(self._redis_keys['gateway']) and \
-               rule == connection.rule:
-                self._redis_server.srem(key, flip_in)
-                return True
+        try:
+            for flip_in in encoded_flip_ins:
+                unused_status, source, connection_list = utils.deserialize_request(flip_in)
+                connection = utils.get_connection_from_list(connection_list)
+                if source == hub_api.key_base_name(self._redis_keys['gateway']) and \
+                   rule == connection.rule:
+                    self._redis_server.srem(key, flip_in)
+                    return True
+        except redis.exceptions.ConnectionError:
+            # usually just means the hub has gone down just before us or is in the
+            # middle of doing so let it die nice and peacefully
+            if not rospy.is_shutdown():
+                rospy.logwarn("Gateway : hub connection error while sending unflip request.")
         return False
