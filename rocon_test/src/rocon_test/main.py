@@ -83,7 +83,7 @@ def test_main():
     else:
         results_log_name, results_log_file = loggers.configure_logging(package, rocon_launcher)
 
-    launchers = rocon_launch.parse_rocon_launcher(rocon_launcher, launch_arguments)
+    launchers = rocon_launch.parse_rocon_launcher(rocon_launcher, launch_arguments, args_mappings={})
 
     try:
         test_case = runner.create_unit_rocon_test(rocon_launcher, launchers)
