@@ -19,17 +19,16 @@
 
   <build_depend>rocon_test</build_depend>
 
-  <test_depend>unittest</test_depend> <!-- for nosetests -->
+  <test_depend>rosunit</test_depend> <!-- for nosetests -->
 
-  <run_depend>rospy</run_depend>
-  <run_depend>rocon_console</run_depend>
-  <run_depend>rocon_hub</run_depend>
-  <run_depend>gateway_msgs</run_depend>
-  <run_depend>rocon_gateway_utils</run_depend>
-  <run_depend>rocon_gateway</run_depend>
-  <run_depend>rocon_test</run_depend>
-  <run_depend>roscpp_tutorials</run_depend>
-  <run_depend>rospy_tutorials</run_depend>
-  <!-- Not yet catkinized, just avoid it for now. -->
-  <!-- <run_depend>actionlib_tutorials</run_depend> -->
+  <!-- these need to get converted to test_depends -->
+  <test_depend>rospy</test_depend>
+  <test_depend>rocon_console</test_depend>
+  <test_depend>rocon_hub</test_depend>
+  <test_depend>gateway_msgs</test_depend>
+  <test_depend>rocon_gateway_utils</test_depend>
+  <test_depend>rocon_gateway</test_depend>
+  <test_depend>roscpp_tutorials</test_depend>
+  <test_depend>rospy_tutorials</test_depend>
+  <test_depend>actionlib_tutorials</test_depend>
 </package>
