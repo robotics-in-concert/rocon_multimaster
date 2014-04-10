@@ -810,8 +810,8 @@ class GatewayHub(rocon_hub_client.Hub):
           @rtype Boolean
         '''
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
-        encoded_flip_ins = self._redis_server.smembers(key)
         try:
+            encoded_flip_ins = self._redis_server.smembers(key)
             for flip_in in encoded_flip_ins:
                 unused_status, source, connection_list = utils.deserialize_request(flip_in)
                 connection = utils.get_connection_from_list(connection_list)
