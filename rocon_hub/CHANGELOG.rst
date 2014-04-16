@@ -1,29 +1,26 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package rocon_hub
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog
+=========
 
-0.6.1 (2013-09-11)
+0.7.0 (2014-04-16)
 ------------------
-
-0.6.0 (2013-08-30)
-------------------
-
-0.5.5 (2013-08-07)
-------------------
-
-0.5.4 (2013-07-19)
-------------------
-
-0.5.3 (2013-07-17)
-------------------
-
-0.5.2 (2013-06-10)
-------------------
-* 0.5.1
-
-0.5.1 (2013-05-27 11:48)
-------------------------
-* 0.5.0
+* support for redis server v2.6
+* update for recently moved modules to rocon_tools, also platform_tuples module refactoring.
+* interpret time_since_last_seen as an int, not a float. `#233 <https://github.com/robotics-in-concert/rocon_multimaster/issues/233>`_
+* pep8
+* bugfix wired alive ping status' on the hub, closes `#224 <https://github.com/robotics-in-concert/rocon_multimaster/issues/224>`_
+* gateway to hub pinger
+* parameterise the external shutdown timeout.
+* external shutdown hooks for gateway and hub.
+* variable length split, so pull from the start, not the back, closes `#211 <https://github.com/robotics-in-concert/rocon_multimaster/issues/211>`_
+* better pretty printing in remote_gateway_info_script. update time_last_seen after the first failure as well
+* graceful error handling for ping output parse failure. closes `#185 <https://github.com/robotics-in-concert/rocon_multimaster/issues/185>`_
+* connection statistics on the hub.
+* reverting default gateway dropout time to 2 hours
+* clean out old redis home directory when restarting the hub, closes `#166 <https://github.com/robotics-in-concert/rocon_multimaster/issues/166>`_
+* ensure that gateway_info is completely available before adding a ping to that machine. closes `#198 <https://github.com/robotics-in-concert/rocon_multimaster/issues/198>`_
+* first draft of the hub sidekick is complete. closes `#182 <https://github.com/robotics-in-concert/rocon_multimaster/issues/182>`_. closes `#183 <https://github.com/robotics-in-concert/rocon_multimaster/issues/183>`_
+* using wallsleep clock instead of rospy.sleep. progress towards `#191 <https://github.com/robotics-in-concert/rocon_multimaster/issues/191>`_
+* Contributors: Daniel Stonier, Piyush Khandelwal
 
 0.5.0 (2013-05-27 11:03)
 ------------------------

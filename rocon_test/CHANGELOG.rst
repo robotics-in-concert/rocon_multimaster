@@ -1,29 +1,15 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package rocon_test
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog
+=========
 
-0.6.1 (2013-09-11)
+0.7.0 (2014-04-16)
 ------------------
-
-0.6.0 (2013-08-30)
-------------------
-
-0.5.5 (2013-08-07)
-------------------
-
-0.5.4 (2013-07-19)
-------------------
-
-0.5.3 (2013-07-17)
-------------------
-
-0.5.2 (2013-06-10)
-------------------
-* 0.5.1
-
-0.5.1 (2013-05-27 11:48)
-------------------------
-* 0.5.0
+* bugfix rocon test breakage due to rocon_launch arg mapping api change.
+* update for recently moved modules to rocon_tools.
+* utilities broken up and moved to rocon tools.
+* fix rocon_test logging for ctest execution, `#200 <https://github.com/robotics-in-concert/rocon_multimaster/issues/200>`_
+* fix rocon_tests, closes `#157 <https://github.com/robotics-in-concert/rocon_multimaster/issues/157>`_
+* using wallsleep clock instead of rospy.sleep. progress towards `#191 <https://github.com/robotics-in-concert/rocon_multimaster/issues/191>`_
+* Contributors: Daniel Stonier, Piyush Khandelwal
 
 0.5.0 (2013-05-27 11:03)
 ------------------------

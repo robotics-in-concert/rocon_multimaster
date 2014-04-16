@@ -1,9 +1,15 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package rocon_gateway
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog
+=========
 
-0.6.1 (2013-09-11)
+0.7.0 (2014-04-16)
 ------------------
+* client to hub connection statistics
+* move flip handling from pubsub channels to encrypted posting on the hubs
+* disconnect/reconnect to the hub handling
+* pep8 and code analysis
+* catch and handle many exceptions
+* multi-version support for redis servers, currently v2.2 and v2.6
+* Contributors: Daniel Stonier, Jorge Santos, Marcus Liebhardt, Piyush Khandelwal, piyushk
 
 0.6.0 (2013-08-30)
 ------------------
