@@ -39,7 +39,7 @@ class WatcherThread(threading.Thread):
         try:
             self.hub = gateway_hub.GatewayHub(ip, port, [], [])
         except rocon_hub_client.HubError as e:
-            rospy.logfatal("HubWatcher: Unable to connect to hub: %s" % str(e))
+            rospy.logfatal("Hub Watcher: unable to connect to hub: %s" % str(e))
             sys.exit(-1)
         self.unavailable_gateways = []
 
@@ -72,7 +72,7 @@ class WatcherThread(threading.Thread):
                 # Check if gateway gone for low timeout (unavailable)
                 if seconds_since_last_seen > self.gateway_unavailable_timeout:
                     if name not in self.unavailable_gateways:
-                        rospy.logwarn("HubWatcherThread: Gateway " + name +
+                        rospy.logwarn("Hub Watcher: gateway " + name +
                                       " has been unavailable for " +
                                       str(self.gateway_unavailable_timeout) +
                                       " seconds! Marking as unavailable.")
@@ -87,7 +87,7 @@ class WatcherThread(threading.Thread):
 
                 # Check if gateway gone for high timeout (dead)
                 if seconds_since_last_seen > self.gateway_dead_timeout:
-                    rospy.logwarn("HubWatcherThread: Gateway " + name +
+                    rospy.logwarn("Hub Watcher: gateway " + name +
                                   " has been unavailable for " +
                                   str(self.gateway_dead_timeout) +
                                   " seconds! Removing from hub.")
