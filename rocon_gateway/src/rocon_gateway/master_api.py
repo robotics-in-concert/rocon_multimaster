@@ -64,8 +64,16 @@ class ConnectionCache(object):
             old_publishers = ['/chatter', ['/talker']]
             new_publishers = ['/chatter', ['/talker', '/babbler']]
         '''
+        # init the variables we will return
+        new_connections = utils.create_empty_connection_type_dictionary()
+        lost_connections = utils.create_empty_connection_type_dictionary()
+
         if new_system_state is None:
-            publishers, subscribers, services = self._get_system_state()
+            try:
+                publishers, subscribers, services = self._get_system_state()
+            except socket.error:
+                rospy.logerr("Gateway : couldn't get system state from the master [did you set your master uri to a wireless IP that just went down?]")
+                return new_connections, lost_connections
         else:
             publishers = new_system_state[PUBLISHER]
             subscribers = new_system_state[SUBSCRIBER]
@@ -81,8 +89,6 @@ class ConnectionCache(object):
 
         # Will probably need to check not just in, but only name, node equal
         diff = lambda l1, l2: [x for x in l1 if x not in l2]
-        new_connections = utils.create_empty_connection_type_dictionary()
-        lost_connections = utils.create_empty_connection_type_dictionary()
         for connection_type in utils.connection_types:
             new_connections[connection_type] = diff(connections[connection_type], self._connections[connection_type])
             lost_connections[connection_type] = diff(self._connections[connection_type], connections[connection_type])
