@@ -49,7 +49,7 @@ class Gateway(object):
         '''
         self.hub_manager = hub_manager
         self.master = LocalMaster()
-        self.ip = self.master.get_ros_ip()
+        self.ip = self.master.get_ros_ip()  # gateway is always assumed to sit on the same ip as the master
         self._param = param
         self._unique_name = unique_name
         self._publish_gateway_info = publish_gateway_info_callback
