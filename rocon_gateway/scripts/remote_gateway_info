@@ -73,7 +73,7 @@ def print_gateway_info(gateway_namespace, ip, remote_gateways):
         print("  Alive       : "),
         if not gateway.conn_stats.gateway_available:
             console.pretty_print(str(gateway.conn_stats.gateway_available), console.red)
-            print(" (last Seen %i seconds ago)" % gateway.conn_stats.time_since_last_seen)
+            print(" (last seen %i seconds ago)" % gateway.conn_stats.time_since_last_seen)
         else:
             console.pretty_print(str(gateway.conn_stats.gateway_available) + "\n", console.green)
         if gateway.conn_stats.network_type == gateway_msgs.ConnectionStatistics.WIRED:

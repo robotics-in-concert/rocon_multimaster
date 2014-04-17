@@ -478,7 +478,7 @@ class GatewayHub(rocon_hub_client.Hub):
             return 0.0
 
     def _parse_redis_bool(self, val):
-        if val and (val == 'True' or val):
+        if val and (val == 'True'):
             return True
         else:
             return False
