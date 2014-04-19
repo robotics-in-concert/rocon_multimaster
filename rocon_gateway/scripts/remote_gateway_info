@@ -152,7 +152,7 @@ if __name__ == '__main__':
         while not rospy.is_shutdown():
             os.system('cls' if os.name == 'nt' else 'clear')
             print_gateway_info(gateway_namespace, ip, remote_gateways)
-            time.sleep(1)
+            time.sleep(args.loop_period)
             remote_gateways = resolve_remote_gateways(gateway_namespace)
     else:
         print_gateway_info(gateway_namespace, ip, remote_gateways)
