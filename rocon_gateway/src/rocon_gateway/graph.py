@@ -14,6 +14,7 @@
 import rospy
 import gateway_msgs.srv as gateway_srvs
 import gateway_msgs.msg as gateway_msgs
+import rocon_gateway_utils
 from master_api import LocalMaster
 import rosgraph
 from rosgraph.impl.graph import Edge, EdgeList
@@ -49,14 +50,15 @@ class Graph(object):
         # Rubbish to clear out once rocon_gateway_graph is integrated
         self.bad_nodes = []
 
-        if self._resolve_gateway_namespace():
-            self.configure()
-
-    def configure(self):
-        self._gateway_info = rocon_python_comms.SubscriberProxy(
-            self.gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)
-        self._remote_gateway_info = rospy.ServiceProxy(
-            self.gateway_namespace + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
+        try:
+            self._gateway_namespace = rocon_gateway_utils.resolve_local_gateway(timeout=rospy.rostime.Duration(2.0))
+            self._gateway_info = rocon_python_comms.SubscriberProxy(
+                self.gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)
+            self._remote_gateway_info = rospy.ServiceProxy(
+                self.gateway_namespace + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
+        except rocon_python_comms.NotFoundException as e:
+            rospy.logerr("Gateway Graph: %s" % str(e))
+            self._gateway_namespace = None
 
     def local_gateway_name(self):
         if self._local_gateway:
@@ -113,16 +115,3 @@ class Graph(object):
                 self.pulled_edges.add(Edge(remote_rule.gateway, connection_id))
                 self.pulled_edges.add(Edge(connection_id, remote_gateway.name))
                 self.gateway_edges.add(Edge(remote_gateway.name, remote_rule.gateway))
-
-    def _resolve_gateway_namespace(self):
-        '''
-          Checks if the gateway namespace was found and if not
-          attempts to resolve it.
-        '''
-        if self._gateway_namespace:
-            return
-        master = LocalMaster()
-        self.gateway_namespace = master.find_gateway_namespace()
-        if not self.gateway_namespace:
-            rospy.logerr("Gateway Graph: could not find a local gateway - did you start it?")
-        return self.gateway_namespace

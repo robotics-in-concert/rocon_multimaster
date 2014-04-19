@@ -9,45 +9,50 @@
 
 import re
 import time
-import rosgraph
 import rospy
 import gateway_msgs.msg as gateway_msgs
 import rocon_python_comms
+import rosservice
 
 ##########################################################################
 # Gateway Existence
 ##########################################################################
 
 
-def resolve_local_gateway(timeout=rospy.rostime.Duration(1.0)):
+def resolve_local_gateway(timeout=None):
     '''
-      @param timeout : timeout on checking for the gateway.
+      @param timeout : timeout on checking for the gateway, if None, it just makes a single attempt.
       @type rospy.rostime.Duration
 
       @raise rocon_python_comms.NotFoundException: if no remote gateways or no matching gateways available.
     '''
-    master = rosgraph.Master(rospy.get_name())
+    #master = rosgraph.Master(rospy.get_name())
     gateway_namespace = None
-    timeout_time = time.time() + timeout.to_sec()
-    while not rospy.is_shutdown() and time.time() < timeout_time:
-        unused_publishers, unused_subscribers, services = master.getSystemState()
-        for service in services:
-            service_name = service[0]  # second part is the node name
-            if re.search(r'remote_gateway_info', service_name):
-                if service_name == '/remote_gateway_info':
-                    gateway_namespace = "/"
-                    break
-                else:
-                    gateway_namespace = re.sub(r'/remote_gateway_info', '', service_name)
-                    break
-        if gateway_namespace is not None:
+    service_names = []
+    timeout_time = time.time() + timeout.to_sec() if timeout is not None else None
+    while not rospy.is_shutdown():
+        if timeout_time is not None and time.time() > timeout_time:
+            break
+        service_names = rosservice.rosservice_find("gateway_msgs/RemoteGatewayInfo")
+        if not service_names or len(service_names) > 1:
+            gateway_namespace = None
+        elif service_names[0] == '/remote_gateway_info':
+            gateway_namespace = "/"
+        else:
+            gateway_namespace = re.sub(r'/remote_gateway_info', '', service_names[0])
+        if gateway_namespace is not None or timeout is None:
             break
         else:
             rospy.rostime.wallsleep(0.1)
     if not gateway_namespace:
-        raise rocon_python_comms.NotFoundException("could not find a local gateway - did you start it?")
+        if not service_names:
+            raise rocon_python_comms.NotFoundException("no gateway found attached to this local master - did you start it?")
+        else:
+            raise rocon_python_comms.NotFoundException("found more than one gateway connected to this master, this is an invalid configuration.")
     #console.debug("Found a local gateway at %s"%gateway_namespace)
     return gateway_namespace
+
+
 
 
 def resolve_gateway_info(gateway_namespace=None):

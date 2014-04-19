@@ -17,7 +17,8 @@
   <run_depend>gateway_msgs</run_depend>
   <run_depend>rocon_console</run_depend>
   <run_depend>rocon_python_comms</run_depend>
-
+  <run_depend>rosservice</run_depend>
+  
   <!-- testing only -->
   <build_depend>rostest</build_depend>
   <test_depend>rosunit</test_depend>

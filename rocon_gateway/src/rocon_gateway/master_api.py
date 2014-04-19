@@ -715,28 +715,3 @@ class LocalMaster(rosgraph.Master):
         t = topic[1:len(topic)]
         name = roslib.names.anonymous_name(t)
         return name
-
-    ##########################################################################
-    # Master utility methods for scripts
-    ##########################################################################
-
-    def find_gateway_namespace(self):
-        '''
-          Assists a script to find the (hopefully) unique gateway namespace.
-          Note that unique is a necessary condition, there should only be one
-          gateway per ros system.
-
-          @return Namespace of the gateway node.
-          @rtype string
-        '''
-        service_names = rosservice.rosservice_find("gateway_msgs/RemoteGatewayInfo")
-        if len(service_names) > 1:
-            rospy.logerr("Gateway : found more than one gateway connected to this master, this is an invalid configuration.")
-            return None
-        if not service_names:
-            rospy.logerr("Gateway : no gateway found attached to this local master.")
-            return None
-        if service_names[0] == '/remote_gateway_info':
-            return "/"
-        else:
-            return re.sub(r'/remote_gateway_info', '', service_names[0])
