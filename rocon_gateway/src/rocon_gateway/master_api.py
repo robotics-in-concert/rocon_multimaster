@@ -729,12 +729,14 @@ class LocalMaster(rosgraph.Master):
           @return Namespace of the gateway node.
           @rtype string
         '''
-        unused_publishers, unused_subscribers, services = self.get_system_state()
-        for service in services:
-            service_name = service[0]  # second part is the node name
-            if re.search(r'remote_gateway_info', service_name):
-                if service_name == '/remote_gateway_info':
-                    return "/"
-                else:
-                    return re.sub(r'/remote_gateway_info', '', service_name)
-        return None
+        service_names = rosservice.rosservice_find("gateway_msgs/RemoteGatewayInfo")
+        if len(service_names) > 1:
+            rospy.logerr("Gateway : found more than one gateway connected to this master, this is an invalid configuration.")
+            return None
+        if not service_names:
+            rospy.logerr("Gateway : no gateway found attached to this local master.")
+            return None
+        if service_names[0] == '/remote_gateway_info':
+            return "/"
+        else:
+            return re.sub(r'/remote_gateway_info', '', service_names[0])
