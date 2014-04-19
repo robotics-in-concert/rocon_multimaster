@@ -32,6 +32,8 @@ def parse_arguments():
                    default=1.0,
                    help='refresh rate if this command is looping  (console mode only)[1.0]')
     args = parser.parse_args()
+    if args.loop_period != 1.0:  # start looping if someone actually set this.
+        args.loop = True
     return args
 
 
