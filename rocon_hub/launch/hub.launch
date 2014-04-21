@@ -1,18 +1,16 @@
-<!-- 
-  Launches the gateway hub (redis data store) and publishes it via
-  zeroconf internally (via avahi-daemon through the hub.py script).
--->
 <launch>
   <arg name="hub_name" default="Rocon Hub" />
   <arg name="hub_port" default="6380" />
   <arg name="zeroconf" default="true" />
-  <!-- useful if you want to do stuff before shutting down the hub in ros' shutdown hooks -->
-  <arg name="external_shutdown" default="false" />
+  <arg name="gateway_unavailable_timeout" default="30"/>
+  <arg name="external_shutdown" default="false" /> <!-- useful if you want to do stuff before shutting down the hub in ros' shutdown hooks -->
+
   <node pkg="rocon_hub" type="hub.py" name="hub">
     <rosparam command="load" file="$(find rocon_hub)/param/default.yaml" />
-    <param name="name" value="$(arg hub_name)" />
-    <param name="port" value="$(arg hub_port)" />
-    <param name="zeroconf" value="$(arg zeroconf)" />
-    <param name="external_shutdown" value="$(arg external_shutdown)" />
+    <param name="name"                        value="$(arg hub_name)" />
+    <param name="port"                        value="$(arg hub_port)" />
+    <param name="zeroconf"                    value="$(arg zeroconf)" />
+    <param name="external_shutdown"           value="$(arg external_shutdown)" />
+    <param name="gateway_unavailable_timeout" value="$(arg gateway_unavailable_timeout)"/>
   </node>
 </launch>
