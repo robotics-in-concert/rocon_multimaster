@@ -39,7 +39,7 @@ def parse_arguments():
 
 def resolve_local_gateway():
     try:
-        gateway_namespace = rocon_gateway_utils.resolve_local_gateway(timeout=rospy.rostime.Duration(1.0))
+        gateway_namespace = rocon_gateway_utils.resolve_local_gateway(timeout=rospy.rostime.Duration(5.0))
     except rocon_python_comms.NotFoundException as e:
         raise rocon_gateway.GatewayError("cannot proceed without a gateway, aborting [%s]" % str(e))
     gateway_info = rocon_python_comms.SubscriberProxy(gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)()
