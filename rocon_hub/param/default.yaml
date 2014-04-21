@@ -3,11 +3,18 @@
 # String identifier for the gateway hub
 name: Rocon Hub
 
-# Port on which to start the redis server
-port: 6380
-
 # Maximum memory to allocate for the hub
 max_memory: 10mb
 
 # Use zeroconf to advertise the redis server's uri
 zeroconf: true
+
+##############################################################################
+# The following are overridable as args if you use the hub roslauncher 
+##############################################################################
+
+# Port on which to start the redis server
+port: 6380
+
+# The amount of time to lapse before flagging a gateway as missing.
+gateway_unavailable_timeout: 30
