@@ -11,7 +11,7 @@ import threading
 import rospy
 import re
 import utils
-from gateway_msgs.msg import RemoteRuleWithStatus as FlipStatus
+from gateway_msgs.msg import RemoteRuleWithStatus as FlipStatus, RemoteRule
 import gateway_msgs.msg as gateway_msgs
 import rocon_python_comms
 import rocon_python_utils
@@ -634,23 +634,15 @@ class GatewayHub(rocon_hub_client.Hub):
             connection = utils.get_connection_from_list(connection_list)
             connection = utils.decrypt_connection(connection, self.private_key)
             if status != FlipStatus.BLOCKED and status != FlipStatus.RESEND:
-                registrations.append(utils.Registration(connection, source))
+                registrations.append((utils.Registration(connection, source), status))
         return registrations
 
-    def block_flip_request(self, registration):
-        ''' Convenience wrapper for updating flip request status '''
-        return self._update_flip_request_status(registration, FlipStatus.BLOCKED)
-
-    def accept_flip_request(self, registration):
-        ''' Convenience wrapper for updating flip request status '''
-        return self._update_flip_request_status(registration, FlipStatus.ACCEPTED)
-
-    def _update_flip_request_status(self, registration, status):
+    def update_flip_request_status(self, registration_with_status):
         '''
           Updates the flip request status for this hub
 
-          @param registration : the flip registration for which we are updating status
-          @type utils.Registration
+          @param registration_with_status : the flip registration for which we are updating status
+          @type (utils.Registration, str) where str is the status
 
           @param status : pending/accepted/blocked
           @type same as gateway_msgs.msg.RemoteRuleWithStatus.status
@@ -658,33 +650,55 @@ class GatewayHub(rocon_hub_client.Hub):
           @return True if this hub was used to send the flip request, and the status was updated. False otherwise.
           @rtype Boolean
         '''
-        result = False
+        result = self.update_multiple_flip_request_status([registration_with_status])
+        return result[0]
+
+    def update_multiple_flip_request_status(self, registrations_with_status):
+        '''
+          Updates the flip request status for multiple registrations on this hub
+
+          @param registrations_with_status : the flip registration for which we are updating status
+          @type list of (utils.Registration, str) where str is the status
+
+          @param status : pending/accepted/blocked
+          @type same as gateway_msgs.msg.RemoteRuleWithStatus.status
+
+          @return True if this hub was used to send the flip request, false otherwise.
+          @rtype Boolean
+        '''
+        result = [False] * len(registrations_with_status)
+        update_registrations = []
         hub_found = False
         key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'flip_ins')
         try:
             encoded_flip_ins = self._redis_server.smembers(key)
             for flip_in in encoded_flip_ins:
-                unused_old_status, source, connection_list = utils.deserialize_request(flip_in)
+                old_status, source, connection_list = utils.deserialize_request(flip_in)
                 connection = utils.get_connection_from_list(connection_list)
                 connection = utils.decrypt_connection(connection, self.private_key)
-                if source == registration.remote_gateway and connection == registration.connection:
-                    self._redis_server.srem(key, flip_in)
-                    hub_found = True
-            if hub_found:
+                for index, (registration, new_status) in enumerate(registrations_with_status):
+                    if source == registration.remote_gateway and connection == registration.connection:
+                        if new_status != old_status:
+                            self._redis_server.srem(key, flip_in)
+                            update_registrations.append((index, (registration, new_status)))
+                        else:
+                            result[index] = True 
+
+            for (index, (registration, new_status)) in update_registrations:
                 encrypted_connection = utils.encrypt_connection(registration.connection,
                                                                 self.private_key)
-                serialized_data = utils.serialize_connection_request(status,
+                serialized_data = utils.serialize_connection_request(new_status,
                                                                      registration.remote_gateway,
                                                                      encrypted_connection)
                 self._redis_server.sadd(key, serialized_data)
-                result = True
+                result[index] = True
         except redis.exceptions.ConnectionError:
             # Means the hub has gone down (typically on shutdown so just be quiet)
             # If we really need to know that a hub is crashed, change this policy
             pass
         return result
 
-    def get_flip_request_status(self, remote_gateway, rule, source_gateway=None):
+    def get_flip_request_status(self, remote_rule):
         '''
           Get the status of a flipped registration. If the flip request does not
           exist (for instance, in the case where this hub was not used to send
@@ -693,25 +707,47 @@ class GatewayHub(rocon_hub_client.Hub):
           @return the flip status or None
           @rtype same as gateway_msgs.msg.RemoteRuleWithStatus.status or None
         '''
-        if source_gateway is None:
-            source_gateway = self._unique_gateway_name
-        key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
-        encoded_flips = []
-        try:
-            encoded_flips = self._redis_server.smembers(key)
-        except (redis.ConnectionError, AttributeError) as unused_e:
-            # probably disconnected from the hub
-            pass
-        for flip in encoded_flips:
-            status, source, connection_list = utils.deserialize_request(flip)
-            if source != source_gateway:
-                continue
-            connection = utils.get_connection_from_list(connection_list)
-            # Compare rules as xmlrpc_uri and type_info are encrypted
-            if connection.rule == rule:
-                return status
-        # Probably, this hub was not used to send this flip request
-        return None
+        status = self.get_multiple_flip_request_status([remote_rule])
+        return status[0]
+
+    def get_multiple_flip_request_status(self, remote_rules): 
+        '''
+          Get the status of multiple flipped registration. If the flip request
+          does not exist (for instance, in the case where this hub was not used
+          to send the request), then None is returned. Multiple requests are
+          batched together for efficiency.
+
+          @return the flip status, ordered as per the input remote rules
+          @rtype list of gateway_msgs.msg.RemoteRuleWithStatus.status or None
+        '''
+        gateway_specific_rules = {}
+        status = [None] * len(remote_rules)
+        for i, remote_rule in enumerate(remote_rules):
+            if remote_rule.gateway not in gateway_specific_rules:
+                gateway_specific_rules[remote_rule.gateway] = []
+            gateway_specific_rules[remote_rule.gateway].append((i, remote_rule))
+        
+        source_gateway = self._unique_gateway_name  # me!
+
+        for gateway in gateway_specific_rules:
+            key = hub_api.create_rocon_gateway_key(gateway, 'flip_ins')
+            encoded_flips = []
+            try:
+                encoded_flips = self._redis_server.smembers(key)
+            except (redis.ConnectionError, AttributeError) as unused_e:
+                # probably disconnected from the hub
+                pass
+            for flip in encoded_flips:
+                rule_status, source, connection_list = utils.deserialize_request(flip)
+                if source != source_gateway:
+                    continue
+                connection = utils.get_connection_from_list(connection_list)
+                # Compare rules only as xmlrpc_uri and type_info are encrypted
+                for (index, remote_rule) in gateway_specific_rules[gateway]:
+                    if connection.rule == remote_rule.rule:
+                        status[index] = rule_status
+                        break
+        return status
 
     def send_flip_request(self, remote_gateway, connection, timeout=15.0):
         '''
@@ -744,7 +780,7 @@ class GatewayHub(rocon_hub_client.Hub):
         source = hub_api.key_base_name(self._redis_keys['gateway'])
 
         # Check if a flip request already exists on the hub
-        if self.get_flip_request_status(remote_gateway, connection.rule) is not None:
+        if self.get_flip_request_status(RemoteRule(remote_gateway, connection.rule)) is not None:
             return True
 
         # Encrypt the transmission

@@ -129,7 +129,7 @@ class Gateway(object):
         for flip in flipped_connections:
             if flip.remote_rule.gateway in remote_gateway_hub_index:
                 for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
-                    status = hub.get_flip_request_status(flip.remote_rule.gateway, flip.remote_rule.rule)
+                    status = hub.get_flip_request_status(flip.remote_rule)
                     if status == FlipStatus.RESEND:
                         rospy.loginfo("Gateway : resend requested for flip request [%s]%s" %
                                       (flip.remote_rule.gateway, utils.format_rule(flip.remote_rule.rule)))
@@ -181,7 +181,7 @@ class Gateway(object):
         flipped_connections = self.flipped_interface.get_flipped_connections()
         for flip in flipped_connections:
             for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
-                status = hub.get_flip_request_status(flip.remote_rule.gateway, flip.remote_rule.rule)
+                status = hub.get_flip_request_status(flip.remote_rule)
                 if status is not None:
                     flip_state_changed = self.flipped_interface.update_flip_status(flip.remote_rule, status)
                     state_changed = state_changed or flip_state_changed
@@ -296,24 +296,36 @@ class Gateway(object):
           Match the flipped in connections to supplied registrations using
           supplied registrations, flipping and unflipping as necessary.
 
-          @param registrations : registrations to be processed
-          @type list of utils.Registration
+          @param registrations : registrations (with status) to be processed
+          @type list of (utils.Registration, str) where the str contains the status
         '''
 
+        hubs = {}
+        for gateway in remote_gateway_hub_index:
+            for hub in remote_gateway_hub_index[gateway]:
+                hubs[hub.uri] = hub 
+
+        update_flip_status = {}
         if self.flipped_interface.firewall:
             if len(registrations) != 0:
                 rospy.logwarn("Gateway : firewalled, but received flip requests...")
-                for registration in registrations:
+                for (registration, status) in registrations:
                     for hub in remote_gateway_hub_index[registration.remote_gateway]:
-                        if hub.block_flip_request(registration):
-                            break
+                        if hub.uri not in update_flip_status:
+                            update_flip_status[hub.uri] = []
+                        update_flip_status[hub.uri].append((registration, FlipStatus.BLOCKED)) 
+
+            # Mark all these registrations as blocked
+            for hub_uri, hub in hubs.iteritems():
+                if hub_uri in update_flip_status:
+                    hub.update_multiple_flip_request_status(update_flip_status[hub_uri])
+
             return
 
         state_changed = False
 
         # Add new registrations
-        added_registrations = []
-        for registration in registrations:
+        for (registration, status) in registrations:
             # probably not necessary as the flipping gateway will already check this
             existing_registration = self.flipped_interface.find_registration_match(
                 registration.remote_gateway,
@@ -323,25 +335,34 @@ class Gateway(object):
             if not existing_registration:
                 rospy.loginfo("Gateway : received a flip request %s" % str(registration))
                 state_changed = True
-                for hub in remote_gateway_hub_index[registration.remote_gateway]:
-                    if hub.accept_flip_request(registration):
-                        break
-                added_registrations.append(registration)
                 new_registration = self.master.register(registration)
                 if new_registration is not None:
                     self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
+                # Update this flip's status
+                if status != FlipStatus.ACCEPTED:
+                    for hub in remote_gateway_hub_index[registration.remote_gateway]:
+                        if hub.uri not in update_flip_status:
+                            update_flip_status[hub.uri] = []
+                        update_flip_status[hub.uri].append((registration, FlipStatus.ACCEPTED)) 
             else:
                 # Just make sure that this flip request is marked as accepted
-                for hub in remote_gateway_hub_index[registration.remote_gateway]:
-                    if hub.accept_flip_request(registration):
-                        break
+                if status != FlipStatus.ACCEPTED:
+                    for hub in remote_gateway_hub_index[registration.remote_gateway]:
+                        if hub.uri not in update_flip_status:
+                            update_flip_status[hub.uri] = []
+                        update_flip_status[hub.uri].append((registration, FlipStatus.ACCEPTED)) 
+
+        # Update the flip status for newly added registrations
+        for hub_uri, hub in hubs.iteritems():
+            if hub_uri in update_flip_status:
+                hub.update_multiple_flip_request_status(update_flip_status[hub_uri])
 
         # Remove local registrations that are no longer flipped to this gateway
         local_registrations = copy.deepcopy(self.flipped_interface.registrations)
         for connection_type in utils.connection_types:
             for local_registration in local_registrations[connection_type]:
                 matched_registration = None
-                for registration in registrations:
+                for (registration, status) in registrations:
                     if registration.connection == local_registration.connection and \
                        registration.remote_gateway == local_registration.remote_gateway:
                         matched_registration = registration
