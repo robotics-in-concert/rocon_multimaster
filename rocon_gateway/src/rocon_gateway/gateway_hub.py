@@ -616,8 +616,12 @@ class GatewayHub(rocon_hub_client.Hub):
 
     def get_unblocked_flipped_in_connections(self):
         '''
-          Returns all unblocked flips (accepted or pending) that have been
-          requested through this hub
+          Gets all the flipped in connections listed on the hub that are interesting
+          for this gateway (i.e. all unblocked/pending). This is used by the
+          watcher loop to work out how it needs to update the local registrations.
+
+          :returns: the flipped in registration strings and status.
+          :rtype: list of (utils.Registration, FlipStatus.XXX) tuples.
         '''
         registrations = []
         key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'flip_ins')
@@ -710,7 +714,7 @@ class GatewayHub(rocon_hub_client.Hub):
         status = self.get_multiple_flip_request_status([remote_rule])
         return status[0]
 
-    def get_multiple_flip_request_status(self, remote_rules): 
+    def get_multiple_flip_request_status(self, remote_rules):
         '''
           Get the status of multiple flipped registration. If the flip request
           does not exist (for instance, in the case where this hub was not used
@@ -726,7 +730,7 @@ class GatewayHub(rocon_hub_client.Hub):
             if remote_rule.gateway not in gateway_specific_rules:
                 gateway_specific_rules[remote_rule.gateway] = []
             gateway_specific_rules[remote_rule.gateway].append((i, remote_rule))
-        
+
         source_gateway = self._unique_gateway_name  # me!
 
         for gateway in gateway_specific_rules:
