@@ -270,6 +270,12 @@ class GatewayNode():
             pass  # occurs if self._gateway is reset to None in the middle of all this.
 
     def ros_service_remote_gateway_info(self, request):
+        '''
+          Sends out to the hubs to get the remote gateway information for either the specified,
+          or the known list of remote gateways.
+
+          :todo: can we optimise this so that hub requests go as a group?
+        '''
         response = gateway_srvs.RemoteGatewayInfoResponse()
         requested_gateways = request.gateways if request.gateways else self._hub_manager.list_remote_gateway_names()
         for gateway in list(set(requested_gateways)):
