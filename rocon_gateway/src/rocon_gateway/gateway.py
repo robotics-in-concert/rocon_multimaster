@@ -303,7 +303,7 @@ class Gateway(object):
         hubs = {}
         for gateway in remote_gateway_hub_index:
             for hub in remote_gateway_hub_index[gateway]:
-                hubs[hub.uri] = hub 
+                hubs[hub.uri] = hub
 
         update_flip_status = {}
         if self.flipped_interface.firewall:
@@ -313,7 +313,7 @@ class Gateway(object):
                     for hub in remote_gateway_hub_index[registration.remote_gateway]:
                         if hub.uri not in update_flip_status:
                             update_flip_status[hub.uri] = []
-                        update_flip_status[hub.uri].append((registration, FlipStatus.BLOCKED)) 
+                        update_flip_status[hub.uri].append((registration, FlipStatus.BLOCKED))
 
             # Mark all these registrations as blocked
             for hub_uri, hub in hubs.iteritems():
@@ -343,14 +343,14 @@ class Gateway(object):
                     for hub in remote_gateway_hub_index[registration.remote_gateway]:
                         if hub.uri not in update_flip_status:
                             update_flip_status[hub.uri] = []
-                        update_flip_status[hub.uri].append((registration, FlipStatus.ACCEPTED)) 
+                        update_flip_status[hub.uri].append((registration, FlipStatus.ACCEPTED))
             else:
                 # Just make sure that this flip request is marked as accepted
                 if status != FlipStatus.ACCEPTED:
                     for hub in remote_gateway_hub_index[registration.remote_gateway]:
                         if hub.uri not in update_flip_status:
                             update_flip_status[hub.uri] = []
-                        update_flip_status[hub.uri].append((registration, FlipStatus.ACCEPTED)) 
+                        update_flip_status[hub.uri].append((registration, FlipStatus.ACCEPTED))
 
         # Update the flip status for newly added registrations
         for hub_uri, hub in hubs.iteritems():

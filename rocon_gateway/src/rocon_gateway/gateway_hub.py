@@ -686,7 +686,7 @@ class GatewayHub(rocon_hub_client.Hub):
                             self._redis_server.srem(key, flip_in)
                             update_registrations.append((index, (registration, new_status)))
                         else:
-                            result[index] = True 
+                            result[index] = True
 
             for (index, (registration, new_status)) in update_registrations:
                 encrypted_connection = utils.encrypt_connection(registration.connection,

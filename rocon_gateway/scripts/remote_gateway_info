@@ -27,10 +27,11 @@ import rocon_python_comms
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Prettifies remote gateway info')
-    parser.add_argument('-l', '--loop', action='store_true', help='continuously loop and refresh the output (console mode only)[false].')
+    parser.add_argument('-l', '--loop', action='store_true',
+                        help='continuously loop and refresh the output (console mode only)[false].')
     parser.add_argument('-p', '--loop-period', action='store', type=float,
-                   default=1.0,
-                   help='refresh rate if this command is looping  (console mode only)[1.0]')
+                        default=1.0,
+                        help='refresh rate if this command is looping  (console mode only)[1.0]')
     args = parser.parse_args(args=rospy.myargv(argv=sys.argv)[1:])
     if args.loop_period != 1.0:  # start looping if someone actually set this.
         args.loop = True
