@@ -53,8 +53,6 @@ def resolve_local_gateway(timeout=None):
     return gateway_namespace
 
 
-
-
 def resolve_gateway_info(gateway_namespace=None):
     '''
       @param the local topic namespace to prepend to the 'gateway_info' identifier. Uses
