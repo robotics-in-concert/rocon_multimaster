@@ -72,7 +72,8 @@ class ConnectionCache(object):
             try:
                 publishers, subscribers, services = self._get_system_state()
             except socket.error:
-                rospy.logerr("Gateway : couldn't get system state from the master [did you set your master uri to a wireless IP that just went down?]")
+                rospy.logerr("Gateway : couldn't get system state from the master "
+                             "[did you set your master uri to a wireless IP that just went down?]")
                 return new_connections, lost_connections
         else:
             publishers = new_system_state[PUBLISHER]
