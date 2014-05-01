@@ -52,9 +52,9 @@ class Graph(object):
         try:
             self._gateway_namespace = rocon_gateway_utils.resolve_local_gateway(timeout=rospy.rostime.Duration(2.0))
             self._gateway_info = rocon_python_comms.SubscriberProxy(
-                self.gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)
+                self._gateway_namespace + '/gateway_info', gateway_msgs.GatewayInfo)
             self._remote_gateway_info = rospy.ServiceProxy(
-                self.gateway_namespace + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
+                self._gateway_namespace + '/remote_gateway_info', gateway_srvs.RemoteGatewayInfo)
         except rocon_python_comms.NotFoundException as e:
             rospy.logerr("Gateway Graph: %s" % str(e))
             self._gateway_namespace = None
@@ -66,7 +66,7 @@ class Graph(object):
             return ''
 
     def update(self):
-        if not self._resolve_gateway_namespace():
+        if not self._gateway_namespace:
             return
         self._local_gateway = self._gateway_info()
         req = gateway_srvs.RemoteGatewayInfoRequest()
