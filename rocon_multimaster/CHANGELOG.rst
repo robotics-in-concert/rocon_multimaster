@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.7.1 (2014-05-06)
+------------------
+* optimised flip handling cpu usage for the gateways.
+
 0.7.0 (2014-04-16)
 ------------------
 * rocon_launch moved to rocon_tools

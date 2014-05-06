@@ -1,6 +1,20 @@
 Changelog
 =========
 
+0.7.1 (2014-05-06)
+------------------
+* fix minor graph variable refactoring bugs.
+* optimized updating flipped_in_connections. closes `#267 <https://github.com/robotics-in-concert/rocon_multimaster/issues/267>`_
+* remote_gateway_info needs more time to find the concert if launched with
+  other nodes at startup.
+* make remote_gateway_info roslaunchable.
+* use a loop period in the ``remote_gateway_info`` script.
+* remove the redundant (is in rocon_gateway_utils) gateway resolver from the master api
+* bugfix erroneous interpretation of boolean keys on the hub, fixes `#263 <https://github.com/robotics-in-concert/rocon_multimaster/issues/263>`_.
+* handle a socket error with a warning when user sets a wireless ip to ROS_IP.
+* option for putting ``remote_gateway_info`` on a loop.
+* Contributors: Daniel Stonier, Jack O'Quin, Piyush Khandelwal
+
 0.7.0 (2014-04-16)
 ------------------
 * client to hub connection statistics
@@ -17,26 +31,12 @@ Changelog
 * more info for error checking.
 * error checking for master api register service bug.
 
-0.5.5 (2013-08-07)
-------------------
-
-0.5.4 (2013-07-19)
-------------------
-
 0.5.3 (2013-07-17)
 ------------------
 * handles for configuring and triggering the watcher loop updates.
 * don't try and delete a remote gateway's advertisements for it.
 * add missing dependencies on rostopic and rosservice.
 * bugfix unregister subcriber update faults when subscriber has disappeared.
-
-0.5.2 (2013-06-10)
-------------------
-* 0.5.1
-
-0.5.1 (2013-05-27 11:48)
-------------------------
-* 0.5.0
 
 0.5.0 (2013-05-27 11:03)
 ------------------------
@@ -139,15 +139,6 @@ Changelog
 * git ignores, comments and remove unused build infra.
 * fix gateway matching for pulled interfaces.
 * fix remote gateway matching for flips.
-
-0.2.1 (2012-12-24)
-------------------
-
-0.2.0 (2012-12-23 14:05)
-------------------------
-
-0.1.9 (2012-12-25)
-------------------
 
 0.1.8 (2012-12-23 13:59)
 ------------------------

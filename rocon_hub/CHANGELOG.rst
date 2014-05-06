@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.7.1 (2014-05-06)
+------------------
+* Expose ``gateway_unavailable_timeout`` as a configurable parameter.
+* Expose ``gateway_unavailable_timeout`` as an arg to roslaunch.
+* Contributors: Daniel Stonier
+
 0.7.0 (2014-04-16)
 ------------------
 * support for redis server v2.6
@@ -29,7 +35,6 @@ Changelog
 * background hub discovery thread.
 * use args instead of reproducing launcher content.
 * uuid's now used to generate unique gateway names.
-* 0.4.0
 
 0.3.0 (2013-02-05)
 ------------------
@@ -40,28 +45,13 @@ Changelog
 * fix wiki links.
 * catkinized.
 
-0.2.1 (2012-12-24)
-------------------
-
-0.2.0 (2012-12-23 14:05)
-------------------------
-
-0.1.9 (2012-12-25)
-------------------
-
 0.1.8 (2012-12-23 13:59)
 ------------------------
 * some exception and license handling
 
-0.1.7 (2012-12-13)
-------------------
-
 0.1.6 (2012-12-12)
 ------------------
 * avoid building, rosbuild takes ages now.
-
-0.1.5 (2012-12-09)
-------------------
 
 0.1.4 (2012-12-08)
 ------------------
@@ -70,12 +60,3 @@ Changelog
 0.1.3 (2012-12-07)
 ------------------
 * rocon_gateway_hub->rocon_hub, client also.
-
-0.1.2 (2012-11-24 18:09)
-------------------------
-
-0.1.1 (2012-11-24 15:57)
-------------------------
-
-0.1.0 (2012-11-14)
-------------------
