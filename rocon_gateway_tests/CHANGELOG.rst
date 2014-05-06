@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.7.2 (2014-05-06)
+------------------
+* added missing zeroconf_avahi dependency.
+* relax timeout durations for tests.
+
 0.5.0 (2013-05-27 11:03)
 ------------------------
 * loading up the heavy tutorials.
