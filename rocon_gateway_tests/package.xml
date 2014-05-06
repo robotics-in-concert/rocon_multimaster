@@ -31,4 +31,5 @@
   <test_depend>roscpp_tutorials</test_depend>
   <test_depend>rospy_tutorials</test_depend>
   <test_depend>actionlib_tutorials</test_depend>
+  <test_depend>zeroconf_avahi</test_depend>
 </package>
