@@ -212,7 +212,7 @@ class GatewayNode():
 
     def _setup_ros_publishers(self):
         gateway_publishers = {}
-        gateway_publishers['gateway_info'] = rospy.Publisher('~gateway_info', gateway_msgs.GatewayInfo, latch=True)
+        gateway_publishers['gateway_info'] = rospy.Publisher('~gateway_info', gateway_msgs.GatewayInfo, latch=True, queue_size=5)
         return gateway_publishers
 
     def _setup_ros_subscribers(self):
