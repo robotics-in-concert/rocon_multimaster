@@ -40,9 +40,8 @@ class NetworkInterfaceManager(object):
           Auto detects the network interface is none is supplied. If one is
           supplied, this function verifies that the interface is connected.
 
-          @return interface_name, interface_type : if detected succesfully,
-                  None, None otherwise
-          @rtype str, int8
+          :returns: the interface name and type if detected successfully
+          :rtype: (str, int8) or None
         '''
 
         interfaces = []
@@ -112,9 +111,7 @@ class NetworkInterfaceManager(object):
                 float(wifi.wireless_info.getBitrate().value)  # Raw bitrate
             _, qual, _, _ = wifi.getStatistics()
         except IOError as e:
-            rospy.logwarn("Looks like the wireless dropped out. I won't " +
-                          "update wireless statistics as the hub can't talk " +
-                          "to me anyway. Error: " + str(e))
+            rospy.logwarn("Gateway : not updating wireless statistics [wireless dropped out][%s]" % str(e))
             return gateway_statistics
 
         gateway_statistics.wireless_link_quality = int(qual.quality)

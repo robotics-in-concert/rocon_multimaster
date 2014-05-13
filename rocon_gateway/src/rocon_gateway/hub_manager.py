@@ -240,7 +240,7 @@ class HubManager(object):
         hub_to_be_disengaged.disconnect()  # necessary to kill failing socket receives
         self._hub_lock.acquire()
         if hub_to_be_disengaged in self.hubs:
-            rospy.loginfo("Gateway : lost connection to the hub [%s][%s]" % (
+            rospy.loginfo("Gateway : disengaged connection with the hub [%s][%s]" % (
                 hub_to_be_disengaged.name, hub_to_be_disengaged.uri))
             self.hubs[:] = [hub for hub in self.hubs if hub != hub_to_be_disengaged]
         self._hub_lock.release()
