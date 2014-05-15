@@ -183,6 +183,8 @@ class GatewayHub(rocon_hub_client.Hub):
           @type gateway_msgs.RemoteGateway
         '''
         try:
+            # this should probably be posted independently  of whether the hub is contactable or not
+            # refer to https://github.com/robotics-in-concert/rocon_multimaster/pull/273/files#diff-22b726fec736c73a96fd98c957d9de1aL189
             if not statistics.network_info_available:
                 rospy.logdebug("Gateway : unable to publish network statistics [network info unavailable]")
                 return
