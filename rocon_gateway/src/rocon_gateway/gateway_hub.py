@@ -152,7 +152,7 @@ class GatewayHub(rocon_hub_client.Hub):
         self.connection_lost_lock.acquire()
         # should probably have a try: except AttributeError here as the following is not atomic.
         if self._hub_connection_lost_gateway_hook is not None:
-            rospy.loginfo("Gateway : Lost connection with hub. Attempting to disconnect...")
+            rospy.loginfo("Gateway : lost connection with hub, attempting to disconnect...")
             self._hub_connection_lost_gateway_hook(self)
             self._hub_connection_lost_gateway_hook = None
         self.connection_lost_lock.release()
@@ -183,11 +183,14 @@ class GatewayHub(rocon_hub_client.Hub):
           @type gateway_msgs.RemoteGateway
         '''
         try:
+            # this should probably be posted independently  of whether the hub is contactable or not
+            # refer to https://github.com/robotics-in-concert/rocon_multimaster/pull/273/files#diff-22b726fec736c73a96fd98c957d9de1aL189
+            if not statistics.network_info_available:
+                rospy.logdebug("Gateway : unable to publish network statistics [network info unavailable]")
+                return
             network_info_available = hub_api.create_rocon_gateway_key(
                 self._unique_gateway_name, 'network:info_available')
             self._redis_server.set(network_info_available, statistics.network_info_available)
-            if not statistics.network_info_available:
-                return
             network_type = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'network:type')
             self._redis_server.set(network_type, statistics.network_type)
             # Let hub know that we are alive - even for wired connections. Perhaps something can
@@ -211,7 +214,7 @@ class GatewayHub(rocon_hub_client.Hub):
             wireless_noise_level = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'wireless:noise_level')
             self._redis_server.set(wireless_noise_level, statistics.wireless_noise_level)
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
-            rospy.logerr("Gateway: Unable to update network interface information")
+            rospy.logerr("Gateway : unable to publish network statistics [no connection to the hub]")
 
     def unregister_named_gateway(self, gateway_key):
         '''

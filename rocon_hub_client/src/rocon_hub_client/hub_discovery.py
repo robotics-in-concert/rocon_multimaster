@@ -29,14 +29,13 @@ class HubDiscovery(threading.Thread):
     '''
     def __init__(self, external_discovery_update_hook, direct_hub_uri_list=[], disable_zeroconf=False, blacklisted_hubs={}):
         '''
-          @param external_discovery_update is a callback function that takes action on a discovery
-          @type gateway_node.register_gateway(ip, port)
+          :param external_discovery_update: is a callback function that takes action on a discovery
+          :type external_discovery_update: GatewayNode.register_gateway(ip, port)
 
-          @param direct_hub_uri_list : list of uri's to hubs (e.g. http://localhost:6380
-          @type list of uri
+          :param str[] direct_hub_uri_list: list of uri's to hubs (e.g. http://localhost:6380)
 
-          @param disallowed_hubs
-          @type # 'ip:port' : (error_code, error_code_str) dictionary of hubs that have been blacklisted (maintained by manager of this class)
+          :param disallowed_hubs:
+          :type disallowed_hubs: # 'ip:port' : (error_code, error_code_str) dictionary of hubs that have been blacklisted (maintained by manager of this class)
         '''
         threading.Thread.__init__(self)
         self.discovery_update_hook = external_discovery_update_hook
@@ -85,7 +84,9 @@ class HubDiscovery(threading.Thread):
                 ErrorCodes.SUCCESS,
                 ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS,
                 ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST,
-                ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
+                # this now has to be permitted as we will often have zeroconf failing for gateways
+                # that have dropped out of wireless range.
+                #ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
                 ]
         while not rospy.is_shutdown() and not self._trigger_shutdown:
             self._discovered_hubs_modification_mutex.acquire()
@@ -100,7 +101,7 @@ class HubDiscovery(threading.Thread):
                         result, _ = self.discovery_update_hook(ip, port)
                         if result in reasons_not_to_keep_scanning:
                             self._zeroconf_discovered_hubs.append(service)
-                # Direct scanning
+            # Direct scanning
             new_hubs, unused_lost_hubs = self._direct_scan()
             for hub_uri in new_hubs:
                 hostname, port = _resolve_url(hub_uri)
@@ -108,10 +109,10 @@ class HubDiscovery(threading.Thread):
                 result, _ = self.discovery_update_hook(hostname, port)
                 if result in reasons_not_to_keep_scanning:
                     self._direct_discovered_hubs.append(hub_uri)
+            self._discovered_hubs_modification_mutex.release()
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
                 rospy.logfatal("Gateway : zeroconf unavailable and no valid direct hub uris. Stopping hub discovery.")
                 break  # nothing left to do
-            self._discovered_hubs_modification_mutex.release()
             self._sleep()
         if self._zeroconf_services_available:
             self._list_discovered_services.close()
@@ -221,6 +222,7 @@ def _resolve_url(url):
         ip, port = None, None
     return ip, port
 
+
 def _match_url_to_hub_url(url, hub_uri):
     '''
       @param url: The original url used to specify the hub
@@ -231,6 +233,7 @@ def _match_url_to_hub_url(url, hub_uri):
     '''
     (ip, port) = _resolve_url(url)
     return (hub_uri == str(ip) + ":" + str(port))
+
 
 def _resolve_address(msg):
     '''
@@ -243,6 +246,7 @@ def _resolve_address(msg):
         ip = msg.ipv4_addresses[0]
     return (ip, msg.port)
 
+
 def _match_zeroconf_address_to_hub_url(msg, hub_uri):
     '''
       @param msg: The original zeroconf address used to specify the hub
@@ -253,6 +257,7 @@ def _match_zeroconf_address_to_hub_url(msg, hub_uri):
     '''
     (ip, port) = _resolve_address(msg)
     return (hub_uri == str(ip) + ":" + str(port))
+
 
 def _zeroconf_services_available():
     '''

@@ -5,5 +5,6 @@
   <include file="$(find rocon_hub)/launch/hub.launch">
     <arg name="hub_name" value="Primary Hub" />
     <arg name="hub_port" value="6380" />
+    <arg name="gateway_unavailable_timeout" value="10"/>
   </include>
 </launch>
