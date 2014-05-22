@@ -9,7 +9,7 @@ project(rocon_gateway_tests)
 # Catkin
 ##############################################################################
 
-find_package(catkin REQUIRED rocon_test)
+find_package(catkin REQUIRED COMPONENTS rocon_test)
 catkin_package()
 
 catkin_python_setup()
