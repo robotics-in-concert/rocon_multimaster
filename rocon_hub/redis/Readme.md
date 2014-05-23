@@ -13,9 +13,9 @@ script will fill in this value before launching the redis server.
 
 * include %(local_conf_filename)s
 
-### 2.6
+### 2.6/2.8
 
-Delete a comment in redis-2.6.conf so python substitution can work..
+Delete a comment in redis-2.6.conf/redis-2.8.conf so python substitution can work..
 
 * 10% -> 10 per cent
 
