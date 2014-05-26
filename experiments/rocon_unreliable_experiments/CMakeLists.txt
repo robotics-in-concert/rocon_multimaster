@@ -10,7 +10,7 @@ project(rocon_unreliable_experiments)
 ##############################################################################
 
 find_package(catkin REQUIRED COMPONENTS roscpp std_msgs)
-include_directories(SYSTEM include ${catkin_INCLUDE_DIRS})
+include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
 catkin_package(CATKIN_DEPENDS roscpp std_msgs)
 
 ##############################################################################

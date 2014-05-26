@@ -19,7 +19,7 @@ catkin_python_setup()
 ##############################################################################
 
 if (CATKIN_ENABLE_TESTING)
-  find_package(catkin REQUIRED rosunit rostest)
+  find_package(catkin REQUIRED COMPONENTS rosunit rostest)
   add_subdirectory(tests)
 endif()
 
