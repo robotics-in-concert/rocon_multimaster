@@ -87,6 +87,7 @@ def test_main():
 
     try:
         test_case = runner.create_unit_rocon_test(rocon_launcher, launchers)
+        print("Unit test loader")
         suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
         if pause:
             runner.set_pause_mode(True)

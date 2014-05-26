@@ -52,7 +52,7 @@ def ping_hub(ip, port):
     try:
         connection_pool = redis.ConnectionPool(host=ip, port=port,
                                                connection_class=HubConnection)
-        r = redis.Redis(connection_pool=connection_pool)
+        r = redis.Redis(connection_pool=connection_pool, socket_timeout=0.2)
         name = r.get("rocon:hub:name")
 
     except redis.exceptions.ConnectionError:

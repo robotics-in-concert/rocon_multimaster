@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.7.3 (2014-05-26)
+------------------
+* update for the new rocon launch api.
+* Contributors: Daniel Stonier
+
 0.7.0 (2014-04-16)
 ------------------
 * bugfix rocon test breakage due to rocon_launch arg mapping api change.

@@ -27,10 +27,8 @@ def setup_ros_parameters():
     param['hub_uri'] = rospy.get_param('~hub_uri', '')
     # Convert these back to accepting lists once https://github.com/ros/ros_comm/pull/218
     # goes through, for now we use semi-colon separated lists.
-    param['hub_whitelist'] = rospy.get_param('~hub_whitelist', "")
-    param['hub_blacklist'] = rospy.get_param('~hub_blacklist', "")
-    param['hub_whitelist'] = filter(bool, param['hub_whitelist'].split(';'))  # avoid '' hub name strings
-    param['hub_blacklist'] = filter(bool, param['hub_blacklist'].split(';'))
+    param['hub_whitelist'] = rospy.get_param('~hub_whitelist', [])
+    param['hub_blacklist'] = rospy.get_param('~hub_blacklist', [])
 
     # Gateway
     param['name'] = rospy.get_param('~name', 'gateway')

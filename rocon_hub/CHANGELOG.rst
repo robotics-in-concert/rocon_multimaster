@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.7.3 (2014-05-26)
+------------------
+* support for redis on trusty, version 2.8.
+* remove unused gateway_ping_frequency parameter, `#271 <https://github.com/robotics-in-concert/rocon_multimaster/issues/271>`_.
+* Contributors: Daniel Stonier
+
 0.7.1 (2014-05-06)
 ------------------
 * Expose ``gateway_unavailable_timeout`` as a configurable parameter.

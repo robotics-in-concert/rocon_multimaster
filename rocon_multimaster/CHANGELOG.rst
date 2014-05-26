@@ -1,9 +1,14 @@
 Changelog
 =========
 
+0.7.3 (2014-05-26)
+------------------
+* minor wireless handling bugfixes.
+* rocon tests upgraded to use the new rocon launch api.
+
 0.7.1 (2014-05-06)
 ------------------
-* optimised flip handling cpu usage for the gateways.
+* wireless handling at the gateway level.
 
 0.7.0 (2014-04-16)
 ------------------
@@ -11,58 +16,17 @@ Changelog
 * utilities broken up and moved to rocon_tools
 * Contributors: Daniel Stonier
 
-0.5.2 (2013-06-10)
-------------------
-* update meta pkg
-
 0.5.0 (2013-05-27 11:03)
 ------------------------
-* adding buildtool depend
-* 0.4.0
-* Cmake for meta pkg
+* ...
 
 0.3.0 (2013-02-05)
 ------------------
-* remove confusing metapackage dependencies.
-* update jihoon e-mail
-* added metapackage to metapackage dependencies.
+* ...
 
 0.2.2 (2013-01-31)
 ------------------
 * catkinized.
-
-0.2.1 (2012-12-24)
-------------------
-
-0.2.0 (2012-12-23 14:05)
-------------------------
-
-0.1.9 (2012-12-25)
-------------------
-
-0.1.8 (2012-12-23 13:59)
-------------------------
-
-0.1.7 (2012-12-13)
-------------------
-
-0.1.6 (2012-12-12)
-------------------
-
-0.1.5 (2012-12-09)
-------------------
-
-0.1.4 (2012-12-08)
-------------------
-
-0.1.3 (2012-12-07)
-------------------
-
-0.1.2 (2012-11-24 18:09)
-------------------------
-
-0.1.1 (2012-11-24 15:57)
-------------------------
 
 0.1.0 (2012-11-14)
 ------------------

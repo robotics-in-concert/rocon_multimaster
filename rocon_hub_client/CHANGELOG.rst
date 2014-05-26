@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.7.3 (2014-05-26)
+------------------
+* lists instead of semi-colon separated strings for hub whitelist/blacklist parameters.
+* keep trying to resolve zeroconf hubs instead of blacklisting them so we can come back from wireless dropouts, `#271 <https://github.com/robotics-in-concert/rocon_multimaster/issues/271>`_.
+* Contributors: Daniel Stonier
+
 0.6.1 (2013-09-11)
 ------------------
 * allow hostname:port without scheme for direct hub identification. Better handling of poorly formatted direct hub uris.
