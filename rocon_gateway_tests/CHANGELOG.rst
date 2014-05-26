@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.7.3 (2014-05-26)
+------------------
+* reduce the gateway unavailable timeout for convenient wireless testing.
+* fix inconsistently referenced flip_all.yaml.
+* Contributors: Daniel Stonier
+
 0.7.2 (2014-05-06)
 ------------------
 * added missing zeroconf_avahi dependency.
