@@ -79,12 +79,15 @@ class RoconTestLaunchConfiguration(object):
     '''
       Provides configuration details for a rocon test launch configuration
       associated with a single master.
+
+      :param launcher: a roslaunch test configuration
+      :type launcher: :class:`rocon_launch.RosLaunchConfiguration`
     '''
     def __init__(self, launcher):
         # Launcher configuration (name, port, path to file, etch)
         self.launcher = launcher
         # ros launch configuration info
-        self.configuration = roslaunch.parent.load_config_default([launcher['path']], launcher['port'])
+        self.configuration = roslaunch.parent.load_config_default([launcher.path], launcher.port)
         self.test_parent = None  # ros test launcher parent, handles start, stop, shutdown
 
 
@@ -112,7 +115,7 @@ def setUp(self):
         if not config.tests:
             rocon_launch_configuration.parent = roslaunch.parent.ROSLaunchParent(
                                                             uuids[o.port],
-                                                            [launcher["path"]],
+                                                            [launcher.path],
                                                             is_core=False,
                                                             port=o.port,
                                                             verbose=False,
@@ -123,7 +126,7 @@ def setUp(self):
             rocon_launch_configuration.parent.start()
             printlog("Launch Parent - type ...............ROSLaunchParent")
         else:
-            rocon_launch_configuration.parent = RoconTestLaunchParent(uuids[o.port], config, [launcher["path"]], port=o.port)
+            rocon_launch_configuration.parent = RoconTestLaunchParent(uuids[o.port], config, [launcher.path], port=o.port)
             rocon_launch_configuration.parent.setUp()
             # the config attribute makes it easy for tests to access the ROSLaunchConfig instance
             # Should we do this - it doesn't make a whole lot of sense?
@@ -131,7 +134,7 @@ def setUp(self):
             _add_rocon_test_parent(rocon_launch_configuration.parent)
             printlog("Launch Parent - type ...............ROSTestLaunchParent")
         printlog("Launch Parent - run id..............%s" % rocon_launch_configuration.parent.run_id)
-        printlog("Launch Parent - launcher............%s" % rocon_launch_configuration.launcher["path"])
+        printlog("Launch Parent - launcher............%s" % rocon_launch_configuration.launcher.path)
         printlog("Launch Parent - port................%s" % o.port)
         if not config.tests:
             printlog("Launch Parent - tests...............no")
@@ -150,7 +153,7 @@ def tearDown(self):
         if _pause_mode:
             raw_input("Press Enter to continue...")
             set_pause_mode(False)  # only trigger pause once
-        printlog("Tear Down - launcher..........................%s" % launcher["path"])
+        printlog("Tear Down - launcher..........................%s" % launcher.path)
         if config.tests:
             printlog("Tear Down - tests..............................%s" % [test.test_name for test in config.tests])
             if parent:
@@ -182,10 +185,11 @@ def rocon_test_runner(test, test_launch_configuration, test_pkg):
     setUp() is responsible for ensuring that the rest of the roslaunch
     state is correct and tearDown() is responsible for tearing
     everything down cleanly.
-    @param test: ros test to run
-    @type  test: roslaunch.Test
-    @return: function object to run testObj
-    @rtype: fn
+
+    :param test: ros test to run
+    :type test: :class:`.RoconTestLaunchConfiguration`
+    :returns: function object to run testObj
+    :rtype: fn
     """
 
     ## test case pass/fail is a measure of whether or not the test ran
@@ -303,7 +307,7 @@ def create_unit_rocon_test(rocon_launcher, launchers):
             elif test_name in test_names:
                 classdict[test_name] = fail_duplicate_runner(test.test_name)
             else:
-                classdict[test_name] = rocon_test_runner(test, rocon_launch_configuration, launcher["package"])
+                classdict[test_name] = rocon_test_runner(test, rocon_launch_configuration, launcher.package)
                 test_names.append(test_name)
 
     # instantiate the TestCase instance with our magically-created tests
