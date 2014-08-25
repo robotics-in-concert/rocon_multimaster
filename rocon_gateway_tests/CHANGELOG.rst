@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Forthcoming
------------
+0.7.4 (2014-08-25)
+------------------
 * rocon_gateway_tests: CMakeLists.txt(12): error: missing COMPONENTS keyword before 'rocon_test'
 * Contributors: Jihoon Lee
 

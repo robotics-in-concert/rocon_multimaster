@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Forthcoming
------------
+0.7.4 (2014-08-25)
+------------------
 * build include path 'include' does not exist
 * Contributors: Jihoon Lee
 
