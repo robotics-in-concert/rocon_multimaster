@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* rocon_gateway_tests: CMakeLists.txt(12): error: missing COMPONENTS keyword before 'rocon_test'
+* Contributors: Jihoon Lee
+
 0.7.3 (2014-05-26)
 ------------------
 * reduce the gateway unavailable timeout for convenient wireless testing.

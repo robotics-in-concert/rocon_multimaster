@@ -1,6 +1,9 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+
 0.7.3 (2014-05-26)
 ------------------
 * support for redis on trusty, version 2.8.

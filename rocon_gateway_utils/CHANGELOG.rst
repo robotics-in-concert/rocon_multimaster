@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* rocon_gateway_utils missing COMPONENTS keyword before 'rosunit rostest
+* Contributors: Jihoon Lee
+
 0.7.1 (2014-05-06)
 ------------------
 * use rosservice instead of rosmaster for simpler gateway lookups

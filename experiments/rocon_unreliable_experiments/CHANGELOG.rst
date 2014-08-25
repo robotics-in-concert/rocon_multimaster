@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* build include path 'include' does not exist
+* Contributors: Jihoon Lee
+
 0.5.0 (2013-05-27 11:03)
 ------------------------
 * make sure our target names are unique.

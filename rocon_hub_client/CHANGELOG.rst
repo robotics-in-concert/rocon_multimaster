@@ -1,6 +1,9 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+
 0.7.3 (2014-05-26)
 ------------------
 * lists instead of semi-colon separated strings for hub whitelist/blacklist parameters.

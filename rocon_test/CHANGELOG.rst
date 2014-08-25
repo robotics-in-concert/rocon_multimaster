@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* Merge branch 'indigo' into hydro-devel
+* adding back the rostest in rocon_test
+* unconfigured build_depend on 'rostest
+* Contributors: Daniel Stonier, Jihoon Lee
+
 0.7.3 (2014-05-26)
 ------------------
 * update for the new rocon launch api.
