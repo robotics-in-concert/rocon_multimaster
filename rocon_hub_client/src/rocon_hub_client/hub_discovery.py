@@ -264,7 +264,7 @@ def _zeroconf_services_available():
       Check for zeroconf services on startup. If none is found within a suitable
       timeout, disable this module.
     '''
-    zeroconf_timeout = 5  # Amount of time to wait for the zeroconf services to appear
+    zeroconf_timeout = 15  # Amount of time to wait for the zeroconf services to appear
     rospy.loginfo("Gateway : checking if zeroconf services are available...")
     try:
         rospy.wait_for_service("zeroconf/add_listener", timeout=zeroconf_timeout)
