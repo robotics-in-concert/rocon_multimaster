@@ -12,7 +12,7 @@ import re
 
 import rospy
 import rocon_gateway_utils
-from gateway_msgs.msg import RemoteRuleWithStatus, ConnectionType
+from gateway_msgs.msg import RemoteRuleWithStatus
 
 from . import utils
 from . import interactive_interface
@@ -81,8 +81,6 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         '''
         # SLOW, EASY METHOD
 
-        #print(str(self.registrations))
-
         flipped = utils.create_empty_connection_type_dictionary()
         new_flips = utils.create_empty_connection_type_dictionary()
         removed_flips = utils.create_empty_connection_type_dictionary()
@@ -107,7 +105,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
             new_flips[connection_type] = diff(flipped[connection_type], self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type], flipped[connection_type])
 
-        new_flips = self.filter_flipped_in_interfaces(new_flips, self.registrations)
+        new_flips = self._filter_flipped_in_interfaces(new_flips, self.registrations)
 
         # set flip status to unknown first, and then read previous status if available
         flip_status = utils.create_empty_connection_type_dictionary()
@@ -148,7 +146,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         #
         # diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
 
-    def filter_flipped_in_interfaces(self, new_flips, flipped_in_registrations):
+    def _filter_flipped_in_interfaces(self, new_flips, flipped_in_registrations):
         '''
           Gateway should not flip out the flipped-in interface.
         '''
@@ -158,17 +156,10 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                 if r:
                     rospy.loginfo("Gateway : removing flip rule [%s] to prevent cyclic rule flipping"%str(rule))
                     new_flips[connection_type].remove(r) 
-
         return new_flips
-
 
     def _is_registration_in_remote_rule(self, rule, new_flip_remote_rules):
         for r in new_flip_remote_rules:
-            if rule.connection.rule.type == ConnectionType.PUBLISHER:
-                print(str("Rule"))
-                print(str(rule.local_node) + ' - ' + str(r.rule.node))
-                print(str(rule.remote_gateway) + ' - ' + str(r.gateway))
-                print(str(rule.connection.rule.name) + ' - ' + str(r.rule.name))
             if rule.local_node == r.rule.node and rule.remote_gateway == r.gateway and rule.connection.rule.name == r.rule.name:
                 return r
         return None
