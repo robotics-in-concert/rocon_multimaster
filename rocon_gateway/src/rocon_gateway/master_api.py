@@ -335,6 +335,8 @@ class LocalMaster(rosgraph.Master):
           @return the updated registration object (only adds an anonymously generated local node name)
           @rtype utils.Registration
         '''
+        # rograph.Master doesn't care whether the node is prefixed with slash or not, but we use it to
+        # compare registrations later in FlippedInterface._is_registration_in_remote_rule()
         registration.local_node = "/" + self._get_anonymous_node_name(registration.connection.rule.node)
         rospy.logdebug("Gateway : registering a new node [%s] for [%s]" % (registration.local_node, registration))
 
