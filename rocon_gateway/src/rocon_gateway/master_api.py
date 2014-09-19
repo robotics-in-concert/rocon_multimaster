@@ -597,6 +597,8 @@ class LocalMaster(rosgraph.Master):
             type_info = rostopic.get_topic_type(name)[0]  # message type
             if type_info is not None:
                 connections.append(utils.Connection(Rule(connection_type, name, node), type_info, xmlrpc_uri))
+            else:
+                rospy.logwarn('Gateway : [%s] does not have type_info. Cannot flip' % name)
         elif connection_type == SERVICE:
             type_info = rosservice.get_service_uri(name)
             if type_info is not None:
