@@ -50,6 +50,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
         # Function aliases
         self.flipped = self.active
+        self.filtered_flips = []
         self.flip_status = utils.create_empty_connection_type_dictionary()
         self.flip_all = self.add_all
         self.unflip_all = self.remove_all
@@ -105,7 +106,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
             new_flips[connection_type] = diff(flipped[connection_type], self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type], flipped[connection_type])
 
-        new_flips = self._filter_flipped_in_interfaces(new_flips, self.registrations)
+        filtered_flips = self._filter_flipped_in_interfaces(new_flips, self.registrations)
 
         # set flip status to unknown first, and then read previous status if available
         flip_status = utils.create_empty_connection_type_dictionary()
@@ -123,7 +124,14 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                     pass
 
         self.flip_status = copy.deepcopy(flip_status)
-        self.flipped = copy.deepcopy(flipped)
+
+        self.flipped = {}
+        for connection_type in flipped.keys():
+            self.flipped[connection_type] = [copy.deepcopy(r) for r in flipped[connection_type] if not r in filtered_flips[connection_type]]
+        for connection_type in new_flips.keys():
+            new_flips[connection_type] = [r for r in new_flips[connection_type] if not r in filtered_flips[connection_type]]
+
+        rospy.logdebug("Gateway : filtered flip list to prevent cyclic flipping - %s"%str(filtered_flips))
 
         self._lock.release()
         return new_flips, removed_flips
@@ -150,13 +158,13 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         '''
           Gateway should not flip out the flipped-in interface.
         '''
+        filtered_flips = utils.create_empty_connection_type_dictionary()
         for connection_type in utils.connection_types:
             for rule in flipped_in_registrations[connection_type]:
                 r = self._is_registration_in_remote_rule(rule, new_flips[connection_type])
                 if r:
-                    rospy.loginfo("Gateway : removing flip rule [%s] to prevent cyclic rule flipping"%str(rule))
-                    new_flips[connection_type].remove(r) 
-        return new_flips
+                    filtered_flips[connection_type].append(r)
+        return filtered_flips 
 
     def _is_registration_in_remote_rule(self, rule, new_flip_remote_rules):
         for r in new_flip_remote_rules:
