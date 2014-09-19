@@ -98,7 +98,7 @@ class HubDiscovery(threading.Thread):
                     (ip, port) = _resolve_address(service)
                     service_uri = str(ip) + ':' + str(port)
                     if service_uri not in self._blacklisted_hubs.keys():
-                        result, _ = self.discovery_update_hook(ip, port)
+                        result, reason = self.discovery_update_hook(ip, port)
                         if result == ErrorCodes.HUB_CONNECTION_UNRESOLVABLE:
                             if not service_uri in unresolvable_hub:
                                 rospy.loginfo("Gateway : unresolvable hub [%s]" % reason)
