@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* ttl returns -2 if key does not exist from redis 2.8
+* Contributors: Jihoon Lee
+
 0.7.4 (2014-08-25)
 ------------------
 

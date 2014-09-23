@@ -1,6 +1,9 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+
 0.7.4 (2014-08-25)
 ------------------
 * Merge branch 'indigo' into hydro-devel

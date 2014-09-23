@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* rename _ to reason
+* add logic to handle hub connection
+* increase the timeout for late launching zero conf than gateway
+* Contributors: Jihoon Lee, dwlee
+
 0.7.4 (2014-08-25)
 ------------------
 

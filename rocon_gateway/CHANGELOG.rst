@@ -1,6 +1,17 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* Merge branch 'cyclic_flip' of https://github.com/robotics-in-concert/rocon_multimaster into cyclic_flip
+* updating logic to store filtered flip
+* Merge branch 'indigo' into cyclic_flip
+* Hints for the ignorant.
+* cleanup
+* now it prevents cyclic flips. it addresses `#283 <https://github.com/robotics-in-concert/rocon_multimaster/issues/283>`_. Fix `#283 <https://github.com/robotics-in-concert/rocon_multimaster/issues/283>`_
+* it was silently ignoring if topic being flipped does not have type information. Now it provides warning that it is not flippable
+* Contributors: Daniel Stonier, Jihoon Lee
+
 0.7.4 (2014-08-25)
 ------------------
 

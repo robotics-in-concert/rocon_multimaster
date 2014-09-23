@@ -1,6 +1,9 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+
 0.7.4 (2014-08-25)
 ------------------
 * rocon_gateway_utils missing COMPONENTS keyword before 'rosunit rostest
