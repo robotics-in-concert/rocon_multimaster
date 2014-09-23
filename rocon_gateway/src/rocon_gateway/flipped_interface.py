@@ -10,6 +10,7 @@
 import copy
 import re
 
+import rospy
 import rocon_gateway_utils
 from gateway_msgs.msg import RemoteRuleWithStatus
 
@@ -49,6 +50,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
         # Function aliases
         self.flipped = self.active
+        self.filtered_flips = []
         self.flip_status = utils.create_empty_connection_type_dictionary()
         self.flip_all = self.add_all
         self.unflip_all = self.remove_all
@@ -104,6 +106,8 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
             new_flips[connection_type] = diff(flipped[connection_type], self.flipped[connection_type])
             removed_flips[connection_type] = diff(self.flipped[connection_type], flipped[connection_type])
 
+        filtered_flips = self._filter_flipped_in_interfaces(new_flips, self.registrations)
+
         # set flip status to unknown first, and then read previous status if available
         flip_status = utils.create_empty_connection_type_dictionary()
         for connection_type in utils.connection_types:
@@ -120,7 +124,14 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                     pass
 
         self.flip_status = copy.deepcopy(flip_status)
-        self.flipped = copy.deepcopy(flipped)
+
+        self.flipped = {}
+        for connection_type in flipped.keys():
+            self.flipped[connection_type] = [copy.deepcopy(r) for r in flipped[connection_type] if not r in filtered_flips[connection_type]]
+        for connection_type in new_flips.keys():
+            new_flips[connection_type] = [r for r in new_flips[connection_type] if not r in filtered_flips[connection_type]]
+
+        rospy.logdebug("Gateway : filtered flip list to prevent cyclic flipping - %s"%str(filtered_flips))
 
         self._lock.release()
         return new_flips, removed_flips
@@ -143,6 +154,24 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         #
         # diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
 
+    def _filter_flipped_in_interfaces(self, new_flips, flipped_in_registrations):
+        '''
+          Gateway should not flip out the flipped-in interface.
+        '''
+        filtered_flips = utils.create_empty_connection_type_dictionary()
+        for connection_type in utils.connection_types:
+            for rule in flipped_in_registrations[connection_type]:
+                r = self._is_registration_in_remote_rule(rule, new_flips[connection_type])
+                if r:
+                    filtered_flips[connection_type].append(r)
+        return filtered_flips 
+
+    def _is_registration_in_remote_rule(self, rule, new_flip_remote_rules):
+        for r in new_flip_remote_rules:
+            if rule.local_node == r.rule.node and rule.remote_gateway == r.gateway and rule.connection.rule.name == r.rule.name:
+                return r
+        return None
+    
     def update_flip_status(self, flip, status):
         '''
           Update the status of a flip from the hub. This should be called right
