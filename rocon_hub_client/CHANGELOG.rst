@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Forthcoming
------------
+0.7.5 (2014-09-23)
+------------------
 * rename _ to reason
 * add logic to handle hub connection
 * increase the timeout for late launching zero conf than gateway

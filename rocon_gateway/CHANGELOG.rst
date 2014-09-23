@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Forthcoming
------------
+0.7.5 (2014-09-23)
+------------------
 * Merge branch 'cyclic_flip' of https://github.com/robotics-in-concert/rocon_multimaster into cyclic_flip
 * updating logic to store filtered flip
 * Merge branch 'indigo' into cyclic_flip
