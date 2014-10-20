@@ -81,7 +81,8 @@ class NetworkInterfaceManager(object):
             rospy.logerr("This machine is connected via multiple active " +
                          "interfaces. Detected: " + str(interfaces) + ". Please " +
                          "select a single interface using the network_interface " +
-                         "param. Cannot send network information to hub.")
+                         "param (or environment variable GATEWAY_NETWORK_INTERFACE " +
+                         "if using the launcher). Cannot send network information to hub.")
             return None, None
 
         return interfaces[0][0], interfaces[0][1]
