@@ -4,7 +4,7 @@
 <launch>
   <arg name="gateway_name" default="gateway"/>
   <arg name="gateway_watch_loop_period" default="5"/>
-  <arg name="gateway_hub_whitelist" default=[]/> <!-- list of hub names/regex patterns -->
+  <arg name="gateway_hub_whitelist" default="[]"/> <!-- list of hub names/regex patterns -->
   <arg name="gateway_network_interface" default="$(optenv GATEWAY_NETWORK_INTERFACE)"/>  <!-- If you have multiple network interfaces and want to lock it on one (e.g. 'eth0') -->
   <arg name="gateway_disable_uuids" default="false"/> <!-- manage unique naming of multiple gateways yourself -->
   <arg name="gateway_firewall" default="true"/> <!-- Typically nothing comes in! -->
