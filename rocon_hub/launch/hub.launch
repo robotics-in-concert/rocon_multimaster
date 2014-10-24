@@ -3,6 +3,8 @@
   <arg name="hub_port" default="6380" />
   <arg name="zeroconf" default="true" />
   <arg name="gateway_unavailable_timeout" default="30"/>
+  <arg name="gateway_dead_timeout" default="7200"/>
+  <arg name="hub_watcher_thread_rate" default="0.2"/>
   <arg name="external_shutdown" default="false" /> <!-- useful if you want to do stuff before shutting down the hub in ros' shutdown hooks -->
 
   <node pkg="rocon_hub" type="hub.py" name="hub">
@@ -12,5 +14,7 @@
     <param name="zeroconf"                    value="$(arg zeroconf)" />
     <param name="external_shutdown"           value="$(arg external_shutdown)" />
     <param name="gateway_unavailable_timeout" value="$(arg gateway_unavailable_timeout)"/>
+    <param name="gateway_dead_timeout"        value="$(arg gateway_dead_timeout)"/>
+    <param name="watcher_thread_rate"         value="$(arg hub_watcher_thread_rate)"/>
   </node>
 </launch>
