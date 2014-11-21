@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* [rocon_gateway] bugfix gateway param setting
+* [rocon_gateway] hint to the user what environment variable needs to be
+  set if using multiple interfaces.
+* Contributors: Daniel Stonier
+
 0.7.5 (2014-09-23)
 ------------------
 * Merge branch 'cyclic_flip' of https://github.com/robotics-in-concert/rocon_multimaster into cyclic_flip

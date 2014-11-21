@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* expose hidden param in the code
+* Contributors: Jihoon Lee
+
 0.7.5 (2014-09-23)
 ------------------
 * ttl returns -2 if key does not exist from redis 2.8
