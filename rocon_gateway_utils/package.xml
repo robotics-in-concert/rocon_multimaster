@@ -1,6 +1,6 @@
 <package>
   <name>rocon_gateway_utils</name>
-  <version>0.7.5</version>
+  <version>0.7.6</version>
   <description>
     Utilities for gateway users (avoids large dependency requirements).
   </description>

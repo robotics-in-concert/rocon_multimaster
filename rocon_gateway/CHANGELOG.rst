@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Forthcoming
------------
+0.7.6 (2014-11-21)
+------------------
 * [rocon_gateway] bugfix gateway param setting
 * [rocon_gateway] hint to the user what environment variable needs to be
   set if using multiple interfaces.
