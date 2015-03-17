@@ -74,6 +74,9 @@ class GatewayNode():
             rospy.on_shutdown(self._wait_for_shutdown)
             unused_shutdown_service = rospy.Service('~shutdown', std_srvs.Empty, self.ros_service_shutdown)
 
+        # Make local gateway information immediately available
+        self._publish_gateway_info()
+
     def spin(self):
         self._gateway.spin()
         if not self._param['external_shutdown']:
