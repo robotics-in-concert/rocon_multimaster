@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* [rocon_gateway] make local gateway information available immediately.
+* Contributors: Daniel Stonier
+
 0.7.6 (2014-11-21)
 ------------------
 * [rocon_gateway] bugfix gateway param setting

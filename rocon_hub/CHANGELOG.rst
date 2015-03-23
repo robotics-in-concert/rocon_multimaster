@@ -1,6 +1,9 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+
 0.7.6 (2014-11-21)
 ------------------
 * expose hidden param in the code
