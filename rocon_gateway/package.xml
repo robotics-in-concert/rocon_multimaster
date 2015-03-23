@@ -1,6 +1,6 @@
 <package>
   <name>rocon_gateway</name>
-  <version>0.7.6</version>
+  <version>0.7.7</version>
   <description>
     A hub acts as a shared key-value store for multiple ros 
     systems (primarily used by gateways).

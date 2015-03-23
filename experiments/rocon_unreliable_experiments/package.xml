@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>rocon_unreliable_experiments</name>
-  <version>0.7.6</version>
+  <version>0.7.7</version>
   <description>
     Some experiments testing roscpp unreliable transports.
   </description>
