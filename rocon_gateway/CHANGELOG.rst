@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Forthcoming
------------
+0.7.8 (2015-04-27)
+------------------
 * fix the wrong message format parsing. closes `#297 <https://github.com/robotics-in-concert/rocon_multimaster/issues/297>`_
 * Contributors: Jihoon Lee
 
