@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* fix the wrong message format parsing. closes `#297 <https://github.com/robotics-in-concert/rocon_multimaster/issues/297>`_
+* Contributors: Jihoon Lee
+
 0.7.7 (2015-03-23)
 ------------------
 * [rocon_gateway] make local gateway information available immediately.
