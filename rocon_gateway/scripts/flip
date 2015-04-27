@@ -144,11 +144,11 @@ def resolve_unflips(flip_watchlist):
 def is_in_flipped_connection_list(remote_gateways, connection, flipped_connections):
     matched_gateways = []
     for flipped_connection in flipped_connections:
-        if flipped_connection.rule.name == connection.rule.name and \
-           flipped_connection.rule.type == connection.rule.type and \
-           flipped_connection.rule.node == connection.rule.node:
-            if flipped_connection.gateway in remote_gateways:
-                matched_gateways.append(flipped_connection.gateway)
+        if flipped_connection.remote_rule.rule.name == connection.rule.name and \
+           flipped_connection.remote_rule.rule.type == connection.rule.type and \
+           flipped_connection.remote_rule.rule.node == connection.rule.node:
+            if flipped_connection.remote_rule.gateway in remote_gateways:
+                matched_gateways.append(flipped_connection.remote_rule.gateway)
                 if len(matched_gateways) == len(remote_gateways):
                     return True
     return False
