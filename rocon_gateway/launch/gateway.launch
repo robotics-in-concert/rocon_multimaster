@@ -4,12 +4,16 @@
 <launch>
   <arg name="gateway_name" default="gateway"/>
   <arg name="gateway_watch_loop_period" default="5"/>
-  <arg name="gateway_hub_whitelist" default="[]"/> <!-- list of hub names/regex patterns -->
+  <arg name="gateway_hub_uri" default=""               doc="if you need a non-zeroconf direct connection, e.g. http://192.168.1.1:6380"/>
+  <arg name="gateway_hub_whitelist" default="[]"       doc="list of hub names, ips or regex patterns"/>
   <arg name="gateway_network_interface" default="$(optenv GATEWAY_NETWORK_INTERFACE)"/>  <!-- If you have multiple network interfaces and want to lock it on one (e.g. 'eth0') -->
   <arg name="gateway_disable_uuids" default="false"/> <!-- manage unique naming of multiple gateways yourself -->
   <arg name="gateway_firewall" default="true"/> <!-- Typically nothing comes in! -->
+  <arg name="gateway_disable_zeroconf" default="false" doc="do not find the hub with zeroconf, make sure you set gateway_hub_uri instead."/>
 
-  <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"/>
+  <group unless="$(arg gateway_disable_zeroconf)">
+    <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"/>
+  </group>
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
@@ -19,5 +23,7 @@
     <param name="network_interface" value="$(arg gateway_network_interface)"/>
     <param name="firewall" value="$(arg gateway_firewall)"/>
     <param name="disable_uuids" value="$(arg gateway_disable_uuids)"/>
+    <param name="hub_uri" value="$(arg gateway_hub_uri)"/>
+    <param name="disable_zeroconf" value="$(arg gateway_disable_zeroconf)"/>
   </node>
 </launch>
