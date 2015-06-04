@@ -54,9 +54,11 @@ class HubConnectionCheckerThread(threading.Thread):
         self.pinger.start()
         rate = rocon_python_comms.WallRate(self.ping_frequency)
         alive = True
+        timeout = 1 / self.ping_frequency
         while alive:
-            alive = hub_client.ping_hub(self.ip, self.port)
+            alive, message = hub_client.ping_hub(self.ip, self.port, timeout)
             rate.sleep()
+        rospy.logwarn("Gatew Hub pinger : %s"%message)
         self._hub_connection_lost_hook()
 
 ##############################################################################
