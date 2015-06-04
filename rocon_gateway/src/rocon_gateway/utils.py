@@ -179,7 +179,14 @@ def serialize(data):
 
 def deserialize(str_msg):
     # return convert(json.loads(str_msg))
-    return pickle.loads(str_msg)
+    try:
+        deserialized_data = pickle.loads(str_msg)
+    except ValueError as e:
+        rospy.logwarn("Gateway : Error while deserialization[%s]"%e)
+        import traceback
+        print(traceback.format_exc())
+        print("Data : %s"%str_msg)
+    return deserialized_data
 
 
 def serialize_connection(connection):
