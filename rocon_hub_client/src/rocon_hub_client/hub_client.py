@@ -42,7 +42,7 @@ class HubConnection(redis.Connection):
 ##############################################################################
 
 
-def ping_hub(ip, port, timeout):
+def ping_hub(ip, port, timeout = 5000):
     '''
       Pings the hub for identification. This is currently used
       by the hub discovery module.
