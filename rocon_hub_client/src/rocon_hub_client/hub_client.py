@@ -89,7 +89,7 @@ class Hub(object):
         # but that will need modification of the way we handle the RedisListenerThread in
         # gateway_hub.py
         try:
-            unused_ping = redis.Redis(host=ip, socket_timeout=0.5, port=port).ping()
+            unused_ping = redis.Redis(host=ip, socket_timeout=5.0, port=port).ping()
             # should check ping result? Typically it just throws the timeout error
         except redis.exceptions.ConnectionError:
             self._redis_server = None
