@@ -81,57 +81,14 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           @rtype pair of connection type keyed dictionary of gateway_msgs.msg.Rule lists.
         '''
         # SLOW, EASY METHOD
-
-        flipped = utils.create_empty_connection_type_dictionary()
-        new_flips = utils.create_empty_connection_type_dictionary()
-        removed_flips = utils.create_empty_connection_type_dictionary()
         remote_gateways = remote_gateway_hub_index.keys()
-        diff = lambda l1, l2: [x for x in l1 if x not in l2]  # diff of lists
+
         self._lock.acquire()
-        # Prune locally cached flip list for flips that have lost their remotes, keep the rules though
-        for connection_type in utils.connection_types:
-            # flip.gateway is a hash name, so is the remote_gateways list
-            self.flipped[connection_type] = [
-                flip for flip in self.flipped[connection_type] if flip.gateway in remote_gateways]
-        # Totally regenerate a new flipped interface, compare with old
-        for connection_type in connections:
-            for connection in connections[connection_type]:
-                flipped[connection_type].extend(
-                    self._generate_flips(
-                        connection.rule.type,
-                        connection.rule.name,
-                        connection.rule.node,
-                        remote_gateways,
-                        unique_name))
-            new_flips[connection_type] = diff(flipped[connection_type], self.flipped[connection_type])
-            removed_flips[connection_type] = diff(self.flipped[connection_type], flipped[connection_type])
 
-        filtered_flips = self._filter_flipped_in_interfaces(new_flips, self.registrations)
-
-        # set flip status to unknown first, and then read previous status if available
-        flip_status = utils.create_empty_connection_type_dictionary()
-        for connection_type in utils.connection_types:
-            flip_status[connection_type] = [RemoteRuleWithStatus.UNKNOWN] * len(flipped[connection_type])
-
-        for connection_type in utils.connection_types:
-            for new_index, flip in enumerate(flipped[connection_type]):
-                try:
-                    index = self.flipped[connection_type].index(flip)
-                    flip_status[connection_type][new_index] = \
-                        self.flip_status[connection_type][index]
-                except:
-                    # The new flip probably did not exist. Let it remain unknown
-                    pass
-
-        self.flip_status = copy.deepcopy(flip_status)
-
-        self.flipped = {}
-        for connection_type in flipped.keys():
-            self.flipped[connection_type] = [copy.deepcopy(r) for r in flipped[connection_type] if not r in filtered_flips[connection_type]]
-        for connection_type in new_flips.keys():
-            new_flips[connection_type] = [r for r in new_flips[connection_type] if not r in filtered_flips[connection_type]]
-
-        rospy.logdebug("Gateway : filtered flip list to prevent cyclic flipping - %s"%str(filtered_flips))
+        self._prune_current_flips(remote_gateways) # Prune locally cached flip list for flips that have lost their remotes, keep the rules though
+        flipped, new_flips, removed_flips = self._prepare_flips(connections, remote_gateways, unique_name)  # Totally regenerate a new flipped interface, compare with old
+        flip_status = self._prepare_flip_status(flipped)
+        new_flips = self._filter_flipped_in_interfaces(flipped, new_flips, self.registrations)
 
         self._lock.release()
         return new_flips, removed_flips
@@ -152,9 +109,9 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         #   4 - If rules appeared [diff(new_conns,old_conns)]
         #         check for matches, if found, flou
         #
-        # diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
+        # utils.difflist = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
 
-    def _filter_flipped_in_interfaces(self, new_flips, flipped_in_registrations):
+    def _filter_flipped_in_interfaces(self, flipped, new_flips, flipped_in_registrations):
         '''
           Gateway should not flip out the flipped-in interface.
         '''
@@ -164,7 +121,16 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                 r = self._is_registration_in_remote_rule(rule, new_flips[connection_type])
                 if r:
                     filtered_flips[connection_type].append(r)
-        return filtered_flips 
+
+        self.flipped = {}
+        for connection_type in flipped.keys():
+            self.flipped[connection_type] = [copy.deepcopy(r) for r in flipped[connection_type] if not r in filtered_flips[connection_type]]
+        for connection_type in new_flips.keys():
+            new_flips[connection_type] = [r for r in new_flips[connection_type] if not r in filtered_flips[connection_type]]
+
+        rospy.logdebug("Gateway : filtered flip list to prevent cyclic flipping - %s"%str(filtered_flips))
+
+        return new_flips
 
     def _is_registration_in_remote_rule(self, rule, new_flip_remote_rules):
         for r in new_flip_remote_rules:
@@ -268,10 +234,49 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
         return matched_flip_rules
 
+    def _prune_current_flips(self, remote_gateways):
+        for connection_type in utils.connection_types:
+            # flip.gateway is a hash name, so is the remote_gateways list
+            self.flipped[connection_type] = [flip for flip in self.flipped[connection_type] if flip.gateway in remote_gateways]
+
+    def _prepare_flips(self, connections, remote_gateways, unique_name):
+        # Variable preparations
+        flipped         = utils.create_empty_connection_type_dictionary()
+        new_flips       = utils.create_empty_connection_type_dictionary()
+        removed_flips   = utils.create_empty_connection_type_dictionary()
+
+        for connection_type in connections:
+            for connection in connections[connection_type]:
+                flipped[connection_type].extend(self._generate_flips(connection.rule.type, connection.rule.name, connection.rule.node, remote_gateways, unique_name))
+
+            new_flips[connection_type] = utils.difflist(flipped[connection_type], self.flipped[connection_type])
+            removed_flips[connection_type] = utils.difflist(self.flipped[connection_type], flipped[connection_type])
+
+
+        return flipped, new_flips, removed_flips
+
+    def _prepare_flip_status(self, flipped):
+        flip_status     = utils.create_empty_connection_type_dictionary()
+
+        # set flip status to unknown first, and then read previous status if available
+        for connection_type in utils.connection_types:
+            flip_status[connection_type] = [RemoteRuleWithStatus.UNKNOWN] * len(flipped[connection_type])
+
+        for connection_type in utils.connection_types:
+            for new_index, flip in enumerate(flipped[connection_type]):
+                try:
+                    index = self.flipped[connection_type].index(flip)
+                    flip_status[connection_type][new_index] = self.flip_status[connection_type][index]
+                except:
+                    # The new flip probably did not exist. Let it remain unknown
+                    pass
+        self.flip_status = copy.deepcopy(flip_status)
+
+        return flip_status
+
     ##########################################################################
     # Accessors for Gateway Info
     ##########################################################################
-
     def get_flipped_connections(self):
         '''
           Gets the flipped connections list for GatewayInfo consumption.
@@ -282,9 +287,9 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
         flipped_connections = []
         for connection_type in utils.connection_types:
             for i, connection in enumerate(self.flipped[connection_type]):
-                flipped_connections.append(RemoteRuleWithStatus(connection,
-                                                                self.flip_status[connection_type][i]))
+                flipped_connections.append(RemoteRuleWithStatus(connection, self.flip_status[connection_type][i]))
         return flipped_connections
+
 
 if __name__ == "__main__":
 

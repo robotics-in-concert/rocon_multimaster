@@ -89,10 +89,9 @@ class ConnectionCache(object):
         connections[ACTION_CLIENT] = self._get_connections_from_action_list(action_clients, ACTION_CLIENT)
 
         # Will probably need to check not just in, but only name, node equal
-        diff = lambda l1, l2: [x for x in l1 if x not in l2]
         for connection_type in utils.connection_types:
-            new_connections[connection_type] = diff(connections[connection_type], self._connections[connection_type])
-            lost_connections[connection_type] = diff(self._connections[connection_type], connections[connection_type])
+            new_connections[connection_type] = utils.difflist(connections[connection_type], self._connections[connection_type])
+            lost_connections[connection_type] = utils.difflist(self._connections[connection_type], connections[connection_type])
         self._connections = connections
         return new_connections, lost_connections
 
@@ -246,16 +245,15 @@ class ConnectionCache(object):
 
 
         # generate diffs
-#        diff = lambda l1, l2: [x for x in l1 if x not in l2]
 #        new = {}
 #        lost = {}
-#        new[PUBLISHER] = diff(publishers, self._system_state[PUBLISHER])
-#        lost[PUBLISHER] = diff(self._system_state[PUBLISHER], publishers)
+#        new[PUBLISHER] = utils.difflist(publishers, self._system_state[PUBLISHER])
+#        lost[PUBLISHER] = utils.difflist(self._system_state[PUBLISHER], publishers)
 #        self._is_topic_node_in_list(base_topic + '/goal', node, pubs)
-#        new[SUBSCRIBER] = diff(subscribers, self._system_state[SUBSCRIBER])
-#        lost[SUBSCRIBER] = diff(self._system_state[SUBSCRIBER], subscribers)
-#        new[SERVICE] = diff(services, self._system_state[SERVICE])
-#        lost[SERVICE] = diff(self._system_state[SERVICE], services)
+#        new[SUBSCRIBER] = utils.difflist(subscribers, self._system_state[SUBSCRIBER])
+#        lost[SUBSCRIBER] = utils.difflist(self._system_state[SUBSCRIBER], subscribers)
+#        new[SERVICE] = utils.difflist(services, self._system_state[SERVICE])
+#        lost[SERVICE] = utils.difflist(self._system_state[SERVICE], services)
 # cache new system state
 #        self._system_state[PUBLISHER] = copy.deepcopy(publishers)
 #        self._system_state[SUBSCRIBER] = copy.deepcopy(subscribers)
