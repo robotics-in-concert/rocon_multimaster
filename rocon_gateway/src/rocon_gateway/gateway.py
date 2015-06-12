@@ -163,7 +163,7 @@ class Gateway(object):
                 else:
                     for connection in connections:
                         rospy.loginfo("Gateway : sending flip request [%s]%s" %
-                                      (flip.gateway, utils.format_rule(connection.rule)))
+                                      (flip.gateway, utils.format_rule(flip.rule)))
                         hub = remote_gateway_hub_index[flip.gateway][0]
                         hub.send_flip_request(flip.gateway, connection)
                         hub.post_flip_details(
