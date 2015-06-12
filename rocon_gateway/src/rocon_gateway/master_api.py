@@ -590,7 +590,9 @@ class LocalMaster(rosgraph.Master):
         # getting the topic name, to checking for hte xmlrpc_uri and especially topic_type here in which
         # the topic could have disappeared. When this happens, it returns None.
         connections = []
-        xmlrpc_uri = self.lookupNode(node)
+        xmlrpc_uri = node.split(":")[1]
+        node = node.split(":")[0]
+
         if xmlrpc_uri is None:
             return connections
         if connection_type == PUBLISHER or connection_type == SUBSCRIBER:
