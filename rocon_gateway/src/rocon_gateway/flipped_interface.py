@@ -141,7 +141,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
     def _is_registration_in_remote_rule(self, rule, new_flip_remote_rules):
         for r in new_flip_remote_rules:
-            node = r.rule.node.split(":")[0]
+            node = r.rule.node.split(",")[0]
             if rule.local_node == node and rule.remote_gateway == r.gateway and rule.connection.rule.name == r.rule.name:
                 return r
         return None
@@ -234,7 +234,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                     matched_flip = copy.deepcopy(flip_rule)
                     matched_flip.gateway = gateway  # just in case we used a regex or matched basename
                     matched_flip.rule.name = name  # just in case we used a regex
-                    matched_flip.rule.node = "%s:%s"%(node, master.lookupNode(node)) # just in case we used a regex
+                    matched_flip.rule.node = "%s,%s"%(node, master.lookupNode(node)) # just in case we used a regex
                     matched_flip_rules.append(matched_flip)
         return matched_flip_rules
 
@@ -258,9 +258,6 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
             new_flips[connection_type] = utils.difflist(flipped[connection_type], self.flipped[connection_type])
             removed_flips[connection_type] = utils.difflist(self.flipped[connection_type], flipped[connection_type])
-
-        print(str(flipped))
-
         return new_flips, removed_flips, flipped
 
     def _prepare_flip_status(self, flipped):
