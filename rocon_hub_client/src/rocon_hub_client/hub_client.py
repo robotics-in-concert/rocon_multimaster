@@ -42,7 +42,7 @@ class HubConnection(redis.Connection):
 ##############################################################################
 
 
-def ping_hub(ip, port, timeout = 5000):
+def ping_hub(ip, port, timeout = 5.0):
     '''
       Pings the hub for identification. This is currently used
       by the hub discovery module.
@@ -95,7 +95,7 @@ class Hub(object):
             self._redis_server = None
             raise HubNotFoundError("couldn't connect to the redis server")
         try:
-            self.pool = redis.ConnectionPool(host=ip, port=port, db=0)
+            self.pool = redis.ConnectionPool(host=ip, port=port, db=0, socket_timeout=5.0)
             self._redis_server = redis.Redis(connection_pool=self.pool)
             self._redis_pubsub_server = self._redis_server.pubsub()
             hub_key_name = self._redis_server.get("rocon:hub:name")
