@@ -9,7 +9,6 @@
 
 from urlparse import urlparse
 
-import time
 import rospy
 import rocon_python_redis as redis
 import rocon_gateway_utils
@@ -108,7 +107,7 @@ class Hub(object):
             while self._redis_server and not hub_key_name and retries < 5:
                 rospy.logwarn("couldn't resolve hub name on the redis server [%s:%s]. Retrying..." % (ip, port))
                 retries += 1
-                time.sleep(1)
+                rospy.rostime.wallsleep(1.0)
                 hub_key_name = self._redis_server.get("rocon:hub:name")
 
             if not hub_key_name:
