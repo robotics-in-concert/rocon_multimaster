@@ -9,6 +9,7 @@
 
 from urlparse import urlparse
 
+import time
 import rospy
 import rocon_python_redis as redis
 import rocon_gateway_utils
@@ -101,6 +102,15 @@ class Hub(object):
             hub_key_name = self._redis_server.get("rocon:hub:name")
             # Be careful, hub_name is None, it means the redis server is
             # found but hub_name not yet set or not set at all.
+
+            # retrying for 5 seconds in case we started too fast
+            retries = 0
+            while self._redis_server and not hub_key_name and retries < 5:
+                rospy.logwarn("couldn't resolve hub name on the redis server [%s:%s]. Retrying..." % (ip, port))
+                retries += 1
+                time.sleep(1)
+                hub_key_name = self._redis_server.get("rocon:hub:name")
+
             if not hub_key_name:
                 self._redis_server = None
                 raise HubNameNotFoundError("couldn't resolve hub name on the redis server [%s:%s]" % (ip, port))
