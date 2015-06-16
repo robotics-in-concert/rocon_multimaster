@@ -11,6 +11,7 @@ import copy
 import re
 
 import rospy
+import rosgraph
 import rocon_gateway_utils
 from gateway_msgs.msg import RemoteRuleWithStatus
 
