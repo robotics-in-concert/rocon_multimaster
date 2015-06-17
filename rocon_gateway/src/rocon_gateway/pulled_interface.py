@@ -64,7 +64,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         pulled = utils.create_empty_connection_type_dictionary()
         new_pulls = utils.create_empty_connection_type_dictionary()
         removed_pulls = utils.create_empty_connection_type_dictionary()
-        diff = lambda l1, l2: [x for x in l1 if x not in l2]  # diff of lists
+
         self._lock.acquire()
         # Totally regenerate a new pulled interface, compare with old
         for remote_gateway in remote_connections.keys():
@@ -79,8 +79,8 @@ class PulledInterface(interactive_interface.InteractiveInterface):
                             remote_gateway,
                             unique_name))
         for connection_type in utils.connection_types:
-            new_pulls[connection_type] = diff(pulled[connection_type], self.pulled[connection_type])
-            removed_pulls[connection_type] = diff(self.pulled[connection_type], pulled[connection_type])
+            new_pulls[connection_type] = utils.difflist(pulled[connection_type], self.pulled[connection_type])
+            removed_pulls[connection_type] = utils.difflist(self.pulled[connection_type], pulled[connection_type])
         self.pulled = copy.deepcopy(pulled)
         self._lock.release()
         return new_pulls, removed_pulls
@@ -101,7 +101,7 @@ class PulledInterface(interactive_interface.InteractiveInterface):
         #   4 - If rules appeared [diff(new_conns,old_conns)]
         #         check for matches, if found, flou
         #
-        # diff = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
+        # difflist = lambda l1,l2: [x for x in l1 if x not in l2] # diff of lists
 
     ##########################################################################
     # Utility Methods

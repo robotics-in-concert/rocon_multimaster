@@ -324,3 +324,5 @@ def create_empty_connection_type_dictionary():
     for connection_type in connection_types:
         dic[connection_type] = []
     return dic
+
+difflist = lambda l1, l2: [x for x in l1 if x not in l2]  # diff of lists

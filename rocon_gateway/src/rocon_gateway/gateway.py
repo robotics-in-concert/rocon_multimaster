@@ -143,7 +143,7 @@ class Gateway(object):
                         break
 
         new_flips, lost_flips = self.flipped_interface.update(
-            local_connection_index, remote_gateway_hub_index, self._unique_name)
+            local_connection_index, remote_gateway_hub_index, self._unique_name, self.master)
         for connection_type in utils.connection_types:
             for flip in new_flips[connection_type]:
                 firewall_flag = self.hub_manager.get_remote_gateway_firewall_flag(flip.gateway)
@@ -163,16 +163,18 @@ class Gateway(object):
                 else:
                     for connection in connections:
                         rospy.loginfo("Gateway : sending flip request [%s]%s" %
-                                      (flip.gateway, utils.format_rule(connection.rule)))
+                                      (flip.gateway, utils.format_rule(flip.rule)))
                         hub = remote_gateway_hub_index[flip.gateway][0]
                         hub.send_flip_request(flip.gateway, connection)
                         hub.post_flip_details(
-                            flip.gateway, connection.rule.name, connection.rule.type, connection.rule.node)
+                            flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
             for flip in lost_flips[connection_type]:
                 state_changed = True
                 rospy.loginfo("Gateway : sending unflip request [%s]%s" % (flip.gateway, utils.format_rule(flip.rule)))
                 for hub in remote_gateway_hub_index[flip.gateway]:
-                    if hub.send_unflip_request(flip.gateway, flip.rule):
+                    rule = copy.deepcopy(flip.rule)
+                    rule.node = rule.node.split(",")[0] # strip out xmlrpc uri to send unflip request
+                    if hub.send_unflip_request(flip.gateway, rule):
                         # This hub was used to send the original flip request
                         hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
                         break
@@ -181,6 +183,8 @@ class Gateway(object):
         flipped_connections = self.flipped_interface.get_flipped_connections()
         for flip in flipped_connections:
             for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
+                rule = copy.deepcopy(flip.remote_rule)
+                rule.rule.node = rule.rule.node.split(",")[0]
                 status = hub.get_flip_request_status(flip.remote_rule)
                 if status is not None:
                     flip_state_changed = self.flipped_interface.update_flip_status(flip.remote_rule, status)
@@ -319,7 +323,6 @@ class Gateway(object):
             for hub_uri, hub in hubs.iteritems():
                 if hub_uri in update_flip_status:
                     hub.update_multiple_flip_request_status(update_flip_status[hub_uri])
-
             return
 
         state_changed = False
