@@ -15,7 +15,7 @@ import rocon_gateway_utils
 
 from . import hub_api
 from .exceptions import HubNameNotFoundError, HubNotFoundError, \
-                        HubConnectionBlacklistedError, HubConnectionNotWhitelistedError
+    HubConnectionBlacklistedError, HubConnectionNotWhitelistedError
 
 
 ##############################################################################
@@ -33,8 +33,8 @@ class HubConnection(redis.Connection):
                  socket_timeout=1.0, encoding='utf-8',
                  encoding_errors='strict', decode_responses=False):
         super(HubConnection, self).__init__(host, port, db, password,
-                 socket_timeout, encoding,
-                 encoding_errors, decode_responses)
+                                            socket_timeout, encoding,
+                                            encoding_errors, decode_responses)
 
 
 ##############################################################################
@@ -42,7 +42,7 @@ class HubConnection(redis.Connection):
 ##############################################################################
 
 
-def ping_hub(ip, port, timeout = 5.0):
+def ping_hub(ip, port, timeout=5.0):
     '''
       Pings the hub for identification. This is currently used
       by the hub discovery module.
@@ -58,7 +58,7 @@ def ping_hub(ip, port, timeout = 5.0):
         return False, str(e)
     if name is None:  # returns None if the server was there, but the key was not found.
         return False, "Redis Server is there but name key is not found"
-    return True, ""
+    return (True, "")
 
 ##############################################################################
 # Hub
