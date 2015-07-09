@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Forthcoming
------------
+0.7.10 (2015-07-09)
+-------------------
 * [rocon_hub_client] bugfix boolean check of paired ping_hub return value.
   This fixes `#312 <https://github.com/robotics-in-concert/rocon_multimaster/issues/312>`_.
 * Contributors: Daniel Stonier
