@@ -1,6 +1,22 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+* add rosgraph dependency
+* import rosgraph to handle MasterError
+* skipps if node is not availalble
+* update
+* xmlrpc uri is also recorded now
+* add xmlrpc in node
+* refactoring
+* refactoring flipp updates
+* refactoring ros service callback functions closes `#307 <https://github.com/robotics-in-concert/rocon_multimaster/issues/307>`_
+* add more prints to investigate insecure pickle closes `#302 <https://github.com/robotics-in-concert/rocon_multimaster/issues/302>`_
+* increase hubconnection socket timeout to resolve frequent hub disengagement closes `#301 <https://github.com/robotics-in-concert/rocon_multimaster/issues/301>`_
+* [rocon_gateway] some new convenience args.
+* Contributors: Daniel Stonier, Jihoon Lee, dwlee
+
 0.7.8 (2015-04-27)
 ------------------
 * fix the wrong message format parsing. closes `#297 <https://github.com/robotics-in-concert/rocon_multimaster/issues/297>`_
