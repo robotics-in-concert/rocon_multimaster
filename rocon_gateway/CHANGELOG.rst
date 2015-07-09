@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Forthcoming
------------
+0.7.9 (2015-07-09)
+------------------
 * add rosgraph dependency
 * import rosgraph to handle MasterError
 * skipps if node is not availalble

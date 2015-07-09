@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Forthcoming
------------
+0.7.9 (2015-07-09)
+------------------
 * uses rospy wall time sleep instead of python sleep `#308 <https://github.com/robotics-in-concert/rocon_multimaster/issues/308>`_
 * adding a 5s retry in case we couldnt read the rocon:hub:name from redis yet.
 * update timeouts `#302 <https://github.com/robotics-in-concert/rocon_multimaster/issues/302>`_
