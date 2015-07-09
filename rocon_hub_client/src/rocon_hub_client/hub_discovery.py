@@ -81,13 +81,13 @@ class HubDiscovery(threading.Thread):
         self._last_loop_timestamp = time.time()  # rospy.Time.now()
         # error codes which inform the client is should stop scanning for this hub
         reasons_not_to_keep_scanning = [
-                ErrorCodes.SUCCESS,
-                ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS,
-                ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST,
-                # this now has to be permitted as we will often have zeroconf failing for gateways
-                # that have dropped out of wireless range.
-                #ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
-                ]
+            ErrorCodes.SUCCESS,
+            ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS,
+            ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST,
+            # this now has to be permitted as we will often have zeroconf failing for gateways
+            # that have dropped out of wireless range.
+            # ErrorCodes.HUB_CONNECTION_UNRESOLVABLE
+        ]
         unresolvable_hub = []
         while not rospy.is_shutdown() and not self._trigger_shutdown:
             self._discovered_hubs_modification_mutex.acquire()
@@ -100,15 +100,15 @@ class HubDiscovery(threading.Thread):
                     if service_uri not in self._blacklisted_hubs.keys():
                         result, reason = self.discovery_update_hook(ip, port)
                         if result == ErrorCodes.HUB_CONNECTION_UNRESOLVABLE:
-                            if not service_uri in unresolvable_hub:
+                            if service_uri not in unresolvable_hub:
                                 rospy.loginfo("Gateway : unresolvable hub [%s]" % reason)
                                 unresolvable_hub.append(service_uri)
                         elif result == ErrorCodes.SUCCESS:
                             # we're good
                             rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
                             if service_uri in unresolvable_hub:
-                               unresolvable_hub.remove(service_uri)
-                        else: # any of the other reasons not to keep scanning
+                                unresolvable_hub.remove(service_uri)
+                        else:  # any of the other reasons not to keep scanning
                             rospy.loginfo("Gateway : blacklisting hub [%s]" % reason)
                             self._zeroconf_discovered_hubs.append(service)
             # Direct scanning
@@ -172,15 +172,15 @@ class HubDiscovery(threading.Thread):
                 rospy.logerr("Gateway : Unable to parse direct hub uri [%s]" % uri)
                 remove_uris.append(uri)
                 continue
-            if hub_client.ping_hub(hostname, port):
+            (ping_result, unused_ping_error_message) = hub_client.ping_hub(hostname, port)
+            if ping_result:
                 discovered_hubs.append(uri)
         difference = lambda l1, l2: [x for x in l1 if x not in l2]
-        self._direct_hub_uri_list[:] = difference(self._direct_hub_uri_list,
-                                        remove_uris)
+        self._direct_hub_uri_list[:] = difference(self._direct_hub_uri_list, remove_uris)
         new_hubs = difference(discovered_hubs, self._direct_discovered_hubs)
         lost_hubs = difference(self._direct_discovered_hubs, discovered_hubs)
-        #self._direct_discovered_hubs = discovered_hubs
-        #self._direct_discovered_hubs.extend(discovered_hubs)
+        # self._direct_discovered_hubs = discovered_hubs
+        # self._direct_discovered_hubs.extend(discovered_hubs)
         return new_hubs, lost_hubs
 
     def _zeroconf_scan(self):
@@ -189,7 +189,7 @@ class HubDiscovery(threading.Thread):
           action when a discovered service disappears yet though. Probably
           should take of that at some time.
         '''
-        #rospy.loginfo("Gateway : checking for autodiscovered gateway hubs")
+        # rospy.loginfo("Gateway : checking for autodiscovered gateway hubs")
         try:
             response = self._list_discovered_services(self._discovery_request)
         except (rospy.service.ServiceException, rospy.exceptions.ROSInterruptException):
