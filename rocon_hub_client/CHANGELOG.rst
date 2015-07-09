@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.7.9 (2015-07-09)
+------------------
+* uses rospy wall time sleep instead of python sleep `#308 <https://github.com/robotics-in-concert/rocon_multimaster/issues/308>`_
+* adding a 5s retry in case we couldnt read the rocon:hub:name from redis yet.
+* update timeouts `#302 <https://github.com/robotics-in-concert/rocon_multimaster/issues/302>`_
+* increate socket timeout to ping frequency
+* setting default timeout in ping hub
+* increase hubconnection socket timeout to resolve frequent hub disengagement closes `#301 <https://github.com/robotics-in-concert/rocon_multimaster/issues/301>`_
+* Contributors: AlexV, Jihoon Lee, dwlee
+
 0.7.8 (2015-04-27)
 ------------------
 
