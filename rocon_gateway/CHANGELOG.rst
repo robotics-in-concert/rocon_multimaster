@@ -1,6 +1,9 @@
 Changelog
 =========
 
+Forthcoming
+-----------
+
 0.7.9 (2015-07-09)
 ------------------
 * add rosgraph dependency
