@@ -49,8 +49,10 @@ class HubConnectionCheckerThread(threading.Thread):
         return self.pinger.get_latency()
 
     def run(self):
-        # This runs in the background to gather the latest connection statistics
-        # Note - it's not used in the keep alive check
+        '''
+        This runs in the background to gather the latest connection statistics
+        Note - it's not used in the keep alive check
+        '''
         self.pinger.start()
         rate = rocon_python_comms.WallRate(self.ping_frequency)
         alive = True
@@ -58,7 +60,7 @@ class HubConnectionCheckerThread(threading.Thread):
         while alive:
             alive, message = hub_client.ping_hub(self.ip, self.port, timeout)
             rate.sleep()
-        rospy.logwarn("Gatew Hub pinger : %s"%message)
+        rospy.logwarn("Gateway Hub : pinger update [%s]" % message)
         self._hub_connection_lost_hook()
 
 ##############################################################################
