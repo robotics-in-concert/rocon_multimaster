@@ -109,7 +109,7 @@ class HubDiscovery(threading.Thread):
                             if service_uri in unresolvable_hub:
                                 unresolvable_hub.remove(service_uri)
                         else:  # any of the other reasons not to keep scanning
-                            rospy.loginfo("Gateway : blacklisting hub [%s]" % reason)
+                            rospy.loginfo("Gateway : removing hub from the list to be resolved via zeroconf [%s]" % reason)
                             self._zeroconf_discovered_hubs.append(service)
             # Direct scanning
             new_hubs, unused_lost_hubs = self._direct_scan()
