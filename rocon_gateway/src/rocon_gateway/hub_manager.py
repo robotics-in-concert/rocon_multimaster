@@ -214,16 +214,20 @@ class HubManager(object):
         self._hub_lock.release()
         if not already_exists_error:
             self._hub_lock.acquire()
-            new_hub.register_gateway(firewall_flag,
-                                     gateway_unique_name,
-                                     gateway_disengage_hub,  # hub connection lost hook
-                                     gateway_ip,
-                                     )
-            for connection_type in utils.connection_types:
-                for advertisement in existing_advertisements[connection_type]:
-                    new_hub.advertise(advertisement)
-            self.hubs.append(new_hub)
-            self._hub_lock.release()
+            try:
+                new_hub.register_gateway(firewall_flag,
+                                         gateway_unique_name,
+                                         gateway_disengage_hub,  # hub connection lost hook
+                                         gateway_ip,
+                                         )
+                for connection_type in utils.connection_types:
+                    for advertisement in existing_advertisements[connection_type]:
+                        new_hub.advertise(advertisement)
+                self.hubs.append(new_hub)
+            except rocon_hub_client.HubError as e:
+                return None, e.id, str(e) 
+            finally:
+                self._hub_lock.release()
             return new_hub, gateway_msgs.ErrorCodes.SUCCESS, "success"
         else:
             return None, gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS, "already connected to this hub"

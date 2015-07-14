@@ -21,7 +21,7 @@ import rocon_python_redis as redis
 import time
 from rocon_hub_client import hub_api, hub_client
 from rocon_hub_client.exceptions import HubConnectionLostError, \
-    HubNameNotFoundError, HubNotFoundError
+    HubNameNotFoundError, HubNotFoundError, HubConnectionFailedError
 
 from .exceptions import GatewayUnavailableError
 
@@ -110,41 +110,64 @@ class GatewayHub(rocon_hub_client.Hub):
         if not self._redis_server:
             raise HubConnectionLostError()
         self._unique_gateway_name = unique_gateway_name
+        self.private_key, public_key = utils.generate_private_public_key()
+
+        serialized_public_key = utils.serialize_key(public_key)
+        ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
+
+        self._redis_keys['ip'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'ip')
         self._redis_keys['gateway'] = hub_api.create_rocon_key(unique_gateway_name)
         self._redis_keys['firewall'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'firewall')
+        self._redis_keys['public_key'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'public_key')
+
         self._firewall = 1 if firewall else 0
         self._hub_connection_lost_gateway_hook = hub_connection_lost_gateway_hook
-        if not self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):
-            # should never get here - unique should be unique
-            pass
-        self.mark_named_gateway_available(self._redis_keys['gateway'])
-        self._redis_server.set(self._redis_keys['firewall'], self._firewall)
-        # I think we just used this for debugging, but we might want to hide it in
-        # future (it's the ros master hostname/ip)
-        self._redis_keys['ip'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'ip')
-        self._redis_server.set(self._redis_keys['ip'], gateway_ip)
 
-        self.private_key, public_key = utils.generate_private_public_key()
-        self._redis_keys['public_key'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'public_key')
-        old_key = self._redis_server.get(self._redis_keys['public_key'])
-        serialized_public_key = utils.serialize_key(public_key)
-        self._redis_server.set(self._redis_keys['public_key'], serialized_public_key)
-        if serialized_public_key != old_key:
+        pipe = self._redis_server.pipeline()
+        sequence_key = 1
+
+        try:
+            pipe.watch(sequence_key)
+
+            pipe.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
+            pipe.set(self._redis_keys['firewall'], self._firewall)
+
+            # I think we just used this for debugging, but we might want to hide it in
+            # future (it's the ros master hostname/ip)
+            pipe.set(self._redis_keys['ip'], gateway_ip)
+
+            pipe.get(self._redis_keys['public_key'])
+            pipe.set(self._redis_keys['public_key'], serialized_public_key)
+            pipe.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
+
+            # Let hub know we are alive
+            pipe.set(ping_key, True)
+            pipe.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
+            
+            x = pipe.execute()
+            print(str(x))
+            [r_check_gateway, r_firewall, r_ip, r_oldkey, r_newkey, r_add_gateway, r_ping, r_expire] = x
+            
+        except redis.WatchError as e:
+            raise HubConnectionFailedError("Connection Failed while registering hub[%s]" %str(e))
+
+
+        #if not self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):
+        # should never get here - unique should be unique
+        # pass
+
+        self.mark_named_gateway_available(self._redis_keys['gateway'])
+
+        if serialized_public_key != r_oldkey:
             rospy.loginfo('Gateway : Found existing mismatched public key on the hub. ' +
                           'Requesting resend for all flip-ins.')
             self._resend_all_flip_ins()
 
         # Mark this gateway as now available
-        self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
         self.hub_connection_checker_thread = HubConnectionCheckerThread(
             self.ip, self.port, self._hub_connection_lost_hook)
         self.hub_connection_checker_thread.start()
         self.connection_lost_lock = threading.Lock()
-
-        # Let hub know we are alive
-        ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
-        self._redis_server.set(ping_key, True)
-        self._redis_server.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
 
     def _hub_connection_lost_hook(self):
         '''
