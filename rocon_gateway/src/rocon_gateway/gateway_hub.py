@@ -127,8 +127,6 @@ class GatewayHub(rocon_hub_client.Hub):
         sequence_key = 1
 
         try:
-            pipe.watch(sequence_key)
-
             pipe.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
             pipe.set(self._redis_keys['firewall'], self._firewall)
 
@@ -150,7 +148,8 @@ class GatewayHub(rocon_hub_client.Hub):
             
         except redis.WatchError as e:
             raise HubConnectionFailedError("Connection Failed while registering hub[%s]" %str(e))
-
+        finally:
+            pipe.reset()
 
         #if not self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):
         # should never get here - unique should be unique
