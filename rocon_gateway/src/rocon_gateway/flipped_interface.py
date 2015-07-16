@@ -9,6 +9,7 @@
 
 import copy
 import re
+import socket
 
 import rospy
 import rosgraph
@@ -238,7 +239,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                         matched_flip.rule.name = name  # just in case we used a regex
                         matched_flip.rule.node = "%s,%s"%(node, master.lookupNode(node)) # just in case we used a regex
                         matched_flip_rules.append(matched_flip)
-                    except rosgraph.masterapi.MasterError as e:
+                    except rosgraph.masterapi.MasterError, socket.error as e:
                         # Node has been gone already. skips sliently
                         pass
         return matched_flip_rules
