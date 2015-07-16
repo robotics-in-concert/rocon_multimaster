@@ -239,9 +239,11 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                         matched_flip.rule.name = name  # just in case we used a regex
                         matched_flip.rule.node = "%s,%s"%(node, master.lookupNode(node)) # just in case we used a regex
                         matched_flip_rules.append(matched_flip)
-                    except rosgraph.masterapi.MasterError, socket.error as e:
+                    except rosgraph.masterapi.MasterError as e:
                         # Node has been gone already. skips sliently
                         pass
+                    except socket.error as e:
+                        rospy.logwarn("Gateway : socket erro while generate flips [%s]"%str(e))
         return matched_flip_rules
 
     def _prune_unavailable_gateway_flips(self, flipped, remote_gateways):
