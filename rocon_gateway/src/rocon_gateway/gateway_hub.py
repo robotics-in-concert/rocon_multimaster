@@ -145,7 +145,7 @@ class GatewayHub(rocon_hub_client.Hub):
             ret_pipe = pipe.execute()
             [r_check_gateway, r_firewall, r_ip, r_oldkey, r_newkey, r_add_gateway, r_ping, r_expire] = ret_pipe
             
-        except redis.WatchError as e:
+        except (redis.WatchError, redis.ConnectionError) as e:
             raise HubConnectionFailedError("Connection Failed while registering hub[%s]" %str(e))
         finally:
             pipe.reset()
