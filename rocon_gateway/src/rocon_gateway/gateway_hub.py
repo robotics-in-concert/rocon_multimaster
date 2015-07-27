@@ -288,10 +288,18 @@ class GatewayHub(rocon_hub_client.Hub):
                  been since the gateway was last seen (in seconds)
           @type float
         '''
-        available_key = gateway_key + ":available"
-        self._redis_server.set(available_key, available)
-        time_since_last_seen_key = gateway_key + ":time_since_last_seen"
-        self._redis_server.set(time_since_last_seen_key, int(time_since_last_seen))
+        pipe = self._redis_server.pipeline()
+        sequence_key = 99
+        try:
+            available_key = gateway_key + ":available"
+            pipe.set(available_key, available)
+            time_since_last_seen_key = gateway_key + ":time_since_last_seen"
+            pipe.set(time_since_last_seen_key, int(time_since_last_seen))
+            ret_pipe = pipe.execute()
+        except (redis.WatchError, redis.ConnectionError) as e:
+            raise HubConnectionFailedError("Connection Failed while registering hub[%s]" %str(e))
+        finally:
+            pipe.reset()
 
     ##########################################################################
     # Hub Data Retrieval
