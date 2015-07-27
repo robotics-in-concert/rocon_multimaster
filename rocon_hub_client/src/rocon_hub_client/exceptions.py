@@ -64,4 +64,9 @@ class HubConnectionAlreadyExistsError(HubError):
 class HubConnectionLostError(HubError):
     def __init__(self, msg):
         super(HubConnectionLostError, self).__init__(msg)
-        self.id = ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST
+        self.id = ErrorCodes.HUB_CONNECTION_LOST
+
+class HubConnectionFailedError(HubError):
+    def __init__(self, msg):
+        super(HubConnectionLostError, self).__init__(msg)
+        self.id = ErrorCodes.HUB_CONNECTION_FAILED
