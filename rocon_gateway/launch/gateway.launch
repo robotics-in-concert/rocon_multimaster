@@ -10,6 +10,7 @@
   <arg name="gateway_disable_uuids" default="false"/> <!-- manage unique naming of multiple gateways yourself -->
   <arg name="gateway_firewall" default="true"/> <!-- Typically nothing comes in! -->
   <arg name="gateway_disable_zeroconf" default="false" doc="do not find the hub with zeroconf, make sure you set gateway_hub_uri instead."/>
+  <arg name="gateway_custom_configuration" default="" doc="name of a user custom parameterisation (yaml)."/>
 
   <group unless="$(arg gateway_disable_zeroconf)">
     <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"/>
@@ -17,6 +18,7 @@
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
+    <rosparam command="load" file="$(arg gateway_custom_configuration)"/>
     <rosparam param="hub_whitelist" subst_value="True">$(arg gateway_hub_whitelist)</rosparam>
     <param name="name" value="$(arg gateway_name)"/>
     <param name="watch_loop_period" value="$(arg gateway_watch_loop_period)"/>
