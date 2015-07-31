@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.7.10 (2015-07-09)
+-------------------
+* [rocon_hub_client] bugfix boolean check of paired ping_hub return value.
+  This fixes `#312 <https://github.com/robotics-in-concert/rocon_multimaster/issues/312>`_.
+* Contributors: Daniel Stonier
+
 0.7.9 (2015-07-09)
 ------------------
 * uses rospy wall time sleep instead of python sleep `#308 <https://github.com/robotics-in-concert/rocon_multimaster/issues/308>`_
