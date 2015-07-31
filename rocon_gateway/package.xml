@@ -31,6 +31,7 @@
   <run_depend>rocon_python_utils</run_depend>
   <run_depend>rocon_python_wifi</run_depend>
   <run_depend>roslib</run_depend>
+  <run_depend>rosparam</run_depend>
   <run_depend>rostopic</run_depend>
   <run_depend>rosservice</run_depend>
   <run_depend>rosgraph</run_depend>
