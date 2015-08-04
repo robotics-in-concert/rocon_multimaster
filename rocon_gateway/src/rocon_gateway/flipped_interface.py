@@ -9,6 +9,7 @@
 
 import copy
 import re
+import socket
 
 import rospy
 import rosgraph
@@ -241,6 +242,8 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                     except rosgraph.masterapi.MasterError as e:
                         # Node has been gone already. skips sliently
                         pass
+                    except socket.error as e:
+                        rospy.logwarn("Gateway : socket erro while generate flips [%s]"%str(e))
         return matched_flip_rules
 
     def _prune_unavailable_gateway_flips(self, flipped, remote_gateways):

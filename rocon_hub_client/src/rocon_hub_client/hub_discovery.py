@@ -103,6 +103,8 @@ class HubDiscovery(threading.Thread):
                             if service_uri not in unresolvable_hub:
                                 rospy.loginfo("Gateway : unresolvable hub [%s]" % reason)
                                 unresolvable_hub.append(service_uri)
+                        elif result == ErrorCodes.HUB_CONNECTION_FAILED:
+                            rospy.logwarn("Gateway : hub connection failed. [%s][%s]" %(service_uri, reason))
                         elif result == ErrorCodes.SUCCESS:
                             # we're good
                             rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
