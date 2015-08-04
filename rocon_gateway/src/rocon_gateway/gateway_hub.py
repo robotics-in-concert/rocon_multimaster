@@ -208,6 +208,13 @@ class GatewayHub(rocon_hub_client.Hub):
           @type gateway_msgs.RemoteGateway
         '''
         try:
+            # Let hub know that we are alive - even for wired connections. Perhaps something can
+            # go wrong for them too, though no idea what. Anyway, writing one entry is low cost
+            # and it makes the logic easier on the hub side.
+            ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
+            self._redis_server.set(ping_key, True)
+            self._redis_server.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
+
             # this should probably be posted independently  of whether the hub is contactable or not
             # refer to https://github.com/robotics-in-concert/rocon_multimaster/pull/273/files#diff-22b726fec736c73a96fd98c957d9de1aL189
             if not statistics.network_info_available:
@@ -218,12 +225,7 @@ class GatewayHub(rocon_hub_client.Hub):
             self._redis_server.set(network_info_available, statistics.network_info_available)
             network_type = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'network:type')
             self._redis_server.set(network_type, statistics.network_type)
-            # Let hub know that we are alive - even for wired connections. Perhaps something can
-            # go wrong for them too, though no idea what. Anyway, writing one entry is low cost
-            # and it makes the logic easier on the hub side.
-            ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
-            self._redis_server.set(ping_key, True)
-            self._redis_server.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
+
             # Update latency statistics
             latency = self.hub_connection_checker_thread.get_latency()
             self.update_named_gateway_latency_stats(self._unique_gateway_name, latency)
