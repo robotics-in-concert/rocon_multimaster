@@ -9,6 +9,7 @@
 ###############################################################################
 
 import netifaces
+import os
 import rocon_python_wifi.iwlibs as pythonwifi
 import rospy
 
@@ -28,10 +29,16 @@ class NetworkInterfaceManager(object):
 
     def __init__(self, interface_name=None):
         '''
-          Initializes the interface manager. If the interface_name is None or an
-          empty string, then the interface manager attempts to auto detect the
-          interface being used.
+          We have three means of getting the network interface that sits between
+          gateway and a hub - by input arg, by environment variable, or if these
+          are not specified, it tries to autodetect (but this only currently works
+          if there is just one interface).
         '''
+        if interface_name is None or not interface_name:
+            print("interface is none")
+            # try and get from environment variable (this returns None if not found)
+            interface_name = os.environ.get('GATEWAY_NETWORK_INTERFACE')
+
         self.interface_name, self.interface_type = \
             self.detect_network_interface(interface_name)
 
