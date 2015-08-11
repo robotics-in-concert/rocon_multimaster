@@ -26,14 +26,18 @@ def setup_ros_parameters():
     param = {}
 
     # Check if there is a user provided custom configuration
-    custom_configuration_file = rospy.get_param('~custom_rules_file')
-    if custom_configuration_file:
-        if os.path.isfile(custom_configuration_file):
-            loaded_parameters = rosparam.load_file(custom_configuration_file, default_namespace=rospy.resolve_name(rospy.get_name()))  # this sets the private namespace
-            for params, ns in loaded_parameters:
-                rosparam.upload_params(ns, params)
-        else:
-            rospy.logwarn("Gateway : user provided configuration file could not be found [%s]" % custom_configuration_file)
+    try:
+        custom_configuration_file = rospy.get_param('~custom_rules_file')
+        if custom_configuration_file:
+            if os.path.isfile(custom_configuration_file):
+                loaded_parameters = rosparam.load_file(custom_configuration_file, default_namespace=rospy.resolve_name(rospy.get_name()))  # this sets the private namespace
+                for params, ns in loaded_parameters:
+                    rosparam.upload_params(ns, params)
+            else:
+                rospy.logwarn("Gateway : user provided configuration file could not be found [%s]" % custom_configuration_file)
+    except KeyError:
+        # Not an error, just no need to load a custom configuration
+        pass
 
     # Hub
     param['hub_uri'] = rospy.get_param('~hub_uri', '')
