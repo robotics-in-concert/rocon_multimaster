@@ -60,6 +60,7 @@ class WatcherThread(threading.Thread):
                 # Get time for this gateway when hub was last seen
                 ping_key = hub_api.create_rocon_gateway_key(name, ':ping')
                 expiration_time = self.hub._redis_server.ttl(ping_key)
+                # rospy.logwarn("<= {0} TTL {1}".format(ping_key, expiration_time))
 
                 if expiration_time is None or expiration_time == -2:
                     # Probably in the process of starting up, ignore for now
@@ -80,6 +81,8 @@ class WatcherThread(threading.Thread):
                 else:
                     if name in self.unavailable_gateways:
                         self.unavailable_gateways.remove(name)
+                        rospy.logwarn("Hub Watcher: gateway " + name +
+                                      " is available again!")
                     self.hub.mark_named_gateway_available(gateway_key, True,
                              seconds_since_last_seen)
 
