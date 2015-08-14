@@ -116,6 +116,7 @@ class GatewayHub(rocon_hub_client.Hub):
 
         serialized_public_key = utils.serialize_key(public_key)
         ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
+        # rospy.loginfo("=>{0} TTL {1}".format(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL))
 
         self._redis_keys['ip'] = hub_api.create_rocon_gateway_key(unique_gateway_name, 'ip')
         self._redis_keys['gateway'] = hub_api.create_rocon_key(unique_gateway_name)
@@ -214,7 +215,7 @@ class GatewayHub(rocon_hub_client.Hub):
             ping_key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, ':ping')
             self._redis_server.set(ping_key, True)
             self._redis_server.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
-
+            # rospy.loginfo("=>{0} TTL {1}".format(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL))
             # this should probably be posted independently  of whether the hub is contactable or not
             # refer to https://github.com/robotics-in-concert/rocon_multimaster/pull/273/files#diff-22b726fec736c73a96fd98c957d9de1aL189
             if not statistics.network_info_available:
