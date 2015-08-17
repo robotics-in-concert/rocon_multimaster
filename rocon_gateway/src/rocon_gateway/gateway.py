@@ -500,17 +500,17 @@ class Gateway(object):
         '''
         # could move this below and if any are fails, just abort adding the rules.
         # Check if the target remote gateway is valid.
-        response = self._check_remote_gateways(request.remotes)
-        if response:
-            return response
+#         response = self._check_remote_gateways(request.remotes)
+#         if response:
+#             return response
 
         response = gateway_srvs.RemoteResponse(gateway_msgs.ErrorCodes.SUCCESS, "")
 
         # result is currently SUCCESS
         # Process all add/remove flip requests
-        if not request.cancel: # Rule add request
+        if not request.cancel:  # Rule add request
             response = self._add_flip_rules(request.remotes)
-        else: # Rule remove request
+        else:  # Rule remove request
             response = self._remove_flip_rules(request.remotes)
 
         # Post processing
@@ -667,7 +667,7 @@ class Gateway(object):
           :param remotes: remote rules
           :type remotes: gateway_msgs.RemoteRule[]
 
-          :return: whether it is valid, error message if it failes
+          :return: whether it is valid, error message if it fails
           :rtypes: None or gateway_srvs.RemoteResponse
         """
         response = gateway_srvs.RemoteResponse()
