@@ -29,9 +29,9 @@ class TestFlips(unittest.TestCase):
         self.graph = Graph()
 
     def test_flip_all(self):
-        print("\n********************************************************************")
-        print("* Flip All")
-        print("********************************************************************")
+        print(console.bold + "\n********************************************************************" + console.reset)
+        print(console.bold + "* Flip All" + console.reset)
+        print(console.bold + "********************************************************************" + console.reset)
         try:
             samples.flip_all()
         except GatewaySampleRuntimeError as e:
@@ -42,6 +42,8 @@ class TestFlips(unittest.TestCase):
         for remote_rule in flipped_interface:
             self.assertEquals("/chatter", remote_rule.remote_rule.rule.name)
             # Should probably assert rule.type and rule.node here as well.
+        result = self._wait_for_accepted_flipped_interface()
+        self.assertTrue(result)
         # Revert state
         try:
             samples.flip_all(cancel=True)
@@ -49,39 +51,39 @@ class TestFlips(unittest.TestCase):
             self.fail("Runtime error caught when unflipping all connections [%s]" % str(e))
         self._assert_cleared_flipped_interface()
 
-    def test_flip_tutorials(self):
-        print("\n********************************************************************")
-        print("* Flip Tutorials")
-        print("********************************************************************")
-        try:
-            samples.flip_tutorials() 
-        except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when flipping tutorial connections.")
-        flipped_interface = self._wait_for_flipped_interface()
-        #print("%s" % self.graph._local_gateway)
-        self.assertIn("/chatter", [remote_rule.remote_rule.rule.name for remote_rule in flipped_interface])
-        try:
-            samples.flip_tutorials(cancel=True) 
-        except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when unflipping tutorial connections.")
-        self._assert_cleared_flipped_interface()
-
-    def test_flip_regex_tutorials(self):
-        print("\n********************************************************************")
-        print("* Flip Regex Tutorials")
-        print("********************************************************************")
-        try:
-            samples.flip_tutorials(regex_patterns=True) 
-        except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when flipping tutorial connections.")
-        flipped_interface = self._wait_for_flipped_interface()
-        print("%s" % self.graph._local_gateway)
-        self.assertIn("/chatter", [remote_rule.remote_rule.rule.name for remote_rule in flipped_interface])
-        try:
-            samples.flip_tutorials(cancel=True, regex_patterns=True) 
-        except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when unflipping tutorial connections.")
-        self._assert_cleared_flipped_interface()
+#     def test_flip_tutorials(self):
+#         print(console.bold + "\n********************************************************************" + console.reset)
+#         print(console.bold + "* Flip Tutorials" + console.reset)
+#         print(console.bold + "********************************************************************" + console.reset)
+#         try:
+#             samples.flip_tutorials() 
+#         except GatewaySampleRuntimeError as e:
+#             self.fail("Runtime error caught when flipping tutorial connections.")
+#         flipped_interface = self._wait_for_flipped_interface()
+#         #print("%s" % self.graph._local_gateway)
+#         self.assertIn("/chatter", [remote_rule.remote_rule.rule.name for remote_rule in flipped_interface])
+#         try:
+#             samples.flip_tutorials(cancel=True) 
+#         except GatewaySampleRuntimeError as e:
+#             self.fail("Runtime error caught when unflipping tutorial connections.")
+#         self._assert_cleared_flipped_interface()
+# 
+#     def test_flip_regex_tutorials(self):
+#         print(console.bold + "\n********************************************************************" + console.reset)
+#         print(console.bold + "* Flip Regex Tutorials" + console.reset)
+#         print(console.bold + "********************************************************************" + console.reset)
+#         try:
+#             samples.flip_tutorials(regex_patterns=True) 
+#         except GatewaySampleRuntimeError as e:
+#             self.fail("Runtime error caught when flipping tutorial connections.")
+#         flipped_interface = self._wait_for_flipped_interface()
+#         print("%s" % self.graph._local_gateway)
+#         self.assertIn("/chatter", [remote_rule.remote_rule.rule.name for remote_rule in flipped_interface])
+#         try:
+#             samples.flip_tutorials(cancel=True, regex_patterns=True) 
+#         except GatewaySampleRuntimeError as e:
+#             self.fail("Runtime error caught when unflipping tutorial connections.")
+#         self._assert_cleared_flipped_interface()
         
     def tearDown(self):
         pass
@@ -89,6 +91,23 @@ class TestFlips(unittest.TestCase):
     ##########################################################################
     # Utility methods
     ##########################################################################
+
+    def _wait_for_accepted_flipped_interface(self):
+        result = False
+        start_time = rospy.Time.now()
+        while not result and (rospy.Time.now() - start_time) < rospy.Duration(2.0):
+            rospy.sleep(0.1)
+            self.graph.update()
+            accepted = True
+            flipped_interface = self.graph._local_gateway.flipped_connections
+            if not flipped_interface:
+                continue
+            for remote_rule in flipped_interface:
+                result = True
+                if remote_rule.status != 'accepted':
+                    result = False
+                    break
+        return result
 
     def _wait_for_flipped_interface(self):
         flipped_interface = None
