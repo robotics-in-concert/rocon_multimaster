@@ -31,9 +31,8 @@ from .exceptions import GatewayUnavailableError
 
 
 class HubConnectionCheckerThread(threading.Thread):
-
     '''
-      Pings redis periodically to figure out if redis is still alive.
+      Pings redis periodically to figure out if the redis connection is still alive.
     '''
 
     def __init__(self, ip, port, hub_connection_lost_hook):
@@ -44,6 +43,7 @@ class HubConnectionCheckerThread(threading.Thread):
         self.ip = ip
         self.port = port
         self.pinger = rocon_python_utils.network.Pinger(self.ip, self.ping_frequency)
+        self.terminate_requested = False
 
     def get_latency(self):
         return self.pinger.get_latency()
@@ -57,11 +57,13 @@ class HubConnectionCheckerThread(threading.Thread):
         rate = rocon_python_comms.WallRate(self.ping_frequency)
         alive = True
         timeout = 1 / self.ping_frequency
-        while alive:
+        while alive and not self.terminate_requested:
             alive, message = hub_client.ping_hub(self.ip, self.port, timeout)
             rate.sleep()
-        rospy.logwarn("Gateway Hub : pinger update [%s]" % message)
-        self._hub_connection_lost_hook()
+        if not alive:
+            rospy.logwarn("Gateway : hub connection no longer alive, disengaging [%s]" % message)
+            self._hub_connection_lost_hook()
+        # else shutting down thread by request
 
 ##############################################################################
 # Hub
@@ -92,6 +94,7 @@ class GatewayHub(rocon_hub_client.Hub):
         # Setting up some basic parameters in-case we use this API without registering a gateway
         self._redis_keys['gatewaylist'] = hub_api.create_rocon_hub_key('gatewaylist')
         self._unique_gateway_name = ''
+        self.hub_connection_checker_thread = None
 
     ##########################################################################
     # Hub Connections
@@ -172,7 +175,7 @@ class GatewayHub(rocon_hub_client.Hub):
     def _hub_connection_lost_hook(self):
         '''
           This gets triggered by the redis connection checker thread when the hub connection is lost.
-          The trigger is passed to the gateway who needs to remove the hub.
+          It then passes the trigger to the gateway who needs to remove the hub.
         '''
         self.connection_lost_lock.acquire()
         # should probably have a try: except AttributeError here as the following is not atomic.
@@ -190,7 +193,11 @@ class GatewayHub(rocon_hub_client.Hub):
           @rtype: bool
         '''
         try:
+            # clear this gateway from the hub
             self.unregister_named_gateway(self._redis_keys['gateway'])
+            # shut down the thread checker gracefully
+            self.hub_connection_checker_thread.terminate_requested = True
+            self.hub_connection_checker_thread.join(0.5)
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
             # usually just means the hub has gone down just before us or is in the
             # middle of doing so let it die nice and peacefully
