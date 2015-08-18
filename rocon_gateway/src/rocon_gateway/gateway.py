@@ -173,7 +173,6 @@ class Gateway(object):
                 rospy.loginfo("Gateway : sending unflip request [%s]%s" % (flip.gateway, utils.format_rule(flip.rule)))
                 for hub in remote_gateway_hub_index[flip.gateway]:
                     rule = copy.deepcopy(flip.rule)
-                    rule.node = rule.node.split(",")[0] # strip out xmlrpc uri to send unflip request
                     if hub.send_unflip_request(flip.gateway, rule):
                         # This hub was used to send the original flip request
                         hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
@@ -183,9 +182,9 @@ class Gateway(object):
         flipped_connections = self.flipped_interface.get_flipped_connections()
         for flip in flipped_connections:
             for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
-                rule = copy.deepcopy(flip.remote_rule)
-                rule.rule.node = rule.rule.node.split(",")[0]
-                status = hub.get_flip_request_status(flip.remote_rule)
+                remote_rule = copy.deepcopy(flip.remote_rule)
+                remote_rule.rule.node = remote_rule.rule.node.split(",")[0]  # get only node name, the xmlrpc_uri is not serialised
+                status = hub.get_flip_request_status(remote_rule)
                 if status is not None:
                     flip_state_changed = self.flipped_interface.update_flip_status(flip.remote_rule, status)
                     state_changed = state_changed or flip_state_changed
@@ -500,17 +499,17 @@ class Gateway(object):
         '''
         # could move this below and if any are fails, just abort adding the rules.
         # Check if the target remote gateway is valid.
-        response = self._check_remote_gateways(request.remotes)
-        if response:
-            return response
+#         response = self._check_remote_gateways(request.remotes)
+#         if response:
+#             return response
 
         response = gateway_srvs.RemoteResponse(gateway_msgs.ErrorCodes.SUCCESS, "")
 
         # result is currently SUCCESS
         # Process all add/remove flip requests
-        if not request.cancel: # Rule add request
+        if not request.cancel:  # Rule add request
             response = self._add_flip_rules(request.remotes)
-        else: # Rule remove request
+        else:  # Rule remove request
             response = self._remove_flip_rules(request.remotes)
 
         # Post processing
@@ -667,7 +666,7 @@ class Gateway(object):
           :param remotes: remote rules
           :type remotes: gateway_msgs.RemoteRule[]
 
-          :return: whether it is valid, error message if it failes
+          :return: whether it is valid, error message if it fails
           :rtypes: None or gateway_srvs.RemoteResponse
         """
         response = gateway_srvs.RemoteResponse()

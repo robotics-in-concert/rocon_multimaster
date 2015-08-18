@@ -13,7 +13,6 @@ import re
 # Delete this once we upgrade (hopefully anything after precise)
 # Refer to https://github.com/robotics-in-concert/rocon_multimaster/issues/248
 import threading
-threading._DummyThread._Thread__stop = lambda x: 42
 
 import rospy
 from gateway_msgs.msg import Rule

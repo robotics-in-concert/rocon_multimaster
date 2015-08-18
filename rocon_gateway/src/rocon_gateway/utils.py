@@ -7,11 +7,10 @@
 # Imports
 ##############################################################################
 
-#import collections
 import copy
 import cPickle as pickle
-#import simplejson as json
 import os
+import rospy
 
 from Crypto.PublicKey import RSA
 import Crypto.Util.number as CUN
@@ -182,10 +181,10 @@ def deserialize(str_msg):
     try:
         deserialized_data = pickle.loads(str_msg)
     except ValueError as e:
-        rospy.logwarn("Gateway : Error while deserialization[%s]"%e)
+        rospy.logwarn("Gateway : error in deserialization [%s]" % e)
         import traceback
         print(traceback.format_exc())
-        print("Data : %s"%str_msg)
+        print("Data : %s" % str_msg)
     return deserialized_data
 
 

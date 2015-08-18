@@ -517,8 +517,9 @@ class LocalMaster(rosgraph.Master):
         # This unfortunately is a game breaker - it destroys all connections, not just those
         # connected to this master, see #125.
         pub_uri_list = node_master.registerSubscriber(name, type_info, xmlrpc_uri)
+        # Be nice to the subscriber, inform it that is should refresh it's publisher list.
         try:
-            #rospy.loginfo("register_subscriber [%s][%s][%s]" % (name, xmlrpc_uri, pub_uri_list))
+            # rospy.loginfo("register_subscriber [%s][%s][%s]" % (name, xmlrpc_uri, pub_uri_list))
             xmlrpcapi(xmlrpc_uri).publisherUpdate('/master', name, pub_uri_list)
         except socket.error as v:
             errorcode = v[0]
@@ -529,7 +530,11 @@ class LocalMaster(rosgraph.Master):
                 rospy.logerr("Gateway : errorcode [%s] xmlrpc_uri [%s]" % (str(errorcode), xmlrpc_uri))
                 raise  # better handling here would be ideal
             else:
-                pass  # subscriber stopped on the other side, don't worry about it
+                pass  # subscriber stopped on the other side, don't worry about telling it to 'refresh' its publishers
+        except xmlrpclib.Fault as e:
+            # as above with the socket error, don't worry about telling it to 'refresh' its publishers
+            rospy.logerr("Gateway : serious fault while communicating with a subscriber - it's xmlrpc server was around but in a bad state [%s]" % str(e))
+            rospy.logerr("Gateway : if this happened, add to the collected information gathered at https://github.com/robotics-in-concert/rocon_multimaster/issues/304")
 
     def _unregister_subscriber(self, node_master, xmlrpc_uri, name):
         '''

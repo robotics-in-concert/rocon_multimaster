@@ -23,6 +23,10 @@ from . import utils
 
 
 class HubManager(object):
+    """
+    :ivar hubs: list of gateway hub instances
+    :vartype hubs: [rocon_gateway.GatewayHub]
+    """
 
     ##########################################################################
     # Init & Shutdown
@@ -225,7 +229,7 @@ class HubManager(object):
                         new_hub.advertise(advertisement)
                 self.hubs.append(new_hub)
             except rocon_hub_client.HubError as e:
-                return None, e.id, str(e) 
+                return None, e.id, str(e)
             finally:
                 self._hub_lock.release()
             return new_hub, gateway_msgs.ErrorCodes.SUCCESS, "success"
@@ -239,7 +243,7 @@ class HubManager(object):
 
           @param hub_to_be_disengaged
         '''
-        #uri = str(ip) + ":" + str(port)
+        # uri = str(ip) + ":" + str(port)
         # Could dig in and find the name here, but not worth the bother.
         hub_to_be_disengaged.disconnect()  # necessary to kill failing socket receives
         self._hub_lock.acquire()
