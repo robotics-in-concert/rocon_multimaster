@@ -78,7 +78,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
           @param unique_name : this gateway's unique hash name
           @type string
-        
+
           @param master : local master
           @type rocon_gateway.LocalMaster
 

@@ -173,7 +173,6 @@ class Gateway(object):
                 rospy.loginfo("Gateway : sending unflip request [%s]%s" % (flip.gateway, utils.format_rule(flip.rule)))
                 for hub in remote_gateway_hub_index[flip.gateway]:
                     rule = copy.deepcopy(flip.rule)
-                    rule.node = rule.node.split(",")[0] # strip out xmlrpc uri to send unflip request
                     if hub.send_unflip_request(flip.gateway, rule):
                         # This hub was used to send the original flip request
                         hub.remove_flip_details(flip.gateway, flip.rule.name, flip.rule.type, flip.rule.node)
@@ -183,9 +182,9 @@ class Gateway(object):
         flipped_connections = self.flipped_interface.get_flipped_connections()
         for flip in flipped_connections:
             for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
-                rule = copy.deepcopy(flip.remote_rule)
-                rule.rule.node = rule.rule.node.split(",")[0]
-                status = hub.get_flip_request_status(flip.remote_rule)
+                remote_rule = copy.deepcopy(flip.remote_rule)
+                remote_rule.rule.node = remote_rule.rule.node.split(",")[0]  # get only node name, the xmlrpc_uri is not serialised
+                status = hub.get_flip_request_status(remote_rule)
                 if status is not None:
                     flip_state_changed = self.flipped_interface.update_flip_status(flip.remote_rule, status)
                     state_changed = state_changed or flip_state_changed

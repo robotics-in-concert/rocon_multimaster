@@ -127,7 +127,6 @@ class GatewayHub(rocon_hub_client.Hub):
         self._hub_connection_lost_gateway_hook = hub_connection_lost_gateway_hook
 
         pipe = self._redis_server.pipeline()
-        sequence_key = 1
 
         try:
             pipe.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway'])
@@ -144,24 +143,24 @@ class GatewayHub(rocon_hub_client.Hub):
             # Let hub know we are alive
             pipe.set(ping_key, True)
             pipe.expire(ping_key, gateway_msgs.ConnectionStatistics.MAX_TTL)
-            
+
             ret_pipe = pipe.execute()
             [r_check_gateway, r_firewall, r_ip, r_oldkey, r_newkey, r_add_gateway, r_ping, r_expire] = ret_pipe
-            
+
         except (redis.WatchError, redis.ConnectionError) as e:
-            raise HubConnectionFailedError("Connection Failed while registering hub[%s]" %str(e))
+            raise HubConnectionFailedError("Connection Failed while registering hub[%s]" % str(e))
         finally:
             pipe.reset()
 
-        #if not self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):
+        # if not self._redis_server.sadd(self._redis_keys['gatewaylist'], self._redis_keys['gateway']):
         # should never get here - unique should be unique
         # pass
 
         self.mark_named_gateway_available(self._redis_keys['gateway'])
 
         if serialized_public_key != r_oldkey:
-            rospy.loginfo('Gateway : Found existing mismatched public key on the hub. ' +
-                          'Requesting resend for all flip-ins.')
+            rospy.loginfo('Gateway : found existing mismatched public key on the hub, ' +
+                          'requesting resend for all flip-ins.')
             self._resend_all_flip_ins()
 
         # Mark this gateway as now available
@@ -294,15 +293,14 @@ class GatewayHub(rocon_hub_client.Hub):
           @type float
         '''
         pipe = self._redis_server.pipeline()
-        sequence_key = 99
         try:
             available_key = gateway_key + ":available"
             pipe.set(available_key, available)
             time_since_last_seen_key = gateway_key + ":time_since_last_seen"
             pipe.set(time_since_last_seen_key, int(time_since_last_seen))
-            ret_pipe = pipe.execute()
+            unused_ret_pipe = pipe.execute()
         except (redis.WatchError, redis.ConnectionError) as e:
-            raise HubConnectionFailedError("Connection Failed while registering hub[%s]" %str(e))
+            raise HubConnectionFailedError("Connection Failed while registering hub[%s]" % str(e))
         finally:
             pipe.reset()
 
@@ -824,6 +822,8 @@ class GatewayHub(rocon_hub_client.Hub):
 
         # Check if a flip request already exists on the hub
         if self.get_flip_request_status(RemoteRule(remote_gateway, connection.rule)) is not None:
+            # DJS : dubious as to whether this is the right course of action - could be an old one
+            # left here from a previous gateway crash and no longer the right uri
             return True
 
         # Encrypt the transmission
@@ -889,13 +889,15 @@ class GatewayHub(rocon_hub_client.Hub):
           @rtype Boolean
         '''
         key = hub_api.create_rocon_gateway_key(remote_gateway, 'flip_ins')
+        # rule.node is two parts (node_name, xmlrpc_uri) - but serialised connection rule is only node name
+        # strip the xmlrpc_uri for comparision tests
+        rule.node = rule.node.split(",")[0]
         try:
             encoded_flip_ins = self._redis_server.smembers(key)
             for flip_in in encoded_flip_ins:
                 unused_status, source, connection_list = utils.deserialize_request(flip_in)
                 connection = utils.get_connection_from_list(connection_list)
-                if source == hub_api.key_base_name(self._redis_keys['gateway']) and \
-                   rule == connection.rule:
+                if source == hub_api.key_base_name(self._redis_keys['gateway']) and rule == connection.rule:
                     self._redis_server.srem(key, flip_in)
                     return True
         except redis.exceptions.ConnectionError:
