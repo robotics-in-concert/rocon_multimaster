@@ -69,9 +69,6 @@ class HubDiscovery(threading.Thread):
         '''
           The hub discovery thread worker function. Monitors zeroconf for the presence of new hubs.
 
-          We spin fast initially for convenience, and then wind down once we've detected
-          a hub.
-
           Note that the zeroconf service is persistent. Alternatively we could use the zeroconf
           subscriber to be a wee bit more efficient.
         '''
