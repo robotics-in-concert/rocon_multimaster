@@ -35,7 +35,6 @@ class NetworkInterfaceManager(object):
           if there is just one interface).
         '''
         if interface_name is None or not interface_name:
-            print("interface is none")
             # try and get from environment variable (this returns None if not found)
             interface_name = os.environ.get('GATEWAY_NETWORK_INTERFACE')
 
