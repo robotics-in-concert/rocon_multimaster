@@ -84,7 +84,7 @@ class NetworkInterfaceManager(object):
                          "send network information to hub.")
             return None, None
         elif len(interfaces) > 1:
-            rospy.logerr("This machine is connected via multiple active " +
+            rospy.logwarn("This machine is connected via multiple active " +
                          "interfaces. Detected: " + str(interfaces) + ". Please " +
                          "select a single interface using the network_interface " +
                          "param (or environment variable GATEWAY_NETWORK_INTERFACE " +
