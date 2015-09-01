@@ -18,7 +18,8 @@ import unittest
 
 import rostest.runner
 import rospkg
-from rostest.rostestutil import printRostestSummary
+from rospkg.environment import ROS_TEST_RESULTS_DIR
+from rostest.rostestutil import printRostestSummary, xmlResultsFile
 import rosunit
 from roslaunch.pmon import pmon_shutdown
 import rocon_python_utils
@@ -49,6 +50,7 @@ def _parse_arguments():
     parser.add_argument('-s', '--screen', action='store_true', help='run each roslaunch with the --screen option')
     parser.add_argument('-t', '--text-mode', action='store_true', help='log the rostest output to screen rather than log file.')
     parser.add_argument("--results-filename", action='store', type=str, default=None, help="results_filename")
+    parser.add_argument('--results-base-dir', action='store', default='', help="The base directory of the test results. The test result file is created in a subfolder name PKG_DIR.")
     args = parser.parse_args()
     # Stop it from being a list (happens when nargs is an integer)
     args.test = args.test[0]
@@ -61,11 +63,12 @@ def _parse_arguments():
             raise IOError("Test launcher file does not exist [%s]." % args.test)
         else:
             args.package = rospkg.get_package_name(args.test)
-    return (args.package, args.test, args.screen, args.pause, args.text_mode, args.results_filename)
+    return (args.package, args.test, args.screen, args.pause, args.text_mode,
+            args.results_filename, args.results_base_dir)
 
 
 def test_main():
-    (package, name, launch_arguments, pause, text_mode, results_filename) = _parse_arguments()
+    (package, name, launch_arguments, pause, text_mode, results_filename, results_base_dir) = _parse_arguments()
 
     if os.path.isabs(name):
         if os.path.exists(name):
@@ -75,11 +78,16 @@ def test_main():
     else:
         rocon_launcher = rocon_python_utils.ros.find_resource(package, name)  # raises an IO error if there is a problem.
 
+    env = None
+    if results_base_dir:
+        env = {ROS_TEST_RESULTS_DIR: results_base_dir}
+
     if results_filename:
         results_log_name = results_filename
         if '.' in results_log_name:
             results_log_name = results_log_name[:results_log_name.rfind('.')]
-        results_log_file = loggers.xml_results_file(package, results_log_name)
+        results_log_file = xmlResultsFile(package, results_log_name, is_rostest=True, env=env)
+        results_log_file = results_log_file.replace("rostest", "rocon_test")
     else:
         results_log_name, results_log_file = loggers.configure_logging(package, rocon_launcher)
 
@@ -87,7 +95,6 @@ def test_main():
 
     try:
         test_case = runner.create_unit_rocon_test(rocon_launcher, launchers)
-        print("Unit test loader")
         suite = unittest.TestLoader().loadTestsFromTestCase(test_case)
         if pause:
             runner.set_pause_mode(True)
