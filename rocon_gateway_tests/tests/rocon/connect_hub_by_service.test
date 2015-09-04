@@ -1,4 +1,4 @@
 <concert>
-  <launch package="rocon_gateway_tests" name="primary_hub.xml" port="11311"/>
-  <launch package="rocon_gateway_tests" name="test_connect_hub_by_service.xml" port="11312"/>
+  <launch package="rocon_gateway_tests" name="primary_hub.xml" port="11321"/>
+  <launch package="rocon_gateway_tests" name="test_connect_hub_by_service.xml" port="11322"/>
 </concert>
