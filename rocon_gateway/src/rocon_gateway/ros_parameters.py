@@ -32,7 +32,14 @@ def setup_ros_parameters():
             if os.path.isfile(custom_configuration_file):
                 loaded_parameters = rosparam.load_file(custom_configuration_file, default_namespace=rospy.resolve_name(rospy.get_name()))  # this sets the private namespace
                 for params, ns in loaded_parameters:
-                    rosparam.upload_params(ns, params)
+                    # need to merge whatever default rules are already on the param server with these settings
+                    existing_parameters = rosparam.get_param(ns)
+                    for p, v in params.iteritems():
+                        if p in ['default_flips', 'default_advertisements', 'default_pulls'] and p in existing_parameters:
+                            existing_parameters[p] += v
+                        else:
+                            existing_parameters[p] = v
+                    rosparam.upload_params(ns, existing_parameters, verbose=True)
             else:
                 rospy.logwarn("Gateway : user provided configuration file could not be found [%s]" % custom_configuration_file)
     except KeyError:
