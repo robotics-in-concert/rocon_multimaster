@@ -152,8 +152,8 @@ class Gateway(object):
                 state_changed = True
                 # for actions, need to post flip details here
                 connections = self.master.generate_connection_details(flip.rule.type, flip.rule.name, flip.rule.node)
-                if (connection_type == utils.ConnectionType.ACTION_CLIENT or
-                        connection_type == utils.ConnectionType.ACTION_SERVER):
+                if (connection_type == gateway_msgs.ConnectionType.ACTION_CLIENT or
+                        connection_type == gateway_msgs.ConnectionType.ACTION_SERVER):
                     rospy.loginfo("Gateway : sending flip request [%s]%s" %
                                   (flip.gateway, utils.format_rule(flip.rule)))
                     hub = remote_gateway_hub_index[flip.gateway][0]
@@ -274,7 +274,7 @@ class Gateway(object):
           @type : { utils.ConnectionType.xxx : utils.Connection[] } dictionaries
         '''
         state_changed = False
-        # new_conns, lost_conns are of type { utils.ConnectionType.xxx : utils.Connection[] }
+        # new_conns, lost_conns are of type { gateway_msgs.ConnectionType.xxx : utils.Connection[] }
         new_conns, lost_conns = self.public_interface.update(
             local_connection_index, self.master.generate_advertisement_connection_details)
         # public_interface is of type gateway_msgs.Rule[]

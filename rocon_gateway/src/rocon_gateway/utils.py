@@ -15,17 +15,17 @@ import rospy
 from Crypto.PublicKey import RSA
 import Crypto.Util.number as CUN
 
-from gateway_msgs.msg import Rule, ConnectionType
+import gateway_msgs.msg as gateway_msgs
 
 ##############################################################################
 # Constants
 ##############################################################################
 
 # for help in iterating over the set of connection constants
-connection_types = frozenset([ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER,
-                             ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER])
-connection_types_list = [ConnectionType.PUBLISHER, ConnectionType.SUBSCRIBER,
-                         ConnectionType.SERVICE, ConnectionType.ACTION_CLIENT, ConnectionType.ACTION_SERVER]
+connection_types = frozenset([gateway_msgs.ConnectionType.PUBLISHER, gateway_msgs.ConnectionType.SUBSCRIBER,
+                             gateway_msgs.ConnectionType.SERVICE, gateway_msgs.ConnectionType.ACTION_CLIENT, gateway_msgs.ConnectionType.ACTION_SERVER])
+connection_types_list = [gateway_msgs.ConnectionType.PUBLISHER, gateway_msgs.ConnectionType.SUBSCRIBER,
+                         gateway_msgs.ConnectionType.SERVICE, gateway_msgs.ConnectionType.ACTION_CLIENT, gateway_msgs.ConnectionType.ACTION_SERVER]
 connection_type_strings_list = ["publisher", "subscriber", "service", "action_client", "action_server"]
 action_types = ['/goal', '/cancel', '/status', '/feedback', '/result']
 
@@ -65,7 +65,7 @@ class Connection():
         return not self.__eq__(other)
 
     def __str__(self):
-        if self.rule.type == ConnectionType.SERVICE:
+        if self.rule.type == gateway_msgs.ConnectionType.SERVICE:
             return '{type: %s, name: %s, node: %s, uri: %s, service_api: %s}' % (
                 self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
         else:
@@ -199,7 +199,7 @@ def serialize_connection(connection):
 
 def deserialize_connection(connection_str):
     deserialized_list = deserialize(connection_str)
-    rule = Rule(deserialized_list[0],
+    rule = gateway_msgs.Rule(deserialized_list[0],
                 deserialized_list[1],
                 deserialized_list[2]
                 )
@@ -226,12 +226,12 @@ def deserialize_request(request_str):
 
 
 def get_connection_from_list(connection_argument_list):
-    rule = Rule(connection_argument_list[0], connection_argument_list[1], connection_argument_list[2])
+    rule = gateway_msgs.Rule(connection_argument_list[0], connection_argument_list[1], connection_argument_list[2])
     return Connection(rule, connection_argument_list[3], connection_argument_list[4])
 
 
 def get_rule_from_list(rule_argument_list):
-    return Rule(rule_argument_list[0], rule_argument_list[1], rule_argument_list[2])
+    return gateway_msgs.Rule(rule_argument_list[0], rule_argument_list[1], rule_argument_list[2])
 
 ##########################################################################
 # Encryption/Decryption
@@ -325,3 +325,59 @@ def create_empty_connection_type_dictionary():
     return dic
 
 difflist = lambda l1, l2: [x for x in l1 if x not in l2]  # diff of lists
+
+##########################################################################
+# Conversion from ROS connections ( as returned by MasterAPI )
+# to Gateway connections
+##########################################################################
+
+
+def _get_connections_from_service_list(connection_list, connection_type):
+    connections = []
+    for service in connection_list:
+        service_name = service[0]
+        # service_uri = rosservice.get_service_uri(service_name)
+        nodes = service[1]
+        for node in nodes:
+            # try:
+            #    node_uri = self.lookupNode(node)
+            # except:
+            #    continue
+            connection = Connection(gateway_msgs.Rule(connection_type, service_name, node), None, None)  # service_uri, node_uri
+            connections.append(connection)
+    return connections
+
+
+def _get_connections_from_pub_sub_list(connection_list, connection_type):
+    connections = []
+    for topic in connection_list:
+        topic_name = topic[0]
+        # topic_type = rostopic.get_topic_type(topic_name)
+        # topic_type = topic_type[0]
+        nodes = topic[1]
+        for node in nodes:
+            # try:
+                # node_uri = self.lookupNode(node)
+            # except:
+            #    continue
+            connection = Connection(gateway_msgs.Rule(connection_type, topic_name, node), None, None)  # topic_type, node_uri
+            connections.append(connection)
+    return connections
+
+
+def _get_connections_from_action_list(connection_list, connection_type):
+    connections = []
+    for action in connection_list:
+        action_name = action[0]
+        #goal_topic = action_name + '/goal'
+        #goal_topic_type = rostopic.get_topic_type(goal_topic)
+        # topic_type = re.sub('ActionGoal$', '', goal_topic_type[0])  # Base type for action
+        nodes = action[1]
+        for node in nodes:
+            # try:
+            #    node_uri = self.lookupNode(node)
+            # except:
+            #    continue
+            connection = Connection(gateway_msgs.Rule(connection_type, action_name, node), None, None)  # topic_type, node_uri
+            connections.append(connection)
+    return connections
