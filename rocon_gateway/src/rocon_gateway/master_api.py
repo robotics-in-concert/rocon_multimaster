@@ -546,17 +546,20 @@ class LocalMaster(rosgraph.Master):
 
     def get_connection_state(self):
 
-        publishers, subscribers, services = self._connection_cache.getSystemState()
+        publishers, subscribers, services, = self._connection_cache.getSystemState()
+        pubs, subs, action_servers, action_clients = self._connection_cache.filterActions(publishers, subscribers)
+        topic_types = self._connection_cache.getTopicTypes()
+        try:
+            service_uris = self._connection_cache.getServiceUris()
+        except rocon_python_comms.UnknownSystemState:
+            service_uris = []
 
-        action_servers, publishers, subscribers = LocalMaster._get_action_servers(publishers, subscribers)
-        action_clients, publishers, subscribers = LocalMaster._get_action_clients(publishers, subscribers)
         connections = utils.create_empty_connection_type_dictionary()
-        connections[gateway_msgs.ConnectionType.ACTION_SERVER] = utils._get_connections_from_action_list(action_servers, gateway_msgs.ConnectionType.ACTION_SERVER)
-        connections[gateway_msgs.ConnectionType.ACTION_CLIENT] = utils._get_connections_from_action_list(action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT)
-
-        connections[gateway_msgs.ConnectionType.PUBLISHER] = utils._get_connections_from_pub_sub_list(publishers, gateway_msgs.ConnectionType.PUBLISHER)
-        connections[gateway_msgs.ConnectionType.SUBSCRIBER] = utils._get_connections_from_pub_sub_list(subscribers, gateway_msgs.ConnectionType.SUBSCRIBER)
-        connections[gateway_msgs.ConnectionType.SERVICE] = utils._get_connections_from_service_list(services, gateway_msgs.ConnectionType.SERVICE)
+        connections[gateway_msgs.ConnectionType.ACTION_SERVER] = utils._get_connections_from_action_list(action_servers, gateway_msgs.ConnectionType.ACTION_SERVER, topic_types)
+        connections[gateway_msgs.ConnectionType.ACTION_CLIENT] = utils._get_connections_from_action_list(action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT, topic_types)
+        connections[gateway_msgs.ConnectionType.PUBLISHER] = utils._get_connections_from_pub_sub_list(pubs, gateway_msgs.ConnectionType.PUBLISHER, topic_types)
+        connections[gateway_msgs.ConnectionType.SUBSCRIBER] = utils._get_connections_from_pub_sub_list(subs, gateway_msgs.ConnectionType.SUBSCRIBER, topic_types)
+        connections[gateway_msgs.ConnectionType.SERVICE] = utils._get_connections_from_service_list(services, gateway_msgs.ConnectionType.SERVICE, service_uris)
 
         return connections
 

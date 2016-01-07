@@ -10,6 +10,8 @@
 import copy
 import cPickle as pickle
 import os
+import re
+
 import rospy
 
 from Crypto.PublicKey import RSA
@@ -332,52 +334,53 @@ difflist = lambda l1, l2: [x for x in l1 if x not in l2]  # diff of lists
 ##########################################################################
 
 
-def _get_connections_from_service_list(connection_list, connection_type):
+def _get_connections_from_service_list(connection_list, connection_type, svc_uri_list):
     connections = []
     for service in connection_list:
         service_name = service[0]
-        # service_uri = rosservice.get_service_uri(service_name)
+        service_uri = [t[1] for t in svc_uri_list if t[0] == service_name]
+        service_uri = service_uri[0] if service_uri else None
         nodes = service[1]
         for node in nodes:
             # try:
             #    node_uri = self.lookupNode(node)
             # except:
             #    continue
-            connection = Connection(gateway_msgs.Rule(connection_type, service_name, node), None, None)  # service_uri, node_uri
+            connection = Connection(gateway_msgs.Rule(connection_type, service_name, node), service_uri, None)  # node_uri
             connections.append(connection)
     return connections
 
 
-def _get_connections_from_pub_sub_list(connection_list, connection_type):
+def _get_connections_from_pub_sub_list(connection_list, connection_type, msg_type_list):
     connections = []
     for topic in connection_list:
         topic_name = topic[0]
-        # topic_type = rostopic.get_topic_type(topic_name)
-        # topic_type = topic_type[0]
+        topic_type = [t[1] for t in msg_type_list if t[0] == topic_name]
+        topic_type = topic_type[0] if topic_type else None
         nodes = topic[1]
         for node in nodes:
             # try:
                 # node_uri = self.lookupNode(node)
             # except:
             #    continue
-            connection = Connection(gateway_msgs.Rule(connection_type, topic_name, node), None, None)  # topic_type, node_uri
+            connection = Connection(gateway_msgs.Rule(connection_type, topic_name, node), topic_type, None)  # node_uri
             connections.append(connection)
     return connections
 
 
-def _get_connections_from_action_list(connection_list, connection_type):
+def _get_connections_from_action_list(connection_list, connection_type, msg_type_list):
     connections = []
     for action in connection_list:
-        action_name = action[0]
-        #goal_topic = action_name + '/goal'
-        #goal_topic_type = rostopic.get_topic_type(goal_topic)
-        # topic_type = re.sub('ActionGoal$', '', goal_topic_type[0])  # Base type for action
+        action_name = action[0] + '/goal'
+        goal_topic_type = [t[1] for t in msg_type_list if t[0] == action_name]
+        goal_topic_type = goal_topic_type[0] if goal_topic_type else None
+        topic_type = re.sub('ActionGoal$', '', goal_topic_type[0])  # Base type for action
         nodes = action[1]
         for node in nodes:
             # try:
             #    node_uri = self.lookupNode(node)
             # except:
             #    continue
-            connection = Connection(gateway_msgs.Rule(connection_type, action_name, node), None, None)  # topic_type, node_uri
+            connection = Connection(gateway_msgs.Rule(connection_type, action_name, node), topic_type, None)  # node_uri
             connections.append(connection)
     return connections
