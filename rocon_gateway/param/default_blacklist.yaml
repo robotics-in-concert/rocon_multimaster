@@ -35,4 +35,10 @@ default_blacklist:
     - name: .*gateway/.*
       node: None
       type: subscriber
+    - name: .*connection_cache/.*
+      node: None
+      type: publisher
+    - name: .*connection_cache/.*
+      node: None
+      type: subscriber
       
