@@ -28,6 +28,9 @@ class TestConnectHubByService(unittest.TestCase):
         print("\n********************************************************************")
         print("* Sending Connect Hub Request")
         print("********************************************************************")
+        print("Some time for everything to fire up (gateway, hub)")
+        rospy.sleep(3.0)
+        print("Requesting connection to hub")
         result, unused_error_message = samples.connect_hub_by_service(raise_exception=False)
         self.assertEquals(gateway_msgs.ErrorCodes.SUCCESS, result)
 

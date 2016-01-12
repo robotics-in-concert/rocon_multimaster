@@ -286,7 +286,7 @@ def flip_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
 
 def connect_hub_by_service(ns=_gateway_namespace, raise_exception=True):
     service_name = ns + "/connect_hub"
-    rospy.wait_for_service(service_name, 1.0)
+    rospy.wait_for_service(service_name, 1.0)  # should catch ROSException for when timeout is exceeded
     connect = rospy.ServiceProxy(service_name, gateway_srvs.ConnectHub)
     # Form a request message
     req = gateway_srvs.ConnectHubRequest()
