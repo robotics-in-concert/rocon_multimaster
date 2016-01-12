@@ -15,6 +15,8 @@ import time
 # Watcher
 ##############################################################################
 
+import rocon_python_comms
+
 
 class WatcherThread(object):
 
@@ -66,8 +68,8 @@ class WatcherThread(object):
             if self._gateway.is_connected():
                 try:
                     connections = self._master.get_connection_state()
-                except httplib.ResponseNotReady:
-                    rospy.logwarn("Gateway : received 'ResponseNotReady' from master api")
+                except rocon_python_comms.UnknownSystemState:
+                    rospy.logerr("Gateway : received 'rocon_python_comms.UnknownSystemState' from master api")
                     self._sleep()
                     continue
                 remote_gateway_hub_index = self._hub_manager.create_remote_gateway_hub_index()

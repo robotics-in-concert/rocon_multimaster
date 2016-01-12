@@ -557,7 +557,7 @@ class LocalMaster(rosgraph.Master):
 
             service_uris = self._connection_cache.getServiceUris()
         except rocon_python_comms.UnknownSystemState:
-            raise GatewayError("System State not received from Connection Cache Node. Aborting.")
+            raise  # we want to abort this right now
 
         connections = utils.create_empty_connection_type_dictionary()
         connections[gateway_msgs.ConnectionType.ACTION_SERVER] = utils._get_connections_from_action_list(action_servers, gateway_msgs.ConnectionType.ACTION_SERVER, topic_types)
