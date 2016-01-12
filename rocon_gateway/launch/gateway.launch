@@ -10,6 +10,8 @@
   <arg name="gateway_firewall" default="true"/> <!-- Typically nothing comes in! -->
   <arg name="gateway_disable_zeroconf" default="false" doc="do not find the hub with zeroconf, make sure you set gateway_hub_uri instead."/>
   <arg name="gateway_custom_rules_file" default="" doc="name of a custom file with gateway rules provided by the user (yaml)."/>
+  <arg name="connection_cache_list" default="/rocon/connection_cache/list" doc="topic to listen for connection cache list of connections"/>
+  <arg name="connection_cache_diff" default="/rocon/connection_cache/diff" doc="topic to listen for differences in connection cache list of connections"/>
 
   <group unless="$(arg gateway_disable_zeroconf)">
     <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"/>
@@ -25,5 +27,8 @@
     <param name="hub_uri" value="$(arg gateway_hub_uri)"/>
     <param name="disable_zeroconf" value="$(arg gateway_disable_zeroconf)"/>
     <param name="custom_rules_file" value="$(arg gateway_custom_rules_file)"/>
+    <!-- remapping subscriber to plug into connection cache -->
+    <remap from="~connections_list" to="$(arg connection_cache_list)"/>
+    <remap from="~connections_diff" to="$(arg connection_cache_diff)"/>
   </node>
 </launch>

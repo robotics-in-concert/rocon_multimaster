@@ -57,10 +57,10 @@ class WatcherThread(object):
         return self._watch_loop_period
 
     def start(self):
-        '''
+        """
           The watcher thread - monitors both the local master's system state (list of connections)
           and the various rules to make sure rules and existing connections or flips are in sync.
-        '''
+        """
         while not rospy.is_shutdown():
             # don't waste time processing if we're not connected to at least one hub
             if self._gateway.is_connected():
@@ -80,10 +80,10 @@ class WatcherThread(object):
             self._sleep()
 
     def _sleep(self):
-        '''
+        """
           Internal non-interruptible sleep loop to check for shutdown and update triggers.
           This lets us set a really long watch_loop update if we wish.
-        '''
+        """
         while (not rospy.is_shutdown() and not self.trigger_update and
                (time.time() - self._last_loop_timestamp < self._watch_loop_period)):
             rospy.rostime.wallsleep(self._internal_sleep_period)

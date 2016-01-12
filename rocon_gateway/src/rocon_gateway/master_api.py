@@ -29,7 +29,7 @@ import rosservice
 import roslib.names
 import gateway_msgs.msg as gateway_msgs
 
-from . import utils
+from . import utils, GatewayError
 from rocon_python_comms import ConnectionCacheProxy
 
 
@@ -44,7 +44,11 @@ class LocalMaster(rosgraph.Master):
 
     def __init__(self):
         rosgraph.Master.__init__(self, rospy.get_name())
-        self._connection_cache = ConnectionCacheProxy()
+        self._connection_cache = ConnectionCacheProxy(
+                list_sub='~connections_list',
+                diff_opt=True,
+                diff_sub='~connections_diff'
+        )
 
     ##########################################################################
     # Registration
@@ -531,7 +535,7 @@ class LocalMaster(rosgraph.Master):
 
     @staticmethod
     def _get_action_clients(publishers, subscribers):
-        '''
+        """
           Return action clients and pruned publisher, subscriber lists.
 
           @param publishers
@@ -540,19 +544,20 @@ class LocalMaster(rosgraph.Master):
           @type list of subscribers in the form returned by rosgraph.Master.get_system_state
           @return list of actions, pruned_publishers, pruned_subscribers
           @rtype [base_topic, [nodes]], as param type, as param type
-        '''
+        """
         actions, pubs, subs = LocalMaster._get_actions(publishers, subscribers)
         return actions, pubs, subs
 
     def get_connection_state(self):
 
-        publishers, subscribers, services, = self._connection_cache.getSystemState()
-        pubs, subs, action_servers, action_clients = self._connection_cache.filterActions(publishers, subscribers)
-        topic_types = self._connection_cache.getTopicTypes()
         try:
+            publishers, subscribers, services, = self._connection_cache.getSystemState(silent_fallback=False)
+            pubs, subs, action_servers, action_clients = self._connection_cache.filterActions(publishers, subscribers)
+            topic_types = self._connection_cache.getTopicTypes(silent_fallback=False)
+
             service_uris = self._connection_cache.getServiceUris()
         except rocon_python_comms.UnknownSystemState:
-            service_uris = []
+            raise GatewayError("System State not received from Connection Cache Node. Aborting.")
 
         connections = utils.create_empty_connection_type_dictionary()
         connections[gateway_msgs.ConnectionType.ACTION_SERVER] = utils._get_connections_from_action_list(action_servers, gateway_msgs.ConnectionType.ACTION_SERVER, topic_types)
