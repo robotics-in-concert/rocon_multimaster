@@ -55,14 +55,14 @@ class TestGraph(unittest.TestCase):
         print("* Advertise Tutorials")
         print("********************************************************************")
         try:
-            samples.advertise_tutorials() 
+            samples.advertise_tutorials()
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising tutorial connections.")
         public_interface = self._wait_for_public_interface()
         #print("%s" % self.graph._local_gateway)
         self.assertIn("/chatter", [rule.name for rule in public_interface])
         try:
-            samples.advertise_tutorials(cancel=True) 
+            samples.advertise_tutorials(cancel=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when unadvertising tutorial connections.")
         self._assert_cleared_public_interface()
@@ -72,18 +72,18 @@ class TestGraph(unittest.TestCase):
         print("* Advertise Regex Tutorials")
         print("********************************************************************")
         try:
-            samples.advertise_tutorials(regex_patterns=True) 
+            samples.advertise_tutorials(regex_patterns=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising tutorial connections.")
         public_interface = self._wait_for_public_interface()
         print("%s" % self.graph._local_gateway)
         self.assertIn("/chatter", [rule.name for rule in public_interface])
         try:
-            samples.advertise_tutorials(cancel=True, regex_patterns=True) 
+            samples.advertise_tutorials(cancel=True, regex_patterns=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when unadvertising tutorial connections.")
         self._assert_cleared_public_interface()
-        
+
     def tearDown(self):
         pass
 
@@ -111,7 +111,7 @@ class TestGraph(unittest.TestCase):
                 break
             else:
                 rospy.rostime.wallsleep(0.2)
-            if rospy.Time.now() - start_time > rospy.Duration(4.0):
+            if rospy.Time.now() - start_time > rospy.Duration(10.0):
                 result = "timed out waiting for public interface to clear"
                 break
         self.assertEqual("cleared", result)
@@ -119,4 +119,4 @@ class TestGraph(unittest.TestCase):
 NAME = 'test_graph'
 if __name__ == '__main__':
     rosunit.unitrun('test_graph', NAME, TestGraph, sys.argv, coverage_packages=['rocon_gateway'])
-        
+
