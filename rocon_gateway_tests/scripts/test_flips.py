@@ -56,35 +56,35 @@ class TestFlips(unittest.TestCase):
 #         print(console.bold + "* Flip Tutorials" + console.reset)
 #         print(console.bold + "********************************************************************" + console.reset)
 #         try:
-#             samples.flip_tutorials() 
+#             samples.flip_tutorials()
 #         except GatewaySampleRuntimeError as e:
 #             self.fail("Runtime error caught when flipping tutorial connections.")
 #         flipped_interface = self._wait_for_flipped_interface()
 #         #print("%s" % self.graph._local_gateway)
 #         self.assertIn("/chatter", [remote_rule.remote_rule.rule.name for remote_rule in flipped_interface])
 #         try:
-#             samples.flip_tutorials(cancel=True) 
+#             samples.flip_tutorials(cancel=True)
 #         except GatewaySampleRuntimeError as e:
 #             self.fail("Runtime error caught when unflipping tutorial connections.")
 #         self._assert_cleared_flipped_interface()
-# 
+#
 #     def test_flip_regex_tutorials(self):
 #         print(console.bold + "\n********************************************************************" + console.reset)
 #         print(console.bold + "* Flip Regex Tutorials" + console.reset)
 #         print(console.bold + "********************************************************************" + console.reset)
 #         try:
-#             samples.flip_tutorials(regex_patterns=True) 
+#             samples.flip_tutorials(regex_patterns=True)
 #         except GatewaySampleRuntimeError as e:
 #             self.fail("Runtime error caught when flipping tutorial connections.")
 #         flipped_interface = self._wait_for_flipped_interface()
 #         print("%s" % self.graph._local_gateway)
 #         self.assertIn("/chatter", [remote_rule.remote_rule.rule.name for remote_rule in flipped_interface])
 #         try:
-#             samples.flip_tutorials(cancel=True, regex_patterns=True) 
+#             samples.flip_tutorials(cancel=True, regex_patterns=True)
 #         except GatewaySampleRuntimeError as e:
 #             self.fail("Runtime error caught when unflipping tutorial connections.")
 #         self._assert_cleared_flipped_interface()
-        
+
     def tearDown(self):
         pass
 
@@ -122,7 +122,7 @@ class TestFlips(unittest.TestCase):
         while True:
             self.graph.update()
             flipped_interface = self.graph._local_gateway.flipped_connections
-            if flipped_interface:
+            if not flipped_interface:
                 result = "cleared"
                 break
             else:
@@ -135,4 +135,4 @@ class TestFlips(unittest.TestCase):
 NAME = 'test_flips'
 if __name__ == '__main__':
     rosunit.unitrun('test_flips', NAME, TestFlips, sys.argv, coverage_packages=['rocon_gateway'])
-        
+

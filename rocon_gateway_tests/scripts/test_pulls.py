@@ -57,14 +57,14 @@ class TestPulls(unittest.TestCase):
         print("* Pull Tutorials")
         print("********************************************************************")
         try:
-            samples.pull_tutorials() 
+            samples.pull_tutorials()
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising tutorial connections.")
         pulled_interface = self._wait_for_pulled_interface()
         #print("%s" % self.graph._local_gateway)
         self.assertIn("/chatter", [remote_rule.rule.name for remote_rule in pulled_interface])
         try:
-            samples.pull_tutorials(cancel=True) 
+            samples.pull_tutorials(cancel=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when unadvertising tutorial connections.")
         self._assert_cleared_pulled_interface()
@@ -74,18 +74,18 @@ class TestPulls(unittest.TestCase):
         print("* Pull Regex Tutorials")
         print("********************************************************************")
         try:
-            samples.pull_tutorials(regex_patterns=True) 
+            samples.pull_tutorials(regex_patterns=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising tutorial connections.")
         pulled_interface = self._wait_for_pulled_interface()
         print("%s" % self.graph._local_gateway)
         self.assertIn("/chatter", [remote_rule.rule.name for remote_rule in pulled_interface])
         try:
-            samples.pull_tutorials(cancel=True, regex_patterns=True) 
+            samples.pull_tutorials(cancel=True, regex_patterns=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when unadvertising tutorial connections.")
         self._assert_cleared_pulled_interface()
-        
+
     def tearDown(self):
         pass
 
@@ -106,7 +106,7 @@ class TestPulls(unittest.TestCase):
         while True:
             self.graph.update()
             pulled_interface = self.graph._local_gateway.pulled_connections
-            if pulled_interface:
+            if not pulled_interface:
                 result = "cleared"
                 break
             else:
@@ -119,4 +119,4 @@ class TestPulls(unittest.TestCase):
 NAME = 'test_pulls'
 if __name__ == '__main__':
     rosunit.unitrun('test_pulls', NAME, TestPulls, sys.argv, coverage_packages=['rocon_gateway'])
-        
+

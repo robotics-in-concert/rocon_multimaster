@@ -29,54 +29,54 @@ class TestGraph(unittest.TestCase):
         rospy.init_node('test_advertisements')
         self.graph = Graph()
 
-    def test_advertise_all(self):
-        print("\n********************************************************************")
-        print("* Advertise All")
-        print("********************************************************************")
-        try:
-            samples.advertise_all()
-        except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when advertising all connections.")
-        public_interface = self._wait_for_public_interface()
-        #print("%s" % self.graph._local_gateway)
-        self.assertEquals("2", str(len(public_interface)))
-        for rule in public_interface:
-            self.assertEquals("/chatter", rule.name)
-            # Should probably assert rule.type and rule.node here as well.
-        # Revert state
-        try:
-            samples.advertise_all(cancel=True)
-        except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when unadvertising all connections.")
-        self._assert_cleared_public_interface()
-
-    def test_advertise_tutorials(self):
-        print("\n********************************************************************")
-        print("* Advertise Tutorials")
-        print("********************************************************************")
-        try:
-            samples.advertise_tutorials()
-        except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when advertising tutorial connections.")
-        public_interface = self._wait_for_public_interface()
-        #print("%s" % self.graph._local_gateway)
-        self.assertIn("/chatter", [rule.name for rule in public_interface])
-        try:
-            samples.advertise_tutorials(cancel=True)
-        except GatewaySampleRuntimeError as e:
-            self.fail("Runtime error caught when unadvertising tutorial connections.")
-        self._assert_cleared_public_interface()
+#     def test_advertise_all(self):
+#         rospy.loginfo(console.cyan + "********************************************************************" + console.reset)
+#         rospy.loginfo(console.cyan + "* Advertise All" + console.reset)
+#         rospy.loginfo(console.cyan + "********************************************************************" + console.reset)
+#         try:
+#             samples.advertise_all()
+#         except GatewaySampleRuntimeError as e:
+#             self.fail("Runtime error caught when advertising all connections.")
+#         public_interface = self._wait_for_public_interface()
+#         #print("%s" % self.graph._local_gateway)
+#         self.assertEquals("2", str(len(public_interface)))
+#         for rule in public_interface:
+#             self.assertEquals("/chatter", rule.name)
+#             # Should probably assert rule.type and rule.node here as well.
+#         # Revert state
+#         try:
+#             samples.advertise_all(cancel=True)
+#         except GatewaySampleRuntimeError as e:
+#             self.fail("Runtime error caught when unadvertising all connections.")
+#         self._assert_cleared_public_interface()
+#
+#     def test_advertise_tutorials(self):
+#         rospy.loginfo(console.cyan + "********************************************************************" + console.reset)
+#         rospy.loginfo(console.cyan + "* Advertise Tutorials" + console.reset)
+#         rospy.loginfo(console.cyan + "********************************************************************" + console.reset)
+#         try:
+#             samples.advertise_tutorials()
+#         except GatewaySampleRuntimeError as e:
+#             self.fail("Runtime error caught when advertising tutorial connections.")
+#         public_interface = self._wait_for_public_interface()
+#         #print("%s" % self.graph._local_gateway)
+#         self.assertIn("/chatter", [rule.name for rule in public_interface])
+#         try:
+#             samples.advertise_tutorials(cancel=True)
+#         except GatewaySampleRuntimeError as e:
+#             self.fail("Runtime error caught when unadvertising tutorial connections.")
+#         self._assert_cleared_public_interface()
 
     def test_advertise_regex_tutorials(self):
-        print("\n********************************************************************")
-        print("* Advertise Regex Tutorials")
-        print("********************************************************************")
+        rospy.loginfo(console.cyan + "********************************************************************" + console.reset)
+        rospy.loginfo(console.cyan + "* Advertise Regex Tutorials" + console.reset)
+        rospy.loginfo(console.cyan + "********************************************************************" + console.reset)
         try:
             samples.advertise_tutorials(regex_patterns=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising tutorial connections.")
         public_interface = self._wait_for_public_interface()
-        print("%s" % self.graph._local_gateway)
+        rospy.loginfo(console.cyan + "  - local gateway graph : \n%s" % self.graph._local_gateway + console.reset)
         self.assertIn("/chatter", [rule.name for rule in public_interface])
         try:
             samples.advertise_tutorials(cancel=True, regex_patterns=True)
@@ -103,10 +103,10 @@ class TestGraph(unittest.TestCase):
         start_time = rospy.Time.now()
         while True:
             self.graph.update()
-            rospy.logwarn("Getting public interface****************************8")
+            rospy.loginfo(console.cyan + "  - getting public interface" + console.reset)
             public_interface = self.graph._local_gateway.public_interface
-            rospy.logwarn("Public interface: %s" % public_interface)
-            if public_interface:
+            rospy.loginfo(console.cyan + "  - public interface: \n" + console.reset + "%s" % public_interface)
+            if not public_interface:
                 result = "cleared"
                 break
             else:
