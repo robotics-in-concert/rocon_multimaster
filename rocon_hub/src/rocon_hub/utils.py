@@ -12,38 +12,27 @@ import os
 import socket
 import sys
 import rosgraph
+import rocon_console.console as console
 
 ##############################################################################
 # Logging
 ##############################################################################
 
 
-class Console:
-    bold = "\033[1m"
-    reset = "\033[0;0m"
-    red = "\033[31m"
-
-
-def red_string(msg):
-    """bound string with console symbols for red output"""
-    return Console.red + msg + Console.reset
-
-
-def bold_string(msg):
-    """bound string with console symbols for bold output"""
-    return Console.bold + msg + Console.reset
-
-
 def loginfo(message):
-    print("[ INFO] " + message + "\n")
+    print("[ INFO] " + message)
+
+
+def logwarn(message):
+    print(console.yellow + ("[ WARN] " + message) + console.reset)
 
 
 def logerror(message):
-    print(red_string("[ERROR] " + message))
+    print(console.red + ("[ERROR] " + message) + console.reset)
 
 
 def logfatal(message):
-    print(red_string("[FATAL] " + message))
+    print(console.red + ("[FATAL] " + message) + console.reset)
 
 
 ##############################################################################
@@ -95,10 +84,12 @@ def check_if_executable_available(name):
       available, but more reliable and general - just check if program binary
       is available.
 
-      Aborts program execution with fatal error if not found.
+      Deprecated - aborts program execution with fatal error if not found.
     '''
-    if which(name) is None:
-        sys.exit(logfatal("Hub : " + name + " not installed - hint 'rosdep install rocon_hub'."))
+    if which(name + 'z') is None:
+        logwarn("Hub : " + name + " not found")
+        logwarn("Hub :     either you can't look up the admin PATH (ok)")
+        logwarn("Hub :     or it is not installed - hint 'rosdep install rocon_hub'")
 
 ##############################################################################
 # File Handling
