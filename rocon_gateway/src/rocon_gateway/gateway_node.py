@@ -214,10 +214,10 @@ class GatewayNode():
             '~pull', gateway_srvs.Remote, self._gateway.ros_service_pull)  # @IgnorePep8
         gateway_services['pull_all'] = rospy.Service(
             '~pull_all', gateway_srvs.RemoteAll, self._gateway.ros_service_pull_all)  # @IgnorePep8
-        gateway_services['set_watcher_period'] = rospy.Service(
-            '~set_watcher_period',
-            gateway_srvs.SetWatcherPeriod,
-            self._gateway.ros_service_set_watcher_period)  # @IgnorePep8
+        #gateway_services['set_watcher_period'] = rospy.Service(
+        #    '~set_watcher_period',
+        #    gateway_srvs.SetWatcherPeriod,
+        #    self._gateway.ros_service_set_watcher_period)  # @IgnorePep8
         return gateway_services
 
     def _setup_ros_publishers(self):
@@ -227,8 +227,8 @@ class GatewayNode():
 
     def _setup_ros_subscribers(self):
         gateway_subscribers = {}
-        gateway_subscribers['force_update'] = rospy.Subscriber(
-            '~force_update', std_msgs.Empty, self._gateway.ros_subscriber_force_update)
+        #gateway_subscribers['force_update'] = rospy.Subscriber(
+        #    '~force_update', std_msgs.Empty, self._gateway.ros_subscriber_force_update)
         return gateway_subscribers
 
     ##########################################################################

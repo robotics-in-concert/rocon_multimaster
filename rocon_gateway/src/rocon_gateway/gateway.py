@@ -9,15 +9,18 @@
 ###############################################################################
 
 import copy
+import os
+
 import rospy
 import gateway_msgs.msg as gateway_msgs
 import gateway_msgs.srv as gateway_srvs
+import rocon_python_comms
 
 from gateway_msgs.msg import RemoteRuleWithStatus as FlipStatus
 
 from . import utils
 from . import ros_parameters
-from .watcher_thread import WatcherThread
+#from .watcher_thread import WatcherThread
 from .flipped_interface import FlippedInterface
 from .public_interface import PublicInterface
 from .pulled_interface import PulledInterface
@@ -72,10 +75,65 @@ class Gateway(object):
             self.public_interface.advertise_all([])
 
         self.network_interface_manager = NetworkInterfaceManager(self._param['network_interface'])
-        self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
+        # TODO : Use self._param['watch_loop_period'] to set the connection_cache spin freq ( OR directly in connection_cache node ) ?
+
+        self.connection_cache = rocon_python_comms.ConnectionCacheProxy(
+            list_sub='~connections_list',
+            handle_actions=True,
+            user_callback=self._connection_cache_proxy_cb,
+            diff_opt=False,  # TODO : Change to True and fix all tests
+            diff_sub='~connections_diff'
+        )
+        # TODO : REMOVE self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
 
     def spin(self):
-        self.watcher_thread.start()
+        if not rospy.core.is_initialized():
+            raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
+        rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
+        try:
+            #TMP
+            self.connections = None
+
+            while not rospy.core.is_shutdown():
+                self.update_network_information()
+                remote_gateway_hub_index = self.hub_manager.create_remote_gateway_hub_index()
+                if self.connections is not None:
+                    self.update_flipped_interface(self.connections, remote_gateway_hub_index)
+                    self.update_public_interface(self.connections)
+                    self.update_pulled_interface(self.connections, remote_gateway_hub_index)
+                registrations = self.hub_manager.get_flip_requests()
+                self.update_flipped_in_interface(registrations, remote_gateway_hub_index)
+                rospy.rostime.wallsleep(1)
+        except KeyboardInterrupt:
+            rospy.logdebug("keyboard interrupt, shutting down")
+            rospy.core.signal_shutdown('keyboard interrupt')
+
+    def _connection_cache_proxy_cb(self, system_state, added_system_state, lost_system_state):
+        # TODO : replace this by algorithm on diff instead of using full state everytime
+        self.connections = utils.create_empty_connection_type_dictionary()
+        self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] =\
+            utils._get_connections_from_action_chan_dict(
+                    system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
+            )
+        self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] =\
+            utils._get_connections_from_action_chan_dict(
+                    system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
+            )
+        self.connections[gateway_msgs.ConnectionType.PUBLISHER] =\
+            utils._get_connections_from_pub_sub_chan_dict(
+                    system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
+            )
+        self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] =\
+            utils._get_connections_from_pub_sub_chan_dict(
+                    system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
+            )
+        self.connections[gateway_msgs.ConnectionType.SERVICE] =\
+            utils._get_connections_from_service_chan_dict(
+                    system_state.services, gateway_msgs.ConnectionType.SERVICE
+            )
+
+        remote_gateway_hub_index = self.hub_manager.create_remote_gateway_hub_index()
+
 
     def shutdown(self):
         for connection_type in utils.connection_types:
@@ -106,12 +164,12 @@ class Gateway(object):
         self.hub_manager.disengage_hub(hub)
         self._publish_gateway_info()
 
-    ##########################################################################
-    # Update interface states (jobs assigned from watcher thread)
-    ##########################################################################
+    ###############################################################################
+    # Update interface states (jobs assigned from connection_cache callback thread)
+    ###############################################################################
 
     def update_flipped_interface(self, local_connection_index, remote_gateway_hub_index):
-        '''
+        """
           Process the list of local connections and check against
           the current flip rules and patterns for changes. If a rule
           has become (un)available take appropriate action.
@@ -121,7 +179,7 @@ class Gateway(object):
 
           @param gateways : list of remote gateway string id's
           @type string
-        '''
+        """
         state_changed = False
 
         # Get flip status of existing requests, and remove those requests that need to be resent
@@ -194,7 +252,7 @@ class Gateway(object):
             self._publish_gateway_info()
 
     def update_pulled_interface(self, unused_connections, remote_gateway_hub_index):
-        '''
+        """
           Process the list of local connections and check against
           the current pull rules and patterns for changes. If a rule
           has become (un)available take appropriate action.
@@ -209,7 +267,7 @@ class Gateway(object):
 
           @param remote_gateway_hub_index : key-value remote gateway name-hub list pairs
           @type dictionary of remote_gateway_name-list of hub_api.Hub objects key-value pairs
-        '''
+        """
         state_changed = False
         remote_connections = {}
         for remote_gateway in remote_gateway_hub_index.keys() + self.pulled_interface.list_remote_gateway_names():
@@ -265,14 +323,14 @@ class Gateway(object):
             self._publish_gateway_info()
 
     def update_public_interface(self, local_connection_index):
-        '''
+        """
           Process the list of local connections and check against
           the current rules and patterns for changes. If a rule
           has become (un)available take appropriate action.
 
           @param local_connection_index : list of current local connections parsed from the master
           @type : { utils.ConnectionType.xxx : utils.Connection[] } dictionaries
-        '''
+        """
         state_changed = False
         # new_conns, lost_conns are of type { gateway_msgs.ConnectionType.xxx : utils.Connection[] }
         new_conns, lost_conns = self.public_interface.update(
@@ -295,13 +353,13 @@ class Gateway(object):
         return public_interface
 
     def update_flipped_in_interface(self, registrations, remote_gateway_hub_index):
-        '''
+        """
           Match the flipped in connections to supplied registrations using
           supplied registrations, flipping and unflipping as necessary.
 
           @param registrations : registrations (with status) to be processed
           @type list of (utils.Registration, str) where the str contains the status
-        '''
+        """
 
         hubs = {}
         for gateway in remote_gateway_hub_index:
@@ -381,11 +439,11 @@ class Gateway(object):
             self._publish_gateway_info()
 
     def update_network_information(self):
-        '''
+        """
           If we are running over a wired connection, then do nothing.
           If over the wireless, updated data transfer rate and signal strength
           for this gateway on the hub
-        '''
+        """
         statistics = self.network_interface_manager.get_statistics()
         self.hub_manager.publish_network_statistics(statistics)
 
@@ -393,26 +451,26 @@ class Gateway(object):
     # Incoming commands from local system (ros service callbacks)
     ##########################################################################
 
-    def ros_service_set_watcher_period(self, request):
-        '''
-          Configures the watcher period. This is useful to slow/speed up the
-          watcher loop. Quite often you want it polling quickly early while
-          configuring connections, but on long loops later when it does not have
-          to do very much except look for shutdown.
-
-          @param request
-          @type gateway_srvs.SetWatcherPeriodRequest
-          @return service response
-          @rtgateway_srvs.srv.SetWatcherPeriodResponse
-        '''
-        self.watcher_thread.set_watch_loop_period(request.period)
-        return gateway_srvs.SetWatcherPeriodResponse(self.watcher_thread.get_watch_loop_period())
-
-    def ros_subscriber_force_update(self, data):
-        '''
-          Trigger a watcher loop update
-        '''
-        self.watcher_thread.trigger_update = True
+    # def ros_service_set_watcher_period(self, request):
+    #     '''
+    #       Configures the watcher period. This is useful to slow/speed up the
+    #       watcher loop. Quite often you want it polling quickly early while
+    #       configuring connections, but on long loops later when it does not have
+    #       to do very much except look for shutdown.
+    #
+    #       @param request
+    #       @type gateway_srvs.SetWatcherPeriodRequest
+    #       @return service response
+    #       @rtgateway_srvs.srv.SetWatcherPeriodResponse
+    #     '''
+    #     self.watcher_thread.set_watch_loop_period(request.period)
+    #     return gateway_srvs.SetWatcherPeriodResponse(self.watcher_thread.get_watch_loop_period())
+    #
+    # def ros_subscriber_force_update(self, data):
+    #     '''
+    #       Trigger a watcher loop update
+    #     '''
+    #     self.watcher_thread.trigger_update = True
 
     def ros_service_advertise(self, request):
         '''
@@ -447,7 +505,7 @@ class Gateway(object):
 
         # Let the watcher get on with the update asap
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-            self.watcher_thread.trigger_update = True
+            #self.watcher_thread.trigger_update = True
             self._publish_gateway_info()
         else:
             rospy.logerr("Gateway : %s." % response.error_message)
@@ -480,7 +538,7 @@ class Gateway(object):
 
         # Let the watcher get on with the update asap
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
-            self.watcher_thread.trigger_update = True
+            #self.watcher_thread.trigger_update = True
             self._publish_gateway_info()
         else:
             rospy.logerr("Gateway : %s." % response.error_message)
@@ -515,7 +573,7 @@ class Gateway(object):
         # Post processing
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             self._publish_gateway_info()
-            self.watcher_thread.trigger_update = True
+            #self.watcher_thread.trigger_update = True
         else:
             rospy.logerr("Gateway : %s." % response.error_message)
         return response
@@ -545,7 +603,7 @@ class Gateway(object):
                 rospy.loginfo("Gateway : cancelling a previous flip all request [%s]" % (request.gateway))
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             self._publish_gateway_info()
-            self.watcher_thread.trigger_update = True
+            #self.watcher_thread.trigger_update = True
         else:
             rospy.logerr("Gateway : %s." % response.error_message)
         return response
@@ -589,7 +647,7 @@ class Gateway(object):
                         rospy.loginfo("Gateway : removed pull rule [%s:%s]" % (remote.gateway, remote.rule.name))
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             self._publish_gateway_info()
-            self.watcher_thread.trigger_update = True
+            #self.watcher_thread.trigger_update = True
         else:
             if added_rules:  # completely abort any added rules
                 for added_rule in added_rules:
@@ -622,7 +680,7 @@ class Gateway(object):
                 rospy.loginfo("Gateway : cancelling a previous pull all request [%s]" % (request.gateway))
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             self._publish_gateway_info()
-            self.watcher_thread.trigger_update = True
+            #self.watcher_thread.trigger_update = True
         else:
             rospy.logerr("Gateway : %s." % response.error_message)
         return response
