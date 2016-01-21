@@ -370,7 +370,7 @@ def _get_connections_from_pub_sub_chan_dict(ccproxy_channel_dict, connection_typ
 def _get_connections_from_action_chan_dict(ccproxy_channel_dict, connection_type):
     connections = set()
     for name, action in ccproxy_channel_dict.iteritems():
-        action_name = action.name + '/goal'
+        action_name = action.name
         goal_topic_type = action.type
         nodes = action.nodes
         for node in nodes:
