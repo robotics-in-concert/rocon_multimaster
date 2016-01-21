@@ -319,7 +319,7 @@ class PublicInterface(object):
         return None
 
     def update(self, connections, generate_advertisement_connection_details):
-        '''
+        """
           Checks a list of rules and determines which ones should be
           added/removed to the public interface. Modifies the public interface
           accordingly, and returns the list of rules to the gateway for
@@ -334,7 +334,7 @@ class PublicInterface(object):
 
           @return: new public connections, as well as connections to be removed
           @rtype: utils.Connection[], utils.Connection[]
-        '''
+        """
         # SLOW, EASY METHOD
         permitted_connections = utils.create_empty_connection_type_dictionary()
         new_public = utils.create_empty_connection_type_dictionary()

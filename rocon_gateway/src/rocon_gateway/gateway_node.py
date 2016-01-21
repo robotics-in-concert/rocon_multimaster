@@ -27,9 +27,9 @@ from . import hub_manager
 
 class GatewayNode():
 
-    '''
+    """
       Currently this just provides getup and go for the gateway.
-    '''
+    """
     ##########################################################################
     # Init & Shutdown
     ##########################################################################
@@ -173,7 +173,7 @@ class GatewayNode():
         return error_code, error_code_str
 
     def _disengage_hub(self, hub):
-        '''
+        """
           Called whenever gateway_hub detects the connection to the hub has been
           lost.
 
@@ -182,7 +182,7 @@ class GatewayNode():
 
           @param hub: hub to be disengaged
           @type GatewayHub
-        '''
+        """
 
         self._hub_discovery_thread.disengage_hub(hub)
         try:
@@ -240,12 +240,12 @@ class GatewayNode():
         return std_srvs.EmptyResponse()
 
     def ros_service_connect_hub(self, request):
-        '''
+        """
           Handle incoming requests to connect directly to a gateway hub.
 
           Requests are of the form of a uri (hostname:port pair) pointing to
           the gateway hub.
-        '''
+        """
         response = gateway_srvs.ConnectHubResponse()
         o = urlparse(request.uri)
         response.result, response.error_message = self._register_gateway(o.hostname, o.port)
@@ -280,12 +280,12 @@ class GatewayNode():
             pass  # occurs if self._gateway is reset to None in the middle of all this.
 
     def ros_service_remote_gateway_info(self, request):
-        '''
+        """
           Sends out to the hubs to get the remote gateway information for either the specified,
           or the known list of remote gateways.
 
           :todo: can we optimise this so that hub requests go as a group?
-        '''
+        """
         response = gateway_srvs.RemoteGatewayInfoResponse()
         requested_gateways = request.gateways if request.gateways else self._hub_manager.list_remote_gateway_names()
         for gateway in list(set(requested_gateways)):

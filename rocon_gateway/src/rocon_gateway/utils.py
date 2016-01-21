@@ -68,6 +68,9 @@ class Connection():
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __hash__(self):
+        return hash((self.rule, self.type_msg, self.type_info, self.xmlrpc_uri))
+
     def __str__(self):
         if self.rule.type == gateway_msgs.ConnectionType.SERVICE:
             return '{type: %s, name: %s, node: %s, uri: %s, service_api: %s, service_type: %s}' % (
@@ -321,14 +324,14 @@ def format_rule(rule):
 ##########################################################################
 
 
-def create_empty_connection_type_dictionary():
-    '''
+def create_empty_connection_type_dictionary(collection_type=list):
+    """
       Used to initialise a dictionary with rule type keys
-      and empty lists.
-    '''
+      and empty lists or sets (or whatever collection_type passed as argument).
+    """
     dic = {}
     for connection_type in connection_types:
-        dic[connection_type] = []
+        dic[connection_type] = collection_type()
     return dic
 
 difflist = lambda l1, l2: [x for x in l1 if x not in l2]  # diff of lists
@@ -340,7 +343,7 @@ difflist = lambda l1, l2: [x for x in l1 if x not in l2]  # diff of lists
 
 
 def _get_connections_from_service_chan_dict(ccproxy_channel_dict, connection_type):
-    connections = []
+    connections = set()
     for name, service in ccproxy_channel_dict.iteritems():
         service_name = service.name
         service_type = service.type
@@ -348,29 +351,29 @@ def _get_connections_from_service_chan_dict(ccproxy_channel_dict, connection_typ
         nodes = service.nodes
         for node in nodes:
             connection = Connection(gateway_msgs.Rule(connection_type, service_name, node[0]), service_type, service_uri, node[1])
-            connections.append(connection)
+            connections.add(connection)
     return connections
 
 
 def _get_connections_from_pub_sub_chan_dict(ccproxy_channel_dict, connection_type):
-    connections = []
+    connections = set()
     for name, topic in ccproxy_channel_dict.iteritems():
         topic_name = topic.name
         topic_type = topic.type
         nodes = topic.nodes
         for node in nodes:
             connection = Connection(gateway_msgs.Rule(connection_type, topic_name, node[0]), topic_type, topic_type, node[1])
-            connections.append(connection)
+            connections.add(connection)
     return connections
 
 
 def _get_connections_from_action_chan_dict(ccproxy_channel_dict, connection_type):
-    connections = []
+    connections = set()
     for name, action in ccproxy_channel_dict.iteritems():
         action_name = action.name + '/goal'
         goal_topic_type = action.type
         nodes = action.nodes
         for node in nodes:
             connection = Connection(gateway_msgs.Rule(connection_type, action_name, node[0]), goal_topic_type, goal_topic_type, node[1])  # node_uri
-            connections.append(connection)
+            connections.add(connection)
     return connections

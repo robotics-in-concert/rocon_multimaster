@@ -10,6 +10,7 @@
 
 import copy
 import os
+import threading
 
 import rospy
 import gateway_msgs.msg as gateway_msgs
@@ -77,11 +78,13 @@ class Gateway(object):
         self.network_interface_manager = NetworkInterfaceManager(self._param['network_interface'])
         # TODO : Use self._param['watch_loop_period'] to set the connection_cache spin freq ( OR directly in connection_cache node ) ?
 
+        self.connections_lock = threading.Lock()
+        self.connections = utils.create_empty_connection_type_dictionary(set)
         self.connection_cache = rocon_python_comms.ConnectionCacheProxy(
             list_sub='~connections_list',
             handle_actions=True,
             user_callback=self._connection_cache_proxy_cb,
-            diff_opt=False,  # TODO : Change to True and fix all tests
+            diff_opt=True,
             diff_sub='~connections_diff'
         )
         # TODO : REMOVE self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
@@ -91,16 +94,16 @@ class Gateway(object):
             raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
         rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
         try:
-            #TMP
-            self.connections = None
-
             while not rospy.core.is_shutdown():
                 self.update_network_information()
                 remote_gateway_hub_index = self.hub_manager.create_remote_gateway_hub_index()
-                if self.connections is not None:
-                    self.update_flipped_interface(self.connections, remote_gateway_hub_index)
-                    self.update_public_interface(self.connections)
-                    self.update_pulled_interface(self.connections, remote_gateway_hub_index)
+
+                self.connections_lock.acquire()
+                self.update_flipped_interface(self.connections, remote_gateway_hub_index)
+                self.update_public_interface(self.connections)
+                self.update_pulled_interface(self.connections, remote_gateway_hub_index)
+                self.connections_lock.release()
+
                 registrations = self.hub_manager.get_flip_requests()
                 self.update_flipped_in_interface(registrations, remote_gateway_hub_index)
                 rospy.rostime.wallsleep(1)
@@ -109,31 +112,75 @@ class Gateway(object):
             rospy.core.signal_shutdown('keyboard interrupt')
 
     def _connection_cache_proxy_cb(self, system_state, added_system_state, lost_system_state):
-        # TODO : replace this by algorithm on diff instead of using full state everytime
-        self.connections = utils.create_empty_connection_type_dictionary()
-        self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] =\
-            utils._get_connections_from_action_chan_dict(
-                    system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
-            )
-        self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] =\
-            utils._get_connections_from_action_chan_dict(
-                    system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
-            )
-        self.connections[gateway_msgs.ConnectionType.PUBLISHER] =\
-            utils._get_connections_from_pub_sub_chan_dict(
-                    system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
-            )
-        self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] =\
-            utils._get_connections_from_pub_sub_chan_dict(
-                    system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
-            )
-        self.connections[gateway_msgs.ConnectionType.SERVICE] =\
-            utils._get_connections_from_service_chan_dict(
-                    system_state.services, gateway_msgs.ConnectionType.SERVICE
-            )
 
-        remote_gateway_hub_index = self.hub_manager.create_remote_gateway_hub_index()
+        self.connections_lock.acquire()
+        # if there was no change but we got a callback,
+        # it means it s the first and we need to set the whole list
+        if added_system_state is None and lost_system_state is None:
+            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] =\
+                utils._get_connections_from_action_chan_dict(
+                        system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
+                )
+            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] =\
+                utils._get_connections_from_action_chan_dict(
+                        system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
+                )
+            self.connections[gateway_msgs.ConnectionType.PUBLISHER] =\
+                utils._get_connections_from_pub_sub_chan_dict(
+                        system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
+                )
+            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] =\
+                utils._get_connections_from_pub_sub_chan_dict(
+                        system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
+                )
+            self.connections[gateway_msgs.ConnectionType.SERVICE] =\
+                utils._get_connections_from_service_chan_dict(
+                        system_state.services, gateway_msgs.ConnectionType.SERVICE
+                )
+        else:  # we got some diff, we can optimize
+            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] |=\
+                utils._get_connections_from_action_chan_dict(
+                        added_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
+                )
+            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] |=\
+                utils._get_connections_from_action_chan_dict(
+                        added_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
+                )
+            self.connections[gateway_msgs.ConnectionType.PUBLISHER] |=\
+                utils._get_connections_from_pub_sub_chan_dict(
+                        added_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
+                )
+            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] |=\
+                utils._get_connections_from_pub_sub_chan_dict(
+                        added_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
+                )
+            self.connections[gateway_msgs.ConnectionType.SERVICE] |=\
+                utils._get_connections_from_service_chan_dict(
+                        added_system_state.services, gateway_msgs.ConnectionType.SERVICE
+                )
 
+            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] -=\
+                utils._get_connections_from_action_chan_dict(
+                        lost_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
+                )
+            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] -=\
+                utils._get_connections_from_action_chan_dict(
+                        lost_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
+                )
+            self.connections[gateway_msgs.ConnectionType.PUBLISHER] -=\
+                utils._get_connections_from_pub_sub_chan_dict(
+                        lost_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
+                )
+            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] -=\
+                utils._get_connections_from_pub_sub_chan_dict(
+                        lost_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
+                )
+            self.connections[gateway_msgs.ConnectionType.SERVICE] -=\
+                utils._get_connections_from_service_chan_dict(
+                        lost_system_state.services, gateway_msgs.ConnectionType.SERVICE
+                )
+
+        self.connections_lock.release()
 
     def shutdown(self):
         for connection_type in utils.connection_types:
@@ -174,8 +221,8 @@ class Gateway(object):
           the current flip rules and patterns for changes. If a rule
           has become (un)available take appropriate action.
 
-          @param local_connection_index : list of current local connections parsed from the master
-          @type : dictionary of ConnectionType.xxx keyed lists of utils.Connections
+          @param local_connection_index : list of current local connections
+          @type : dictionary of ConnectionType.xxx keyed sets of utils.Connections
 
           @param gateways : list of remote gateway string id's
           @type string
@@ -513,7 +560,7 @@ class Gateway(object):
         return response
 
     def ros_service_advertise_all(self, request):
-        '''
+        """
           Toggles the advertise all mode. If advertising all, an additional
           blacklist parameter can be supplied which includes all the topics that
           will not be advertised/watched for. This blacklist is added to the
@@ -523,7 +570,7 @@ class Gateway(object):
           @type gateway_srvs.AdvertiseAllRequest
           @return service response
           @rtype gateway_srvs.AdvertiseAllReponse
-        '''
+        """
         response = gateway_srvs.AdvertiseAllResponse()
         try:
             if not request.cancel:
@@ -546,7 +593,7 @@ class Gateway(object):
         return response
 
     def ros_service_flip(self, request):
-        '''
+        """
           Puts flip rules on a watchlist which (un)flips them when they
           become (un)available.
 
@@ -554,7 +601,7 @@ class Gateway(object):
           @type gateway_srvs.RemoteRequest
           @return service response
           @rtype gateway_srvs.RemoteResponse
-        '''
+        """
         # could move this below and if any are fails, just abort adding the rules.
         # Check if the target remote gateway is valid.
 #         response = self._check_remote_gateways(request.remotes)
@@ -579,7 +626,7 @@ class Gateway(object):
         return response
 
     def ros_service_flip_all(self, request):
-        '''
+        """
           Flips everything except a specified blacklist to a particular gateway,
           or if the cancel flag is set, clears all flips to that gateway.
 
@@ -587,7 +634,7 @@ class Gateway(object):
           @type gateway_srvs.RemoteAllRequest
           @return service response
           @rtype gateway_srvs.RemoteAllResponse
-        '''
+        """
         response = gateway_srvs.RemoteAllResponse()
         remote_gateway_target_hash_name, response.result, response.error_message = self._ros_service_remote_checks(
             request.gateway)
@@ -609,7 +656,7 @@ class Gateway(object):
         return response
 
     def ros_service_pull(self, request):
-        '''
+        """
           Puts a single rule on a watchlist and pulls it from a particular
           gateway when it becomes (un)available.
 
@@ -617,7 +664,7 @@ class Gateway(object):
           @type gateway_srvs.RemoteRequest
           @return service response
           @rtype gateway_srvs.RemoteResponse
-        '''
+        """
         # could move this below and if any are fails, just abort adding the rules.
         # Check if the target remote gateway is valid.
         response = self._check_remote_gateways(request.remotes)
@@ -656,7 +703,7 @@ class Gateway(object):
         return response
 
     def ros_service_pull_all(self, request):
-        '''
+        """
           Pull everything except a specified blacklist from a particular gateway,
           or if the cancel flag is set, clears all pulls from that gateway.
 
@@ -664,7 +711,7 @@ class Gateway(object):
           @type gateway_srvs.RemoteAllRequest
           @return service response
           @rtype gateway_srvs.RemoteAllResponse
-        '''
+        """
         response = gateway_srvs.RemoteAllResponse()
         remote_gateway_target_hash_name, response.result, response.error_message = self._ros_service_remote_checks(
             request.gateway)
@@ -686,7 +733,7 @@ class Gateway(object):
         return response
 
     def _ros_service_remote_checks(self, gateway):
-        '''
+        """
           Some simple checks when pulling or flipping to make sure that the remote gateway is visible. It
           does a strict check on the hash names first, then falls back to looking for weak matches on the
           human friendly name.
@@ -695,7 +742,7 @@ class Gateway(object):
           @type string
           @return pair of result type and message
           @rtype gateway_msgs.ErrorCodes.xxx, string
-        '''
+        """
         if not self.is_connected():
             return None, gateway_msgs.ErrorCodes.NO_HUB_CONNECTION, "not connected to hub, aborting"
         if gateway == self._unique_name:
