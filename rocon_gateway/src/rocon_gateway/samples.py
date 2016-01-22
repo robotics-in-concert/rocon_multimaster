@@ -101,7 +101,7 @@ def create_tutorial_dictionaries(use_regex_patterns=False):
         names = {
             gateway_msgs.ConnectionType.PUBLISHER: '.*ter',
             gateway_msgs.ConnectionType.SUBSCRIBER: '.*ter',
-            gateway_msgs.ConnectionType.SERVICE: '/add_two_.*',
+            gateway_msgs.ConnectionType.SERVICE: '/add_.*_ints',
             gateway_msgs.ConnectionType.ACTION_CLIENT: '/fibonacci/cli.*',
             gateway_msgs.ConnectionType.ACTION_SERVER: '/fibonacci/ser.*'
         }
@@ -156,7 +156,9 @@ def advertise_all(cancel=False, ns=_gateway_namespace):
     req.blacklist = []
     rospy.loginfo("Advertise All : %s all." % _action_text(cancel, 'advertising'))
     resp = advertise_all(req)
-    if resp.result != 0:
+    if resp.result == gateway_msgs.ErrorCodes.ADVERTISEMENT_EXISTS:  # already advertising all error is ignored. this call only has no effect.
+        pass
+    elif resp.result != 0:
         raise GatewaySampleRuntimeError("failed to advertise all (todo: no error message yet)")
 
 
@@ -179,7 +181,9 @@ def advertise_tutorials(cancel=False, regex_patterns=False, ns=_gateway_namespac
                       (_action_text(cancel, 'advertising'), rule.type, rule.name, rule.node or 'None'))
         req.rules.append(rule)
         resp = advertise(req)
-        if resp.result != 0:
+        if resp.result == gateway_msgs.ErrorCodes.ADVERTISEMENT_EXISTS:  # already advertising all error is ignored. this call only has no effect.
+            pass
+        elif resp.result != 0:
             raise GatewaySampleRuntimeError("failed to advertise %s [%s]" % (rule.name, resp.error_message))
 
 
@@ -197,7 +201,9 @@ def pull_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
     req.blacklist = []
     rospy.loginfo("Pull All : %s." % _action_text(cancel, 'sending pull rule for all to the gateway'))
     resp = pull_all(req)
-    if resp.result != 0:
+    if resp.result == gateway_msgs.ErrorCodes.PULL_RULE_ALREADY_EXISTS:  # already pulled all error is ignored. this call only has no effect.
+        pass
+    elif resp.result != 0:
         raise GatewaySampleRuntimeError("failed to pull all from %s [%s]" % (remote_gateway_name, resp.error_message))
 
 
@@ -229,7 +235,9 @@ def pull_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
                 remote_gateway_name))
         req.remotes.append(gateway_msgs.RemoteRule(remote_gateway_name, rule))
     resp = pull(req)
-    if resp.result != 0:
+    if resp.result == gateway_msgs.ErrorCodes.PULL_RULE_ALREADY_EXISTS:  # already pulled all error is ignored. this call only has no effect.
+        pass
+    elif resp.result != 0:
         raise GatewaySampleRuntimeError("failed to pull %s [%s]" % (rule.name, resp.error_message))
 
 
@@ -248,7 +256,9 @@ def flip_all(remote_gateway_name=None, cancel=False, ns=_gateway_namespace):
     rospy.loginfo("Flip All : %s [%s]." %
                   (_action_text(cancel, 'sending flip rule for all to the gateway'), remote_gateway_name))
     resp = flip_all(req)
-    if resp.result != 0:
+    if resp.result == gateway_msgs.ErrorCodes.FLIP_RULE_ALREADY_EXISTS:  # already flipped all error is ignored. this call only has no effect.
+        pass
+    elif resp.result != 0:
         raise GatewaySampleRuntimeError("failed to flip all to %s [%s]" % (remote_gateway_name, resp.error_message))
 
 
@@ -280,7 +290,9 @@ def flip_tutorials(remote_gateway_name=None, cancel=False, regex_patterns=False,
                 remote_gateway_name))
         req.remotes.append(gateway_msgs.RemoteRule(remote_gateway_name, rule))
     resp = flip(req)
-    if resp.result != 0:
+    if resp.result == gateway_msgs.ErrorCodes.FLIP_RULE_ALREADY_EXISTS:  # already flipped all error is ignored. this call only has no effect.
+        pass
+    elif resp.result != 0:
         raise GatewaySampleRuntimeError("failed to flip %s [%s]" % (rule.name, resp.error_message))
 
 
