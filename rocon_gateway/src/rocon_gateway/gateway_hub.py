@@ -803,7 +803,7 @@ class GatewayHub(rocon_hub_client.Hub):
                         # if status is not set, then we set it
                         if status[index] is None:
                             status[index] = rule_status
-                            rospy.loginfo("  FOUND : Status for rule named {name} changed {old_status} => {status}".format(name=remote_rule.rule.name, old_status=status[index], status=rule_status))
+                            #rospy.loginfo("  FOUND : Status for rule named {name} changed {old_status} => {status}".format(name=remote_rule.rule.name, old_status=status[index], status=rule_status))
                         elif status[index] != rule_status: # the status has been set previously to something different
                             # we establish here some kind of order on rule status
                             # TODO : implement this better
@@ -814,7 +814,7 @@ class GatewayHub(rocon_hub_client.Hub):
                                 # RESEND or BLOCKED do not follow basic flow
                                 # so we want to make it obvious at action level.
                                 status[index] = rule_status
-                                rospy.loginfo("  FOUND : Status for rule named {name} changed {old_status} => {status}".format(name=remote_rule.rule.name, old_status=status[index], status=rule_status))
+                                #rospy.loginfo("  FOUND : Status for rule named {name} changed {old_status} => {status}".format(name=remote_rule.rule.name, old_status=status[index], status=rule_status))
                         break
         return status
 
