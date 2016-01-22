@@ -2,6 +2,8 @@
   <include file="$(find rocon_gateway_tests)/launch/common/local_gateway.xml">
     <arg name="yaml" value="flip_all.yaml" />
   </include>
-  <node pkg="roscpp_tutorials" type="talker" name="talker"/>
+
+  <include file="$(find rocon_gateway_tests)/launch/common/tutorials.xml"/>
+
   <test test-name="local_graph" pkg="rocon_gateway_tests" type="test_graph.py"/>
 </launch>

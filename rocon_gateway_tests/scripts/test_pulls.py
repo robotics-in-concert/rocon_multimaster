@@ -40,11 +40,15 @@ class TestPulls(unittest.TestCase):
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising all connections.")
         pulled_interface = self._wait_for_pulled_interface()
-        #print("%s" % self.graph._local_gateway)
-        self.assertEquals("2", str(len(pulled_interface)))
-        for remote_rule in pulled_interface:
-            self.assertEquals("/chatter", remote_rule.rule.name)
-            # Should probably assert rule.type and rule.node here as well.
+        rospy.loginfo(console.cyan + "  - local gateway graph : \n%s" % self.graph._local_gateway + console.reset)
+        self.assertEquals("5", str(len(pulled_interface)))
+
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/add_two_ints" and remote_rule.rule.node.split(',')[0] == "/add_two_ints_server" and remote_rule.rule.type == "service"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/chatter" and remote_rule.rule.node.split(',')[0] == "/talker" and remote_rule.rule.type == "publisher"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/chatter" and remote_rule.rule.node.split(',')[0] == "/listener" and remote_rule.rule.type == "subscriber"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/fibonacci/server" and remote_rule.rule.node.split(',')[0] == "/fibonacci_server" and remote_rule.rule.type == "action_server"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/fibonacci/client" and remote_rule.rule.node.split(',')[0] == "/fibonacci_client" and remote_rule.rule.type == "action_client"]), 1)
+
         # Revert state
         try:
             samples.pull_all(cancel=True)
@@ -57,14 +61,21 @@ class TestPulls(unittest.TestCase):
         print("* Pull Tutorials")
         print("********************************************************************")
         try:
-            samples.pull_tutorials() 
+            samples.pull_tutorials()
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising tutorial connections.")
         pulled_interface = self._wait_for_pulled_interface()
-        #print("%s" % self.graph._local_gateway)
-        self.assertIn("/chatter", [remote_rule.rule.name for remote_rule in pulled_interface])
+        rospy.loginfo(console.cyan + "  - local gateway graph : \n%s" % self.graph._local_gateway + console.reset)
+        self.assertEquals("5", str(len(pulled_interface)))
+
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/add_two_ints" and remote_rule.rule.node.split(',')[0] == "/add_two_ints_server" and remote_rule.rule.type == "service"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/chatter" and remote_rule.rule.node.split(',')[0] == "/talker" and remote_rule.rule.type == "publisher"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/chatter" and remote_rule.rule.node.split(',')[0] == "/listener" and remote_rule.rule.type == "subscriber"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/fibonacci/server" and remote_rule.rule.node.split(',')[0] == "/fibonacci_server" and remote_rule.rule.type == "action_server"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/fibonacci/client" and remote_rule.rule.node.split(',')[0] == "/fibonacci_client" and remote_rule.rule.type == "action_client"]), 1)
+
         try:
-            samples.pull_tutorials(cancel=True) 
+            samples.pull_tutorials(cancel=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when unadvertising tutorial connections.")
         self._assert_cleared_pulled_interface()
@@ -74,18 +85,25 @@ class TestPulls(unittest.TestCase):
         print("* Pull Regex Tutorials")
         print("********************************************************************")
         try:
-            samples.pull_tutorials(regex_patterns=True) 
+            samples.pull_tutorials(regex_patterns=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when advertising tutorial connections.")
         pulled_interface = self._wait_for_pulled_interface()
-        print("%s" % self.graph._local_gateway)
-        self.assertIn("/chatter", [remote_rule.rule.name for remote_rule in pulled_interface])
+        rospy.loginfo(console.cyan + "  - local gateway graph : \n%s" % self.graph._local_gateway + console.reset)
+        self.assertEquals("5", str(len(pulled_interface)))
+
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/add_two_ints" and remote_rule.rule.node.split(',')[0] == "/add_two_ints_server" and remote_rule.rule.type == "service"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/chatter" and remote_rule.rule.node.split(',')[0] == "/talker" and remote_rule.rule.type == "publisher"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/chatter" and remote_rule.rule.node.split(',')[0] == "/listener" and remote_rule.rule.type == "subscriber"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/fibonacci/server" and remote_rule.rule.node.split(',')[0] == "/fibonacci_server" and remote_rule.rule.type == "action_server"]), 1)
+        self.assertEquals(len([remote_rule for remote_rule in pulled_interface if remote_rule.rule.name == "/fibonacci/client" and remote_rule.rule.node.split(',')[0] == "/fibonacci_client" and remote_rule.rule.type == "action_client"]), 1)
+
         try:
-            samples.pull_tutorials(cancel=True, regex_patterns=True) 
+            samples.pull_tutorials(cancel=True, regex_patterns=True)
         except GatewaySampleRuntimeError as e:
             self.fail("Runtime error caught when unadvertising tutorial connections.")
         self._assert_cleared_pulled_interface()
-        
+
     def tearDown(self):
         pass
 
@@ -106,7 +124,7 @@ class TestPulls(unittest.TestCase):
         while True:
             self.graph.update()
             pulled_interface = self.graph._local_gateway.pulled_connections
-            if pulled_interface:
+            if not pulled_interface:
                 result = "cleared"
                 break
             else:
@@ -119,4 +137,4 @@ class TestPulls(unittest.TestCase):
 NAME = 'test_pulls'
 if __name__ == '__main__':
     rosunit.unitrun('test_pulls', NAME, TestPulls, sys.argv, coverage_packages=['rocon_gateway'])
-        
+

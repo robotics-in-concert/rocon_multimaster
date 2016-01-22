@@ -4,4 +4,21 @@
 <launch>
   <node pkg="roscpp_tutorials" type="talker" name="talker"/>
   <node pkg="roscpp_tutorials" type="listener" name="listener"/>
+  <node pkg="roscpp_tutorials" type="add_two_ints_server" name="add_two_ints_server"/>
+  <node pkg="actionlib_tutorials" type="fibonacci_server" name="fibonacci_server">
+    <!-- to prevent action hooking into each other and follow sample watchlist rules -->
+    <remap from="fibonacci/goal" to="fibonacci/server/goal"/>
+    <remap from="fibonacci/cancel" to="fibonacci/server/cancel"/>
+    <remap from="fibonacci/feedback" to="fibonacci/server/feedback"/>
+    <remap from="fibonacci/status" to="fibonacci/server/status"/>
+    <remap from="fibonacci/result" to="fibonacci/server/result"/>
+  </node>
+  <node pkg="actionlib_tutorials" type="fibonacci_client" name="fibonacci_client">
+    <!-- to prevent action hooking into each other and follow sample watchlist rules -->
+    <remap from="fibonacci/goal" to="fibonacci/client/goal"/>
+    <remap from="fibonacci/cancel" to="fibonacci/client/cancel"/>
+    <remap from="fibonacci/feedback" to="fibonacci/client/feedback"/>
+    <remap from="fibonacci/status" to="fibonacci/client/status"/>
+    <remap from="fibonacci/result" to="fibonacci/client/result"/>
+  </node>
 </launch>

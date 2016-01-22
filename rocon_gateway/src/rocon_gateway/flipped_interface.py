@@ -98,6 +98,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
         flip_status = self._prepare_flip_status(flipped)
         new_flips, filtered_flips = self._filter_flipped_in_interfaces(new_flips, self.registrations)
+        #rospy.loginfo("new_flips : {nf}".format(nf=new_flips))
         self.flipped = self._update_flipped(flipped, filtered_flips)
         self._lock.release()
         return new_flips, removed_flips
@@ -165,6 +166,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
             index = self.flipped[flip.rule.type].index(flip)
             state_changed = (self.flip_status[flip.rule.type][index] != status)
             self.flip_status[flip.rule.type][index] = status
+            #rospy.loginfo("self.flip_status[{t}][{i}] = {s}".format(t=flip.rule.type, i=index, s=status))
         except ValueError:
             pass
         self._lock.release()
@@ -279,10 +281,13 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
             flip_status[connection_type] = [RemoteRuleWithStatus.UNKNOWN] * len(flipped[connection_type])
 
         for connection_type in utils.connection_types:
+            #rospy.loginfo("flip_status[{ct}] = {f}".format(ct=connection_type, f=flip_status[connection_type]))
+            #rospy.loginfo("flipped[{ct}] = {f}".format(ct=connection_type, f=flipped[connection_type]))
             for new_index, flip in enumerate(flipped[connection_type]):
                 try:
                     index = self.flipped[connection_type].index(flip)
                     flip_status[connection_type][new_index] = self.flip_status[connection_type][index]
+                    #rospy.loginfo("flipped[{idx}].status == {status}".format(idx=new_index, status=flip_status[connection_type][new_index]))
                 except:
                     # The new flip probably did not exist. Let it remain unknown
                     pass
