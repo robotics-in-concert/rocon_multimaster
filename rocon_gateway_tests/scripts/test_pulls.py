@@ -129,7 +129,7 @@ class TestPulls(unittest.TestCase):
                 break
             else:
                 rospy.sleep(0.2)
-            if rospy.Time.now() - start_time > rospy.Duration(1.0):
+            if rospy.Time.now() - start_time > rospy.Duration(2.0):
                 result = "timed out waiting for pulled interface to clear"
                 break
         self.assertEqual("cleared", result)
