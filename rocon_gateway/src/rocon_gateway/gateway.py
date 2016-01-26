@@ -138,47 +138,58 @@ class Gateway(object):
                         system_state.services, gateway_msgs.ConnectionType.SERVICE
                 )
         else:  # we got some diff, we can optimize
-            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] |=\
-                utils._get_connections_from_action_chan_dict(
-                        added_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
-                )
-            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] |=\
-                utils._get_connections_from_action_chan_dict(
-                        added_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
-                )
-            self.connections[gateway_msgs.ConnectionType.PUBLISHER] |=\
-                utils._get_connections_from_pub_sub_chan_dict(
-                        added_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
-                )
-            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] |=\
-                utils._get_connections_from_pub_sub_chan_dict(
-                        added_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
-                )
-            self.connections[gateway_msgs.ConnectionType.SERVICE] |=\
-                utils._get_connections_from_service_chan_dict(
-                        added_system_state.services, gateway_msgs.ConnectionType.SERVICE
-                )
+            # this is not really needed as is ( since the list we get is always updated )
+            # However it is a first step towards an optimized gateway that can work with system state differences
+            new_action_servers = utils._get_connections_from_action_chan_dict(
+                added_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
+            )
+            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] |= new_action_servers
 
-            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] -=\
-                utils._get_connections_from_action_chan_dict(
-                        lost_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
-                )
-            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] -=\
-                utils._get_connections_from_action_chan_dict(
-                        lost_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
-                )
-            self.connections[gateway_msgs.ConnectionType.PUBLISHER] -=\
-                utils._get_connections_from_pub_sub_chan_dict(
-                        lost_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
-                )
-            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] -=\
-                utils._get_connections_from_pub_sub_chan_dict(
-                        lost_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
-                )
-            self.connections[gateway_msgs.ConnectionType.SERVICE] -=\
-                utils._get_connections_from_service_chan_dict(
-                        lost_system_state.services, gateway_msgs.ConnectionType.SERVICE
-                )
+            new_action_clients = utils._get_connections_from_action_chan_dict(
+                added_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
+            )
+            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] |= new_action_clients
+
+            new_publishers = utils._get_connections_from_pub_sub_chan_dict(
+                added_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
+            )
+            self.connections[gateway_msgs.ConnectionType.PUBLISHER] |= new_publishers
+
+            new_subscribers = utils._get_connections_from_pub_sub_chan_dict(
+                added_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
+            )
+            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] |= new_subscribers
+
+            new_services = utils._get_connections_from_service_chan_dict(
+                added_system_state.services, gateway_msgs.ConnectionType.SERVICE
+            )
+            self.connections[gateway_msgs.ConnectionType.SERVICE] |= new_services
+
+
+            lost_action_servers = utils._get_connections_from_action_chan_dict(
+                lost_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
+            )
+            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] -= lost_action_servers
+
+            lost_action_clients = utils._get_connections_from_action_chan_dict(
+                lost_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
+            )
+            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] -= lost_action_clients
+
+            lost_publishers = utils._get_connections_from_pub_sub_chan_dict(
+                lost_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
+            )
+            self.connections[gateway_msgs.ConnectionType.PUBLISHER] -= lost_publishers
+
+            lost_subscribers = utils._get_connections_from_pub_sub_chan_dict(
+                lost_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
+            )
+            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] -= lost_subscribers
+
+            lost_services = utils._get_connections_from_service_chan_dict(
+                lost_system_state.services, gateway_msgs.ConnectionType.SERVICE
+            )
+            self.connections[gateway_msgs.ConnectionType.SERVICE] -= lost_services
 
         self.connections_lock.release()
 

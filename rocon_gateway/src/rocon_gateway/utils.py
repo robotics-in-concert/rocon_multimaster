@@ -69,7 +69,7 @@ class Connection():
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.rule, self.type_msg, self.type_info, self.xmlrpc_uri))
+        return hash(((self.rule.type, self.rule.name, self.rule.node), self.type_msg, self.type_info, self.xmlrpc_uri))
 
     def __str__(self):
         if self.rule.type == gateway_msgs.ConnectionType.SERVICE:
