@@ -1,5 +1,9 @@
-<!-- 
-  Works with rocon_hub/hub.launch. 
+<!--
+  Requirements for the gateway to actually do something:
+
+  - a rocon hub has to be launched somewhere
+  - a connection cache node for getting master state information
+  - (optionally) zeroconf node around for automatic discovery
 -->
 <launch>
   <arg name="gateway_name" default="gateway"/>
@@ -10,6 +14,7 @@
   <arg name="gateway_firewall" default="true"/> <!-- Typically nothing comes in! -->
   <arg name="gateway_disable_zeroconf" default="false" doc="do not find the hub with zeroconf, make sure you set gateway_hub_uri instead."/>
   <arg name="gateway_custom_rules_file" default="" doc="name of a custom file with gateway rules provided by the user (yaml)."/>
+
   <arg name="connection_cache_list" default="/rocon/connection_cache/list" doc="topic to listen for connection cache list of connections"/>
   <arg name="connection_cache_diff" default="/rocon/connection_cache/diff" doc="topic to listen for differences in connection cache list of connections"/>
 
