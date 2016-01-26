@@ -30,8 +30,6 @@ import roslib.names
 import gateway_msgs.msg as gateway_msgs
 
 from . import utils, GatewayError
-from rocon_python_comms import ConnectionCacheProxy
-
 
 class LocalMaster(rosgraph.Master):
 
@@ -44,11 +42,6 @@ class LocalMaster(rosgraph.Master):
 
     def __init__(self):
         rosgraph.Master.__init__(self, rospy.get_name())
-        self._connection_cache = ConnectionCacheProxy(
-                list_sub='~connections_list',
-                diff_opt=True,
-                diff_sub='~connections_diff'
-        )
 
     ##########################################################################
     # Registration
@@ -305,7 +298,7 @@ class LocalMaster(rosgraph.Master):
     ##########################################################################
 
     def generate_connection_details(self, connection_type, name, node):
-        '''
+        """
         Creates all the extra details to create a connection object from a
         rule.
 
@@ -318,7 +311,7 @@ class LocalMaster(rosgraph.Master):
 
         @return the utils.Connection object complete with type_info and xmlrpc_uri
         @type utils.Connection
-        '''
+        """
         # Very important here to check for the results of xmlrpc_uri and especially topic_type
         #     https://github.com/robotics-in-concert/rocon_multimaster/issues/173
         # In the watcher thread, we get the local connection index (whereby the arguments of this function
@@ -334,13 +327,14 @@ class LocalMaster(rosgraph.Master):
         if connection_type == rocon_python_comms.PUBLISHER or connection_type == rocon_python_comms.SUBSCRIBER:
             type_info = rostopic.get_topic_type(name)[0]  # message type
             if type_info is not None:
-                connections.append(utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_info, type_info, xmlrpc_uri))
             else:
                 rospy.logwarn('Gateway : [%s] does not have type_info. Cannot flip' % name)
         elif connection_type == rocon_python_comms.SERVICE:
             type_info = rosservice.get_service_uri(name)
+            type_msg = rosservice.get_service_type(name)
             if type_info is not None:
-                connections.append(utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_info, xmlrpc_uri))
+                connections.append(utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_msg, type_info, xmlrpc_uri))
         elif connection_type == rocon_python_comms.ACTION_SERVER:
             goal_type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
             cancel_type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
@@ -352,15 +346,15 @@ class LocalMaster(rosgraph.Master):
                 status_type_info is not None and feedback_type_info is not None and
                 result_type_info is not None
             ):
-                connections.append(utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/goal', node), goal_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/goal', node), goal_type_info, goal_type_info, xmlrpc_uri))
                 connections.append(
-                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/cancel', node), cancel_type_info, xmlrpc_uri))
+                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/cancel', node), cancel_type_info, cancel_type_info, xmlrpc_uri))
                 connections.append(
-                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/status', node), status_type_info, xmlrpc_uri))
+                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/status', node), status_type_info, status_type_info, xmlrpc_uri))
                 connections.append(
-                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/feedback', node), feedback_type_info, xmlrpc_uri))
+                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/feedback', node), feedback_type_info, feedback_type_info, xmlrpc_uri))
                 connections.append(
-                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/result', node), result_type_info, xmlrpc_uri))
+                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/result', node), result_type_info, result_type_info, xmlrpc_uri))
         elif connection_type == rocon_python_comms.ACTION_CLIENT:
             goal_type_info = rostopic.get_topic_type(name + '/goal')[0]  # message type
             cancel_type_info = rostopic.get_topic_type(name + '/cancel')[0]  # message type
@@ -372,15 +366,15 @@ class LocalMaster(rosgraph.Master):
                 status_type_info is not None and feedback_type_info is not None and
                 result_type_info is not None
             ):
-                connections.append(utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/goal', node), goal_type_info, xmlrpc_uri))
+                connections.append(utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/goal', node), goal_type_info, goal_type_info, xmlrpc_uri))
                 connections.append(
-                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/cancel', node), cancel_type_info, xmlrpc_uri))
+                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.PUBLISHER, name + '/cancel', node), cancel_type_info, cancel_type_info, xmlrpc_uri))
                 connections.append(
-                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/status', node), status_type_info, xmlrpc_uri))
+                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/status', node), status_type_info, status_type_info, xmlrpc_uri))
                 connections.append(
-                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/feedback', node), feedback_type_info, xmlrpc_uri))
+                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/feedback', node), feedback_type_info, feedback_type_info, xmlrpc_uri))
                 connections.append(
-                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/result', node), result_type_info, xmlrpc_uri))
+                    utils.Connection(gateway_msgs.Rule(rocon_python_comms.SUBSCRIBER, name + '/result', node), result_type_info, result_type_info, xmlrpc_uri))
         return connections
 
     def generate_advertisement_connection_details(self, connection_type, name, node):
@@ -415,17 +409,18 @@ class LocalMaster(rosgraph.Master):
         if connection_type == rocon_python_comms.PUBLISHER or connection_type == rocon_python_comms.SUBSCRIBER:
             type_info = rostopic.get_topic_type(name)[0]  # message type
             if type_info is not None:
-                connection = utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_info, xmlrpc_uri)
+                connection = utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_info, type_info, xmlrpc_uri)
         elif connection_type == rocon_python_comms.SERVICE:
             type_info = rosservice.get_service_uri(name)
+            type_msg = rosservice.get_service_type(name)
             if type_info is not None:
-                connection = utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_info, xmlrpc_uri)
+                connection = utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_msg, type_info, xmlrpc_uri)
         elif connection_type == rocon_python_comms.ACTION_SERVER or connection_type == rocon_python_comms.ACTION_CLIENT:
             goal_topic = name + '/goal'
             goal_topic_type = rostopic.get_topic_type(goal_topic)
             type_info = re.sub('ActionGoal$', '', goal_topic_type[0])  # Base type for action
             if type_info is not None:
-                connection = utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_info, xmlrpc_uri)
+                connection = utils.Connection(gateway_msgs.Rule(connection_type, name, node), type_info, type_info, xmlrpc_uri)
         return connection
 
     def get_ros_ip(self):
@@ -456,117 +451,6 @@ class LocalMaster(rosgraph.Master):
                 available = True
                 break
         return available
-
-    @staticmethod
-    def _get_actions(pubs, subs):
-        '''
-          Return actions and pruned publisher, subscriber lists.
-
-          @param publishers
-          @type list of publishers in the form returned by rosgraph.Master.get_system_state
-          @param subscribers
-          @type list of subscribers in the form returned by rosgraph.Master.get_system_state
-          @return list of actions, pruned_publishers, pruned_subscribers
-          @rtype [base_topic, [nodes]], as param type, as param type
-        '''
-
-        actions = []
-        for goal_candidate in pubs:
-            if re.search('\/goal$', goal_candidate[0]):
-                # goal found, extract base topic
-                base_topic = re.sub('\/goal$', '', goal_candidate[0])
-                nodes = goal_candidate[1]
-                action_nodes = []
-
-                # there may be multiple nodes -- for each node search for the other topics
-                for node in nodes:
-                    is_action = True
-                    is_action &= LocalMaster._is_topic_node_in_list(base_topic + '/goal', node, pubs)
-                    is_action &= LocalMaster._is_topic_node_in_list(base_topic + '/cancel', node, pubs)
-                    is_action &= LocalMaster._is_topic_node_in_list(base_topic + '/status', node, subs)
-                    is_action &= LocalMaster._is_topic_node_in_list(base_topic + '/feedback', node, subs)
-                    is_action &= LocalMaster._is_topic_node_in_list(base_topic + '/result', node, subs)
-
-                    if is_action:
-                        action_nodes.append(node)
-
-                if len(action_nodes) != 0:
-                    # yay! an action has been found
-                    actions.append([base_topic, action_nodes])
-                    # remove action entries from publishers/subscribers
-                    for connection in pubs:
-                        if connection[0] in [base_topic + '/goal', base_topic + '/cancel']:
-                            for node in action_nodes:
-                                try:
-                                    connection[1].remove(node)
-                                except ValueError:
-                                    rospy.logerr(
-                                        "Gateway : couldn't remove an action publisher " +
-                                        "from the master connections list [%s][%s]" %
-                                        (connection[0], node))
-                    for connection in subs:
-                        if connection[0] in [base_topic + '/status', base_topic + '/feedback', base_topic + '/result']:
-                            for node in action_nodes:
-                                try:
-                                    connection[1].remove(node)
-                                except ValueError:
-                                    rospy.logerr(
-                                        "Gateway : couldn't remove an action subscriber " +
-                                        "from the master connections list [%s][%s]" %
-                                        (connection[0], node))
-        pubs[:] = [connection for connection in pubs if len(connection[1]) != 0]
-        subs[:] = [connection for connection in subs if len(connection[1]) != 0]
-        return actions, pubs, subs
-
-    @staticmethod
-    def _get_action_servers(publishers, subscribers):
-        '''
-          Return action servers and pruned publisher, subscriber lists.
-
-          @param publishers
-          @type list of publishers in the form returned by rosgraph.Master.get_system_state
-          @param subscribers
-          @type list of subscribers in the form returned by rosgraph.Master.get_system_state
-          @return list of actions, pruned_publishers, pruned_subscribers
-          @rtype [base_topic, [nodes]], as param type, as param type
-        '''
-        actions, subs, pubs = LocalMaster._get_actions(subscribers, publishers)
-        return actions, pubs, subs
-
-    @staticmethod
-    def _get_action_clients(publishers, subscribers):
-        """
-          Return action clients and pruned publisher, subscriber lists.
-
-          @param publishers
-          @type list of publishers in the form returned by rosgraph.Master.get_system_state
-          @param subscribers
-          @type list of subscribers in the form returned by rosgraph.Master.get_system_state
-          @return list of actions, pruned_publishers, pruned_subscribers
-          @rtype [base_topic, [nodes]], as param type, as param type
-        """
-        actions, pubs, subs = LocalMaster._get_actions(publishers, subscribers)
-        return actions, pubs, subs
-
-    def get_connection_state(self):
-
-        try:
-            publishers, subscribers, services, = self._connection_cache.getSystemState(silent_fallback=False)
-            pubs, subs, action_servers, action_clients = self._connection_cache.filterActions(publishers, subscribers)
-            topic_types = self._connection_cache.getTopicTypes(silent_fallback=False)
-
-            service_uris = self._connection_cache.getServiceUris()
-        except rocon_python_comms.UnknownSystemState:
-            raise  # we want to abort this right now
-
-        connections = utils.create_empty_connection_type_dictionary()
-        connections[gateway_msgs.ConnectionType.ACTION_SERVER] = utils._get_connections_from_action_list(action_servers, gateway_msgs.ConnectionType.ACTION_SERVER, topic_types)
-        connections[gateway_msgs.ConnectionType.ACTION_CLIENT] = utils._get_connections_from_action_list(action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT, topic_types)
-        connections[gateway_msgs.ConnectionType.PUBLISHER] = utils._get_connections_from_pub_sub_list(pubs, gateway_msgs.ConnectionType.PUBLISHER, topic_types)
-        connections[gateway_msgs.ConnectionType.SUBSCRIBER] = utils._get_connections_from_pub_sub_list(subs, gateway_msgs.ConnectionType.SUBSCRIBER, topic_types)
-        connections[gateway_msgs.ConnectionType.SERVICE] = utils._get_connections_from_service_list(services, gateway_msgs.ConnectionType.SERVICE, service_uris)
-
-        return connections
 
     @staticmethod
     def _get_anonymous_node_name(topic):

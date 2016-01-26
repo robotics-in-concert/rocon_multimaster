@@ -48,12 +48,14 @@ class Connection():
        - xmlrpc_uri             (the xmlrpc node uri for the connection)
     '''
 
-    def __init__(self, rule, type_info, xmlrpc_uri):
-        '''
-          @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
-          @type string
-        '''
+    def __init__(self, rule, type_msg, type_info, xmlrpc_uri):
+        """
+        @param type_msg : message type of the topic or service
+        @param type_info : either topic_type (pubsub), service api (service) or ??? (action)
+        @type string
+        """
         self.rule = rule
+        self.type_msg = type_msg
         self.type_info = type_info
         self.xmlrpc_uri = xmlrpc_uri
 
@@ -66,10 +68,13 @@ class Connection():
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __hash__(self):
+        return hash(((self.rule.type, self.rule.name, self.rule.node), self.type_msg, self.type_info, self.xmlrpc_uri))
+
     def __str__(self):
         if self.rule.type == gateway_msgs.ConnectionType.SERVICE:
-            return '{type: %s, name: %s, node: %s, uri: %s, service_api: %s}' % (
-                self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
+            return '{type: %s, name: %s, node: %s, uri: %s, service_api: %s, service_type: %s}' % (
+                self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info, self.type_msg)
         else:
             return '{type: %s, name: %s, node: %s, uri: %s, topic_type: %s}' % (
                 self.rule.type, self.rule.name, self.rule.node, self.xmlrpc_uri, self.type_info)
@@ -190,10 +195,12 @@ def deserialize(str_msg):
     return deserialized_data
 
 
+# TODO :pickle API support directly in Connection object instead of here to make it more visible.
 def serialize_connection(connection):
     return serialize([connection.rule.type,
                       connection.rule.name,
                       connection.rule.node,
+                      connection.type_msg,
                       connection.type_info,
                       connection.xmlrpc_uri]
                      )
@@ -205,7 +212,7 @@ def deserialize_connection(connection_str):
                 deserialized_list[1],
                 deserialized_list[2]
                 )
-    return Connection(rule, deserialized_list[3], deserialized_list[4])
+    return Connection(rule, deserialized_list[3], deserialized_list[4], deserialized_list[5])
 
 
 def serialize_connection_request(command, source, connection):
@@ -213,6 +220,7 @@ def serialize_connection_request(command, source, connection):
                       connection.rule.type,
                       connection.rule.name,
                       connection.rule.node,
+                      connection.type_msg,
                       connection.type_info,
                       connection.xmlrpc_uri]
                      )
@@ -229,7 +237,7 @@ def deserialize_request(request_str):
 
 def get_connection_from_list(connection_argument_list):
     rule = gateway_msgs.Rule(connection_argument_list[0], connection_argument_list[1], connection_argument_list[2])
-    return Connection(rule, connection_argument_list[3], connection_argument_list[4])
+    return Connection(rule, connection_argument_list[3], connection_argument_list[4], connection_argument_list[5])
 
 
 def get_rule_from_list(rule_argument_list):
@@ -316,71 +324,56 @@ def format_rule(rule):
 ##########################################################################
 
 
-def create_empty_connection_type_dictionary():
-    '''
+def create_empty_connection_type_dictionary(collection_type=list):
+    """
       Used to initialise a dictionary with rule type keys
-      and empty lists.
-    '''
+      and empty lists or sets (or whatever collection_type passed as argument).
+    """
     dic = {}
     for connection_type in connection_types:
-        dic[connection_type] = []
+        dic[connection_type] = collection_type()
     return dic
 
 difflist = lambda l1, l2: [x for x in l1 if x not in l2]  # diff of lists
 
 ##########################################################################
-# Conversion from ROS connections ( as returned by MasterAPI )
+# Conversion from Connection Cache Proxy channels (as passed in callback)
 # to Gateway connections
 ##########################################################################
 
 
-def _get_connections_from_service_list(connection_list, connection_type, svc_uri_list):
-    connections = []
-    for service in connection_list:
-        service_name = service[0]
-        service_uri = [t[1] for t in svc_uri_list if t[0] == service_name]
-        service_uri = service_uri[0] if service_uri else None
-        nodes = service[1]
+def _get_connections_from_service_chan_dict(ccproxy_channel_dict, connection_type):
+    connections = set()
+    for name, service in ccproxy_channel_dict.iteritems():
+        service_name = service.name
+        service_type = service.type
+        service_uri = service.xmlrpc_uri
+        nodes = service.nodes
         for node in nodes:
-            # try:
-            #    node_uri = self.lookupNode(node)
-            # except:
-            #    continue
-            connection = Connection(gateway_msgs.Rule(connection_type, service_name, node), service_uri, None)  # node_uri
-            connections.append(connection)
+            connection = Connection(gateway_msgs.Rule(connection_type, service_name, node[0]), service_type, service_uri, node[1])
+            connections.add(connection)
     return connections
 
 
-def _get_connections_from_pub_sub_list(connection_list, connection_type, msg_type_list):
-    connections = []
-    for topic in connection_list:
-        topic_name = topic[0]
-        topic_type = [t[1] for t in msg_type_list if t[0] == topic_name]
-        topic_type = topic_type[0] if topic_type else None
-        nodes = topic[1]
+def _get_connections_from_pub_sub_chan_dict(ccproxy_channel_dict, connection_type):
+    connections = set()
+    for name, topic in ccproxy_channel_dict.iteritems():
+        topic_name = topic.name
+        topic_type = topic.type
+        nodes = topic.nodes
         for node in nodes:
-            # try:
-                # node_uri = self.lookupNode(node)
-            # except:
-            #    continue
-            connection = Connection(gateway_msgs.Rule(connection_type, topic_name, node), topic_type, None)  # node_uri
-            connections.append(connection)
+            connection = Connection(gateway_msgs.Rule(connection_type, topic_name, node[0]), topic_type, topic_type, node[1])
+            connections.add(connection)
     return connections
 
 
-def _get_connections_from_action_list(connection_list, connection_type, msg_type_list):
-    connections = []
-    for action in connection_list:
-        action_name = action[0] + '/goal'
-        goal_topic_type = [t[1] for t in msg_type_list if t[0] == action_name]
-        goal_topic_type = goal_topic_type[0] if goal_topic_type else None
-        topic_type = re.sub('ActionGoal$', '', goal_topic_type[0])  # Base type for action
-        nodes = action[1]
+def _get_connections_from_action_chan_dict(ccproxy_channel_dict, connection_type):
+    connections = set()
+    for name, action in ccproxy_channel_dict.iteritems():
+        action_name = action.name
+        goal_topic_type = action.type
+        nodes = action.nodes
         for node in nodes:
-            # try:
-            #    node_uri = self.lookupNode(node)
-            # except:
-            #    continue
-            connection = Connection(gateway_msgs.Rule(connection_type, action_name, node), topic_type, None)  # node_uri
-            connections.append(connection)
+            connection = Connection(gateway_msgs.Rule(connection_type, action_name, node[0]), goal_topic_type, goal_topic_type, node[1])  # node_uri
+            connections.add(connection)
     return connections
