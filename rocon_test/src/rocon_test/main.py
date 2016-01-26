@@ -45,25 +45,25 @@ def _parse_arguments():
     parser = argparse.ArgumentParser(description=help_string(), formatter_class=RawTextHelpFormatter)
     parser.add_argument('package', nargs='?', default=None, help='name of the package in which to find the test configuration')
     parser.add_argument('test', nargs=1, help='name of the test configuration (xml) file')
-    parser.add_argument('-l', '--launch', action='store_true', help='launch each component with rocon_launch [false]')
+    # not yet supported
+    # parser.add_argument('-l', '--launch', action='store_true', help='launch each component with rocon_launch [false]')
     parser.add_argument('-p', '--pause', action='store_true', help='pause before tearing down so you can introspect easily [false]')
-    parser.add_argument('-s', '--screen', action='store_true', help='run each roslaunch with the --screen option')
+    parser.add_argument('-n', '--no-screen', action='store_true', help='do run each roslaunch with the --screen option [true]')
     parser.add_argument('-t', '--text-mode', action='store_true', help='log the rostest output to screen rather than log file.')
     parser.add_argument("--results-filename", action='store', type=str, default=None, help="results_filename")
     parser.add_argument('--results-base-dir', action='store', default='', help="The base directory of the test results. The test result file is created in a subfolder name PKG_DIR.")
     args = parser.parse_args()
     # Stop it from being a list (happens when nargs is an integer)
     args.test = args.test[0]
-    if args.screen:
-        args.screen = "--screen"
-    else:
-        args.screen = ""
+    launch_arguments = ""
+    if not args.no_screen:
+        launch_arguments = "--screen"
     if not args.package:
         if not os.path.isfile(args.test):
             raise IOError("Test launcher file does not exist [%s]." % args.test)
         else:
             args.package = rospkg.get_package_name(args.test)
-    return (args.package, args.test, args.screen, args.pause, args.text_mode,
+    return (args.package, args.test, launch_arguments, args.pause, args.text_mode,
             args.results_filename, args.results_base_dir)
 
 
@@ -91,6 +91,7 @@ def test_main():
     else:
         results_log_name, results_log_file = loggers.configure_logging(package, rocon_launcher)
 
+    # launchers is of type rocon_launch.RosLaunchConfiguration[]
     launchers = rocon_launch.parse_rocon_launcher(rocon_launcher, launch_arguments, args_mappings={})
 
     try:
@@ -102,9 +103,11 @@ def test_main():
             runner.set_text_mode(True)
             result = unittest.TextTestRunner(verbosity=2).run(suite)
         else:
-            xml_runner = rosunit.create_xml_runner(package, results_log_name, \
-                                         results_file=results_log_file, \
-                                         is_rostest=True)
+            xml_runner = rosunit.create_xml_runner(package,
+                                                   results_log_name,
+                                                   results_file=results_log_file,
+                                                   is_rostest=True
+                                                   )
             result = xml_runner.run(suite)
     finally:
         # really make sure that all of our processes have been killed (should be automatic though)
