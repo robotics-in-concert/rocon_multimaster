@@ -297,7 +297,11 @@ class PublicInterface(object):
         '''
         self.lock.acquire()
         matched_rules = self._matchAgainstRuleList(self.watchlist, rule)
+        #rospy.loginfo("PUBLIC IF : watchlist : {0} => MATCH ? {1}".format(self.watchlist, matched_rules))
+
         matched_blacklisted_rules = self._matchAgainstRuleList(self.blacklist, rule)
+        #rospy.loginfo("PUBLIC IF : blacklist : {0} => MATCH ? {1}".format(self.watchlist, matched_blacklisted_rules))
+
         self.lock.release()
         success = False
         if matched_rules and not matched_blacklisted_rules:
@@ -341,8 +345,10 @@ class PublicInterface(object):
         removed_public = utils.create_empty_connection_type_dictionary()
         for connection_type in utils.connection_types:
             for connection in connections[connection_type]:
+                #rospy.loginfo("PUBLIC IF : Checking: {0}...".format(connection))
                 if self._allowRule(connection.rule):
                     permitted_connections[connection_type].append(connection)
+                    #rospy.loginfo("PUBLIC IF : Permitted: {0}".format(connection))
         self.lock.acquire()  # protect self.public
         for connection_type in utils.connection_types:
             for connection in permitted_connections[connection_type]:
@@ -354,10 +360,12 @@ class PublicInterface(object):
                     if new_connection is not None:
                         new_public[connection_type].append(new_connection)
                         self.public[connection_type].append(new_connection)
+                        #rospy.loginfo("PUBLIC IF : New connection: {0}".format(new_connection))
             removed_public[connection_type][:] = [
                 x for x in self.public[connection_type] if not x.inConnectionList(
                     permitted_connections[connection_type])]
             self.public[connection_type][:] = [
                 x for x in self.public[connection_type] if not x.inConnectionList(removed_public[connection_type])]
         self.lock.release()
+        #rospy.loginfo("PUBLIC IF : Removed connections: {0}".format(removed_public))
         return new_public, removed_public

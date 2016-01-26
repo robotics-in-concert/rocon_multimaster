@@ -16,12 +16,14 @@ import unittest
 import rosunit
 import rocon_gateway_utils
 
+
 ##############################################################################
 # Logging
 ##############################################################################
 
 def printtest(msg):
     print("[TEST] %s" % msg)
+
 
 ##############################################################################
 # Main
@@ -44,11 +46,14 @@ class TestGraph(unittest.TestCase):
         printtest("* Local Gateway")
         printtest("********************************************************************")
         printtest("%s" % self.graph._local_gateway)
-        self.assertEquals("1", str(len(flips)))
+        self.assertEquals("5", str(len(flips)))
         # TODO: this is currently returning the base name, is should be returning the hash name
-        self.assertEquals("remote_gateway", flips[0].gateway)
-        self.assertEquals("publisher", flips[0].rule.type)
-        self.assertEquals("/chatter", flips[0].rule.name)
+
+        self.assertEquals(len([flip for flip in flips if flip.gateway == "remote_gateway" and flip.rule.name == "/add_two_ints" and flip.rule.type == "service"]), 1)
+        self.assertEquals(len([flip for flip in flips if flip.gateway == "remote_gateway" and flip.rule.name == "/chatter" and flip.rule.type == "publisher"]), 1)
+        self.assertEquals(len([flip for flip in flips if flip.gateway == "remote_gateway" and flip.rule.name == "/chatter" and flip.rule.type == "subscriber"]), 1)
+        self.assertEquals(len([flip for flip in flips if flip.gateway == "remote_gateway" and flip.rule.name == "/fibonacci" and flip.rule.type == "action_server"]), 1)
+        self.assertEquals(len([flip for flip in flips if flip.gateway == "remote_gateway" and flip.rule.name == "/fibonacci" and flip.rule.type == "action_client"]), 1)
         
         printtest("********************************************************************")
         printtest("* Remote Gateway")

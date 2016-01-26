@@ -180,6 +180,7 @@ class Gateway(object):
 
         # Update flip status
         flipped_connections = self.flipped_interface.get_flipped_connections()
+        # rospy.loginfo("flipped_connections = {}".format(flipped_connections))
         for flip in flipped_connections:
             for hub in remote_gateway_hub_index[flip.remote_rule.gateway]:
                 remote_rule = copy.deepcopy(flip.remote_rule)
