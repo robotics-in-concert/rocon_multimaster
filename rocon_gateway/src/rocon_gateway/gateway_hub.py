@@ -25,6 +25,8 @@ from rocon_hub_client.exceptions import HubConnectionLostError, \
 
 from .exceptions import GatewayUnavailableError
 
+import rocon_console.console as console
+
 ###############################################################################
 # Redis Connection Checker
 ##############################################################################
@@ -778,7 +780,6 @@ class GatewayHub(rocon_hub_client.Hub):
         source_gateway = self._unique_gateway_name  # me!
 
         for gateway in gateway_specific_rules:
-            #rospy.loginfo("For gateway : {0}".format(gateway))
             key = hub_api.create_rocon_gateway_key(gateway, 'flip_ins')
             encoded_flips = []
             try:
@@ -786,35 +787,41 @@ class GatewayHub(rocon_hub_client.Hub):
             except (redis.ConnectionError, AttributeError) as unused_e:
                 # probably disconnected from the hub
                 pass
-            for flipin in encoded_flips:
-                rule_status, source, connection_list = utils.deserialize_request(flipin)
+            for flip in encoded_flips:
+                rule_status, source, connection_list = utils.deserialize_request(flip)
                 if source != source_gateway:
                     continue
                 connection = utils.get_connection_from_list(connection_list)
                 # Compare rules only as xmlrpc_uri and type_info are encrypted
 
-                #rospy.loginfo("  Looking for connection.rule : {0} in {1}".format(connection.rule, gateway_specific_rules[gateway]))
+                # print(console.cyan + "Connection Rule: " + console.yellow + "%s-%s" % (connection.rule.type, connection.rule.name))
                 for (index, remote_rule) in gateway_specific_rules[gateway]:
-                    exp_rules = self.rule_explode([remote_rule])
+                    # print(console.cyan + "Remote Rule: " + console.yellow + "%s-%s" % (remote_rule.rule.type, remote_rule.rule.name))
+                    # Important to consider actions - gateway rules can be actions, but connections on the redis server are only
+                    # handled as fundamental types (pub, sub, server), so explode the gateway rule and then check
+                    exploded_remote_rules = self.rule_explode([remote_rule])
 
-                    # If the connection (from flipins) match one of the remote rules (once exploded for handling action)
-                    if len([r for r in exp_rules if connection.rule == r.rule]) >0:
-                        # We need to handle the possibility of having one action connection, with pub/sub only flipin
-                        # if status is not set, then we set it
+                    # If the connection (from flips) match one of the remote rules (once exploded for handling action)
+                    if len([r for r in exploded_remote_rules if connection.rule == r.rule]) > 0:
                         if status[index] is None:
+                            # a pub, sub, service or first connection in an exploded action rule will land here
                             status[index] = rule_status
-                            rospy.loginfo("  FOUND : Status for rule named {name} changed {old_status} => {status}".format(name=remote_rule.rule.name, old_status=status[index], status=rule_status))
-                        elif status[index] != rule_status: # the status has been set previously to something different
-                            # we establish here some kind of order on rule status
-                            # TODO : implement this better
-                            if (rule_status == FlipStatus.UNKNOWN or (  # if something unknown whole action connection is unknown
-                                    (status[index] == FlipStatus.PENDING or status[index] == FlipStatus.ACCEPTED) and
-                                    (rule_status == FlipStatus.BLOCKED or rule_status == FlipStatus.RESEND)
-                               )):
-                                # RESEND or BLOCKED do not follow basic flow
-                                # so we want to make it obvious at action level.
+                            # rospy.loginfo("  FOUND : reading status for flipped rule named {name} => {status}".format(name=remote_rule.rule.name, status=rule_status))
+                        elif status[index] != rule_status:
+                            # when another part of an exploded action's status doesn't match the status of formely read
+                            # parts, it lands here...need some good exception handling logic to represent the combined group
+                            if rule_status == FlipStatus.UNKNOWN:
+                                # if something unknown whole action connection is unknown
                                 status[index] = rule_status
-                                rospy.loginfo("  FOUND : Status for rule named {name} changed {old_status} => {status}".format(name=remote_rule.rule.name, old_status=status[index], status=rule_status))
+                                break
+                            # RESEND or BLOCKED do not follow basic flow so we want to make it obvious at action level
+                            # This might have to be improved to distinguish between blocked and resend
+                            if ((status[index] == FlipStatus.PENDING or status[index] == FlipStatus.ACCEPTED) and
+                                (rule_status == FlipStatus.BLOCKED or rule_status == FlipStatus.RESEND)
+                            ):
+                                # print(console.green + " Action Connection w/ unsynchronised components : %s/%s" % (connection.rule.name, remote_rule.rule.name) + console.reset)
+                                status[index] = rule_status
+                                break
                         break
         return status
 
