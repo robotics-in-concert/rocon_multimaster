@@ -4,10 +4,14 @@
 <launch>
   <arg name="gateway_name" default="local_gateway"/>
   <arg name="yaml" default="flip_all.yaml" />
+  <node pkg="rocon_python_comms" type="connection_cache.py" name="connection_cache" required="true"/>
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway_tests)/param/$(arg yaml)" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
     <rosparam param="hub_uri">http://localhost:6382</rosparam>
     <rosparam param="name" subst_value="True">$(arg gateway_name)</rosparam>
+    <!-- remapping subscriber to plug into connection cache -->
+    <remap from="~connections_list" to="connection_cache/list"/>
+    <remap from="~connections_diff" to="connection_cache/diff"/>
   </node>
 </launch>

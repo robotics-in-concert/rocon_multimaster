@@ -71,7 +71,7 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
           additions come from ros service calls in different threads!)
 
           @param connections : list of all the system state connections from the local master
-          @type connection type keyed dictionary of utils.Connection lists.
+          @type connection type keyed dictionary of utils.Connection sets.
 
           @param remote_gateway_hub_index : full gateway-hub database index to parse
           @type gateway hash names keyed into a dic with a list of their hubs
@@ -90,9 +90,12 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
 
         self._lock.acquire()
 
-        self.flipped = self._prune_unavailable_gateway_flips(self.flipped, remote_gateways) # Prune locally cached flip list for flips that have lost their remotes, keep the rules though
+        # Prune locally cached flip list for flips that have lost their remotes, keep the rules though
+        self.flipped = self._prune_unavailable_gateway_flips(self.flipped, remote_gateways)
 
-        new_flips, removed_flips, flipped = self._prepare_flips(connections, remote_gateways, unique_name, master)  # Totally regenerate a new flipped interface, compare with old
+        # Totally regenerate a new flipped interface, compare with old
+        new_flips, removed_flips, flipped = self._prepare_flips(connections, remote_gateways, unique_name, master)
+
         flip_status = self._prepare_flip_status(flipped)
         new_flips, filtered_flips = self._filter_flipped_in_interfaces(new_flips, self.registrations)
         #rospy.loginfo("new_flips : {nf}".format(nf=new_flips))
@@ -239,13 +242,13 @@ class FlippedInterface(interactive_interface.InteractiveInterface):
                         matched_flip = copy.deepcopy(flip_rule)
                         matched_flip.gateway = gateway  # just in case we used a regex or matched basename
                         matched_flip.rule.name = name  # just in case we used a regex
-                        matched_flip.rule.node = "%s,%s"%(node, master.lookupNode(node)) # just in case we used a regex
+                        matched_flip.rule.node = "%s,%s"%(node, master.lookupNode(node))  # just in case we used a regex
                         matched_flip_rules.append(matched_flip)
                     except rosgraph.masterapi.MasterError as e:
                         # Node has been gone already. skips sliently
                         pass
                     except socket.error as e:
-                        rospy.logwarn("Gateway : socket erro while generate flips [%s]"%str(e))
+                        rospy.logwarn("Gateway : socket error while generate flips [%s]"%str(e))
         return matched_flip_rules
 
     def _prune_unavailable_gateway_flips(self, flipped, remote_gateways):

@@ -4,6 +4,7 @@
  -->
 <launch>
   <node ns="zeroconf" pkg="zeroconf_avahi" type="zeroconf" name="zeroconf"  output="screen"/>
+  <node pkg="rocon_python_comms" type="connection_cache.py" name="connection_cache" required="true"/>
   <node pkg="rocon_gateway" type="gateway.py" name="gateway" output="screen">
     <rosparam command="load" file="$(find rocon_gateway)/param/default.yaml" />
     <rosparam command="load" file="$(find rocon_gateway)/param/default_blacklist.yaml" />
@@ -12,5 +13,8 @@
     <rosparam param="watch_loop_period">2</rosparam>
     <rosparam param="firewall">false</rosparam>
     <param name="network_interface" value="$(optenv GATEWAY_NETWORK_INTERFACE)"/>
+    <!-- remapping subscriber to plug into connection cache -->
+    <remap from="~connections_list" to="connection_cache/list"/>
+    <remap from="~connections_diff" to="connection_cache/diff"/>
   </node>
 </launch>

@@ -135,7 +135,7 @@ class InteractiveInterface(object):
             return existing_rules
 
     def add_all(self, gateway, blacklist):
-        '''
+        """
           Instead of watching/acting on specific rules, take action
           on everything except for rules in a blacklist.
 
@@ -147,7 +147,7 @@ class InteractiveInterface(object):
 
           @return success or failure depending on if it ahs already been set or not
           @rtype Bool
-        '''
+        """
         self._lock.acquire()
         # Blacklist
         if gateway in self._blacklist:

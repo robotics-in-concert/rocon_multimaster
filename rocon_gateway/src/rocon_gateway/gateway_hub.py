@@ -806,7 +806,6 @@ class GatewayHub(rocon_hub_client.Hub):
                         if status[index] is None:
                             # a pub, sub, service or first connection in an exploded action rule will land here
                             status[index] = rule_status
-                            # rospy.loginfo("  FOUND : reading status for flipped rule named {name} => {status}".format(name=remote_rule.rule.name, status=rule_status))
                         elif status[index] != rule_status:
                             # when another part of an exploded action's status doesn't match the status of formely read
                             # parts, it lands here...need some good exception handling logic to represent the combined group
