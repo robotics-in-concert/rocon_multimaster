@@ -12,6 +12,8 @@ import socket
 import httplib
 import errno
 import xmlrpclib
+from contextlib import contextmanager
+
 from rosmaster.util import xmlrpcapi
 
 import rocon_python_comms
@@ -21,6 +23,7 @@ try:
 except ImportError:
     import urlparse
 import re
+import threading
 
 import rospy
 import rosgraph
@@ -28,8 +31,10 @@ import rostopic
 import rosservice
 import roslib.names
 import gateway_msgs.msg as gateway_msgs
+import rocon_gateway_utils
 
 from . import utils, GatewayError
+
 
 class LocalMaster(rosgraph.Master):
 
@@ -42,6 +47,22 @@ class LocalMaster(rosgraph.Master):
 
     def __init__(self):
         rosgraph.Master.__init__(self, rospy.get_name())
+
+        self.connections_lock = threading.Lock()
+        self.connections = utils.create_empty_connection_type_dictionary(set)
+        # in case this class is used directly (script call) we need to find the connection cache
+
+        connection_cache_namespace = rocon_gateway_utils.resolve_connection_cache(rospy.Time(5))
+
+        self.connection_cache = rocon_python_comms.ConnectionCacheProxy(
+            list_sub=connection_cache_namespace + '/connection_cache/list',
+            handle_actions=True,
+            user_callback=self._connection_cache_proxy_cb,
+            diff_opt=True,
+            diff_sub=connection_cache_namespace + '/connection_cache/diff'
+        )
+        self.get_system_state = self.connection_cache.getSystemState
+
 
     ##########################################################################
     # Registration
@@ -450,10 +471,98 @@ class LocalMaster(rosgraph.Master):
             if candidate[0] == topic and node in candidate[1]:
                 available = True
                 break
-        return available
 
     @staticmethod
     def _get_anonymous_node_name(topic):
         t = topic[1:len(topic)]
         name = roslib.names.anonymous_name(t)
         return name
+
+    def _connection_cache_proxy_cb(self, system_state, added_system_state, lost_system_state):
+
+        self.connections_lock.acquire()
+        # if there was no change but we got a callback,
+        # it means it s the first and we need to set the whole list
+        if added_system_state is None and lost_system_state is None:
+            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] =\
+                utils._get_connections_from_action_chan_dict(
+                        system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
+                )
+            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] =\
+                utils._get_connections_from_action_chan_dict(
+                        system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
+                )
+            self.connections[gateway_msgs.ConnectionType.PUBLISHER] =\
+                utils._get_connections_from_pub_sub_chan_dict(
+                        system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
+                )
+            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] =\
+                utils._get_connections_from_pub_sub_chan_dict(
+                        system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
+                )
+            self.connections[gateway_msgs.ConnectionType.SERVICE] =\
+                utils._get_connections_from_service_chan_dict(
+                        system_state.services, gateway_msgs.ConnectionType.SERVICE
+                )
+        else:  # we got some diff, we can optimize
+            # this is not really needed as is ( since the list we get is always updated )
+            # However it is a first step towards an optimized gateway that can work with system state differences
+            new_action_servers = utils._get_connections_from_action_chan_dict(
+                added_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
+            )
+            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] |= new_action_servers
+
+            new_action_clients = utils._get_connections_from_action_chan_dict(
+                added_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
+            )
+            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] |= new_action_clients
+
+            new_publishers = utils._get_connections_from_pub_sub_chan_dict(
+                added_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
+            )
+            self.connections[gateway_msgs.ConnectionType.PUBLISHER] |= new_publishers
+
+            new_subscribers = utils._get_connections_from_pub_sub_chan_dict(
+                added_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
+            )
+            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] |= new_subscribers
+
+            new_services = utils._get_connections_from_service_chan_dict(
+                added_system_state.services, gateway_msgs.ConnectionType.SERVICE
+            )
+            self.connections[gateway_msgs.ConnectionType.SERVICE] |= new_services
+
+
+            lost_action_servers = utils._get_connections_from_action_chan_dict(
+                lost_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
+            )
+            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] -= lost_action_servers
+
+            lost_action_clients = utils._get_connections_from_action_chan_dict(
+                lost_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
+            )
+            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] -= lost_action_clients
+
+            lost_publishers = utils._get_connections_from_pub_sub_chan_dict(
+                lost_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
+            )
+            self.connections[gateway_msgs.ConnectionType.PUBLISHER] -= lost_publishers
+
+            lost_subscribers = utils._get_connections_from_pub_sub_chan_dict(
+                lost_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
+            )
+            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] -= lost_subscribers
+
+            lost_services = utils._get_connections_from_service_chan_dict(
+                lost_system_state.services, gateway_msgs.ConnectionType.SERVICE
+            )
+            self.connections[gateway_msgs.ConnectionType.SERVICE] -= lost_services
+
+        self.connections_lock.release()
+
+    @contextmanager
+    def get_connection_state(self):
+        self.connections_lock.acquire()
+        yield self.connections
+        self.connections_lock.release()
+
