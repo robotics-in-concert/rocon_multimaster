@@ -636,10 +636,10 @@ class Gateway(object):
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             if not request.cancel:
                 if self.pulled_interface.pull_all(remote_gateway_target_hash_name, request.blacklist):
-                    rospy.loginfo("Gateway : pulling all from gateway '%s'" % (request.gateway))
+                    rospy.loginfo("Gateway : pulling all from gateway [%s]" % (request.gateway))
                 else:
                     response.result = gateway_msgs.ErrorCodes.FLIP_RULE_ALREADY_EXISTS
-                    response.error_message = "already pulling all from gateway '%s' " + request.gateway
+                    response.error_message = "already pulling all from gateway [%s] " % (request.gateway)
             else:  # request.cancel
                 self.pulled_interface.unpull_all(remote_gateway_target_hash_name)
                 rospy.loginfo("Gateway : cancelling a previous pull all request [%s]" % (request.gateway))
