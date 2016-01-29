@@ -53,13 +53,15 @@ class LocalMaster(rosgraph.Master):
         # in case this class is used directly (script call) we need to find the connection cache
 
         connection_cache_namespace = rocon_gateway_utils.resolve_connection_cache(rospy.Time(5))
+        if not connection_cache_namespace.endswith('/'):
+            connection_cache_namespace += '/'
 
         self.connection_cache = rocon_python_comms.ConnectionCacheProxy(
-            list_sub=connection_cache_namespace + '/connection_cache/list',
+            list_sub=connection_cache_namespace + 'connection_cache/list',
             handle_actions=True,
             user_callback=self._connection_cache_proxy_cb,
             diff_opt=True,
-            diff_sub=connection_cache_namespace + '/connection_cache/diff'
+            diff_sub=connection_cache_namespace + 'connection_cache/diff'
         )
         self.get_system_state = self.connection_cache.getSystemState
 
