@@ -7,9 +7,6 @@
     <rosparam param="firewall">false</rosparam>
     <rosparam param="disable_uuids">true</rosparam>
     <rosparam command="load" file="$(find rocon_gateway_tests)/param/singlehub/gateway2.yaml" />
-    <!-- remapping subscriber to plug into connection cache -->
-    <remap from="~connections_list" to="connection_cache/list"/>
-    <remap from="~connections_diff" to="connection_cache/diff"/>
   </node>
 
   <include file="$(find rocon_gateway_tests)/launch/common/talker.xml">
