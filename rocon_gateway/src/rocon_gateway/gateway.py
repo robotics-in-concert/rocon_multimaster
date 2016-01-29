@@ -78,17 +78,6 @@ class Gateway(object):
         self.network_interface_manager = NetworkInterfaceManager(self._param['network_interface'])
         # TODO : Use self._param['watch_loop_period'] to set the connection_cache spin freq ( OR directly in connection_cache node ) ?
 
-        self.connections_lock = threading.Lock()
-        self.connections = utils.create_empty_connection_type_dictionary(set)
-        self.connection_cache = rocon_python_comms.ConnectionCacheProxy(
-            list_sub='~connections_list',
-            handle_actions=True,
-            user_callback=self._connection_cache_proxy_cb,
-            diff_opt=True,
-            diff_sub='~connections_diff'
-        )
-        # TODO : REMOVE self.watcher_thread = WatcherThread(self, self._param['watch_loop_period'])
-
     def spin(self):
         if not rospy.core.is_initialized():
             raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
@@ -98,11 +87,10 @@ class Gateway(object):
                 self.update_network_information()
                 remote_gateway_hub_index = self.hub_manager.create_remote_gateway_hub_index()
 
-                self.connections_lock.acquire()
-                self.update_flipped_interface(self.connections, remote_gateway_hub_index)
-                self.update_public_interface(self.connections)
-                self.update_pulled_interface(self.connections, remote_gateway_hub_index)
-                self.connections_lock.release()
+                with self.master.get_connection_state() as connections:
+                    self.update_flipped_interface(connections, remote_gateway_hub_index)
+                    self.update_public_interface(connections)
+                    self.update_pulled_interface(connections, remote_gateway_hub_index)
 
                 registrations = self.hub_manager.get_flip_requests()
                 self.update_flipped_in_interface(registrations, remote_gateway_hub_index)
@@ -110,88 +98,6 @@ class Gateway(object):
         except KeyboardInterrupt:
             rospy.logdebug("keyboard interrupt, shutting down")
             rospy.core.signal_shutdown('keyboard interrupt')
-
-    def _connection_cache_proxy_cb(self, system_state, added_system_state, lost_system_state):
-
-        self.connections_lock.acquire()
-        # if there was no change but we got a callback,
-        # it means it s the first and we need to set the whole list
-        if added_system_state is None and lost_system_state is None:
-            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] =\
-                utils._get_connections_from_action_chan_dict(
-                        system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
-                )
-            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] =\
-                utils._get_connections_from_action_chan_dict(
-                        system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
-                )
-            self.connections[gateway_msgs.ConnectionType.PUBLISHER] =\
-                utils._get_connections_from_pub_sub_chan_dict(
-                        system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
-                )
-            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] =\
-                utils._get_connections_from_pub_sub_chan_dict(
-                        system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
-                )
-            self.connections[gateway_msgs.ConnectionType.SERVICE] =\
-                utils._get_connections_from_service_chan_dict(
-                        system_state.services, gateway_msgs.ConnectionType.SERVICE
-                )
-        else:  # we got some diff, we can optimize
-            # this is not really needed as is ( since the list we get is always updated )
-            # However it is a first step towards an optimized gateway that can work with system state differences
-            new_action_servers = utils._get_connections_from_action_chan_dict(
-                added_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
-            )
-            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] |= new_action_servers
-
-            new_action_clients = utils._get_connections_from_action_chan_dict(
-                added_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
-            )
-            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] |= new_action_clients
-
-            new_publishers = utils._get_connections_from_pub_sub_chan_dict(
-                added_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
-            )
-            self.connections[gateway_msgs.ConnectionType.PUBLISHER] |= new_publishers
-
-            new_subscribers = utils._get_connections_from_pub_sub_chan_dict(
-                added_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
-            )
-            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] |= new_subscribers
-
-            new_services = utils._get_connections_from_service_chan_dict(
-                added_system_state.services, gateway_msgs.ConnectionType.SERVICE
-            )
-            self.connections[gateway_msgs.ConnectionType.SERVICE] |= new_services
-
-
-            lost_action_servers = utils._get_connections_from_action_chan_dict(
-                lost_system_state.action_servers, gateway_msgs.ConnectionType.ACTION_SERVER
-            )
-            self.connections[gateway_msgs.ConnectionType.ACTION_SERVER] -= lost_action_servers
-
-            lost_action_clients = utils._get_connections_from_action_chan_dict(
-                lost_system_state.action_clients, gateway_msgs.ConnectionType.ACTION_CLIENT
-            )
-            self.connections[gateway_msgs.ConnectionType.ACTION_CLIENT] -= lost_action_clients
-
-            lost_publishers = utils._get_connections_from_pub_sub_chan_dict(
-                lost_system_state.publishers, gateway_msgs.ConnectionType.PUBLISHER
-            )
-            self.connections[gateway_msgs.ConnectionType.PUBLISHER] -= lost_publishers
-
-            lost_subscribers = utils._get_connections_from_pub_sub_chan_dict(
-                lost_system_state.subscribers, gateway_msgs.ConnectionType.SUBSCRIBER
-            )
-            self.connections[gateway_msgs.ConnectionType.SUBSCRIBER] -= lost_subscribers
-
-            lost_services = utils._get_connections_from_service_chan_dict(
-                lost_system_state.services, gateway_msgs.ConnectionType.SERVICE
-            )
-            self.connections[gateway_msgs.ConnectionType.SERVICE] -= lost_services
-
-        self.connections_lock.release()
 
     def shutdown(self):
         for connection_type in utils.connection_types:
@@ -730,10 +636,10 @@ class Gateway(object):
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             if not request.cancel:
                 if self.pulled_interface.pull_all(remote_gateway_target_hash_name, request.blacklist):
-                    rospy.loginfo("Gateway : pulling all from gateway '%s'" % (request.gateway))
+                    rospy.loginfo("Gateway : pulling all from gateway [%s]" % (request.gateway))
                 else:
                     response.result = gateway_msgs.ErrorCodes.FLIP_RULE_ALREADY_EXISTS
-                    response.error_message = "already pulling all from gateway '%s' " + request.gateway
+                    response.error_message = "already pulling all from gateway [%s] " % (request.gateway)
             else:  # request.cancel
                 self.pulled_interface.unpull_all(remote_gateway_target_hash_name)
                 rospy.loginfo("Gateway : cancelling a previous pull all request [%s]" % (request.gateway))

@@ -156,10 +156,11 @@ def is_in_flipped_connection_list(remote_gateways, connection, flipped_connectio
 
 def resolve_connections(gateway_namespace, remote_gateways, flipped_connections):
     master = rocon_gateway.LocalMaster()
-    connection_dictionary = master.get_connection_state()
     connections = []
-    for connection_type in connection_dictionary:
-        connections.extend(connection_dictionary[connection_type])
+    with master.get_connection_state() as connection_dictionary:
+        for connection_type in connection_dictionary:
+            connections.extend(connection_dictionary[connection_type])
+
     connections[:] = [connection for connection in connections
                       if not is_in_flipped_connection_list(remote_gateways, connection, flipped_connections)]
     # some things you should never flip

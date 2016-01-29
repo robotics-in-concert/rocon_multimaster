@@ -97,10 +97,11 @@ def is_in_advertised_list(connection, advertisements):
 
 def resolve_advertisements(gateway_namespace, advertisements):
     master = rocon_gateway.LocalMaster()
-    connection_dictionary = master.get_connection_state()
     connections = []
-    for connection_type in connection_dictionary:
-        connections.extend(connection_dictionary[connection_type])
+    with master.get_connection_state() as connection_dictionary:
+        for connection_type in connection_dictionary:
+            connections.extend(connection_dictionary[connection_type])
+
     connections[:] = [connection for connection in connections if not is_in_advertised_list(connection, advertisements)]
     # some things you should never advertise
     connections[:] = [connection for connection in connections
