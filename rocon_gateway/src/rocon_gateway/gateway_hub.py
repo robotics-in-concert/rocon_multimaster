@@ -505,10 +505,14 @@ class GatewayHub(rocon_hub_client.Hub):
        '''
         connections = utils.create_empty_connection_type_dictionary()
         key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'advertisements')
-        public_interface = self._redis_server.smembers(key)
-        for connection_str in public_interface:
-            connection = utils.deserialize_connection(connection_str)
-            connections[connection.rule.type].append(connection)
+        try:
+            public_interface = self._redis_server.smembers(key)
+            for connection_str in public_interface:
+                connection = utils.deserialize_connection(connection_str)
+                connections[connection.rule.type].append(connection)
+        except redis.exceptions.ConnectionError:
+            # not an error, just means its out of range, and we can't get the list.
+            pass
         return connections
 
     def _parse_redis_float(self, val):
