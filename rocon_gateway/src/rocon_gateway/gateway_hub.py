@@ -889,7 +889,7 @@ class GatewayHub(rocon_hub_client.Hub):
 
         exp_rules = self.rule_explode([rule])
         for r in exp_rules:
-            self._send_unflip_request(remote_gateway, rule)
+            self._send_unflip_request(remote_gateway, r)
 
     def _send_unflip_request(self, remote_gateway, rule):
         '''
