@@ -52,7 +52,16 @@ class Gateway(object):
         @param publish_gateway_info_callback : callback for publishing gateway info
         '''
         self.hub_manager = hub_manager
-        self.master = LocalMaster()
+        self.master = None
+        # handling slow startup timeout
+        while self.master is None:
+            try:
+                self.master = LocalMaster()
+            except rocon_python_comms.NotFoundException as exc:
+                rospy.logwarn(str(exc))
+                rospy.logwarn("Retrying...")
+                self.master = None
+
         self.ip = self.master.get_ros_ip()  # gateway is always assumed to sit on the same ip as the master
         self._param = param
         self._unique_name = unique_name

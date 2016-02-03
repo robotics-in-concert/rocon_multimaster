@@ -45,14 +45,16 @@ class LocalMaster(rosgraph.Master):
       been pulled or flipped in from another gateway.
     '''
 
-    def __init__(self):
+    def __init__(self, connection_cache_timeout=None):
         rosgraph.Master.__init__(self, rospy.get_name())
+
+        timeout = connection_cache_timeout or rospy.Time(5)
 
         self.connections_lock = threading.Lock()
         self.connections = utils.create_empty_connection_type_dictionary(set)
         # in case this class is used directly (script call) we need to find the connection cache
 
-        connection_cache_namespace = rocon_gateway_utils.resolve_connection_cache(rospy.Time(5))
+        connection_cache_namespace = rocon_gateway_utils.resolve_connection_cache(timeout)
         if not connection_cache_namespace.endswith('/'):
             connection_cache_namespace += '/'
 
