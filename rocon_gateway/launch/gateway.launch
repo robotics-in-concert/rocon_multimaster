@@ -1,5 +1,9 @@
-<!-- 
-  Works with rocon_hub/hub.launch. 
+<!--
+  Requirements for the gateway to actually do something:
+
+  - a rocon hub has to be launched somewhere
+  - a connection cache node for getting master state information
+  - (optionally) zeroconf node around for automatic discovery
 -->
 <launch>
   <arg name="gateway_name" default="gateway"/>

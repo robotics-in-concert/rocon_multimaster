@@ -32,7 +32,7 @@ def parse_arguments():
 
 if __name__ == '__main__':
 
-    rospy.init_node('pull')
+    rospy.init_node('pull', anonymous=True)
     args = parse_arguments()
     gateway_namespace = None
     gateway_info = None

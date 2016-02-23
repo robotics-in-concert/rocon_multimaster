@@ -25,6 +25,8 @@ from rocon_hub_client.exceptions import HubConnectionLostError, \
 
 from .exceptions import GatewayUnavailableError
 
+import rocon_console.console as console
+
 ###############################################################################
 # Redis Connection Checker
 ##############################################################################
@@ -503,10 +505,14 @@ class GatewayHub(rocon_hub_client.Hub):
        '''
         connections = utils.create_empty_connection_type_dictionary()
         key = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'advertisements')
-        public_interface = self._redis_server.smembers(key)
-        for connection_str in public_interface:
-            connection = utils.deserialize_connection(connection_str)
-            connections[connection.rule.type].append(connection)
+        try:
+            public_interface = self._redis_server.smembers(key)
+            for connection_str in public_interface:
+                connection = utils.deserialize_connection(connection_str)
+                connections[connection.rule.type].append(connection)
+        except redis.exceptions.ConnectionError:
+            # not an error, just means its out of range, and we can't get the list.
+            pass
         return connections
 
     def _parse_redis_float(self, val):
@@ -791,9 +797,34 @@ class GatewayHub(rocon_hub_client.Hub):
                     continue
                 connection = utils.get_connection_from_list(connection_list)
                 # Compare rules only as xmlrpc_uri and type_info are encrypted
+
+                # print(console.cyan + "Connection Rule: " + console.yellow + "%s-%s" % (connection.rule.type, connection.rule.name))
                 for (index, remote_rule) in gateway_specific_rules[gateway]:
-                    if connection.rule == remote_rule.rule:
-                        status[index] = rule_status
+                    # print(console.cyan + "Remote Rule: " + console.yellow + "%s-%s" % (remote_rule.rule.type, remote_rule.rule.name))
+                    # Important to consider actions - gateway rules can be actions, but connections on the redis server are only
+                    # handled as fundamental types (pub, sub, server), so explode the gateway rule and then check
+                    exploded_remote_rules = self.rule_explode([remote_rule])
+
+                    # If the connection (from flips) match one of the remote rules (once exploded for handling action)
+                    if len([r for r in exploded_remote_rules if connection.rule == r.rule]) > 0:
+                        if status[index] is None:
+                            # a pub, sub, service or first connection in an exploded action rule will land here
+                            status[index] = rule_status
+                        elif status[index] != rule_status:
+                            # when another part of an exploded action's status doesn't match the status of formely read
+                            # parts, it lands here...need some good exception handling logic to represent the combined group
+                            if rule_status == FlipStatus.UNKNOWN:
+                                # if something unknown whole action connection is unknown
+                                status[index] = rule_status
+                                break
+                            # RESEND or BLOCKED do not follow basic flow so we want to make it obvious at action level
+                            # This might have to be improved to distinguish between blocked and resend
+                            if ((status[index] == FlipStatus.PENDING or status[index] == FlipStatus.ACCEPTED) and
+                                (rule_status == FlipStatus.BLOCKED or rule_status == FlipStatus.RESEND)
+                            ):
+                                # print(console.green + " Action Connection w/ unsynchronised components : %s/%s" % (connection.rule.name, remote_rule.rule.name) + console.reset)
+                                status[index] = rule_status
+                                break
                         break
         return status
 
@@ -855,36 +886,11 @@ class GatewayHub(rocon_hub_client.Hub):
         return True
 
     def send_unflip_request(self, remote_gateway, rule):
-        if rule.type == gateway_msgs.ConnectionType.ACTION_CLIENT:
-            action_name = rule.name
-            rule.type = gateway_msgs.ConnectionType.PUBLISHER
-            rule.name = action_name + "/goal"
-            self._send_unflip_request(remote_gateway, rule)
-            rule.name = action_name + "/cancel"
-            self._send_unflip_request(remote_gateway, rule)
-            rule.type = gateway_msgs.ConnectionType.SUBSCRIBER
-            rule.name = action_name + "/feedback"
-            self._send_unflip_request(remote_gateway, rule)
-            rule.name = action_name + "/status"
-            self._send_unflip_request(remote_gateway, rule)
-            rule.name = action_name + "/result"
-            self._send_unflip_request(remote_gateway, rule)
-        elif rule.type == gateway_msgs.ConnectionType.ACTION_SERVER:
-            action_name = rule.name
-            rule.type = gateway_msgs.ConnectionType.SUBSCRIBER
-            rule.name = action_name + "/goal"
-            self._send_unflip_request(remote_gateway, rule)
-            rule.name = action_name + "/cancel"
-            self._send_unflip_request(remote_gateway, rule)
-            rule.type = gateway_msgs.ConnectionType.PUBLISHER
-            rule.name = action_name + "/feedback"
-            self._send_unflip_request(remote_gateway, rule)
-            rule.name = action_name + "/status"
-            self._send_unflip_request(remote_gateway, rule)
-            rule.name = action_name + "/result"
-            self._send_unflip_request(remote_gateway, rule)
-        else:
-            self._send_unflip_request(remote_gateway, rule)
+        unflipped = True
+        exp_rules = self.rule_explode([rule])
+        for r in exp_rules:
+            unflipped = unflipped and self._send_unflip_request(remote_gateway, r)
+        return unflipped
 
     def _send_unflip_request(self, remote_gateway, rule):
         '''
@@ -913,3 +919,99 @@ class GatewayHub(rocon_hub_client.Hub):
             if not rospy.is_shutdown():
                 rospy.logwarn("Gateway : hub connection error while sending unflip request.")
         return False
+
+    #TODO : improve design to not need this
+    def rule_explode(self, rule_list):
+        result_list=[]
+        for rule in rule_list:
+            if isinstance(rule, RemoteRule):
+                asm_rule = rule.rule
+            else:
+                asm_rule = rule
+
+            exp_rules = []
+            if asm_rule.type == gateway_msgs.ConnectionType.ACTION_CLIENT:
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/goal", type= gateway_msgs.ConnectionType.PUBLISHER, node= asm_rule.node ))
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/cancel", type= gateway_msgs.ConnectionType.PUBLISHER, node= asm_rule.node ))
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/feedback", type= gateway_msgs.ConnectionType.SUBSCRIBER, node= asm_rule.node ))
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/status", type= gateway_msgs.ConnectionType.SUBSCRIBER, node= asm_rule.node ))
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/result", type= gateway_msgs.ConnectionType.SUBSCRIBER, node= asm_rule.node ))
+            elif asm_rule.type == gateway_msgs.ConnectionType.ACTION_SERVER:
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/goal", type= gateway_msgs.ConnectionType.SUBSCRIBER, node= asm_rule.node ))
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/cancel", type= gateway_msgs.ConnectionType.SUBSCRIBER, node= asm_rule.node ))
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/feedback", type= gateway_msgs.ConnectionType.PUBLISHER, node= asm_rule.node ))
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/status", type= gateway_msgs.ConnectionType.PUBLISHER, node= asm_rule.node ))
+                exp_rules.append( gateway_msgs.Rule(name=asm_rule.name + "/result", type= gateway_msgs.ConnectionType.PUBLISHER, node= asm_rule.node ))
+            else:  # keep calm, no need to explode anything
+                exp_rules.append(asm_rule)
+
+            if isinstance(rule, RemoteRule):
+                # if it was a remote rule, we replicate remote rules:
+                exp_rules = [RemoteRule(gateway=rule.gateway, rule=r) for r in exp_rules]
+
+            result_list += exp_rules
+
+        return result_list
+
+    # unused yet. but striving for symmetry would make things easier to understand...
+    def rule_assemble(self, rule_list):
+        result_list=[]
+        for rule in rule_list:
+
+            if isinstance(rule, RemoteRule):
+                exp_rule = rule.rule
+            else:
+                exp_rule = rule
+
+            # default (non action) case
+            action_name = exp_rule.name
+            action_client = False
+            action_server = False
+
+            if exp_rule.name.endswith("/goal") and exp_rule.type == gateway_msgs.ConnectionType.PUBLISHER:
+                action_name = exp_rule.name[:-len("/goal")]
+                action_client = True
+            elif exp_rule.name.endswith("/cancel") and exp_rule.type == gateway_msgs.ConnectionType.PUBLISHER:
+                action_name = exp_rule.name[:-len("/cancel")]
+                action_client = True
+            elif exp_rule.name.endswith("/feedback") and exp_rule.type == gateway_msgs.ConnectionType.SUBSCRIBER:
+                action_name = exp_rule.name[:-len("/feedback")]
+                action_client = True
+            elif exp_rule.name.endswith("/status") and exp_rule.type == gateway_msgs.ConnectionType.SUBSCRIBER:
+                action_name = exp_rule.name[:-len("/status")]
+                action_client = True
+            elif exp_rule.name.endswith("/result") and exp_rule.type == gateway_msgs.ConnectionType.SUBSCRIBER:
+                action_name = exp_rule.name[:-len("/result")]
+                action_client = True
+
+            if exp_rule.name.endswith("/goal") and exp_rule.type == gateway_msgs.ConnectionType.SUBSCRIBER:
+                action_name = exp_rule.name[:-len("/goal")]
+                action_server = True
+            elif exp_rule.name.endswith("/cancel") and exp_rule.type == gateway_msgs.ConnectionType.SUBSCRIBER:
+                action_name = exp_rule.name[:-len("/cancel")]
+                action_server = True
+            elif exp_rule.name.endswith("/feedback") and exp_rule.type == gateway_msgs.ConnectionType.PUBLISHER:
+                action_name = exp_rule.name[:-len("/feedback")]
+                action_server = True
+            elif exp_rule.name.endswith("/status") and exp_rule.type == gateway_msgs.ConnectionType.PUBLISHER:
+                action_name = exp_rule.name[:-len("/status")]
+                action_server = True
+            elif exp_rule.name.endswith("/result") and exp_rule.type == gateway_msgs.ConnectionType.PUBLISHER:
+                action_name = exp_rule.name[:-len("/result")]
+                action_server = True
+
+            result_rule = None
+            if action_client and len([ a for a in result_list if a.name == action_name and a.type == gateway_msgs.ConnectionType.ACTION_CLIENT and a.node == exp_rule.node]) == 0:
+                result_rule = gateway_msgs.Rule(name=action_name, type=gateway_msgs.ConnectionType.ACTION_CLIENT, node=exp_rule.node)
+            elif action_server and len([ a for a in result_list if a.name == action_name and a.type == gateway_msgs.ConnectionType.ACTION_SERVER and a.node == exp_rule.node]) == 0:
+                result_rule = gateway_msgs.Rule(name=action_name, type=gateway_msgs.ConnectionType.ACTION_SERVER, node=exp_rule.node)
+            elif not action_client and not action_client:  # default case : just include that rule
+                result_rule = exp_rule
+
+            if result_rule is not None:
+                if isinstance(rule, RemoteRule):
+                    result_rule = RemoteRule(rule.gateway, result_rule)
+                result_list.append(result_rule)
+            # else we skip it
+
+        return result_list

@@ -57,6 +57,26 @@ default_flips:
         name: /chatter
         node: None
         type: publisher
+    - gateway: remote_gateway
+      rule:
+        name: /chatter
+        node: None
+        type: subscriber
+    - gateway: remote_gateway
+      rule:
+        name: /add_two_ints
+        node: None
+        type: service
+    - gateway: remote_gateway
+      rule:
+        name: /fibonacci
+        node: None
+        type: action_client
+    - gateway: remote_gateway
+      rule:
+        name: /fibonacci
+        node: None
+        type: action_server
 #    - gateway: pirate_.*            # regex can be used for the rule too
 #      rule:  
 #        name: /chat.*
