@@ -66,6 +66,7 @@ def resolve_connection_cache(timeout=None):
     while not rospy.is_shutdown():
         if timeout_time is not None and time.time() > timeout_time:
             break
+        # CAREFUL : This will still return a topic name if it was there once and has disappeared since.
         topic_names = rostopic.find_by_type("rocon_std_msgs/ConnectionsList")
         if not topic_names or len(topic_names) > 1:
             connection_cache_namespace = None
