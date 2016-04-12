@@ -415,6 +415,7 @@ class GatewayHub(rocon_hub_client.Hub):
             gateway_keys = self._redis_server.smembers(self._redis_keys['gatewaylist'])
             for gateway in gateway_keys:
                 if hub_api.key_base_name(gateway) != self._unique_gateway_name:
+                    # rospy.loginfo("Gateway discovered: [%s][%s]." % (self.name, self.uri))
                     gateways.append(hub_api.key_base_name(gateway))
         except (redis.ConnectionError, AttributeError) as unused_e:
             # redis misbehaves a little here, sometimes it doesn't catch a disconnection properly

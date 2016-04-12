@@ -61,7 +61,7 @@ class Gateway(object):
                 rospy.logwarn(str(exc))
                 rospy.logwarn("Cannot create Gateway's LocalMaster. Retrying...")
                 self.master = None
-		rospy.rostime.wallsleep(1)
+            rospy.rostime.wallsleep(1)
 
         self.ip = self.master.get_ros_ip()  # gateway is always assumed to sit on the same ip as the master
         self._param = param
