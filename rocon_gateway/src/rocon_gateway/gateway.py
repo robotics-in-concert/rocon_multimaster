@@ -109,15 +109,6 @@ class Gateway(object):
             rospy.logdebug("keyboard interrupt, shutting down")
             rospy.core.signal_shutdown('keyboard interrupt')
 
-    def shutdown(self):
-        for connection_type in utils.connection_types:
-            for flip in self.flipped_interface.flipped[connection_type]:
-                self.hub_manager.send_unflip_request(flip.gateway, flip.rule)
-            for registration in self.flipped_interface.registrations[connection_type]:
-                self.master.unregister(registration)
-            for registration in self.pulled_interface.registrations[connection_type]:
-                self.master.unregister(registration)
-
     def is_connected(self):
         '''
           We often check if we're connected to any hubs often just to ensure we
@@ -373,19 +364,12 @@ class Gateway(object):
                 new_registration = self.master.register(registration)
                 if new_registration is not None:
                     self.flipped_interface.registrations[registration.connection.rule.type].append(new_registration)
-                # Update this flip's status
-                if status != FlipStatus.ACCEPTED:
-                    for hub in remote_gateway_hub_index[registration.remote_gateway]:
-                        if hub.uri not in update_flip_status:
-                            update_flip_status[hub.uri] = []
-                        update_flip_status[hub.uri].append((registration, FlipStatus.ACCEPTED))
-            else:
-                # Just make sure that this flip request is marked as accepted
-                if status != FlipStatus.ACCEPTED:
-                    for hub in remote_gateway_hub_index[registration.remote_gateway]:
-                        if hub.uri not in update_flip_status:
-                            update_flip_status[hub.uri] = []
-                        update_flip_status[hub.uri].append((registration, FlipStatus.ACCEPTED))
+            # Update this flip's status
+            if status != FlipStatus.ACCEPTED:
+                for hub in remote_gateway_hub_index[registration.remote_gateway]:
+                    if hub.uri not in update_flip_status:
+                        update_flip_status[hub.uri] = []
+                    update_flip_status[hub.uri].append((registration, FlipStatus.ACCEPTED))
 
         # Update the flip status for newly added registrations
         for hub_uri, hub in hubs.iteritems():

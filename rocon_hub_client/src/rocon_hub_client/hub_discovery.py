@@ -27,7 +27,7 @@ class HubDiscovery(threading.Thread):
     '''
       Used to discover hubs via zeroconf.
     '''
-    def __init__(self, external_discovery_update_hook, direct_hub_uri_list=[], disable_zeroconf=False, blacklisted_hubs={}):
+    def __init__(self, verify_connection_hook, direct_hub_uri_list=[], disable_zeroconf=False, blacklisted_hubs={}):
         '''
           :param external_discovery_update: is a callback function that takes action on a discovery
           :type external_discovery_update: GatewayNode.register_gateway(ip, port)
@@ -38,7 +38,7 @@ class HubDiscovery(threading.Thread):
           :type disallowed_hubs: # 'ip:port' : (error_code, error_code_str) dictionary of hubs that have been blacklisted (maintained by manager of this class)
         '''
         threading.Thread.__init__(self)
-        self.discovery_update_hook = external_discovery_update_hook
+        self.verify_connection_hook = verify_connection_hook
         self._trigger_shutdown = False
         self.trigger_update = False
         self._direct_hub_uri_list = direct_hub_uri_list
@@ -60,8 +60,11 @@ class HubDiscovery(threading.Thread):
         '''
           Called from the main program to shutdown this thread.
         '''
+
         self._trigger_shutdown = True
-        self._trigger_update = True  # causes it to interrupt a sleep and drop back to check shutdown condition
+        self.trigger_update = True  # causes it to interrupt a sleep and drop back to check shutdown condition
+
+        # Avoiding local zombies
         if self.is_alive():  # python complains if you join a non-started thread
             self.join()  # wait for the thread to finish
 
@@ -78,8 +81,8 @@ class HubDiscovery(threading.Thread):
         self._last_loop_timestamp = time.time()  # rospy.Time.now()
         # error codes which inform the client is should stop scanning for this hub
         reasons_not_to_keep_scanning = [
-            ErrorCodes.SUCCESS,
-            ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS,
+            # ErrorCodes.SUCCESS,  # success now might still be broken by the otherside => we always need to check
+            # ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS,  # might exist now but not a bit later => always need to check
             ErrorCodes.HUB_CONNECTION_NOT_IN_NONEMPTY_WHITELIST,
             # this now has to be permitted as we will often have zeroconf failing for gateways
             # that have dropped out of wireless range.
@@ -95,7 +98,7 @@ class HubDiscovery(threading.Thread):
                     (ip, port) = _resolve_address(service)
                     service_uri = str(ip) + ':' + str(port)
                     if service_uri not in self._blacklisted_hubs.keys():
-                        result, reason = self.discovery_update_hook(ip, port)
+                        result, reason = self.verify_connection_hook(ip, port)
                         if result == ErrorCodes.HUB_CONNECTION_UNRESOLVABLE:
                             if service_uri not in unresolvable_hub:
                                 rospy.loginfo("Gateway : unresolvable hub [%s]" % reason)
@@ -104,7 +107,6 @@ class HubDiscovery(threading.Thread):
                             rospy.logwarn("Gateway : hub connection failed. [%s][%s]" %(service_uri, reason))
                         elif result == ErrorCodes.SUCCESS:
                             # we're good
-                            rospy.loginfo("Gateway : discovered hub via zeroconf [%s:%s]" % (str(ip), str(port)))
                             if service_uri in unresolvable_hub:
                                 unresolvable_hub.remove(service_uri)
                         else:  # any of the other reasons not to keep scanning
@@ -114,9 +116,9 @@ class HubDiscovery(threading.Thread):
             new_hubs, unused_lost_hubs = self._direct_scan()
             for hub_uri in new_hubs:
                 hostname, port = _resolve_url(hub_uri)
-                rospy.loginfo("Gateway : discovered hub directly [%s]" % hub_uri)
-                result, _ = self.discovery_update_hook(hostname, port)
+                result, _ = self.verify_connection_hook(hostname, port)
                 if result in reasons_not_to_keep_scanning:
+                    rospy.loginfo("Gateway : ignoring discovered hub [%s]" % hub_uri)
                     self._direct_discovered_hubs.append(hub_uri)
             self._discovered_hubs_modification_mutex.release()
             if not self._zeroconf_services_available and not self._direct_hub_uri_list:
@@ -162,8 +164,10 @@ class HubDiscovery(threading.Thread):
     def _direct_scan(self):
         '''
           Ping the list of hubs we are directly looking for to see if they are alive.
+          Also check if the gateway there is listed to determine if the connection should be refreshed
         '''
         discovered_hubs = []
+        already_used_hubs = []
         remove_uris = []
         for uri in self._direct_hub_uri_list:
             (hostname, port) = _resolve_url(uri)

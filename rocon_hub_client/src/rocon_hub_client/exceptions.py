@@ -66,7 +66,8 @@ class HubConnectionLostError(HubError):
         super(HubConnectionLostError, self).__init__(msg)
         self.id = ErrorCodes.HUB_CONNECTION_LOST
 
+
 class HubConnectionFailedError(HubError):
     def __init__(self, msg):
-        super(HubConnectionLostError, self).__init__(msg)
+        super(HubConnectionFailedError, self).__init__(msg)
         self.id = ErrorCodes.HUB_CONNECTION_FAILED

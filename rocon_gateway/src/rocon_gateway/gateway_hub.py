@@ -73,7 +73,10 @@ class HubConnectionCheckerThread(threading.Thread):
 
 
 class GatewayHub(rocon_hub_client.Hub):
-
+    """
+    Manages the Hub data.
+    This is used both by HubManager for the gateway node, and by the rocon hub watcher.
+    """
     def __init__(self, ip, port, whitelist, blacklist):
         '''
           @param remote_gateway_request_callbacks : to handle redis responses
@@ -187,27 +190,26 @@ class GatewayHub(rocon_hub_client.Hub):
             self._hub_connection_lost_gateway_hook = None
         self.connection_lost_lock.release()
 
-    def unregister_gateway(self):
+    def is_gateway_registered(self):
         '''
-          Remove all gateway info from the hub.
+          Checks if gateway info is on the hub.
 
           @return: success or failure of the operation
           @rtype: bool
         '''
         try:
-            # clear this gateway from the hub
-            self.unregister_named_gateway(self._redis_keys['gateway'])
-            # shut down the thread checker gracefully
-            self.hub_connection_checker_thread.terminate_requested = True
-            self.hub_connection_checker_thread.join(0.5)
+            if self._unique_gateway_name:  # this will be set during the first registration
+                return self.is_named_gateway_registered(self._redis_keys['gateway'])
+            else:
+                # we dont have local memory of being registered
+                # so we want to override any existing record on hubs out there
+                return False
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
             # usually just means the hub has gone down just before us or is in the
-            # middle of doing so let it die nice and peacefully
-            # rospy.logwarn("Gateway : problem unregistering from the hub " +
-            #               "(likely that hub shutdown before the gateway).")
+            # middle of doing so forget it for now
+            # rospy.logwarn("Gateway : problem checking gateway on the hub " +
+            #               "(likely that hub is temporarily out of network).")
             pass
-        # should we not also shut down self.remote_gatew
-        rospy.loginfo("Gateway : unregistered from the hub [%s]" % self.name)
 
     def publish_network_statistics(self, statistics):
         '''
@@ -262,6 +264,16 @@ class GatewayHub(rocon_hub_client.Hub):
             pipe.delete(*gateway_keys)
             pipe.srem(self._redis_keys['gatewaylist'], gateway_key)
             pipe.execute()
+        except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
+            pass
+
+    def is_named_gateway_registered(self, gateway_key):
+        '''
+          Check if the gateway exists in this hub
+          because sometimes the gateway ping can be there but all info has been wiped by the hub
+        '''
+        try:
+            return self._redis_server.sismember(self._redis_keys['gatewaylist'], gateway_key)
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
             pass
 
@@ -861,9 +873,9 @@ class GatewayHub(rocon_hub_client.Hub):
 
         # Check if a flip request already exists on the hub
         if self.get_flip_request_status(RemoteRule(remote_gateway, connection.rule)) is not None:
-            # DJS : dubious as to whether this is the right course of action - could be an old one
-            # left here from a previous gateway crash and no longer the right uri
-            return True
+            # We remove the old one before creating the new one,
+            # to avoid broken flips from previous gateway instance
+            self._send_unflip_request(remote_gateway, connection.rule)
 
         # Encrypt the transmission
         start_time = time.time()
