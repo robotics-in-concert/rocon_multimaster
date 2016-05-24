@@ -10,11 +10,11 @@ max_memory: 10mb
 zeroconf: true
 
 ##############################################################################
-# The following are overridable as args if you use the hub roslauncher
+# The following are overridable as args if you use the hub roslauncher 
 ##############################################################################
 
 # Port on which to start the redis server
 port: 6380
 
-# The amount of time to lapse before flagging a gateway as missing.
+# The amount of time to lapse before flagging a gateway as gone.
 gateway_gone_timeout: 30
