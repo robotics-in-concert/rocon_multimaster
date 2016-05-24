@@ -16,5 +16,5 @@ zeroconf: true
 # Port on which to start the redis server
 port: 6380
 
-# The amount of time to lapse before flagging a gateway as missing.
-gateway_unavailable_timeout: 30
+# The amount of time to lapse before flagging a gateway as gone.
+gateway_gone_timeout: 30
