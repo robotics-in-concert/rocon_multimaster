@@ -252,7 +252,7 @@ class GatewayHub(rocon_hub_client.Hub):
             wireless_noise_level = hub_api.create_rocon_gateway_key(self._unique_gateway_name, 'wireless:noise_level')
             self._redis_server.set(wireless_noise_level, statistics.wireless_noise_level)
         except (redis.exceptions.ConnectionError, redis.exceptions.ResponseError):
-            rospy.logerr("Gateway : unable to publish network statistics [no connection to the hub]")
+            rospy.logdebug("Gateway : unable to publish network statistics [no connection to the hub]")
 
     def unregister_named_gateway(self, gateway_key):
         '''
