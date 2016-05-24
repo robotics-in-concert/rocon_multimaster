@@ -27,18 +27,6 @@ from . import zeroconf
 redi = None
 timeout = 15
 
-##############################################################################
-# Shutdown Handlers
-##############################################################################
-#
-# This lets the hub have a controlled shutdown from an external party
-# (in our special case of interest, from the conductor).
-
-
-def ros_service_shutdown(unused_request):
-    shutdown()
-    return std_srvs.EmptyResponse()
-
 
 def shutdown():
     global redi
@@ -46,25 +34,6 @@ def shutdown():
         rospy.loginfo("Hub : shutting down.")
         redi.shutdown()
         redi = None
-
-
-def wait_for_shutdown():
-    '''
-      Shutdown hook - we wait here for an external shutdown via ros service
-      (at which point redi is None)
-      timing out after a reasonable time if we need to.
-    '''
-    global redi
-    global timeout
-    count = 0.0
-    while count < timeout:
-        if redi is None:
-            return
-        else:
-            count += 0.5
-            rospy.rostime.wallsleep(0.5)  # human time
-    rospy.logwarn("Hub : timed out waiting for external shutdown by ros service, forcing shutdown now.")
-    shutdown()
 
 
 ##############################################################################
@@ -87,10 +56,6 @@ def main():
     utils.check_if_executable_available('redis-server')
     if param['zeroconf']:
         utils.check_if_executable_available('avahi-daemon')
-    if param['external_shutdown']:
-        timeout = param['external_shutdown_timeout']
-        rospy.on_shutdown(wait_for_shutdown)
-        unused_shutdown_service = rospy.Service('~shutdown', std_srvs.Empty, ros_service_shutdown)
 
     redi = redis_server.RedisServer(param)
     redi.start()  # sys exits if server connection is unavailable or incorrect version
@@ -101,6 +66,4 @@ def main():
     watcher_thread = watcher.WatcherThread('localhost', param['port'])
     watcher_thread.start()
     rospy.spin()
-    if not param['external_shutdown']:
-        # do it here, don't wait for the ros service to get triggered
-        shutdown()
+    shutdown()

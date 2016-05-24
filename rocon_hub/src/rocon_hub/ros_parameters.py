@@ -26,7 +26,5 @@ def load():
     param['port'] = rospy.get_param('~port', '6380')
     param['zeroconf'] = rospy.get_param("~zeroconf", True)
     param['max_memory'] = rospy.get_param('~max_memory', '10mb')
-    param['external_shutdown'] = rospy.get_param('~external_shutdown', False)
-    param['external_shutdown_timeout'] = rospy.get_param('~external_shutdown_timeout', 15.0)
 
     return param

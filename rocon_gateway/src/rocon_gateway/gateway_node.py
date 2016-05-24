@@ -67,38 +67,15 @@ class GatewayNode():
         # but not been permitted (hub is not in whitelist, or is blacklisted)
         direct_hub_uri_list = [self._param['hub_uri']] if self._param['hub_uri'] != '' else []
         self._hub_discovery_thread = rocon_hub_client.HubDiscovery(
-            self._register_gateway, direct_hub_uri_list, self._param['disable_zeroconf'], self._disallowed_hubs)
-
-        # Shutdown hooks - allowing external triggers for shutting down
-        if self._param['external_shutdown']:
-            rospy.on_shutdown(self._wait_for_shutdown)
-            unused_shutdown_service = rospy.Service('~shutdown', std_srvs.Empty, self.ros_service_shutdown)
+            self._hub_ensure_connection, direct_hub_uri_list, self._param['disable_zeroconf'], self._disallowed_hubs)
 
         # Make local gateway information immediately available
         self._publish_gateway_info()
 
     def spin(self):
         self._gateway.spin()
-        if not self._param['external_shutdown']:
-            self._shutdown()
+        self._shutdown()
         # else the shutdown hook handles it.
-
-    def _wait_for_shutdown(self):
-        '''
-          Shutdown hook - we wait here for an external shutdown via ros service
-          timing out after a reasonable time if we need to.
-        '''
-        if self._param['external_shutdown']:
-            timeout = self._param['external_shutdown_timeout']
-            count = 0.0
-            while count < timeout:
-                if self._gateway is None:
-                    return
-                else:
-                    count += 0.5
-                    rospy.rostime.wallsleep(0.5)  # human time
-            rospy.logwarn("Gateway : timed out waiting for external shutdown by ros service, forcing shutdown now.")
-            self._shutdown()
 
     def _shutdown(self):
         '''
@@ -106,9 +83,13 @@ class GatewayNode():
         '''
         rospy.loginfo("Gateway : shutting down.")
         try:
+            # We shouldn't do anything network related here.
+            # To be stable against network outages, the shutdown flow and the "crash/network disconnected" flow
+            # should be as close as possible.
+
+            # we still need this to cleanup threads locally
             self._hub_discovery_thread.shutdown()
-            self._gateway.shutdown()
-            self._hub_manager.shutdown()
+
             self._gateway = None
         except Exception as e:
             rospy.logerr("Gateway : unknown error on shutdown [%s][%s]" % (str(e), type(e)))
@@ -118,7 +99,48 @@ class GatewayNode():
     # Hub Discovery & Connection
     ##########################################################################
 
-    def _register_gateway(self, ip, port):
+    def _hub_ensure_connection(self, ip, port):
+        '''
+        Called when the hub discovery can ping a hub
+
+        :param ip:
+        :param port:
+        :return:
+        '''
+
+        uri = ip + ':' + str(port)
+        if uri in self._disallowed_hubs.keys():
+            # we already tried this one before, quietly return from here.
+            return self._disallowed_hubs[uri]
+
+        hub, error_code, error_code_str = self._hub_manager.is_connected_to_hub(ip, port)
+        if error_code == gateway_msgs.ErrorCodes.NO_HUB_CONNECTION:
+            error_code, error_code_str = self._register_gateway(hub)
+
+        if error_code == gateway_msgs.ErrorCodes.SUCCESS:  # everything should be fine...
+            pass
+        elif error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS:  # everything should also be fine...
+            pass
+        elif error_code in self._disallowed_hubs_error_codes:
+            self._disallowed_hubs[uri] = (error_code, error_code_str)
+            rospy.logwarn(
+                "Gateway : failed to register gateway with the hub [%s][%s][%s]" % (uri, error_code, error_code_str))
+        elif error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_FAILED:
+            rospy.logwarn(
+                "Gateway : failed to connect to the hub [%s][%s][%s]" % (uri, error_code, error_code_str))
+        elif error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE:
+            # be less noisy about this one - it's a normal error when a gateway has moved out of wireless range
+            # but we still discover an 'unresolvable' hub on avahi before avahi eventually removes it.
+            rospy.logdebug(
+                "Gateway : failed to register gateway with the hub [%s][%s][%s]" % (uri, error_code, error_code_str))
+        else:
+            rospy.logwarn(
+                "Gateway : Unknown error code when insuring gateway connection with the hub [%s][%s][%s]" %
+                (uri, error_code, error_code_str))
+
+        return error_code, error_code_str
+
+    def _register_gateway(self, hub):
         '''
           Called when either the hub discovery module finds a hub
           or a request to connect via ros service is made.
@@ -135,16 +157,11 @@ class GatewayNode():
 
           @sa hub_discovery.HubDiscovery
         '''
-        uri = ip + ':' + str(port)
-        if uri in self._disallowed_hubs.keys():
-            # we already tried this one before, quietly return from here.
-            return self._disallowed_hubs[uri]
 
         existing_advertisements = self._gateway.public_interface.getConnections()
         hub, error_code, error_code_str = \
             self._hub_manager.connect_to_hub(
-                ip,  # Hub Details
-                port,
+                hub,  # Hub Details
                 self._param['firewall'],  # Gateway Details
                 self._unique_name,
                 self._disengage_hub,
@@ -154,22 +171,7 @@ class GatewayNode():
         if hub:
             rospy.loginfo("Gateway : registering on the hub [%s]" % hub.name)
             self._publish_gateway_info()
-        else:
-            if error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_ALREADY_EXISTS:
-                pass  # be quiet - usually happens if we connect directly, then zeroconf tries.
-            elif error_code in self._disallowed_hubs_error_codes:
-                self._disallowed_hubs[uri] = (error_code, error_code_str)
-                rospy.logwarn(
-                    "Gateway : failed to register gateway with the hub [%s][%s][%s]" % (uri, error_code, error_code_str))
-            elif error_code == gateway_msgs.ErrorCodes.HUB_CONNECTION_UNRESOLVABLE:
-                # be less noisy about this one - it's a normal error when a gateway has moved out of wireless range
-                # but we still discover an 'unresolvable' hub on avahi before avahi eventually removes it.
-                rospy.logdebug(
-                    "Gateway : failed to register gateway with the hub [%s][%s][%s]" % (uri, error_code, error_code_str))
-            else:
-                rospy.logwarn(
-                    "Gateway : caught an unknown error trying register gateway with the hub [%s][%s][%s]" %
-                    (uri, error_code, error_code_str))
+
         return error_code, error_code_str
 
     def _disengage_hub(self, hub):
@@ -235,10 +237,6 @@ class GatewayNode():
     # Ros Service Callbacks
     ##########################################################################
 
-    def ros_service_shutdown(self, unused_request):
-        self._shutdown()
-        return std_srvs.EmptyResponse()
-
     def ros_service_connect_hub(self, request):
         """
           Handle incoming requests to connect directly to a gateway hub.
@@ -248,7 +246,7 @@ class GatewayNode():
         """
         response = gateway_srvs.ConnectHubResponse()
         o = urlparse(request.uri)
-        response.result, response.error_message = self._register_gateway(o.hostname, o.port)
+        response.result, response.error_message = self._hub_ensure_connection(o.hostname, o.port)
         # Some ros logging
         if response.result == gateway_msgs.ErrorCodes.SUCCESS:
             rospy.loginfo("Gateway : made direct connection to hub [%s]" % request.uri)

@@ -48,7 +48,7 @@ class LocalMaster(rosgraph.Master):
     def __init__(self, connection_cache_timeout=None):
         rosgraph.Master.__init__(self, rospy.get_name())
 
-        timeout = connection_cache_timeout or rospy.Time(5)
+        timeout = connection_cache_timeout or rospy.Time(30)
 
         self.connections_lock = threading.Lock()
         self.connections = utils.create_empty_connection_type_dictionary(set)
@@ -63,7 +63,8 @@ class LocalMaster(rosgraph.Master):
             handle_actions=True,
             user_callback=self._connection_cache_proxy_cb,
             diff_opt=True,
-            diff_sub=connection_cache_namespace + 'connection_cache/diff'
+            diff_sub=connection_cache_namespace + 'connection_cache/diff',
+            list_wait_timeout=30  # be generous in timeout in case system is slow to start
         )
         self.get_system_state = self.connection_cache.getSystemState
 
@@ -92,18 +93,44 @@ class LocalMaster(rosgraph.Master):
 
         node_master = rosgraph.Master(registration.local_node)
         if registration.connection.rule.type == rocon_python_comms.PUBLISHER:
-            node_master.registerPublisher(
-                registration.connection.rule.name,
-                registration.connection.type_info,
-                registration.connection.xmlrpc_uri)
-            return registration
+            try:
+                node_master.registerPublisher(
+                    registration.connection.rule.name,
+                    registration.connection.type_info,
+                    registration.connection.xmlrpc_uri)
+                return registration
+            except (socket.error, socket.gaierror) as e:
+                rospy.logerr("Gateway : got socket error trying to register a publisher on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
+            except rosgraph.masterapi.Error as e:
+                rospy.logerr("Gateway : got error trying to register a publisher on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
+            except rosgraph.masterapi.Failure as e:
+                rospy.logerr("Gateway : failed to register a publisher on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
         elif registration.connection.rule.type == rocon_python_comms.SUBSCRIBER:
-            self._register_subscriber(
-                node_master,
-                registration.connection.rule.name,
-                registration.connection.type_info,
-                registration.connection.xmlrpc_uri)
-            return registration
+            try:
+                self._register_subscriber(
+                    node_master,
+                    registration.connection.rule.name,
+                    registration.connection.type_info,
+                    registration.connection.xmlrpc_uri)
+                return registration
+            except (socket.error, socket.gaierror) as e:
+                rospy.logerr("Gateway : got socket error trying to register a subscriber on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
+            except rosgraph.masterapi.Error as e:
+                rospy.logerr("Gateway : got error trying to register a subscriber on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
+            except rosgraph.masterapi.Failure as e:
+                rospy.logerr("Gateway : failed to register a subscriber on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
         elif registration.connection.rule.type == rocon_python_comms.SERVICE:
             node_name = rosservice.get_service_node(registration.connection.rule.name)
             if node_name is not None:
@@ -138,6 +165,11 @@ class LocalMaster(rosgraph.Master):
                         registration.connection.rule.name,
                         registration.connection.type_info,
                         registration.connection.xmlrpc_uri)
+                    return registration
+                except (socket.error, socket.gaierror) as e:
+                    rospy.logerr("Gateway : got socket error trying to register a service on the local master [%s][%s]" % (
+                        registration.connection.rule.name, str(e)))
+                    return None
                 except rosgraph.masterapi.Error as e:
                     rospy.logerr("Gateway : got error trying to register a service on the local master [%s][%s]" % (
                         registration.connection.rule.name, str(e)))
@@ -146,70 +178,98 @@ class LocalMaster(rosgraph.Master):
                     rospy.logerr("Gateway : failed to register a service on the local master [%s][%s]" % (
                         registration.connection.rule.name, str(e)))
                     return None
-                return registration
         elif registration.connection.rule.type == rocon_python_comms.ACTION_SERVER:
-            # Need to update these with self._register_subscriber
-            self._register_subscriber(
-                node_master,
-                registration.connection.rule.name +
-                "/goal",
-                registration.connection.type_info +
-                "ActionGoal",
-                registration.connection.xmlrpc_uri)
-            self._register_subscriber(
-                node_master,
-                registration.connection.rule.name +
-                "/cancel",
-                "actionlib_msgs/GoalID",
-                registration.connection.xmlrpc_uri)
-            node_master.registerPublisher(
-                registration.connection.rule.name +
-                "/status",
-                "actionlib_msgs/GoalStatusArray",
-                registration.connection.xmlrpc_uri)
-            node_master.registerPublisher(
-                registration.connection.rule.name +
-                "/feedback",
-                registration.connection.type_info +
-                "ActionFeedback",
-                registration.connection.xmlrpc_uri)
-            node_master.registerPublisher(
-                registration.connection.rule.name +
-                "/result",
-                registration.connection.type_info +
-                "ActionResult",
-                registration.connection.xmlrpc_uri)
-            return registration
+            try:
+                # Need to update these with self._register_subscriber
+                self._register_subscriber(
+                    node_master,
+                    registration.connection.rule.name +
+                    "/goal",
+                    registration.connection.type_info +
+                    "ActionGoal",
+                    registration.connection.xmlrpc_uri)
+                self._register_subscriber(
+                    node_master,
+                    registration.connection.rule.name +
+                    "/cancel",
+                    "actionlib_msgs/GoalID",
+                    registration.connection.xmlrpc_uri)
+                node_master.registerPublisher(
+                    registration.connection.rule.name +
+                    "/status",
+                    "actionlib_msgs/GoalStatusArray",
+                    registration.connection.xmlrpc_uri)
+                node_master.registerPublisher(
+                    registration.connection.rule.name +
+                    "/feedback",
+                    registration.connection.type_info +
+                    "ActionFeedback",
+                    registration.connection.xmlrpc_uri)
+                node_master.registerPublisher(
+                    registration.connection.rule.name +
+                    "/result",
+                    registration.connection.type_info +
+                    "ActionResult",
+                    registration.connection.xmlrpc_uri)
+                return registration
+            except (socket.error, socket.gaierror) as e:
+                rospy.logerr("Gateway : got socket error trying to register an action server on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
+            except rosgraph.masterapi.Error as e:
+                rospy.logerr("Gateway : got error trying to register an action server on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
+            except rosgraph.masterapi.Failure as e:
+                rospy.logerr("Gateway : failed to register an action server on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
         elif registration.connection.rule.type == rocon_python_comms.ACTION_CLIENT:
-            node_master.registerPublisher(
-                registration.connection.rule.name +
-                "/goal",
-                registration.connection.type_info +
-                "ActionGoal",
-                registration.connection.xmlrpc_uri)
-            node_master.registerPublisher(
-                registration.connection.rule.name +
-                "/cancel",
-                "actionlib_msgs/GoalID",
-                registration.connection.xmlrpc_uri)
-            self._register_subscriber(node_master, registration.connection.rule.name +
-                                      "/status", "actionlib_msgs/GoalStatusArray", registration.connection.xmlrpc_uri)
-            self._register_subscriber(
-                node_master,
-                registration.connection.rule.name +
-                "/feedback",
-                registration.connection.type_info +
-                "ActionFeedback",
-                registration.connection.xmlrpc_uri)
-            self._register_subscriber(
-                node_master,
-                registration.connection.rule.name +
-                "/result",
-                registration.connection.type_info +
-                "ActionResult",
-                registration.connection.xmlrpc_uri)
-            return registration
-        return None
+            try:
+                node_master.registerPublisher(
+                    registration.connection.rule.name +
+                    "/goal",
+                    registration.connection.type_info +
+                    "ActionGoal",
+                    registration.connection.xmlrpc_uri)
+                node_master.registerPublisher(
+                    registration.connection.rule.name +
+                    "/cancel",
+                    "actionlib_msgs/GoalID",
+                    registration.connection.xmlrpc_uri)
+                self._register_subscriber(node_master, registration.connection.rule.name +
+                                          "/status", "actionlib_msgs/GoalStatusArray", registration.connection.xmlrpc_uri)
+                self._register_subscriber(
+                    node_master,
+                    registration.connection.rule.name +
+                    "/feedback",
+                    registration.connection.type_info +
+                    "ActionFeedback",
+                    registration.connection.xmlrpc_uri)
+                self._register_subscriber(
+                    node_master,
+                    registration.connection.rule.name +
+                    "/result",
+                    registration.connection.type_info +
+                    "ActionResult",
+                    registration.connection.xmlrpc_uri)
+                return registration
+            except (socket.error, socket.gaierror) as e:
+                rospy.logerr("Gateway : got socket error trying to register an action server on the local master [%s][%s]" % (
+                        registration.connection.rule.name, str(e)))
+                return None
+            except rosgraph.masterapi.Error as e:
+                rospy.logerr("Gateway : got error trying to register an action server on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
+            except rosgraph.masterapi.Failure as e:
+                rospy.logerr("Gateway : failed to register an action server on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+                return None
+        else:
+            rospy.logerr("Gateway : tried to register unknown rule type [%s]" % (
+                registration.connection.rule.type))
+            return None
 
     def unregister(self, registration):
         '''
@@ -221,34 +281,83 @@ class LocalMaster(rosgraph.Master):
         node_master = rosgraph.Master(registration.local_node)
         rospy.logdebug("Gateway : unregistering local node [%s] for [%s]" % (registration.local_node, registration))
         if registration.connection.rule.type == rocon_python_comms.PUBLISHER:
-            node_master.unregisterPublisher(registration.connection.rule.name, registration.connection.xmlrpc_uri)
+            try:
+                node_master.unregisterPublisher(registration.connection.rule.name, registration.connection.xmlrpc_uri)
+            except (socket.error, socket.gaierror) as e:
+                rospy.logerr("Gateway : got socket error trying to unregister a publisher on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Error as e:
+                rospy.logerr("Gateway : got error trying to unregister a publisher on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Failure as e:
+                rospy.logerr("Gateway : failed to unregister a publisher on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
         elif registration.connection.rule.type == rocon_python_comms.SUBSCRIBER:
-            self._unregister_subscriber(
-                node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name)
+            try:
+                node_master.unregisterSubscriber(registration.connection.rule.name, registration.connection.xmlrpc_uri)
+            except (socket.error, socket.gaierror) as e:
+                rospy.logerr("Gateway : got socket error trying to unregister a subscriber on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Error as e:
+                rospy.logerr("Gateway : got error trying to unregister a subscriber on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Failure as e:
+                rospy.logerr("Gateway : failed to unregister a subscriber on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
         elif registration.connection.rule.type == rocon_python_comms.SERVICE:
-            node_master.unregisterService(registration.connection.rule.name, registration.connection.type_info)
+            try:
+                node_master.unregisterService(registration.connection.rule.name, registration.connection.type_info)
+            except (socket.error, socket.gaierror) as e:
+                rospy.logerr("Gateway : got socket error trying to unregister a service on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Error as e:
+                rospy.logerr("Gateway : got error trying to unregister a service on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Failure as e:
+                rospy.logerr("Gateway : failed to unregister a service on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
         elif registration.connection.rule.type == rocon_python_comms.ACTION_SERVER:
-            self._unregister_subscriber(
-                node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/goal")
-            self._unregister_subscriber(
-                node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/cancel")
-            node_master.unregisterPublisher(
-                registration.connection.rule.name + "/status", registration.connection.xmlrpc_uri)
-            node_master.unregisterPublisher(
-                registration.connection.rule.name + "/feedback", registration.connection.xmlrpc_uri)
-            node_master.unregisterPublisher(
-                registration.connection.rule.name + "/result", registration.connection.xmlrpc_uri)
+            try:
+                node_master.unregisterSubscriber(
+                    registration.connection.rule.name + "/goal", registration.connection.xmlrpc_uri)
+                node_master.unregisterSubscriber(
+                    registration.connection.rule.name + "/cancel", registration.connection.xmlrpc_uri)
+                node_master.unregisterPublisher(
+                    registration.connection.rule.name + "/status", registration.connection.xmlrpc_uri)
+                node_master.unregisterPublisher(
+                    registration.connection.rule.name + "/feedback", registration.connection.xmlrpc_uri)
+                node_master.unregisterPublisher(
+                    registration.connection.rule.name + "/result", registration.connection.xmlrpc_uri)
+            except (socket.error, socket.gaierror) as e:
+                rospy.logerr("Gateway : got socket error trying to unregister an action server on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Error as e:
+                rospy.logerr("Gateway : got error trying to unregister an action server on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Failure as e:
+                rospy.logerr("Gateway : failed to unregister an action server on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
         elif registration.connection.rule.type == rocon_python_comms.ACTION_CLIENT:
-            node_master.unregisterPublisher(
-                registration.connection.rule.name + "/goal", registration.connection.xmlrpc_uri)
-            node_master.unregisterPublisher(
-                registration.connection.rule.name + "/cancel", registration.connection.xmlrpc_uri)
-            self._unregister_subscriber(
-                node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/status")
-            self._unregister_subscriber(
-                node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/feedback")
-            self._unregister_subscriber(
-                node_master, registration.connection.xmlrpc_uri, registration.connection.rule.name + "/result")
+            try:
+                node_master.unregisterPublisher(
+                    registration.connection.rule.name + "/goal", registration.connection.xmlrpc_uri)
+                node_master.unregisterPublisher(
+                    registration.connection.rule.name + "/cancel", registration.connection.xmlrpc_uri)
+                node_master.unregisterSubscriber(
+                    registration.connection.rule.name + "/status", registration.connection.xmlrpc_uri)
+                node_master.unregisterSubscriber(
+                    registration.connection.rule.name + "/feedback", registration.connection.xmlrpc_uri)
+                node_master.unregisterSubscriber(
+                    registration.connection.rule.name + "/result", registration.connection.xmlrpc_uri)
+            except (socket.error, socket.gaierror) as e:
+                rospy.logerr("Gateway : got socket error trying to unregister an action client on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Error as e:
+                rospy.logerr("Gateway : got error trying to unregister an action client on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
+            except rosgraph.masterapi.Failure as e:
+                rospy.logerr("Gateway : failed to unregister an action client on the local master [%s][%s]" % (
+                    registration.connection.rule.name, str(e)))
 
     def _register_subscriber(self, node_master, name, type_info, xmlrpc_uri):
         '''
@@ -268,9 +377,12 @@ class LocalMaster(rosgraph.Master):
         pub_uri_list = node_master.registerSubscriber(name, type_info, xmlrpc_uri)
         # Be nice to the subscriber, inform it that is should refresh it's publisher list.
         try:
-            # rospy.loginfo("register_subscriber [%s][%s][%s]" % (name, xmlrpc_uri, pub_uri_list))
+            rospy.loginfo(
+                "resetting publishers for this node's subscriber [%s][%s][%s]" % (name, xmlrpc_uri, pub_uri_list))
+            # this publisherUpdate will overwrite any other publisher currently known by the subscriber
             xmlrpcapi(xmlrpc_uri).publisherUpdate('/master', name, pub_uri_list)
-        except socket.error as v:
+
+        except (socket.error, socket.gaierror) as v:
             errorcode = v[0]
             if errorcode != errno.ECONNREFUSED:
                 rospy.logerr(
@@ -279,44 +391,12 @@ class LocalMaster(rosgraph.Master):
                 rospy.logerr("Gateway : errorcode [%s] xmlrpc_uri [%s]" % (str(errorcode), xmlrpc_uri))
                 raise  # better handling here would be ideal
             else:
-                pass  # subscriber stopped on the other side, don't worry about telling it to 'refresh' its publishers
+                pass
+                # subscriber stopped on the other side, so don't worry about telling it to 'refresh' its publishers
         except xmlrpclib.Fault as e:
             # as above with the socket error, don't worry about telling it to 'refresh' its publishers
-            rospy.logerr("Gateway : serious fault while communicating with a subscriber - it's xmlrpc server was around but in a bad state [%s]" % str(e))
+            rospy.logerr("Gateway : serious fault while communicating with a subscriber - its xmlrpc server was around but in a bad state [%s]" % str(e))
             rospy.logerr("Gateway : if this happened, add to the collected information gathered at https://github.com/robotics-in-concert/rocon_multimaster/issues/304")
-
-    def _unregister_subscriber(self, node_master, xmlrpc_uri, name):
-        '''
-          It is a special case as it requires xmlrpc handling to inform the subscriber of
-          the disappearance of publishers it was connected to. It also needs to handle the
-          case when that information doesn't get to the subscriber because it is down.
-
-          @param node_master : node-master xmlrpc method handler
-          @param xmlrpc_uri : the uri of the node (xmlrpc server)
-          @type string
-          @param name : fully resolved subscriber name
-        '''
-        # This unfortunately is a game breaker - it destroys all connections, not just those
-        # connected to this master, see #125.
-        try:
-            xmlrpcapi(xmlrpc_uri).publisherUpdate('/master', name, [])
-        except socket.error as v:
-            errorcode = v[0]
-            if errorcode != errno.ECONNREFUSED:
-                raise  # better handling here would be ideal
-            else:
-                pass  # subscriber stopped on the other side, don't worry about it
-        except xmlrpclib.Fault:
-            # This occurs when the subscriber has gone down and unflipped.
-            # For us this is not an error since we were only informing
-            # the subscriber of an updated publisher state...which
-            # it no longer needs!
-            pass
-        except httplib.CannotSendRequest:
-            # This occurs if the master has shut down, just ignore this gracefully.
-            # I'm not aware that it's important to catch this at any othe time.
-            pass
-        node_master.unregisterSubscriber(name, xmlrpc_uri)
 
     ##########################################################################
     # Master utility methods
