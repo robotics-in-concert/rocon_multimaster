@@ -1,6 +1,9 @@
 Changelog
 =========
 
+0.8.1 (2016-06-17)
+------------------
+* handle flip problems when connections go down
 
 0.8.0 (2015-10-10)
 ------------------
