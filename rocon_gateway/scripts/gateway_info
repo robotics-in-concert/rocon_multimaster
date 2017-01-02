@@ -47,8 +47,9 @@ if __name__ == '__main__':
     print("  Namespace   : %s" % gateway_namespace)
     print("  Name        : %s" % rocon_gateway_utils.gateway_basename(gateway.name))
     print("  Hash Name   : %s" % gateway.name)
-    print("  Namespace   : %s" % gateway_namespace)
     print("  Ip/Hostname : %s" % gateway.ip)
+    print("  Zeroconf    : %s" % gateway.zeroconf_services_available)
+    print("  Hub URIs    : %s" % gateway.direct_hub_uris)
     print("  Connected   : %s" % gateway.connected)
     if gateway.hub_names:
         max_len = 0

@@ -258,6 +258,8 @@ class GatewayNode():
         try:
             gateway_info = gateway_msgs.GatewayInfo()
             gateway_info.name = self._unique_name
+            gateway_info.zeroconf_services_available = self._hub_discovery_thread._zeroconf_services_available
+            gateway_info.direct_hub_uris = self._hub_discovery_thread._direct_hub_uri_list
             gateway_info.ip = self._gateway.ip
             gateway_info.connected = self._gateway.is_connected()
             gateway_info.hub_names = []
