@@ -13,7 +13,7 @@ script will fill in this value before launching the redis server.
 
 * include %(local_conf_filename)s
 
-### 2.6/2.8
+### 2.6/2.8/3.0
 
 Delete a comment in redis-2.6.conf/redis-2.8.conf so python substitution can work..
 
