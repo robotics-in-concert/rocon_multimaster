@@ -10,34 +10,13 @@
 
 import os
 import socket
-import sys
 import rosgraph
 import rocon_console.console as console
 
 ##############################################################################
-# Logging
-##############################################################################
-
-
-def loginfo(message):
-    print("[ INFO] " + message)
-
-
-def logwarn(message):
-    print(console.yellow + ("[ WARN] " + message) + console.reset)
-
-
-def logerror(message):
-    print(console.red + ("[ERROR] " + message) + console.reset)
-
-
-def logfatal(message):
-    print(console.red + ("[FATAL] " + message) + console.reset)
-
-
-##############################################################################
 # Ros
 ##############################################################################
+
 
 def check_master():
     """
@@ -87,9 +66,9 @@ def check_if_executable_available(name):
       Deprecated - aborts program execution with fatal error if not found.
     '''
     if which(name + 'z') is None:
-        logwarn("Hub : " + name + " not found")
-        logwarn("Hub :     either you can't look up the admin PATH (ok)")
-        logwarn("Hub :     or it is not installed - hint 'rosdep install rocon_hub'")
+        console.logwarn("Hub : " + name + " not found, either")
+        console.logwarn("Hub :   1) it is there and you can't look up the admin PATH (ok - ignore this)")
+        console.logwarn("Hub :   2) OR it is not installed - hint 'rosdep install rocon_hub'")
 
 ##############################################################################
 # File Handling
