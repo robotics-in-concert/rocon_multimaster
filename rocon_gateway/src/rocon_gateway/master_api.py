@@ -68,7 +68,6 @@ class LocalMaster(rosgraph.Master):
         )
         self.get_system_state = self.connection_cache.getSystemState
 
-
     ##########################################################################
     # Registration
     ##########################################################################
@@ -540,7 +539,7 @@ class LocalMaster(rosgraph.Master):
                     ros_ip = os.environ['ROS_HOSTNAME']
                 except Exception:
                     # should probably check other means here - e.g. first of the system ipconfig
-                    rospy.logwarn("Gateway : no valid ip found for this host, just setting 'localhost'")
+                    rospy.logwarn("Gateway : no ROS_IP/HOSTNAME for this host -> using 'localhost'")
                     return 'localhost'
             return ros_ip
         else:
